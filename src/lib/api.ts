@@ -8,6 +8,7 @@ export async function readJson(req: Request): Promise<unknown> {
   if (Number(req.headers.get('content-length') ?? 0) > MAX_BODY) throw new ApiError(413, 'Payload too large');
   let text = '';
   if (req.body) {
+    if (!/^application\/json\b/i.test(req.headers.get('content-type') ?? '')) throw new ApiError(415, 'Content-Type must be application/json');
     const reader = req.body.getReader();
     const decoder = new TextDecoder();
     let bytes = 0;
