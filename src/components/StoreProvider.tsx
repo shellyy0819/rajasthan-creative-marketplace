@@ -38,7 +38,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [booking, setBooking] = useState<Workshop | null>(null);
   const [toast, setToast] = useState('');
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const hydrated = useRef(false);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
@@ -48,12 +48,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         if (Array.isArray(parsed)) setItems(parsed.filter(i => i && typeof i.productId === 'string' && Number.isInteger(i.quantity) && i.quantity > 0));
       }
     } catch {}
-    hydrated.current = true;
+    setHydrated(true);
   }, []);
   useEffect(() => {
-    if (!hydrated.current) return;
+    if (!hydrated) return;
     try { localStorage.setItem('rr-cart', JSON.stringify(items)); } catch {}
-  }, [items]);
+  }, [items, hydrated]);
 
   const notify = useCallback((msg: string) => {
     setToast(msg);

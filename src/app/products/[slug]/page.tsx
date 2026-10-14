@@ -10,6 +10,7 @@ import { breadcrumbJsonLd, productJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
 import { money } from '@/lib/money';
 
+export const dynamicParams = false;
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateStaticParams() {

@@ -10,6 +10,7 @@ import { breadcrumbJsonLd, workshopJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
 import { money } from '@/lib/money';
 
+export const dynamicParams = false;
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateStaticParams() {
@@ -30,7 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function WorkshopPage({ params }: Props) {
   const w = await getWorkshopBySlug((await params).slug);
   if (!w) notFound();
-  const { day, month } = formatDay(w.date);
+  const { day, month, year } = formatDay(w.date);
   const left = w.seats - w.booked;
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Workshops', path: '/workshops' }, { name: w.title, path: `/workshops/${workshopSlug(w)}` }];
   return (
@@ -46,7 +47,7 @@ export default async function WorkshopPage({ params }: Props) {
           <h1>{w.title}</h1>
           <p className="lead">{w.description}</p>
           <dl>
-            <dt>When</dt><dd><time dateTime={`${w.date}T${w.time}+05:30`}>{day} {month} 2026, {w.time}</time></dd>
+            <dt>When</dt><dd><time dateTime={`${w.date}T${w.time}+05:30`}>{day} {month} {year}, {w.time}</time></dd>
             <dt>Where</dt><dd>{w.venue}, <Link href={`/cities/${citySlug(w.city)}`}>{w.city}</Link></dd>
             <dt>Host</dt><dd>{w.host}</dd>
             <dt>Seats left</dt><dd>{left > 0 ? `${left} of ${w.seats}` : 'Full'}</dd>

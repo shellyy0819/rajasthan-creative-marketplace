@@ -70,3 +70,11 @@ describe('createBooking', () => {
     expect(r.filter(x => x.status === 'fulfilled')).toHaveLength(9);
   });
 });
+
+describe('malformed input is a 400, not a 500', () => {
+  it('rejects null / non-object item entries', async () => {
+    for (const items of [[null], ['p1'], [42]]) {
+      await expect(createOrder({ items })).rejects.toMatchObject({ status: 400 });
+    }
+  });
+});

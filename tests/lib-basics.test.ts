@@ -21,7 +21,7 @@ describe('slugify', () => {
 
 describe('format', () => {
   it('formatDay uses IST regardless of server tz', () => {
-    expect(formatDay('2026-11-08')).toEqual({ day: 8, month: 'Nov' });
+    expect(formatDay('2026-11-08')).toEqual({ day: 8, month: 'Nov', year: 2026 });
   });
   it('truncate adds ellipsis only when needed', () => {
     expect(truncate('abc', 5)).toBe('abc');
@@ -44,5 +44,11 @@ describe('site', () => {
   it('defaults to localhost', () => {
     delete process.env.NEXT_PUBLIC_SITE_URL;
     expect(siteUrl()).toBe('http://localhost:3000');
+  });
+});
+
+describe('formatDay year', () => {
+  it('returns the year from the date, not a hardcoded one', () => {
+    expect(formatDay('2027-01-10')).toEqual({ day: 10, month: 'Jan', year: 2027 });
   });
 });

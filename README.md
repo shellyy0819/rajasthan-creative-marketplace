@@ -50,7 +50,7 @@ Before public launch, replace the demo persistence with PostgreSQL + Prisma, add
 
 ## Reset sample data
 
-Stop the server and restore `data/db.json` from the original zip, or copy the JSON shown in the initial `data/db.json` file before testing orders/bookings. The server writes inventory, booking capacity, orders and bookings to that file.
+Orders and bookings write `data/db.json`. Restore the seed with `git checkout data/db.json`.
 
 ## Suggested next build
 

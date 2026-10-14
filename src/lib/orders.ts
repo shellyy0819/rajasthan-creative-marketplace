@@ -9,6 +9,8 @@ const str = (v: unknown, fallback: string, max: number) => String(v ?? fallback)
 export async function createOrder(input: unknown): Promise<Order> {
   const b = (input ?? {}) as Raw;
   if (!Array.isArray(b.items) || !b.items.length) throw new ApiError(400, 'Add at least one item.');
+  if (b.items.some(i => !i || typeof i !== 'object' || Array.isArray(i)))
+    throw new ApiError(400, 'A product is unavailable or quantity exceeds stock.');
   const reqItems = b.items as Raw[];
   return mutateDb(db => {
     const items = reqItems.map(i => {
