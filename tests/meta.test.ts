@@ -14,3 +14,12 @@ describe('pageMetadata', () => {
     expect(pageMetadata({ title: 'a', description: 'b', path: '/shop', noindex: true }).robots).toEqual({ index: false, follow: true });
   });
 });
+
+describe('pageMetadata og image', () => {
+  it('defaults to the site OG image so child pages do not lose og:image', () => {
+    expect(pageMetadata({ title: 'a', description: 'b', path: '/shop' }).openGraph).toMatchObject({ images: ['/opengraph-image'] });
+  });
+  it('image:false omits it (page has its own opengraph-image file)', () => {
+    expect((pageMetadata({ title: 'a', description: 'b', path: '/x', image: false }).openGraph as { images?: unknown }).images).toBeUndefined();
+  });
+});

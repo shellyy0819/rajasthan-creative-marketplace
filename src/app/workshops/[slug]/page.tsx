@@ -23,6 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${w.title} — workshop in ${w.city}`,
     description: `${w.description} ${w.date} at ${w.venue}, ${w.city}. Hosted by ${w.host}. ${w.type === 'FREE' ? 'Free' : money(w.pricePaise)}.`,
     path: `/workshops/${workshopSlug(w)}`,
+    image: false,
   });
 }
 

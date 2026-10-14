@@ -1,17 +1,27 @@
 # Rang Rajasthan — Creative Marketplace (Runnable Starter)
 
-A small, runnable full-stack MVP for a Rajasthan handmade-products marketplace and local workshop discovery experience. It uses Node.js built-ins only, so no dependency installation or database service is required for the demo.
+A small, runnable full-stack MVP for a Rajasthan handmade-products marketplace and local workshop discovery experience. Built with Next.js (App Router) and a JSON-file store, so no database service is required for the demo.
 
 ## Run it
 
-Requirements: Node.js 18 or newer.
+Requirements: Node.js 20.9+ (required by current Next.js).
 
 ```bash
-cd rajasthan-creative-marketplace
-npm start
+npm install
+cp .env.example .env.local   # set NEXT_PUBLIC_SITE_URL to your real origin in production
+npm run dev                  # http://localhost:3000
+npm run build && npm start   # production
+npm test                     # unit tests
+BASE_URL=http://localhost:3000 npm run seo:check   # against a running server
 ```
 
-Open **http://localhost:3000**. The API health check is **http://localhost:3000/api/health**.
+## SEO
+
+Server-rendered pages; per-page metadata + canonical; JSON-LD (Organization, WebSite + SearchAction, Product + Offer, Event, BreadcrumbList); `/sitemap.xml`, `/robots.txt`, `/manifest.webmanifest`; dynamic OG images; filtered views are `noindex,follow` with canonical to the base list page; unknown slugs return real 404s. Pages: `/`, `/shop`, `/workshops`, `/products/[slug]`, `/workshops/[slug]`, `/cities/[city]`.
+
+## Deploy note
+
+Orders and bookings write `data/db.json`, so deploy on a host with a persistent writable disk (single Node process). Serverless or read-only filesystems need the PostgreSQL step below first.
 
 ## Included and working
 
@@ -44,4 +54,4 @@ Stop the server and restore `data/db.json` from the original zip, or copy the JS
 
 ## Suggested next build
 
-Build the production foundation in increments: (1) Next.js + NestJS + PostgreSQL/Prisma, (2) auth and role/resource guards, (3) seller onboarding and admin moderation, (4) product/order lifecycle, (5) approved marketplace payment flow and ledger, (6) workshop capacity and bookings, (7) shipping, emails, audit trail, monitoring and deployment.
+Build the production foundation in increments: (1) PostgreSQL/Prisma behind the existing repository layer (Next route handlers or NestJS), (2) auth and role/resource guards, (3) seller onboarding and admin moderation, (4) product/order lifecycle, (5) approved marketplace payment flow and ledger, (6) workshop capacity and bookings, (7) shipping, emails, audit trail, monitoring and deployment.

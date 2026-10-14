@@ -23,6 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${p.name} — handmade in ${p.city}`,
     description: `${p.description} Handmade by ${p.seller} in ${p.city}. ${money(p.pricePaise)}.`,
     path: `/products/${productSlug(p)}`,
+    image: false,
   });
 }
 

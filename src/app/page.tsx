@@ -12,6 +12,7 @@ export const metadata: Metadata = {
     title: `${SITE.name} — ${SITE.tagline}`,
     description: SITE.description,
     path: '/',
+    image: false,
   }),
   title: { absolute: `${SITE.name} — ${SITE.tagline}` },
 };
