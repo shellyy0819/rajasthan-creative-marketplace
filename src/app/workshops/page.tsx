@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { FilterForm } from '@/components/FilterForm';
-import { WorkshopList } from '@/components/WorkshopList';
+import { LiveCatalog } from '@/components/LiveCatalog';
 import { JsonLd } from '@/components/JsonLd';
 import { listWorkshops } from '@/lib/catalog';
 import { hasFilters, parseFilters } from '@/lib/filters';
@@ -31,12 +30,9 @@ export default async function WorkshopsPage({ searchParams }: Props) {
       <div className="page-head">
         <span className="eyebrow">OUT OF THE SCROLL, INTO THE STUDIO</span>
         <h1>Creative workshops &amp; pop-ups</h1>
-        <p>{workshops.length} {workshops.length === 1 ? 'experience' : 'experiences'}{f.city ? ` in ${f.city}` : ' around Rajasthan'}.</p>
+        <p>Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.</p>
       </div>
-      <section className="workshop-band" style={{ display: 'block', marginTop: 30 }}>
-        <FilterForm action="/workshops" kind="workshops" values={f} />
-        <WorkshopList workshops={workshops} />
-      </section>
+      <LiveCatalog kind="workshops" initialItems={workshops} initialValues={f} />
     </>
   );
 }

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Workshop } from '@/lib/types';
 import { money } from '@/lib/money';
 import { formatDay } from '@/lib/format';
-import { workshopSlug } from '@/lib/catalog';
+import { workshopSlug } from '@/lib/catalog-shared';
 import { ReserveButton } from './ReserveButton';
 
 export function WorkshopCard({ w }: { w: Workshop }) {

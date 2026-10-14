@@ -2237,3 +2237,9 @@ git add -A && git commit -m "feat: sitemap, robots, manifest, SEO check script; 
 ### Task 13 (added by user request): admin-only product/workshop management APIs
 
 **Decision (user-confirmed):** GET stays public; add `POST /api/products`, `PATCH|DELETE /api/products/[id]`, `POST /api/workshops`, `PATCH|DELETE /api/workshops/[id]`, all admin-only (401 anonymous, 403 customer). Validation in `src/lib/admin.ts` (`createProduct/updateProduct/deleteProduct`, same for workshops); unknown body fields (id, booked) are ignored; workshop `seats` can't drop below `booked`; FREE ⇒ price 0. Ruling: detail pages become `force-dynamic` (no `generateStaticParams`) so new listings are live immediately and unknown slugs are never disk-cached.
+
+---
+
+### Task 14 (added by user request): live filtering on /shop and /workshops
+
+**Behavior:** selecting any dropdown option immediately fetches `/api/products` (or `/api/workshops`) with the chosen filters; typing in search is debounced (300 ms) and fetches once after typing pauses. First paint stays server-rendered (SEO); the GET form still works without JS. Stale requests are aborted, failures keep the previous results and show an error, the URL is updated with `history.replaceState` so views stay shareable. Slug/constant helpers move to `src/lib/catalog-shared.ts` (no `fs`) so client components can import them; `catalog.ts` re-exports them. Tests: `tests/live-catalog.test.tsx` (jsdom + Testing Library).

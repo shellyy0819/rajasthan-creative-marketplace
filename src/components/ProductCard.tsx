@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Product } from '@/lib/types';
 import { money } from '@/lib/money';
-import { productSlug } from '@/lib/catalog';
+import { productSlug } from '@/lib/catalog-shared';
 import { AddToCartButton } from './AddToCartButton';
 
 export const SYMBOLS = ['🌷', '⛵', '🌼', '🏺', '🧶', '🌸'];

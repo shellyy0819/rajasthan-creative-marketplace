@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { FilterForm } from '@/components/FilterForm';
-import { ProductGrid } from '@/components/ProductGrid';
+import { LiveCatalog } from '@/components/LiveCatalog';
 import { JsonLd } from '@/components/JsonLd';
 import { listProducts } from '@/lib/catalog';
 import { hasFilters, parseFilters } from '@/lib/filters';
@@ -31,12 +30,9 @@ export default async function ShopPage({ searchParams }: Props) {
       <div className="page-head">
         <span className="eyebrow">THE MAKERS&apos; SHELF</span>
         <h1>Handmade finds from Rajasthan</h1>
-        <p>{products.length} {products.length === 1 ? 'find' : 'finds'} to love{f.city ? ` in ${f.city}` : ''}.</p>
+        <p>Crochet, resin art, pottery and accessories from independent makers in Udaipur, Jaipur and Jodhpur.</p>
       </div>
-      <section className="section" style={{ paddingTop: 10 }}>
-        <FilterForm action="/shop" kind="products" values={f} />
-        <ProductGrid products={products} />
-      </section>
+      <LiveCatalog kind="products" initialItems={products} initialValues={f} />
     </>
   );
 }

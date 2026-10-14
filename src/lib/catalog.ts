@@ -1,15 +1,8 @@
 import { readDb } from './db';
-import { slugify } from './slug';
+import { productSlug, workshopSlug } from './catalog-shared';
 import type { Product, Workshop } from './types';
 
-export const CITIES = ['Udaipur', 'Jaipur', 'Jodhpur'] as const;
-export const CATEGORIES = ['Crochet & Textiles', 'Accessories', 'Resin Art', 'Pottery'] as const;
-
-export const citySlug = (city: string) => slugify(city);
-export const cityFromSlug = (slug: string) => CITIES.find(c => citySlug(c) === slug);
-
-export const productSlug = (p: Product) => `${slugify(p.name)}-${p.id}`;
-export const workshopSlug = (w: Workshop) => `${slugify(w.title)}-${w.id}`;
+export { CITIES, CATEGORIES, citySlug, cityFromSlug, productSlug, workshopSlug } from './catalog-shared';
 
 export type ProductFilter = { city?: string; category?: string; q?: string };
 export type WorkshopFilter = { city?: string; type?: string; q?: string };
