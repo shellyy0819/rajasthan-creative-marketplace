@@ -1,0 +1,42 @@
+import type { Metadata } from 'next';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { FilterForm } from '@/components/FilterForm';
+import { WorkshopList } from '@/components/WorkshopList';
+import { JsonLd } from '@/components/JsonLd';
+import { listWorkshops } from '@/lib/catalog';
+import { hasFilters, parseFilters } from '@/lib/filters';
+import { breadcrumbJsonLd } from '@/lib/jsonld';
+import { pageMetadata } from '@/lib/meta';
+
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const f = parseFilters(await searchParams);
+  return pageMetadata({
+    title: 'Creative workshops & pop-ups in Rajasthan',
+    description: 'Hands-on crochet, painting and maker meetups hosted by local studios and cafés in Udaipur, Jaipur and Jodhpur. Free and paid.',
+    path: '/workshops',
+    noindex: hasFilters(f),
+  });
+}
+
+export default async function WorkshopsPage({ searchParams }: Props) {
+  const f = parseFilters(await searchParams);
+  const workshops = await listWorkshops(f);
+  const crumbs = [{ name: 'Home', path: '/' }, { name: 'Workshops', path: '/workshops' }];
+  return (
+    <>
+      <JsonLd data={breadcrumbJsonLd(crumbs)} />
+      <Breadcrumbs items={crumbs} />
+      <div className="page-head">
+        <span className="eyebrow">OUT OF THE SCROLL, INTO THE STUDIO</span>
+        <h1>Creative workshops &amp; pop-ups</h1>
+        <p>{workshops.length} {workshops.length === 1 ? 'experience' : 'experiences'}{f.city ? ` in ${f.city}` : ' around Rajasthan'}.</p>
+      </div>
+      <section className="workshop-band" style={{ display: 'block', marginTop: 30 }}>
+        <FilterForm action="/workshops" kind="workshops" values={f} />
+        <WorkshopList workshops={workshops} />
+      </section>
+    </>
+  );
+}
