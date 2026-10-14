@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { CartButton } from './CartButton';
+import { AuthButton } from './AuthButton';
 
 export function Brand() {
   return (
@@ -17,6 +18,7 @@ export function Header() {
       <nav aria-label="Primary">
         <Link href="/shop">Shop handmade</Link>
         <Link href="/workshops">Workshops &amp; pop-ups</Link>
+        <AuthButton />
         <CartButton />
       </nav>
     </header>

@@ -1,9 +1,11 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import { signIn, useSession } from 'next-auth/react';
 import { useStore } from './StoreProvider';
 
 export function BookingDialog() {
   const { booking, closeBooking, reserve } = useStore();
+  const { data: session } = useSession();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current; if (!d) return;
@@ -26,13 +28,15 @@ export function BookingDialog() {
           form.reset();
         }}>
           <label>Your name<input name="attendeeName" required placeholder="Name" /></label>
-          <label>Email<input name="email" type="email" required placeholder="you@example.com" /></label>
+          <label>Email<input name="email" type="email" required placeholder="you@example.com" defaultValue={session?.user?.email ?? ''} /></label>
           <label>Number of seats
             <select name="quantity">
               {Array.from({ length: Math.max(1, max) }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1} seat{i ? 's' : ''}</option>)}
             </select>
           </label>
-          <button className="button primary full" type="submit">Reserve demo spot</button>
+          {session?.user
+            ? <button className="button primary full" type="submit">Reserve demo spot</button>
+            : <button className="button primary full" type="button" onClick={() => signIn('google')}>Sign in with Google to reserve</button>}
           <p className="fine-print">Demo booking only. Paid workshops do not collect payment.</p>
         </form>
       )}

@@ -2219,3 +2219,15 @@ git add -A && git commit -m "feat: sitemap, robots, manifest, SEO check script; 
 **Review Focus coverage:** (1) Task 4 slug tests + Task 10/11 404 checks; (2) Task 4 filters tests + Task 9/11 curl/seo-check; (3) Task 3/5 concurrency tests; (4) Task 6 escape test; (5) Task 6 availability tests + Task 8 disabled buttons.
 
 **Known risks to flag at execution:** exact Next major version may change API details (`params` Promise, `next/og`, Metadata types) — run `npx tsc --noEmit` after each task; if the installed version prints deprecation warnings (e.g. `middleware`→`proxy` renames), none are used here.
+
+---
+
+### Task 12 (added mid-run by user request): API authentication and authorization
+
+**Decisions (user-confirmed):** Google sign-in via NextAuth stable v4 (`next-auth@4.24.x`, user: "stable version only"; v5 is beta-only); roles `customer` + `admin`; `GET /api/health|products|workshops` public; `POST/GET /api/orders` and `/api/bookings` require login; `/api/admin/summary` requires admin.
+
+**Design rulings:** admins = emails in `ADMIN_EMAILS` (comma-separated, case-insensitive), everyone else signing in is `customer`; only Google accounts with `email_verified` may sign in; JWT sessions; session read client-side (`SessionProvider`) so pages stay statically renderable for SEO; order/booking owner = session email (never the request body); `GET /api/orders|bookings` return own records, admin sees all; wildcard CORS dropped (credentialed same-origin API); mutating routes rely on Auth.js SameSite=Lax cookies for CSRF.
+
+**Files:** `src/auth.ts`, `src/lib/authz.ts`, `src/app/api/auth/[...nextauth]/route.ts`, `src/components/AuthProvider.tsx`, `src/components/AuthButton.tsx`; modify orders/bookings/summary routes, `orders.ts`, `types.ts`, `CartDialog`, `BookingDialog`, `Header`, layout, `.env.example`, README; tests `tests/authz.test.ts`, updated `tests/api.test.ts`, `tests/orders.test.ts`.
+
+**Interfaces:** `roleFor(email, adminEmailsEnv?) : 'customer'|'admin'`; `requireUser(session) : {email; role; name?}` (throws `ApiError(401,'Authentication required.')`); `requireAdmin(session)` (401 unauthenticated, `ApiError(403,'Admin access required.')` for customers); `createOrder(input, userEmail)`, `createBooking(input, userEmail)`, `listOrders(user)`, `listBookings(user)`.

@@ -1,12 +1,14 @@
 import crypto from 'node:crypto';
 import { mutateDb } from './db';
 import { ApiError } from './errors';
+import type { SessionUser } from './authz';
+import { readDb } from './db';
 import type { Booking, Order } from './types';
 
 type Raw = Record<string, unknown>;
 const str = (v: unknown, fallback: string, max: number) => String(v ?? fallback).slice(0, max) || fallback;
 
-export async function createOrder(input: unknown): Promise<Order> {
+export async function createOrder(input: unknown, userEmail: string): Promise<Order> {
   const b = (input ?? {}) as Raw;
   if (!Array.isArray(b.items) || !b.items.length) throw new ApiError(400, 'Add at least one item.');
   if (b.items.some(i => !i || typeof i !== 'object' || Array.isArray(i)))
@@ -29,6 +31,7 @@ export async function createOrder(input: unknown): Promise<Order> {
     const order: Order = {
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
+      userEmail,
       customerName: str(b.customerName, 'Demo Customer', 100),
       email: String(b.email ?? '').slice(0, 200),
       items,
@@ -42,7 +45,7 @@ export async function createOrder(input: unknown): Promise<Order> {
   });
 }
 
-export async function createBooking(input: unknown): Promise<Booking> {
+export async function createBooking(input: unknown, userEmail: string): Promise<Booking> {
   const b = (input ?? {}) as Raw;
   const qty = Number(b.quantity ?? 1);
   return mutateDb(db => {
@@ -54,6 +57,7 @@ export async function createBooking(input: unknown): Promise<Booking> {
     const booking: Booking = {
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
+      userEmail,
       workshopId: w.id,
       title: w.title,
       attendeeName: str(b.attendeeName, 'Demo Guest', 100),
@@ -67,4 +71,13 @@ export async function createBooking(input: unknown): Promise<Booking> {
     db.bookings.push(booking);
     return booking;
   });
+}
+
+const owns = (u: SessionUser, rec: { userEmail: string }) => u.role === 'admin' || (rec.userEmail ?? '').toLowerCase() === u.email.toLowerCase();
+
+export async function listOrders(u: SessionUser): Promise<Order[]> {
+  return (await readDb()).orders.filter(o => owns(u, o));
+}
+export async function listBookings(u: SessionUser): Promise<Booking[]> {
+  return (await readDb()).bookings.filter(b => owns(u, b));
 }

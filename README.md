@@ -39,14 +39,22 @@ This is a **working local prototype**, not a production marketplace. It intentio
 
 Before public launch, replace the demo persistence with PostgreSQL + Prisma, add authenticated roles and seller/venue/organizer approvals, implement inventory and booking holds with transactional locking, integrate a marketplace-approved payment/settlement provider, verify webhooks, add refunds/financial ledger/audit logs, and complete security, legal, privacy, tax, backup, and operational checks.
 
-## API endpoints
+## API endpoints and auth
 
-- `GET /api/health`
-- `GET /api/products?city=Udaipur&category=Crochet%20%26%20Textiles&q=flower`
-- `GET /api/workshops?city=Jaipur&type=PAID&q=paint`
-- `POST /api/orders` — `{ "customerName": "Demo", "email": "demo@example.com", "items": [{ "productId": "p1", "quantity": 1 }] }`
-- `POST /api/bookings` — `{ "workshopId": "w1", "attendeeName": "Demo", "email": "demo@example.com", "quantity": 1 }`
-- `GET /api/admin/summary` — demo metrics only; not protected
+Sign-in is Google OAuth through NextAuth v4 (`/api/auth/*`). Copy `.env.example` to `.env.local` and set `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (redirect URI `{NEXTAUTH_URL}/api/auth/callback/google`). Emails listed in `ADMIN_EMAILS` get the `admin` role; any other verified Google account is a `customer`.
+
+| Endpoint | Access |
+|---|---|
+| `GET /api/health` | public |
+| `GET /api/products?city=&category=&q=` | public |
+| `GET /api/workshops?city=&type=&q=` | public |
+| `POST /api/orders` `{ customerName, email, items:[{productId,quantity}] }` | signed in (owner = session email) |
+| `GET /api/orders` | signed in: own orders; admin: all |
+| `POST /api/bookings` `{ workshopId, attendeeName, email, quantity }` | signed in |
+| `GET /api/bookings` | signed in: own; admin: all |
+| `GET /api/admin/summary` | admin only |
+
+Errors: `401 {"error":"Authentication required."}`, `403 {"error":"Admin access required."}`. The API is same-origin only (no CORS); cookies are SameSite=Lax.
 
 ## Reset sample data
 

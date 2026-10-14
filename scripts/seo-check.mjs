@@ -41,6 +41,13 @@ ok(rb.text.includes('Disallow: /api/') && rb.text.includes('Sitemap:'), 'robots.
 ok((await get('/manifest.webmanifest')).status === 200, 'manifest served');
 ok((await get('/opengraph-image')).type.includes('image/png'), 'site OG image is png');
 ok((await get('/api/health')).status === 200, 'api health still works');
+ok((await get('/api/products')).status === 200, 'public products API is open');
+for (const p of ['/api/orders', '/api/bookings', '/api/admin/summary']) ok((await get(p)).status === 401, `${p} → 401 without session`);
+for (const p of ['/api/orders', '/api/bookings']) {
+  const r = await fetch(BASE + p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+  ok(r.status === 401, `POST ${p} → 401 without session`);
+}
+ok((await get('/api/auth/providers')).text.includes('google'), 'google provider configured');
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll SEO checks passed');
 process.exit(failed ? 1 : 0);

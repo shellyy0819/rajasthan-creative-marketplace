@@ -7,6 +7,7 @@ import { organizationJsonLd, websiteJsonLd } from '@/lib/jsonld';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { StoreProvider } from '@/components/StoreProvider';
+import { AuthProvider } from '@/components/AuthProvider';
 
 const sans = DM_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-sans', display: 'swap' });
 const serif = Playfair_Display({ subsets: ['latin'], weight: ['500', '600', '700'], style: ['normal', 'italic'], variable: '--font-serif', display: 'swap' });
@@ -29,10 +30,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <a className="skip-link" href="#main">Skip to content</a>
         <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
+        <AuthProvider>
         <StoreProvider>
         <Header />
         <main id="main">{children}</main>
         </StoreProvider>
+        </AuthProvider>
         <Footer />
       </body>
     </html>

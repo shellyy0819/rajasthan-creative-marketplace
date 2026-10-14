@@ -1,10 +1,12 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import { signIn, useSession } from 'next-auth/react';
 import { useStore } from './StoreProvider';
 import { money } from '@/lib/money';
 
 export function CartDialog() {
   const { items, total, removeFromCart, cartOpen, setCartOpen, checkout } = useStore();
+  const { data: session } = useSession();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current; if (!d) return;
@@ -34,8 +36,10 @@ export function CartDialog() {
         form.reset();
       }}>
         <label>Your name<input name="customerName" required placeholder="Name" /></label>
-        <label>Email<input name="email" type="email" required placeholder="you@example.com" /></label>
-        <button className="button primary full" type="submit">Place demo order</button>
+        <label>Email<input name="email" type="email" required placeholder="you@example.com" defaultValue={session?.user?.email ?? ''} /></label>
+        {session?.user
+          ? <button className="button primary full" type="submit">Place demo order</button>
+          : <button className="button primary full" type="button" onClick={() => signIn('google')}>Sign in with Google to order</button>}
         <p className="fine-print">Demo checkout only. No payment is collected.</p>
       </form>
     </dialog>

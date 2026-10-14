@@ -12,11 +12,11 @@ export type OrderItem = {
   unitPricePaise: number; lineTotalPaise: number;
 };
 export type Order = {
-  id: string; createdAt: string; customerName: string; email: string;
+  id: string; createdAt: string; userEmail: string; customerName: string; email: string;
   items: OrderItem[]; totalPaise: number; status: string; note: string;
 };
 export type Booking = {
-  id: string; createdAt: string; workshopId: string; title: string; attendeeName: string;
+  id: string; createdAt: string; userEmail: string; workshopId: string; title: string; attendeeName: string;
   email: string; quantity: number; totalPaise: number; status: string; note: string;
 };
 export type Db = { products: Product[]; workshops: Workshop[]; orders: Order[]; bookings: Booking[] };
