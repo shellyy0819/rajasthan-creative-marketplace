@@ -4,18 +4,14 @@ import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { ReserveButton } from '@/components/ReserveButton';
-import { citySlug, getWorkshopBySlug, listWorkshops, workshopSlug } from '@/lib/catalog';
+import { citySlug, getWorkshopBySlug, workshopSlug } from '@/lib/catalog';
 import { formatDay } from '@/lib/format';
 import { breadcrumbJsonLd, workshopJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
 import { money } from '@/lib/money';
 
-export const dynamicParams = false;
+export const dynamic = 'force-dynamic';
 type Props = { params: Promise<{ slug: string }> };
-
-export async function generateStaticParams() {
-  return (await listWorkshops()).map(w => ({ slug: workshopSlug(w) }));
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const w = await getWorkshopBySlug((await params).slug);

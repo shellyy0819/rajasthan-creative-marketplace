@@ -5,17 +5,13 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { AddToCartButton } from '@/components/AddToCartButton';
 import { SYMBOLS, visualIndex } from '@/components/ProductCard';
-import { citySlug, getProductBySlug, listProducts, productSlug } from '@/lib/catalog';
+import { citySlug, getProductBySlug, productSlug } from '@/lib/catalog';
 import { breadcrumbJsonLd, productJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
 import { money } from '@/lib/money';
 
-export const dynamicParams = false;
+export const dynamic = 'force-dynamic';
 type Props = { params: Promise<{ slug: string }> };
-
-export async function generateStaticParams() {
-  return (await listProducts()).map(p => ({ slug: productSlug(p) }));
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = await getProductBySlug((await params).slug);

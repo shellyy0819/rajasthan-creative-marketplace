@@ -2231,3 +2231,9 @@ git add -A && git commit -m "feat: sitemap, robots, manifest, SEO check script; 
 **Files:** `src/auth.ts`, `src/lib/authz.ts`, `src/app/api/auth/[...nextauth]/route.ts`, `src/components/AuthProvider.tsx`, `src/components/AuthButton.tsx`; modify orders/bookings/summary routes, `orders.ts`, `types.ts`, `CartDialog`, `BookingDialog`, `Header`, layout, `.env.example`, README; tests `tests/authz.test.ts`, updated `tests/api.test.ts`, `tests/orders.test.ts`.
 
 **Interfaces:** `roleFor(email, adminEmailsEnv?) : 'customer'|'admin'`; `requireUser(session) : {email; role; name?}` (throws `ApiError(401,'Authentication required.')`); `requireAdmin(session)` (401 unauthenticated, `ApiError(403,'Admin access required.')` for customers); `createOrder(input, userEmail)`, `createBooking(input, userEmail)`, `listOrders(user)`, `listBookings(user)`.
+
+---
+
+### Task 13 (added by user request): admin-only product/workshop management APIs
+
+**Decision (user-confirmed):** GET stays public; add `POST /api/products`, `PATCH|DELETE /api/products/[id]`, `POST /api/workshops`, `PATCH|DELETE /api/workshops/[id]`, all admin-only (401 anonymous, 403 customer). Validation in `src/lib/admin.ts` (`createProduct/updateProduct/deleteProduct`, same for workshops); unknown body fields (id, booked) are ignored; workshop `seats` can't drop below `booked`; FREE ⇒ price 0. Ruling: detail pages become `force-dynamic` (no `generateStaticParams`) so new listings are live immediately and unknown slugs are never disk-cached.

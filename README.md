@@ -48,6 +48,8 @@ Sign-in is Google OAuth through NextAuth v4 (`/api/auth/*`). Copy `.env.example`
 | `GET /api/health` | public |
 | `GET /api/products?city=&category=&q=` | public |
 | `GET /api/workshops?city=&type=&q=` | public |
+| `POST /api/products`, `PATCH|DELETE /api/products/:id` | admin only |
+| `POST /api/workshops`, `PATCH|DELETE /api/workshops/:id` | admin only |
 | `POST /api/orders` `{ customerName, email, items:[{productId,quantity}] }` | signed in (owner = session email) |
 | `GET /api/orders` | signed in: own orders; admin: all |
 | `POST /api/bookings` `{ workshopId, attendeeName, email, quantity }` | signed in |

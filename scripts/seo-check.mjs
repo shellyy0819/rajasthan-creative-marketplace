@@ -48,6 +48,10 @@ for (const p of ['/api/orders', '/api/bookings']) {
   ok(r.status === 401, `POST ${p} → 401 without session`);
 }
 ok((await get('/api/auth/providers')).text.includes('google'), 'google provider configured');
+for (const [m, p] of [['POST', '/api/products'], ['PATCH', '/api/products/p1'], ['DELETE', '/api/products/p1'], ['POST', '/api/workshops'], ['PATCH', '/api/workshops/w1'], ['DELETE', '/api/workshops/w1']]) {
+  const r = await fetch(BASE + p, { method: m, headers: { 'content-type': 'application/json' }, body: m === 'DELETE' ? undefined : '{}' });
+  ok(r.status === 401, `${m} ${p} → 401 without session`);
+}
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll SEO checks passed');
 process.exit(failed ? 1 : 0);

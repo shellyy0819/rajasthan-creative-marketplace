@@ -5,3 +5,4 @@ node_modules
 next-env.d.ts
 data/db.json.tmp
 .superpowers
+client_secret_*.json
