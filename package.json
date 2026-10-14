@@ -1,0 +1,8 @@
+{
+  "name": "rajasthan-creative-marketplace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Runnable starter MVP for a Rajasthan handmade marketplace and creative events discovery platform",
+  "scripts": { "start": "node server.js", "dev": "node --watch server.js" },
+  "engines": { "node": ">=18" }
+}

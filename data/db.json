@@ -1,0 +1,15 @@
+{
+  "products": [
+    {"id":"p1","name":"Crochet Lily Bouquet","category":"Crochet & Textiles","city":"Udaipur","pricePaise":85000,"seller":"Shauk and Stuff","description":"Handmade crochet flowers, made to order.","stock":8,"status":"APPROVED"},
+    {"id":"p2","name":"Pichola Boat Bag Charm","category":"Accessories","city":"Udaipur","pricePaise":29900,"seller":"Lake City Knots","description":"A tiny crochet tribute to Lake Pichola.","stock":12,"status":"APPROVED"},
+    {"id":"p3","name":"Pressed Flower Resin Coaster Set","category":"Resin Art","city":"Jaipur","pricePaise":65000,"seller":"Petal & Pour","description":"Set of four handmade floral resin coasters.","stock":5,"status":"APPROVED"},
+    {"id":"p4","name":"Blue Pottery Trinket Dish","category":"Pottery","city":"Jaipur","pricePaise":45000,"seller":"Neel Mitti Studio","description":"Small decorative dish inspired by Jaipur blue pottery.","stock":6,"status":"APPROVED"}
+  ],
+  "workshops": [
+    {"id":"w1","title":"Beginner Crochet: Make Your First Flower","type":"PAID","pricePaise":49900,"city":"Udaipur","venue":"The Courtyard Café","date":"2026-11-08","time":"11:00","seats":12,"booked":3,"host":"Shauk and Stuff","description":"A friendly hands-on session. Materials included.","status":"APPROVED"},
+    {"id":"w2","title":"Paint a Miniature Tote Bag","type":"PAID","pricePaise":69900,"city":"Jaipur","venue":"Studio Katha","date":"2026-11-14","time":"15:00","seats":10,"booked":4,"host":"Katha Makers","description":"Paint your own wearable keepsake.","status":"APPROVED"},
+    {"id":"w3","title":"Sunday Makers Meetup","type":"FREE","pricePaise":0,"city":"Jodhpur","venue":"Blue Door Café","date":"2026-11-22","time":"10:30","seats":20,"booked":6,"host":"Marwar Creative Circle","description":"Meet local makers, share ideas and bring a work in progress.","status":"APPROVED"}
+  ],
+  "orders": [],
+  "bookings": []
+}
