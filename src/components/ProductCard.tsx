@@ -3,6 +3,7 @@ import type { Product } from '@/lib/types';
 import { money } from '@/lib/money';
 import { productSlug } from '@/lib/catalog-shared';
 import { AddToCartButton } from './AddToCartButton';
+import { ProductImage } from './ProductImage';
 
 export const SYMBOLS = ['🌷', '⛵', '🌼', '🏺', '🧶', '🌸'];
 export const visualIndex = (id: string) => Number(id.replace(/\D/g, '')) || 0;
@@ -11,7 +12,7 @@ export function ProductCard({ p }: { p: Product }) {
   const i = visualIndex(p.id);
   return (
     <article className="product-card">
-      <div className={`product-visual visual-${i % 4}`} aria-hidden="true"><span className="symbol">{SYMBOLS[i % SYMBOLS.length]}</span></div>
+      <div className={`product-visual visual-${i % 4}`}><ProductImage src={p.imageUrl} alt={p.name} fallback={<span className="symbol" aria-hidden="true">{SYMBOLS[i % SYMBOLS.length]}</span>} /></div>
       <div className="product-info">
         <span className="product-meta">{p.category} · {p.city}</span>
         <h3><Link href={`/products/${productSlug(p)}`}>{p.name}</Link></h3>

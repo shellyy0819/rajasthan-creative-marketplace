@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { AddToCartButton } from '@/components/AddToCartButton';
+import { ProductImage } from '@/components/ProductImage';
 import { SYMBOLS, visualIndex } from '@/components/ProductCard';
 import { citySlug, getProductBySlug, productSlug } from '@/lib/catalog';
 import { breadcrumbJsonLd, productJsonLd } from '@/lib/jsonld';
@@ -44,7 +45,7 @@ export default async function ProductPage({ params }: Props) {
       <JsonLd data={[productJsonLd(p), breadcrumbJsonLd(crumbs)]} />
       <Breadcrumbs items={crumbs} />
       <article className="detail">
-        <div className={`product-visual detail-art visual-${i % 4}`} aria-hidden="true"><span className="symbol">{SYMBOLS[i % SYMBOLS.length]}</span></div>
+        <div className={`product-visual detail-art visual-${i % 4}`}><ProductImage src={p.imageUrl} alt={p.name} fallback={<span className="symbol" aria-hidden="true">{SYMBOLS[i % SYMBOLS.length]}</span>} /></div>
         <div>
           <span className="product-meta">{p.category}</span>
           <h1>{p.name}</h1>
