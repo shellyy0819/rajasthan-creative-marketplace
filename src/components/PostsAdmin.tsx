@@ -73,10 +73,8 @@ export function PostsAdmin({
         body: body === undefined ? undefined : JSON.stringify(body),
       });
       const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        await refresh();
-        return explain(res.status, data);
-      }
+      // A failed write never triggers a re-fetch of the lists.
+      if (!res.ok) return explain(res.status, data);
       return null;
     } catch {
       return "Network error. Please try again.";

@@ -162,13 +162,13 @@ describe('PostsAdmin edit', () => {
     expect(JSON.parse(call[1].body)).toMatchObject({ name: 'Published Dish', status: 'APPROVED' });
     await waitFor(() => expect(badgeOf(rowFor('Published Dish'))).toBe('Published'));
   });
-  it('editing a post that was deleted elsewhere shows the 404 message and refreshes the list', async () => {
+  it('editing a post that was deleted elsewhere shows the 404 message without re-fetching lists', async () => {
     mount();
     fireEvent.click(within(rowFor('Boat Charm')).getByRole('button', { name: /Edit/ }));
     db = db.filter(p => p.id !== 'p2');
     fireEvent.click(screen.getByRole('button', { name: 'Save post' }));
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/not found/i));
-    await waitFor(() => expect(rows()).toHaveLength(2));
+    expect(fetchMock.mock.calls.filter(c => String(c[0]).startsWith('/api/admin/'))).toHaveLength(0);
   });
   it('changing the artist name moves the post to another artist group', async () => {
     mount();
@@ -199,13 +199,13 @@ describe('PostsAdmin delete', () => {
     expect(within(screen.getByRole('navigation', { name: 'Artists' })).queryByRole('button', { name: /Lake City Knots/ })).toBeNull();
     expect(screen.getByRole('status').textContent).toMatch(/deleted/i);
   });
-  it('deleting an already-deleted post shows the error and refreshes', async () => {
+  it('deleting an already-deleted post shows the error without re-fetching lists', async () => {
     mount();
     fireEvent.click(within(rowFor('Boat Charm')).getByRole('button', { name: /Delete/ }));
     db = db.filter(p => p.id !== 'p2');
     fireEvent.click(screen.getByRole('button', { name: /Yes, delete/ }));
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/not found/i));
-    await waitFor(() => expect(rows()).toHaveLength(2));
+    expect(fetchMock.mock.calls.filter(c => String(c[0]).startsWith('/api/admin/'))).toHaveLength(0);
   });
 });
 
@@ -307,5 +307,17 @@ describe('PostsAdmin archive and quick status change', () => {
     mount();
     fireEvent.change(screen.getByLabelText('Change status for Boat Charm'), { target: { value: 'APPROVED' } });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('failed writes do not re-fetch', () => {
+  it('a rejected status change shows the API error, keeps the row, and makes no GET calls', async () => {
+    mount();
+    fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+      init?.method === 'PATCH' ? res(400, { error: 'status must be one of: APPROVED, DRAFT.' }) : res(200, []));
+    fireEvent.change(screen.getByLabelText('Change status for Boat Charm'), { target: { value: 'ARCHIVED' } });
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/must be one of/));
+    expect(fetchMock.mock.calls.map(c => c[0])).toEqual(['/api/products/p2']);
+    expect(badgeOf(rowFor('Boat Charm'))).toBe('Published');
   });
 });
