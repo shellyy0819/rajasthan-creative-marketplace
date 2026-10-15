@@ -114,3 +114,25 @@ describe('order input edge cases', () => {
     expect(s.orders).toHaveLength(0);
   });
 });
+
+describe('large totals', () => {
+  it('an order whose total exceeds 2^31 paise succeeds (no integer overflow)', async () => {
+    const { getTestDb } = await import('./helpers/testdb');
+    const { products } = await import('@/db/schema');
+    const { eq } = await import('drizzle-orm');
+    const db = await getTestDb();
+    await db.update(products).set({ pricePaise: 10_000_000, stock: 300 }).where(eq(products.id, 'p1'));
+    const o = await createOrder({ items: [{ productId: 'p1', quantity: 215 }] }, 'a@b.co');
+    expect(o.totalPaise).toBe(2_150_000_000);
+    expect((await listOrders({ email: 'a@b.co', role: 'customer' }))[0].items[0].lineTotalPaise).toBe(2_150_000_000);
+  });
+  it('a booking total exceeding 2^31 paise succeeds', async () => {
+    const { getTestDb } = await import('./helpers/testdb');
+    const { workshops } = await import('@/db/schema');
+    const { eq } = await import('drizzle-orm');
+    const db = await getTestDb();
+    await db.update(workshops).set({ pricePaise: 10_000_000, seats: 1000, booked: 0, type: 'PAID' }).where(eq(workshops.id, 'w1'));
+    const b = await createBooking({ workshopId: 'w1', quantity: 215 }, 'a@b.co');
+    expect(b.totalPaise).toBe(2_150_000_000);
+  });
+});

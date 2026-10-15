@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, index, integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { bigint, check, index, integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
 export const products = pgTable('products', {
   id: text('id').primaryKey(),
@@ -53,7 +53,7 @@ export const orders = pgTable('orders', {
   userEmail: text('user_email').notNull(),
   customerName: text('customer_name').notNull(),
   email: text('email').notNull(),
-  totalPaise: integer('total_paise').notNull(),
+  totalPaise: bigint('total_paise', { mode: 'number' }).notNull(),
   status: text('status').notNull(),
   note: text('note').notNull(),
 });
@@ -67,7 +67,7 @@ export const orderItems = pgTable('order_items', {
   seller: text('seller').notNull(),
   quantity: integer('quantity').notNull(),
   unitPricePaise: integer('unit_price_paise').notNull(),
-  lineTotalPaise: integer('line_total_paise').notNull(),
+  lineTotalPaise: bigint('line_total_paise', { mode: 'number' }).notNull(),
 }, t => [
   check('order_items_quantity_positive', sql`${t.quantity} >= 1`),
   index('order_items_order_idx').on(t.orderId),
@@ -83,7 +83,7 @@ export const bookings = pgTable('bookings', {
   attendeeName: text('attendee_name').notNull(),
   email: text('email').notNull(),
   quantity: integer('quantity').notNull(),
-  totalPaise: integer('total_paise').notNull(),
+  totalPaise: bigint('total_paise', { mode: 'number' }).notNull(),
   status: text('status').notNull(),
   note: text('note').notNull(),
 }, t => [check('bookings_quantity_positive', sql`${t.quantity} >= 1`)]);
