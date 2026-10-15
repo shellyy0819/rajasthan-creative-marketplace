@@ -16,7 +16,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx scripts/db-seed.ts",
     "db:reset": "tsx scripts/db-seed.ts --reset",
-    "test:pg": "PG_TEST_URL=postgres://rr:rr_dev_password@localhost:5433/postgres vitest run tests/pg-concurrency.test.ts"
+    "test:pg": "PG_TEST_URL=postgres://rr:rr_dev_password@localhost:5434/postgres vitest run tests/pg-concurrency.test.ts"
   },
   "dependencies": {
     "drizzle-orm": "~0.45.4",

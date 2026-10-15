@@ -1,17 +1,20 @@
 # Rang Rajasthan — Creative Marketplace (Runnable Starter)
 
-A small, runnable full-stack MVP for a Rajasthan handmade-products marketplace and local workshop discovery experience. Built with Next.js (App Router) and a JSON-file store, so no database service is required for the demo.
+A small, runnable full-stack MVP for a Rajasthan handmade-products marketplace and local workshop discovery experience. Built with Next.js (App Router), Drizzle ORM and PostgreSQL running in Docker.
 
 ## Run it
 
-Requirements: Node.js 20.9+ (required by current Next.js).
+Requirements: Node.js 20.9+ (22 recommended) and Docker Desktop.
 
 ```bash
 npm install
-cp .env.example .env.local   # set NEXT_PUBLIC_SITE_URL to your real origin in production
+cp .env.example .env.local   # fill in the auth values; DATABASE_URL is pre-filled for the Docker DB
+npm run db:up                # Postgres 16 in Docker on localhost:5434 (your local Postgres on 5432 is untouched)
+npm run db:migrate && npm run db:seed
 npm run dev                  # http://localhost:3000
-npm run build && npm start   # production
-npm test                     # unit tests
+npm run build && npm start   # production (the database must be running and migrated)
+npm test                     # unit tests (in-process PGlite, no Docker needed)
+npm run test:pg              # concurrency tests against the Docker Postgres
 BASE_URL=http://localhost:3000 npm run seo:check   # against a running server
 ```
 
@@ -19,25 +22,35 @@ BASE_URL=http://localhost:3000 npm run seo:check   # against a running server
 
 Server-rendered pages; per-page metadata + canonical; JSON-LD (Organization, WebSite + SearchAction, Product + Offer, Event, BreadcrumbList); `/sitemap.xml`, `/robots.txt`, `/manifest.webmanifest`; dynamic OG images; filtered views are `noindex,follow` with canonical to the base list page; unknown slugs return real 404s. Pages: `/`, `/shop`, `/workshops`, `/products/[slug]`, `/workshops/[slug]`, `/cities/[city]`.
 
-## Deploy note
+## Database
 
-Orders and bookings write `data/db.json`, so deploy on a host with a persistent writable disk (single Node process). Serverless or read-only filesystems need the PostgreSQL step below first.
+All data lives in PostgreSQL (tables `products`, `workshops`, `orders`, `order_items`, `bookings`, `id_counters`; schema in `src/db/schema.ts`, SQL migrations in `drizzle/`).
+
+| Command | What it does |
+|---|---|
+| `npm run db:up` / `db:down` / `db:logs` | start / stop / tail the container (data stays in the `rr_pgdata` volume; `docker compose down -v` deletes it) |
+| `npm run db:migrate` | apply migrations |
+| `npm run db:generate` | create a new migration after editing `src/db/schema.ts` |
+| `npm run db:seed` | idempotent import of `data/db.json` (existing ids are kept; id counters never go down) |
+| `npm run db:reset` | wipe all tables and re-seed from `data/db.json` |
+
+The credentials in `docker-compose.yml` / `.env.example` (`rr` / `rr_dev_password`) are for local development only; in production use a managed Postgres and a secret `DATABASE_URL`. The container publishes `127.0.0.1:5434` (not 5432) so it never collides with a locally installed Postgres. Stock and workshop seats are changed inside transactions with row locks; `npm run test:pg` proves this against the real database. `data/db.json` is now only the seed source and is never written by the app. `npm run build` renders pages from the database, so it must be up and migrated.
 
 ## Included and working
 
 - Responsive storefront with sample handmade products.
 - Product search, city filter, category filter.
 - Bag/cart with quantities and subtotal.
-- Demo order creation via API; stock decrements and persists to `data/db.json`.
+- Demo order creation via API; stock decrements transactionally in Postgres.
 - Workshop discovery with search, city filter, free/paid filter.
-- Demo workshop reservations; capacity updates and persists.
-- Basic API error handling and JSON-backed local persistence.
+- Demo workshop reservations; capacity is checked and updated under a row lock.
+- Basic API error handling and Postgres persistence.
 
 ## Important limitations — not production-ready
 
-This is a **working local prototype**, not a production marketplace. It intentionally does not process payments. Paid orders and paid workshop reservations are marked as demo records only. There is no real user authentication, seller dashboard, admin moderation UI, payment provider integration, shipping workflow, tax handling, email delivery, or hardened concurrency protection. The JSON file is suitable for local demonstration only and can be corrupted by concurrent writes. The seller CTA is a mailto placeholder.
+This is a **working local prototype**, not a production marketplace. It intentionally does not process payments. Paid orders and paid workshop reservations are marked as demo records only. There is no real user authentication, seller dashboard, admin moderation UI, payment provider integration, shipping workflow, tax handling, email delivery, or hardened production operations (backups, pooling, monitoring). The seller CTA is a mailto placeholder.
 
-Before public launch, replace the demo persistence with PostgreSQL + Prisma, add authenticated roles and seller/venue/organizer approvals, implement inventory and booking holds with transactional locking, integrate a marketplace-approved payment/settlement provider, verify webhooks, add refunds/financial ledger/audit logs, and complete security, legal, privacy, tax, backup, and operational checks.
+Before public launch, add seller/venue/organizer approvals, implement inventory and booking holds, integrate a marketplace-approved payment/settlement provider, verify webhooks, add refunds/financial ledger/audit logs, and complete security, legal, privacy, tax, backup, and operational checks.
 
 ## API endpoints and auth
 
@@ -72,8 +85,8 @@ Signed in as an admin (email in `ADMIN_EMAILS`), open **/admin/posts** (the head
 
 ## Reset sample data
 
-Orders and bookings write `data/db.json`. Restore the seed with `git checkout data/db.json`.
+`npm run db:reset` wipes the database and re-imports `data/db.json`.
 
 ## Suggested next build
 
-Build the production foundation in increments: (1) PostgreSQL/Prisma behind the existing repository layer (Next route handlers or NestJS), (2) auth and role/resource guards, (3) seller onboarding and admin moderation, (4) product/order lifecycle, (5) approved marketplace payment flow and ledger, (6) workshop capacity and bookings, (7) shipping, emails, audit trail, monitoring and deployment.
+Build the production foundation in increments: (1) managed Postgres, backups and connection pooling for production, (2) finer-grained role/resource guards, (3) seller onboarding and admin moderation, (4) product/order lifecycle, (5) approved marketplace payment flow and ledger, (6) workshop capacity and bookings, (7) shipping, emails, audit trail, monitoring and deployment.
