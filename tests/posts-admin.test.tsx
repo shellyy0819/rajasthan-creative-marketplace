@@ -218,3 +218,53 @@ describe('PostsAdmin session problems', () => {
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/sign in again/i));
   });
 });
+
+describe('PostForm dialog focus handling', () => {
+  it('moves focus into the dialog on open (first field)', () => {
+    mount();
+    fireEvent.click(screen.getByRole('button', { name: 'New post' }));
+    expect(document.activeElement).toBe(screen.getByLabelText(/^Title/));
+  });
+  it('Tab from the last control wraps to the first, Shift+Tab from the first wraps to the last', () => {
+    mount();
+    fireEvent.click(screen.getByRole('button', { name: 'New post' }));
+    const dialog = screen.getByRole('dialog');
+    const close = within(dialog).getByRole('button', { name: 'Close' });
+    const save = within(dialog).getByRole('button', { name: 'Save post' });
+    save.focus();
+    fireEvent.keyDown(save, { key: 'Tab' });
+    expect(document.activeElement).toBe(close);
+    fireEvent.keyDown(close, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(save);
+  });
+  it('Tab while focus has escaped the dialog pulls it back in', () => {
+    mount();
+    fireEvent.click(screen.getByRole('button', { name: 'New post' }));
+    (document.activeElement as HTMLElement).blur();
+    fireEvent.keyDown(document.body, { key: 'Tab' });
+    expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
+  });
+  it('Escape closes the dialog even when focus is outside it', () => {
+    mount();
+    fireEvent.click(screen.getByRole('button', { name: 'New post' }));
+    (document.activeElement as HTMLElement).blur();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+  it('returns focus to the button that opened it', () => {
+    mount();
+    const opener = screen.getByRole('button', { name: 'New post' });
+    opener.focus();
+    fireEvent.click(opener);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(document.activeElement).toBe(opener);
+  });
+  it('returns focus to the row Edit button after closing an edit', () => {
+    mount();
+    const edit = within(rowFor('Boat Charm')).getByRole('button', { name: /Edit/ });
+    edit.focus();
+    fireEvent.click(edit);
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(document.activeElement).toBe(within(rowFor('Boat Charm')).getByRole('button', { name: /Edit/ }));
+  });
+});

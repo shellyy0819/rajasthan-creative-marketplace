@@ -20,4 +20,4 @@ export type Booking = {
   id: string; createdAt: string; userEmail: string; workshopId: string; title: string; attendeeName: string;
   email: string; quantity: number; totalPaise: number; status: string; note: string;
 };
-export type Db = { products: Product[]; workshops: Workshop[]; orders: Order[]; bookings: Booking[] };
+export type Db = { products: Product[]; workshops: Workshop[]; orders: Order[]; bookings: Booking[]; counters?: { p?: number; w?: number } };

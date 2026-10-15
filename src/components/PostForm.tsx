@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Product } from '@/lib/types';
 import type { AdminArtist } from '@/lib/admin-posts';
 import { CATEGORIES, CITIES } from '@/lib/catalog-shared';
@@ -34,11 +34,41 @@ type Props = {
 export function PostForm({ initial, artists, onSubmit, onCancel }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const cardRef = useRef<HTMLDivElement>(null);
+  // Remember what had focus when the dialog opened (captured during first render, before autoFocus moves it).
+  const [opener] = useState(() => (typeof document === 'undefined' ? null : (document.activeElement as HTMLElement | null)));
+
+  useEffect(() => () => { opener?.focus?.(); }, [opener]);
+
+  // Escape works wherever focus is (not just inside the overlay), but never while a save is in flight.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !saving) onCancel(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [saving, onCancel]);
+
+  // Keep Tab inside the dialog (aria-modal): wrap at the ends and pull stray focus back in.
+  useEffect(() => {
+    const onTab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const card = cardRef.current;
+      if (!card) return;
+      const items = Array.from(card.querySelectorAll<HTMLElement>('a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])'));
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (!active || !card.contains(active)) { e.preventDefault(); first.focus(); }
+      else if (e.shiftKey && active === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onTab);
+    return () => document.removeEventListener('keydown', onTab);
+  }, []);
   const v = (k: keyof Product) => (initial?.[k] as string | number | undefined) ?? '';
 
   return (
-    <div className="admin-modal" onKeyDown={e => { if (e.key === 'Escape' && !saving) onCancel(); }}>
-      <div role="dialog" aria-modal="true" aria-labelledby="post-form-title" className="admin-form-card">
+    <div className="admin-modal">
+      <div ref={cardRef} role="dialog" aria-modal="true" aria-labelledby="post-form-title" className="admin-form-card">
         <div className="dialog-head">
           <h2 id="post-form-title">{initial ? 'Edit post' : 'New post'}</h2>
           <button type="button" className="icon-btn" aria-label="Close" onClick={onCancel} disabled={saving}>✕</button>

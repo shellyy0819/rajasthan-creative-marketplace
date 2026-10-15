@@ -117,3 +117,31 @@ describe('product imageUrl', () => {
     expect((await readDb()).products[0].imageUrl).toBeUndefined();
   });
 });
+
+describe('ids are never reused', () => {
+  it('a deleted highest product id is not handed out again', async () => {
+    const a = await createProduct(validProduct);
+    expect(a.id).toBe('p5');
+    await deleteProduct('p5');
+    const b = await createProduct(validProduct);
+    expect(b.id).toBe('p6');
+  });
+  it('same for workshops', async () => {
+    const a = await createWorkshop(validWorkshop);
+    expect(a.id).toBe('w4');
+    await deleteWorkshop('w4');
+    expect((await createWorkshop(validWorkshop)).id).toBe('w5');
+  });
+  it('still works on a database without counters (legacy shape)', async () => {
+    expect((await readDb() as any).counters).toBeUndefined();
+    expect((await createProduct(validProduct)).id).toBe('p5');
+  });
+});
+
+describe('imageUrl credentials', () => {
+  it('rejects URLs with embedded user/password (they would be published to every visitor)', async () => {
+    for (const imageUrl of ['https://user:pass@cdn.example.com/a.jpg', 'https://user@cdn.example.com/a.jpg', 'https://:pw@cdn.example.com/a.jpg']) {
+      await expect(createProduct({ ...validProduct, imageUrl })).rejects.toMatchObject({ status: 400, message: expect.stringContaining('imageUrl') });
+    }
+  });
+});

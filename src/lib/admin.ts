@@ -1,7 +1,7 @@
 import { mutateDb } from './db';
 import { ApiError } from './errors';
 import { CATEGORIES, CITIES } from './catalog';
-import type { Product, Workshop } from './types';
+import type { Db, Product, Workshop } from './types';
 
 type Raw = Record<string, unknown>;
 const bad = (msg: string) => new ApiError(400, msg);
@@ -27,9 +27,12 @@ function oneOf<T extends string>(v: unknown, field: string, allowed: readonly T[
   if (typeof v !== 'string' || !(allowed as readonly string[]).includes(v)) throw bad(`${field} must be one of: ${allowed.join(', ')}.`);
   return v as T;
 }
-function nextId(prefix: string, ids: string[]): string {
+// Ids are never reused: a persisted counter survives deletes, so a stale form/URL can never hit a different, newer record.
+function nextId(prefix: 'p' | 'w', ids: string[], counters: NonNullable<Db['counters']>): string {
   const max = ids.reduce((m, id) => Math.max(m, Number(new RegExp(`^${prefix}(\\d+)$`).exec(id)?.[1] ?? 0)), 0);
-  return `${prefix}${max + 1}`;
+  const n = Math.max(counters[prefix] ?? 0, max) + 1;
+  counters[prefix] = n;
+  return `${prefix}${n}`;
 }
 
 const PRODUCT_KEYS = ['name', 'category', 'city', 'pricePaise', 'seller', 'description', 'stock', 'status', 'artistName', 'instagram', 'youtube', 'phone', 'email', 'imageUrl'] as const;
@@ -46,7 +49,7 @@ function optionalImageUrl(v: unknown): string | undefined {
   if (typeof v !== 'string' || v.trim().length > 500) throw bad(msg);
   let u: URL;
   try { u = new URL(v.trim()); } catch { throw bad(msg); }
-  if (u.protocol !== 'https:') throw bad(msg);
+  if (u.protocol !== 'https:' || u.username || u.password) throw bad(msg);
   return u.toString();
 }
 
@@ -101,7 +104,8 @@ function validateWorkshop(v: Raw): Omit<Workshop, 'id' | 'booked'> {
 export async function createProduct(input: unknown): Promise<Product> {
   const data = validateProduct(pick(obj(input), PRODUCT_KEYS));
   return mutateDb(db => {
-    const p: Product = { id: nextId('p', db.products.map(x => x.id)), ...data };
+    db.counters ??= {};
+    const p: Product = { id: nextId('p', db.products.map(x => x.id), db.counters), ...data };
     db.products.push(p);
     return p;
   });
@@ -128,7 +132,8 @@ export async function deleteProduct(id: string): Promise<void> {
 export async function createWorkshop(input: unknown): Promise<Workshop> {
   const data = validateWorkshop({ ...pick(obj(input), WORKSHOP_KEYS), status: undefined });
   return mutateDb(db => {
-    const w: Workshop = { id: nextId('w', db.workshops.map(x => x.id)), ...data, booked: 0 };
+    db.counters ??= {};
+    const w: Workshop = { id: nextId('w', db.workshops.map(x => x.id), db.counters), ...data, booked: 0 };
     db.workshops.push(w);
     return w;
   });
