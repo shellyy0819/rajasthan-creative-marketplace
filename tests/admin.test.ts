@@ -1,15 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { createProduct, updateProduct, deleteProduct, createWorkshop, updateWorkshop, deleteWorkshop } from '@/lib/admin';
-import { readDb } from '@/lib/db';
+import { eq } from 'drizzle-orm';
+import { resetTestDb, getTestDb, snapshot as readDb } from './helpers/testdb';
+import { products as productsTable } from '@/db/schema';
 
-beforeEach(() => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rradm-'));
-  const file = path.join(dir, 'db.json');
-  fs.copyFileSync(path.resolve('tests/fixtures/db.json'), file);
-  process.env.DB_PATH = file;
+beforeEach(async () => {
+  await resetTestDb();
 });
 
 const validProduct = { name: 'Lac Bangle', category: 'Accessories', city: 'Jodhpur', pricePaise: 12000, seller: 'Marwar Lac', description: 'Hand-set lac bangle.', stock: 3 };
@@ -132,8 +128,7 @@ describe('ids are never reused', () => {
     await deleteWorkshop('w4');
     expect((await createWorkshop(validWorkshop)).id).toBe('w5');
   });
-  it('still works on a database without counters (legacy shape)', async () => {
-    expect((await readDb() as any).counters).toBeUndefined();
+  it('continues the sequence from existing ids when seeded without counters', async () => {
     expect((await createProduct(validProduct)).id).toBe('p5');
   });
 });
@@ -143,5 +138,24 @@ describe('imageUrl credentials', () => {
     for (const imageUrl of ['https://user:pass@cdn.example.com/a.jpg', 'https://user@cdn.example.com/a.jpg', 'https://:pw@cdn.example.com/a.jpg']) {
       await expect(createProduct({ ...validProduct, imageUrl })).rejects.toMatchObject({ status: 400, message: expect.stringContaining('imageUrl') });
     }
+  });
+});
+
+describe('clearing optional product fields writes NULL and never leaks null into JSON', () => {
+  it('PATCH with empty/blank strings clears the columns', async () => {
+    await updateProduct('p1', { instagram: 'shaukandstuff', phone: '9997979999', imageUrl: 'https://cdn.example.com/a.jpg' });
+    const p = await updateProduct('p1', { instagram: '', phone: '   ', imageUrl: '' });
+    expect('instagram' in p).toBe(false);
+    expect('phone' in p).toBe(false);
+    expect(JSON.stringify(p)).not.toContain('null');
+    const db = await getTestDb();
+    const [row] = await db.select().from(productsTable).where(eq(productsTable.id, 'p1'));
+    expect(row.instagram).toBeNull();
+    expect(row.phone).toBeNull();
+    expect(row.imageUrl).toBeNull();
+  });
+  it('failed validation leaves the row untouched', async () => {
+    await expect(updateProduct('p1', { stock: -3 })).rejects.toMatchObject({ status: 400 });
+    expect((await readDb()).products[0].stock).toBe(8);
   });
 });

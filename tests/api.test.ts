@@ -1,7 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 const authMock = vi.hoisted(() => vi.fn());
@@ -15,14 +12,12 @@ import { GET as workshops } from '@/app/api/workshops/route';
 import { POST as orders, GET as listOrdersRoute } from '@/app/api/orders/route';
 import { POST as bookings, GET as listBookingsRoute } from '@/app/api/bookings/route';
 import { GET as summary } from '@/app/api/admin/summary/route';
+import { resetTestDb } from './helpers/testdb';
 
-beforeEach(() => {
+beforeEach(async () => {
   authMock.mockReset();
   authMock.mockResolvedValue(null);
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rrapi-'));
-  const file = path.join(dir, 'db.json');
-  fs.copyFileSync(path.resolve('tests/fixtures/db.json'), file);
-  process.env.DB_PATH = file;
+  await resetTestDb();
 });
 
 const post = (url: string, body: string) =>

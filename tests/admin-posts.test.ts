@@ -1,17 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { listProductsForAdmin, getProductForAdmin, listArtists } from '@/lib/admin-posts';
 import { artistKey } from '@/lib/artist';
 import { createProduct, deleteProduct, updateProduct } from '@/lib/admin';
 import { listProducts } from '@/lib/catalog';
+import { resetTestDb } from './helpers/testdb';
 
-beforeEach(() => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rrap-'));
-  const file = path.join(dir, 'db.json');
-  fs.copyFileSync(path.resolve('tests/fixtures/db.json'), file);
-  process.env.DB_PATH = file;
+beforeEach(async () => {
+  await resetTestDb();
 });
 const base = { name: 'Lac Bangle', category: 'Accessories', city: 'Jodhpur', pricePaise: 12000, seller: 'Marwar Lac', description: 'Hand-set.', stock: 3 };
 

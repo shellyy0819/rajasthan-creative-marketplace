@@ -1,7 +1,11 @@
-import { mutateDb } from './db';
+import { eq } from 'drizzle-orm';
+import { getDb } from '../db/client';
+import { allocateId } from '../db/ids';
+import { toProduct, toProductRow, toWorkshop, toWorkshopRow } from '../db/mappers';
+import { products as productsT, workshops as workshopsT } from '../db/schema';
 import { ApiError } from './errors';
 import { CATEGORIES, CITIES } from './catalog';
-import type { Db, Product, Workshop } from './types';
+import type { Product, Workshop } from './types';
 
 type Raw = Record<string, unknown>;
 const bad = (msg: string) => new ApiError(400, msg);
@@ -28,13 +32,6 @@ function oneOf<T extends string>(v: unknown, field: string, allowed: readonly T[
   return v as T;
 }
 // Ids are never reused: a persisted counter survives deletes, so a stale form/URL can never hit a different, newer record.
-function nextId(prefix: 'p' | 'w', ids: string[], counters: NonNullable<Db['counters']>): string {
-  const max = ids.reduce((m, id) => Math.max(m, Number(new RegExp(`^${prefix}(\\d+)$`).exec(id)?.[1] ?? 0)), 0);
-  const n = Math.max(counters[prefix] ?? 0, max) + 1;
-  counters[prefix] = n;
-  return `${prefix}${n}`;
-}
-
 const PRODUCT_KEYS = ['name', 'category', 'city', 'pricePaise', 'seller', 'description', 'stock', 'status', 'artistName', 'instagram', 'youtube', 'phone', 'email', 'imageUrl'] as const;
 const WORKSHOP_KEYS = ['title', 'type', 'pricePaise', 'city', 'venue', 'date', 'time', 'seats', 'host', 'description', 'status'] as const;
 const STATUSES = ['APPROVED', 'DRAFT'] as const;
@@ -103,58 +100,51 @@ function validateWorkshop(v: Raw): Omit<Workshop, 'id' | 'booked'> {
 
 export async function createProduct(input: unknown): Promise<Product> {
   const data = validateProduct(pick(obj(input), PRODUCT_KEYS));
-  return mutateDb(db => {
-    db.counters ??= {};
-    const p: Product = { id: nextId('p', db.products.map(x => x.id), db.counters), ...data };
-    db.products.push(p);
-    return p;
+  return getDb().transaction(async tx => {
+    const id = await allocateId(tx, 'p');
+    const [row] = await tx.insert(productsT).values({ id, ...toProductRow(data) }).returning();
+    return toProduct(row);
   });
 }
 
 export async function updateProduct(id: string, input: unknown): Promise<Product> {
   const patch = pick(obj(input), PRODUCT_KEYS);
-  return mutateDb(db => {
-    const p = db.products.find(x => x.id === id);
-    if (!p) throw new ApiError(404, 'Product not found.');
-    Object.assign(p, validateProduct({ ...p, ...patch }));
-    return p;
+  return getDb().transaction(async tx => {
+    const [row] = await tx.select().from(productsT).where(eq(productsT.id, id)).for('update');
+    if (!row) throw new ApiError(404, 'Product not found.');
+    const next = validateProduct({ ...toProduct(row), ...patch });
+    const [saved] = await tx.update(productsT).set(toProductRow(next)).where(eq(productsT.id, id)).returning();
+    return toProduct(saved);
   });
 }
 
 export async function deleteProduct(id: string): Promise<void> {
-  await mutateDb(db => {
-    const i = db.products.findIndex(x => x.id === id);
-    if (i < 0) throw new ApiError(404, 'Product not found.');
-    db.products.splice(i, 1);
-  });
+  const rows = await getDb().delete(productsT).where(eq(productsT.id, id)).returning({ id: productsT.id });
+  if (!rows.length) throw new ApiError(404, 'Product not found.');
 }
 
 export async function createWorkshop(input: unknown): Promise<Workshop> {
   const data = validateWorkshop({ ...pick(obj(input), WORKSHOP_KEYS), status: undefined });
-  return mutateDb(db => {
-    db.counters ??= {};
-    const w: Workshop = { id: nextId('w', db.workshops.map(x => x.id), db.counters), ...data, booked: 0 };
-    db.workshops.push(w);
-    return w;
+  return getDb().transaction(async tx => {
+    const id = await allocateId(tx, 'w');
+    const [row] = await tx.insert(workshopsT).values({ id, ...toWorkshopRow(data), booked: 0 }).returning();
+    return toWorkshop(row);
   });
 }
 
 export async function updateWorkshop(id: string, input: unknown): Promise<Workshop> {
   const patch = pick(obj(input), WORKSHOP_KEYS);
-  return mutateDb(db => {
-    const w = db.workshops.find(x => x.id === id);
-    if (!w) throw new ApiError(404, 'Workshop not found.');
-    const next = validateWorkshop({ ...w, ...patch });
-    if (next.seats < w.booked) throw bad(`seats cannot be less than the ${w.booked} already booked.`);
-    Object.assign(w, next);
-    return w;
+  return getDb().transaction(async tx => {
+    const [row] = await tx.select().from(workshopsT).where(eq(workshopsT.id, id)).for('update');
+    if (!row) throw new ApiError(404, 'Workshop not found.');
+    const next = validateWorkshop({ ...toWorkshop(row), ...patch });
+    if (next.seats < row.booked) throw bad(`seats cannot be less than the ${row.booked} already booked.`);
+    const [saved] = await tx.update(workshopsT).set(toWorkshopRow(next)).where(eq(workshopsT.id, id)).returning();
+    return toWorkshop(saved);
   });
 }
 
 export async function deleteWorkshop(id: string): Promise<void> {
-  await mutateDb(db => {
-    const i = db.workshops.findIndex(x => x.id === id);
-    if (i < 0) throw new ApiError(404, 'Workshop not found.');
-    db.workshops.splice(i, 1);
-  });
+  const rows = await getDb().delete(workshopsT).where(eq(workshopsT.id, id)).returning({ id: workshopsT.id });
+  if (!rows.length) throw new ApiError(404, 'Workshop not found.');
 }

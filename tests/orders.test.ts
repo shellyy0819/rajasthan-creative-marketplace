@@ -1,16 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { createOrder, createBooking } from '@/lib/orders';
-import { readDb } from '@/lib/db';
+import { deleteProduct } from '@/lib/admin';
 import { ApiError } from '@/lib/errors';
 
-beforeEach(() => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rrord-'));
-  const file = path.join(dir, 'db.json');
-  fs.copyFileSync(path.resolve('tests/fixtures/db.json'), file);
-  process.env.DB_PATH = file;
+beforeEach(async () => {
+  await resetTestDb();
 });
 
 describe('createOrder', () => {
@@ -81,6 +75,7 @@ describe('malformed input is a 400, not a 500', () => {
 });
 
 import { listOrders, listBookings } from '@/lib/orders';
+import { resetTestDb, snapshot as readDb } from './helpers/testdb';
 
 describe('ownership', () => {
   it('records owner from argument, ignoring any email in the body', async () => {
@@ -96,5 +91,26 @@ describe('ownership', () => {
     expect(await listOrders({ email: 'root@x.co', role: 'admin' })).toHaveLength(2);
     expect(await listBookings({ email: 'b@x.co', role: 'customer' })).toHaveLength(1);
     expect(await listBookings({ email: 'root@x.co', role: 'admin' })).toHaveLength(2);
+  });
+});
+
+describe('order input edge cases', () => {
+  it('a non-string productId never matches a product (array/number/object → 400)', async () => {
+    for (const productId of [['p1'], 1, { id: 'p1' }, null]) {
+      await expect(createOrder({ items: [{ productId, quantity: 1 }] }, 'a@b.co')).rejects.toMatchObject({ status: 400 });
+    }
+    expect((await readDb()).products[0].stock).toBe(8);
+  });
+  it('past orders keep their item details after the product is deleted', async () => {
+    const o = await createOrder({ items: [{ productId: 'p2', quantity: 2 }] }, 'a@b.co');
+    await deleteProduct('p2');
+    const mine = await listOrders({ email: 'a@b.co', role: 'customer' });
+    expect(mine.find(x => x.id === o.id)!.items[0]).toMatchObject({ productId: 'p2', name: 'Pichola Boat Bag Charm', quantity: 2 });
+  });
+  it('a failed order inside the transaction rolls back every earlier stock change', async () => {
+    await expect(createOrder({ items: [{ productId: 'p1', quantity: 2 }, { productId: 'p3', quantity: 99 }] }, 'a@b.co')).rejects.toMatchObject({ status: 400 });
+    const s = await readDb();
+    expect(s.products.find(p => p.id === 'p1')!.stock).toBe(8);
+    expect(s.orders).toHaveLength(0);
   });
 });

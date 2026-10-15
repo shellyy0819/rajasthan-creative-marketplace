@@ -1,7 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 const authMock = vi.hoisted(() => vi.fn());
@@ -11,7 +8,7 @@ import { POST as postProduct } from '@/app/api/products/route';
 import { PATCH as patchProduct, DELETE as deleteProductRoute } from '@/app/api/products/[id]/route';
 import { POST as postWorkshop } from '@/app/api/workshops/route';
 import { PATCH as patchWorkshop, DELETE as deleteWorkshopRoute } from '@/app/api/workshops/[id]/route';
-import { readDb } from '@/lib/db';
+import { resetTestDb, snapshot as readDb } from './helpers/testdb';
 
 const asCustomer = () => authMock.mockResolvedValue({ user: { email: 'c@x.co', role: 'customer' } });
 const asAdmin = () => authMock.mockResolvedValue({ user: { email: 'root@x.co', role: 'admin' } });
@@ -20,13 +17,10 @@ const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 const product = { name: 'Lac Bangle', category: 'Accessories', city: 'Jodhpur', pricePaise: 12000, seller: 'Marwar Lac', description: 'Hand-set.', stock: 3 };
 const workshop = { title: 'Lac Craft', type: 'PAID', pricePaise: 30000, city: 'Jodhpur', venue: 'Studio 9', date: '2026-12-01', time: '16:30', seats: 8, host: 'Marwar Lac', description: 'Learn.' };
 
-beforeEach(() => {
+beforeEach(async () => {
   authMock.mockReset();
   authMock.mockResolvedValue(null);
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rradmapi-'));
-  const file = path.join(dir, 'db.json');
-  fs.copyFileSync(path.resolve('tests/fixtures/db.json'), file);
-  process.env.DB_PATH = file;
+  await resetTestDb();
 });
 
 const calls = () => [

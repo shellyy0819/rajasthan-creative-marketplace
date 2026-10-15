@@ -1,7 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 
 const authMock = vi.hoisted(() => vi.fn());
 vi.mock('@/auth', () => ({ auth: authMock }));
@@ -12,6 +9,7 @@ import { GET as listRoute } from '@/app/api/admin/products/route';
 import { GET as oneRoute } from '@/app/api/admin/products/[id]/route';
 import { GET as publicProducts } from '@/app/api/products/route';
 import { createProduct } from '@/lib/admin';
+import { resetTestDb } from './helpers/testdb';
 
 const asCustomer = () => authMock.mockResolvedValue({ user: { email: 'c@x.co', role: 'customer' } });
 const asAdmin = () => authMock.mockResolvedValue({ user: { email: 'root@x.co', role: 'admin' } });
@@ -22,10 +20,7 @@ const calls = () => [() => artistsRoute(), () => listRoute(req()), () => oneRout
 beforeEach(async () => {
   authMock.mockReset();
   authMock.mockResolvedValue(null);
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rrapa-'));
-  const file = path.join(dir, 'db.json');
-  fs.copyFileSync(path.resolve('tests/fixtures/db.json'), file);
-  process.env.DB_PATH = file;
+  await resetTestDb();
   await createProduct({ name: 'Secret Draft', category: 'Accessories', city: 'Jodhpur', pricePaise: 100, seller: 'Marwar Lac', description: 'Hidden.', stock: 1, status: 'DRAFT' });
 });
 
