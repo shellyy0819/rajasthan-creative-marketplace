@@ -40,6 +40,10 @@ Buttons, selects and inputs that sit on the same row share **height (`--control-
 
 Every mandatory control has the HTML `required` attribute **and** its label text wrapped as `<label><span className="lbl">Name</span><input required …/></label>`. CSS (`label:has(> :required)>.lbl::after`) then draws the red `*` automatically. Show `<p className="form-note"><b>*</b> Required</p>` at the top of long forms. Never put the asterisk in the text itself (it would break label queries and screen readers).
 
+## Breadcrumbs
+
+Every page except the home page renders `<Breadcrumbs items={crumbs} />` (Home › … › current). Public pages also emit `breadcrumbJsonLd(crumbs)`; admin pages do not (they are noindex). `tests/breadcrumbs.test.tsx` fails if a new `page.tsx` lacks breadcrumbs; add it to the exempt list only for redirects/the root.
+
 ## Feedback toasts
 
 Use `<Toast toast={toast} onClose={…} />` from `src/components/Toast.tsx` for the outcome of an action (never an inline banner for page-level results). Success is green (`role="status"`), error is red (`role="alert"`), both close themselves after 3 seconds (`TOAST_MS`), have a ✕ button, and a new toast restarts the timer. Errors that belong next to form fields stay inline in the form (not duplicated as a toast).
