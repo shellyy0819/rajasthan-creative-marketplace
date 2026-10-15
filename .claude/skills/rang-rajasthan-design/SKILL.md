@@ -30,7 +30,7 @@ Radius is `3px` for controls, `4-6px` for cards/dialogs, `30px` only for pills/b
 
 Buttons, selects and inputs that sit on the same row share **height (`--control-h`), radius (3px), border colour (`--control-border`), font (`600 11px` DM Sans) and horizontal padding (`9px 13px`)**. A bare `<select>` is wrong: the browser default looks nothing like our buttons.
 
-- `select` is globally restyled (no native arrow, our chevron, right padding for it). Never set `appearance`, `background-image` or arrow styles per component.
+- `select` is globally restyled (no native arrow, our chevron, right padding for it). Never set `appearance`, `background-image` or arrow styles per component, and never use the `background:` shorthand on a select (it wipes the chevron); use `background-color`.
 - Button variants: `.button` (outline), `.button.primary` (green fill), `.button.danger` / `.danger-outline` (destructive). Edit = outline, Delete = `danger-outline`, Save/New = `primary`.
 - Row of actions: `.admin-row-actions` (flex, gap 8px, wraps). Put a dropdown next to Edit/Delete with `className="admin-status-select"` so it gets the same size and border as the buttons.
 - Toolbar filters: `.admin-toolbar` (input flex:1, selects and primary button on the same line). Public filters: `.filters`.

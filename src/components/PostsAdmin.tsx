@@ -255,9 +255,6 @@ export function PostsAdmin({
                         View public page ↗
                       </Link>
                     )}
-                    {p.status !== "APPROVED" && (
-                      <span className="muted">Not public</span>
-                    )}
                   </p>
                 </div>
                 {confirming?.id === p.id ? (
