@@ -15,6 +15,13 @@
       "when": 1792072683118,
       "tag": "0001_bigint_totals",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792073534144,
+      "tag": "0002_fast_switch",
+      "breakpoints": true
     }
   ]
 }

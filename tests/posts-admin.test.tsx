@@ -61,14 +61,15 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const mount = () => render(<PostsAdmin initialProducts={[...db]} initialArtists={artistsOf(db)} />);
 const rows = () => screen.queryAllByTestId('post-row');
 const rowFor = (name: string) => rows().find(r => within(r).queryByText(name))!;
+const badgeOf = (row: HTMLElement) => row.querySelector('.badge')!.textContent;
 const fill = (label: RegExp, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
 
 describe('PostsAdmin read', () => {
   it('lists every post including drafts, with status badges and an artist sidebar with counts', () => {
     mount();
     expect(rows()).toHaveLength(3);
-    expect(within(rowFor('Draft Dish')).getByText('Draft')).toBeTruthy();
-    expect(within(rowFor('Boat Charm')).getByText('Published')).toBeTruthy();
+    expect(badgeOf(rowFor('Draft Dish'))).toBe('Draft');
+    expect(badgeOf(rowFor('Boat Charm'))).toBe('Published');
     const side = screen.getByRole('navigation', { name: 'Artists' });
     expect(within(side).getByRole('button', { name: /All artists/ }).textContent).toMatch(/3/);
     expect(within(side).getByRole('button', { name: /Neel Mitti/ }).textContent).toMatch(/1 draft/);
@@ -160,7 +161,7 @@ describe('PostsAdmin edit', () => {
     const call = fetchMock.mock.calls.find(c => c[0] === '/api/products/p3')!;
     expect(call[1].method).toBe('PATCH');
     expect(JSON.parse(call[1].body)).toMatchObject({ name: 'Published Dish', status: 'APPROVED' });
-    await waitFor(() => expect(within(rowFor('Published Dish')).getByText('Published')).toBeTruthy());
+    await waitFor(() => expect(badgeOf(rowFor('Published Dish'))).toBe('Published'));
   });
   it('editing a post that was deleted elsewhere shows the 404 message and refreshes the list', async () => {
     mount();
@@ -285,5 +286,28 @@ describe('PostForm field rules', () => {
       expect(el.parentElement!.querySelector(':scope > .lbl')).toBeTruthy();
     }
     expect((document.querySelector('[name="phone"]') as HTMLInputElement).required).toBe(false);
+  });
+});
+
+describe('PostsAdmin archive and quick status change', () => {
+  it('the row dropdown PATCHes only the status, then the badge updates', async () => {
+    mount();
+    fireEvent.change(screen.getByLabelText('Change status for Boat Charm'), { target: { value: 'ARCHIVED' } });
+    await waitFor(() => expect(badgeOf(rowFor('Boat Charm'))).toBe('Archived'));
+    const call = fetchMock.mock.calls.find(c => c[0] === '/api/products/p2' && c[1]?.method === 'PATCH')!;
+    expect(JSON.parse(call[1].body)).toEqual({ status: 'ARCHIVED' });
+    expect(within(rowFor('Boat Charm')).queryByRole('link', { name: /View public page/ })).toBeNull();
+    expect(within(rowFor('Boat Charm')).getByText(/not public/i)).toBeTruthy();
+  });
+  it('the status filter offers Archived', () => {
+    db = [...db, mk('p4', 'Old Dish', 'Neel Mitti', 'ARCHIVED')];
+    mount();
+    fireEvent.change(screen.getByLabelText('Filter by status'), { target: { value: 'ARCHIVED' } });
+    expect(rows().map(r => badgeOf(r))).toEqual(['Archived']);
+  });
+  it('selecting the current status does nothing', () => {
+    mount();
+    fireEvent.change(screen.getByLabelText('Change status for Boat Charm'), { target: { value: 'APPROVED' } });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

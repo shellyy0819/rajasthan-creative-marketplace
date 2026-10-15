@@ -96,7 +96,7 @@ export function PostForm({ initial, artists, onSubmit, onCancel }: Props) {
           <div className="admin-form-row">
             <label><span className="lbl">Price (₹)</span><input name="price" type="number" min="0" step="0.01" required defaultValue={initial ? initial.pricePaise / 100 : ''} /></label>
             <label><span className="lbl">Stock</span><input name="stock" type="number" min="0" step="1" required defaultValue={initial ? initial.stock : ''} /></label>
-            <label><span className="lbl">Status</span><select name="status" required defaultValue={initial?.status ?? 'APPROVED'}><option value="APPROVED">Published</option><option value="DRAFT">Draft (admin only)</option></select></label>
+            <label><span className="lbl">Status</span><select name="status" required defaultValue={initial?.status ?? 'APPROVED'}><option value="APPROVED">Published</option><option value="DRAFT">Draft</option><option value="ARCHIVED">Archived</option></select></label>
           </div>
           <label>Cover image URL (https)<input name="imageUrl" type="url" maxLength={500} placeholder="https://…" defaultValue={v('imageUrl')} /></label>
           <fieldset>

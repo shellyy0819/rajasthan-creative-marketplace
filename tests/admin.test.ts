@@ -184,3 +184,31 @@ describe('phone: HTML pattern and server regex agree', () => {
       expect(html.test(v)).toBe(normalizePhone(v) !== undefined);
   });
 });
+
+describe('ARCHIVED status', () => {
+  it('products can be archived and restored; archived posts are hidden from the public catalog', async () => {
+    const { listProducts, getProductBySlug } = await import('@/lib/catalog');
+    expect((await updateProduct('p1', { status: 'ARCHIVED' })).status).toBe('ARCHIVED');
+    expect((await listProducts()).map(p => p.id)).not.toContain('p1');
+    expect(await getProductBySlug('crochet-lily-bouquet-p1')).toBeUndefined();
+    expect((await updateProduct('p1', { status: 'APPROVED' })).status).toBe('APPROVED');
+    expect((await listProducts()).map(p => p.id)).toContain('p1');
+  });
+  it('archived products cannot be ordered', async () => {
+    const { createOrder } = await import('@/lib/orders');
+    await updateProduct('p1', { status: 'ARCHIVED' });
+    await expect(createOrder({ items: [{ productId: 'p1', quantity: 1 }] }, 'a@b.co')).rejects.toMatchObject({ status: 400 });
+  });
+  it('workshops do not accept ARCHIVED; unknown product statuses are rejected', async () => {
+    await expect(updateWorkshop('w1', { status: 'ARCHIVED' })).rejects.toMatchObject({ status: 400 });
+    await expect(updateProduct('p1', { status: 'HACK' })).rejects.toMatchObject({ status: 400 });
+  });
+  it('artist counts split published, drafts and archived', async () => {
+    const { listArtists } = await import('@/lib/admin-posts');
+    await updateProduct('p1', { status: 'ARCHIVED' });
+    await updateProduct('p3', { status: 'DRAFT' });
+    const a = await listArtists();
+    const totals = a.reduce((s, x) => ({ t: s.t + x.total, p: s.p + x.published, d: s.d + x.drafts, r: s.r + (x.archived ?? 0) }), { t: 0, p: 0, d: 0, r: 0 });
+    expect(totals).toEqual({ t: 4, p: 2, d: 1, r: 1 });
+  });
+});

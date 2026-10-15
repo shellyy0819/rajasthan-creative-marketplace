@@ -8,6 +8,6 @@ export const GET = (req: Request) => handle(async () => {
   requireAdmin(await auth());
   const sp = new URL(req.url).searchParams;
   const status = sp.get('status') ?? undefined;
-  if (status && status !== 'APPROVED' && status !== 'DRAFT') throw new ApiError(400, 'status must be APPROVED or DRAFT.');
+  if (status && status !== 'APPROVED' && status !== 'DRAFT' && status !== 'ARCHIVED') throw new ApiError(400, 'status must be APPROVED, DRAFT, or ARCHIVED.');
   return json(await listProductsForAdmin({ artist: sp.get('artist') ?? undefined, status, q: sp.get('q') ?? undefined }), 200, { 'cache-control': 'no-store' });
 });

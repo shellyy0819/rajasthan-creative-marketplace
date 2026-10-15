@@ -42,7 +42,8 @@ function oneOf<T extends string>(v: unknown, field: string, allowed: readonly T[
 // Ids are never reused: a persisted counter survives deletes, so a stale form/URL can never hit a different, newer record.
 const PRODUCT_KEYS = ['name', 'category', 'city', 'pricePaise', 'seller', 'description', 'stock', 'status', 'artistName', 'instagram', 'youtube', 'phone', 'email', 'imageUrl'] as const;
 const WORKSHOP_KEYS = ['title', 'type', 'pricePaise', 'city', 'venue', 'date', 'time', 'seats', 'host', 'description', 'status'] as const;
-const STATUSES = ['APPROVED', 'DRAFT'] as const;
+const PRODUCT_STATUSES = ['APPROVED', 'DRAFT', 'ARCHIVED'] as const;
+const WORKSHOP_STATUSES = ['APPROVED', 'DRAFT'] as const;
 
 function pick(input: Raw, keys: readonly string[]): Raw {
   return Object.fromEntries(keys.filter(k => k in input).map(k => [k, input[k]]));
@@ -69,7 +70,7 @@ function validateProduct(v: Raw): Omit<Product, 'id'> {
     seller: text(v.seller, 'seller', 200),
     description: text(v.description, 'description', 2000),
     stock: int(v.stock, 'stock', 0, 100_000),
-    status: oneOf(v.status ?? 'APPROVED', 'status', STATUSES),
+    status: oneOf(v.status ?? 'APPROVED', 'status', PRODUCT_STATUSES),
     artistName: optionalText(v.artistName, 'artistName', 200),
     instagram: optionalText(v.instagram, 'instagram', 200),
     youtube: optionalText(v.youtube, 'youtube', 200),
@@ -102,7 +103,7 @@ function validateWorkshop(v: Raw): Omit<Workshop, 'id' | 'booked'> {
     seats: int(v.seats, 'seats', 1, 1000),
     host: text(v.host, 'host', 200),
     description: text(v.description, 'description', 2000),
-    status: oneOf(v.status ?? 'APPROVED', 'status', STATUSES),
+    status: oneOf(v.status ?? 'APPROVED', 'status', WORKSHOP_STATUSES),
   };
 }
 

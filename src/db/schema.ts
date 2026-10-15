@@ -20,7 +20,7 @@ export const products = pgTable('products', {
 }, t => [
   check('products_stock_nonneg', sql`${t.stock} >= 0`),
   check('products_price_nonneg', sql`${t.pricePaise} >= 0`),
-  check('products_status_valid', sql`${t.status} in ('APPROVED', 'DRAFT')`),
+  check('products_status_valid', sql`${t.status} in ('APPROVED', 'DRAFT', 'ARCHIVED')`),
   index('products_status_idx').on(t.status),
 ]);
 

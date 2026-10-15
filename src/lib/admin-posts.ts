@@ -7,7 +7,7 @@ import { ApiError } from './errors';
 import type { Product } from './types';
 
 export { artistKey };
-export type AdminArtist = { key: string; name: string; total: number; published: number; drafts: number };
+export type AdminArtist = { key: string; name: string; total: number; published: number; drafts: number; archived?: number };
 export type AdminProductQuery = { artist?: string; status?: string; q?: string };
 
 const escapeLike = (s: string) => s.replace(/[\\%_]/g, m => `\\${m}`);
@@ -39,8 +39,10 @@ export async function listArtists(): Promise<AdminArtist[]> {
     name: sql<string>`(array_agg(${cleanSeller} order by length(${products.id}), ${products.id}))[1]`,
     total: sql<number>`count(*)`.mapWith(Number),
     published: sql<number>`count(*) filter (where ${products.status} = 'APPROVED')`.mapWith(Number),
+    drafts: sql<number>`count(*) filter (where ${products.status} = 'DRAFT')`.mapWith(Number),
+    archived: sql<number>`count(*) filter (where ${products.status} = 'ARCHIVED')`.mapWith(Number),
   }).from(products).groupBy(keySql);
   return rows
-    .map(r => ({ key: r.key, name: r.name, total: r.total, published: r.published, drafts: r.total - r.published }))
+    .map(r => ({ key: r.key, name: r.name, total: r.total, published: r.published, drafts: r.drafts, archived: r.archived }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }

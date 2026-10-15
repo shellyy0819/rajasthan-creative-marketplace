@@ -45,9 +45,11 @@
 .admin-row-main h3{font:500 17px var(--font-serif),serif;margin:0 0 4px}
 .admin-row-main p{font-size:11px;color:var(--muted);margin:0 0 4px;line-height:1.6}
 .admin-row-main a{color:var(--green);font-weight:700;font-size:11px;margin-left:10px}
+.admin-status-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.admin-status-line a{margin-left:0}.admin-status-select{border:1px solid var(--line);background:var(--white);border-radius:3px;padding:4px 7px;color:var(--ink);font:10px var(--font-sans),sans-serif}.admin-status-select:disabled{opacity:.6;cursor:wait}
 .badge{display:inline-block;border-radius:30px;padding:2px 9px;font:700 9px var(--font-sans),sans-serif;letter-spacing:.8px;text-transform:uppercase}
 .badge.published{background:#dce2d5;color:var(--green)}
 .badge.draft{background:#ead8c5;color:#8a4a2b}
+.badge.archived{background:#e4e1dc;color:#625d56}
 .admin-row-actions,.admin-confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .admin-confirm span{font-size:11px;color:var(--ink)}
 .admin-row .button,.admin-actions .button{border:1px solid #cfc5b7;background:transparent;padding:9px 13px;font-size:11px;color:var(--ink)}
@@ -69,3 +71,13 @@
 @media(max-width:800px){.admin-grid{grid-template-columns:1fr;padding-left:5%;padding-right:5%}.admin-artists{position:static;flex-direction:row;overflow-x:auto}.admin-artists button{flex:none}.admin-row{grid-template-columns:56px minmax(0,1fr)}.admin-row-actions,.admin-confirm{grid-column:1/-1}.admin-thumb{width:56px;height:56px}.admin-flash,.admin-posts>.admin-error{margin-left:5%;margin-right:5%}}
 
 label:has(> :required)>.lbl::after{content:' *';color:#d0312d;font-weight:700}.form-note{font-size:10px;color:var(--muted);margin:0 0 4px}.form-note b{color:#d0312d}
+
+/* Shared form-control language (see .claude/skills/rang-rajasthan-design): selects look like the outline buttons they sit next to. */
+:root{--control-h:36px;--control-border:#cfc5b7;--chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%2377796f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E")}
+select,.select{appearance:none;-webkit-appearance:none;background-image:var(--chevron);background-repeat:no-repeat;background-position:right 12px center;background-size:10px 6px;padding-right:32px!important;cursor:pointer}
+select:disabled{cursor:not-allowed}
+.admin-row .button,.admin-actions .button,.admin-toolbar .button,.admin-row .admin-status-select{min-height:var(--control-h)}
+.admin-row .admin-status-select{border:1px solid var(--control-border);border-radius:3px;background-color:transparent;padding:9px 13px;font:600 11px var(--font-sans),sans-serif;color:var(--ink)}
+.admin-row .admin-status-select:hover,.admin-row .button:hover{border-color:var(--green)}
+.admin-toolbar select,.admin-toolbar input{min-height:var(--control-h)}
+:is(button,select,input,textarea,a):focus-visible{outline:2px solid var(--orange);outline-offset:2px}
