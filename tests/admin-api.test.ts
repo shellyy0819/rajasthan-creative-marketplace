@@ -79,3 +79,31 @@ describe('admin-only write APIs', () => {
     expect((await r.json()).error).toMatch(/pricePaise/);
   });
 });
+
+describe('phone and ARCHIVED through the HTTP routes', () => {
+  it('POST /api/products rejects a malformed phone with 400 and stores a valid one compact', async () => {
+    asAdmin();
+    const bad = await postProduct(req('POST', { ...product, phone: '12345' }));
+    expect(bad.status).toBe(400);
+    expect((await bad.json()).error).toMatch(/phone is invalid/);
+    const good = await postProduct(req('POST', { ...product, phone: '+91 99898 98999' }));
+    expect(good.status).toBe(201);
+    expect((await good.json()).phone).toBe('+919989898999');
+    expect((await readDb()).products).toHaveLength(5);
+  });
+  it('PATCH can archive and restore a product; workshops reject ARCHIVED', async () => {
+    asAdmin();
+    const a = await patchProduct(req('PATCH', { status: 'ARCHIVED' }), ctx('p1'));
+    expect(a.status).toBe(200);
+    expect((await a.json()).status).toBe('ARCHIVED');
+    expect((await patchProduct(req('PATCH', { status: 'APPROVED' }), ctx('p1'))).status).toBe(200);
+    const w = await patchWorkshop(req('PATCH', { status: 'ARCHIVED' }), ctx('w1'));
+    expect(w.status).toBe(400);
+    expect((await w.json()).error).toBe('status must be one of: APPROVED, DRAFT.');
+  });
+  it('customers cannot archive', async () => {
+    asCustomer();
+    expect((await patchProduct(req('PATCH', { status: 'ARCHIVED' }), ctx('p1'))).status).toBe(403);
+    expect((await readDb()).products[0].status).toBe('APPROVED');
+  });
+});

@@ -58,3 +58,17 @@ describe('admin read APIs', () => {
     expect(names).not.toContain('Secret Draft');
   });
 });
+
+describe('ARCHIVED in admin read APIs and the public API', () => {
+  it('status=ARCHIVED filter works, artist counts include archived, public API hides archived', async () => {
+    const { updateProduct } = await import('@/lib/admin');
+    await updateProduct('p1', { status: 'ARCHIVED' });
+    asAdmin();
+    const archived = await (await listRoute(req('?status=ARCHIVED'))).json();
+    expect(archived.map((p: { id: string }) => p.id)).toEqual(['p1']);
+    const artists = await (await artistsRoute()).json();
+    expect(artists.reduce((n: number, a: { archived?: number }) => n + (a.archived ?? 0), 0)).toBe(1);
+    const names = (await (await publicProducts(new Request('http://x/api/products'))).json()).map((p: { id: string }) => p.id);
+    expect(names).not.toContain('p1');
+  });
+});
