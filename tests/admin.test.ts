@@ -22,10 +22,14 @@ describe('products admin', () => {
     expect(p.status).toBe('APPROVED');
     expect((await readDb()).products).toHaveLength(5);
   });
-  it('ignores client-supplied id/status mass assignment on create', async () => {
-    const p = await createProduct({ ...validProduct, id: 'p1', status: 'HACK' });
+  it('ignores a client-supplied id on create (valid status is honoured)', async () => {
+    const p = await createProduct({ ...validProduct, id: 'p1', status: 'DRAFT' });
     expect(p.id).toBe('p5');
-    expect(p.status).toBe('APPROVED');
+    expect(p.status).toBe('DRAFT');
+  });
+  it('rejects an unknown status on create', async () => {
+    await expect(createProduct({ ...validProduct, status: 'HACK' })).rejects.toMatchObject({ status: 400, message: expect.stringContaining('status') });
+    expect((await readDb()).products).toHaveLength(4);
   });
   it('rejects invalid fields with 400', async () => {
     for (const bad of [
@@ -89,5 +93,27 @@ describe('workshops admin', () => {
   });
   it('switching an existing workshop to FREE zeroes its price', async () => {
     expect(await updateWorkshop('w1', { type: 'FREE' })).toMatchObject({ type: 'FREE', pricePaise: 0 });
+  });
+});
+
+describe('product imageUrl', () => {
+  it('accepts https URLs and normalises them', async () => {
+    const p = await createProduct({ ...validProduct, imageUrl: 'https://cdn.example.com/a b.jpg' });
+    expect(p.imageUrl).toBe('https://cdn.example.com/a%20b.jpg');
+  });
+  it('rejects non-https, scripts, data URLs, junk, non-strings and >500 chars', async () => {
+    for (const imageUrl of [
+      'http://cdn.example.com/a.jpg', 'javascript:alert(1)', 'data:image/png;base64,AAAA', '//cdn.example.com/a.jpg',
+      '/relative.jpg', 'not a url', 42, 'https://x.example.com/' + 'a'.repeat(500),
+    ]) {
+      await expect(createProduct({ ...validProduct, imageUrl })).rejects.toMatchObject({ status: 400, message: expect.stringContaining('imageUrl') });
+    }
+    expect((await readDb()).products).toHaveLength(4);
+  });
+  it('can be cleared with an empty string on update', async () => {
+    await updateProduct('p1', { imageUrl: 'https://cdn.example.com/a.jpg' });
+    expect((await readDb()).products[0].imageUrl).toBe('https://cdn.example.com/a.jpg');
+    await updateProduct('p1', { imageUrl: '' });
+    expect((await readDb()).products[0].imageUrl).toBeUndefined();
   });
 });

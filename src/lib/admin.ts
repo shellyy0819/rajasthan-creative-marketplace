@@ -32,12 +32,22 @@ function nextId(prefix: string, ids: string[]): string {
   return `${prefix}${max + 1}`;
 }
 
-const PRODUCT_KEYS = ['name', 'category', 'city', 'pricePaise', 'seller', 'description', 'stock', 'status', 'artistName', 'instagram', 'youtube', 'phone', 'email'] as const;
+const PRODUCT_KEYS = ['name', 'category', 'city', 'pricePaise', 'seller', 'description', 'stock', 'status', 'artistName', 'instagram', 'youtube', 'phone', 'email', 'imageUrl'] as const;
 const WORKSHOP_KEYS = ['title', 'type', 'pricePaise', 'city', 'venue', 'date', 'time', 'seats', 'host', 'description', 'status'] as const;
 const STATUSES = ['APPROVED', 'DRAFT'] as const;
 
 function pick(input: Raw, keys: readonly string[]): Raw {
   return Object.fromEntries(keys.filter(k => k in input).map(k => [k, input[k]]));
+}
+
+function optionalImageUrl(v: unknown): string | undefined {
+  if (v === undefined || v === null || v === '') return undefined;
+  const msg = 'imageUrl must be an https URL up to 500 characters.';
+  if (typeof v !== 'string' || v.trim().length > 500) throw bad(msg);
+  let u: URL;
+  try { u = new URL(v.trim()); } catch { throw bad(msg); }
+  if (u.protocol !== 'https:') throw bad(msg);
+  return u.toString();
 }
 
 function validateProduct(v: Raw): Omit<Product, 'id'> {
@@ -57,6 +67,7 @@ function validateProduct(v: Raw): Omit<Product, 'id'> {
     youtube: optionalText(v.youtube, 'youtube', 200),
     phone: optionalText(v.phone, 'phone', 40),
     email,
+    imageUrl: optionalImageUrl(v.imageUrl),
   };
 }
 
@@ -88,7 +99,7 @@ function validateWorkshop(v: Raw): Omit<Workshop, 'id' | 'booked'> {
 }
 
 export async function createProduct(input: unknown): Promise<Product> {
-  const data = validateProduct({ ...pick(obj(input), PRODUCT_KEYS), status: undefined });
+  const data = validateProduct(pick(obj(input), PRODUCT_KEYS));
   return mutateDb(db => {
     const p: Product = { id: nextId('p', db.products.map(x => x.id)), ...data };
     db.products.push(p);
