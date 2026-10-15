@@ -268,3 +268,22 @@ describe('PostForm dialog focus handling', () => {
     expect(document.activeElement).toBe(within(rowFor('Boat Charm')).getByRole('button', { name: /Edit/ }));
   });
 });
+
+describe('PostForm field rules', () => {
+  const open = () => { mount(); fireEvent.click(screen.getByRole('button', { name: 'New post' })); };
+  it('phone input rejects malformed numbers and accepts Indian mobiles in the browser', () => {
+    open();
+    const phone = screen.getByLabelText(/^Phone/) as HTMLInputElement;
+    for (const bad of ['12345', '5989898999', 'abcdefghij']) { fireEvent.change(phone, { target: { value: bad } }); expect(phone.validity.patternMismatch).toBe(true); }
+    for (const good of ['9989898999', '+91 99898 98999', '']) { fireEvent.change(phone, { target: { value: good } }); expect(phone.validity.patternMismatch).toBe(false); }
+  });
+  it('mandatory fields are required and wrapped for the red asterisk', () => {
+    open();
+    for (const name of ['name', 'seller', 'description', 'price', 'stock']) {
+      const el = document.querySelector(`[name="${name}"]`) as HTMLInputElement;
+      expect(el.required).toBe(true);
+      expect(el.parentElement!.querySelector(':scope > .lbl')).toBeTruthy();
+    }
+    expect((document.querySelector('[name="phone"]') as HTMLInputElement).required).toBe(false);
+  });
+});

@@ -4,6 +4,7 @@ import { allocateId } from '../db/ids';
 import { toProduct, toProductRow, toWorkshop, toWorkshopRow } from '../db/mappers';
 import { products as productsT, workshops as workshopsT } from '../db/schema';
 import { ApiError } from './errors';
+import { normalizePhone, PHONE_HINT } from './phone';
 import { CATEGORIES, CITIES } from './catalog';
 import type { Product, Workshop } from './types';
 
@@ -26,6 +27,13 @@ function optionalText(v: unknown, field: string, max: number): string | undefine
   if (v === undefined || v === null || v === '') return undefined;
   if (typeof v !== 'string' || v.trim().length > max) throw bad(`${field} must be text up to ${max} characters.`);
   return v.trim() || undefined;
+}
+function optionalPhone(v: unknown): string | undefined {
+  const t = optionalText(v, 'phone', 40);
+  if (t === undefined) return undefined;
+  const n = normalizePhone(t);
+  if (!n) throw bad(`phone is invalid. ${PHONE_HINT}`);
+  return n;
 }
 function oneOf<T extends string>(v: unknown, field: string, allowed: readonly T[]): T {
   if (typeof v !== 'string' || !(allowed as readonly string[]).includes(v)) throw bad(`${field} must be one of: ${allowed.join(', ')}.`);
@@ -65,7 +73,7 @@ function validateProduct(v: Raw): Omit<Product, 'id'> {
     artistName: optionalText(v.artistName, 'artistName', 200),
     instagram: optionalText(v.instagram, 'instagram', 200),
     youtube: optionalText(v.youtube, 'youtube', 200),
-    phone: optionalText(v.phone, 'phone', 40),
+    phone: optionalPhone(v.phone),
     email,
     imageUrl: optionalImageUrl(v.imageUrl),
   };

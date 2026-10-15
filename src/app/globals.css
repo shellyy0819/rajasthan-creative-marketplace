@@ -67,3 +67,5 @@
 .admin-form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .admin-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
 @media(max-width:800px){.admin-grid{grid-template-columns:1fr;padding-left:5%;padding-right:5%}.admin-artists{position:static;flex-direction:row;overflow-x:auto}.admin-artists button{flex:none}.admin-row{grid-template-columns:56px minmax(0,1fr)}.admin-row-actions,.admin-confirm{grid-column:1/-1}.admin-thumb{width:56px;height:56px}.admin-flash,.admin-posts>.admin-error{margin-left:5%;margin-right:5%}}
+
+label:has(> :required)>.lbl::after{content:' *';color:#d0312d;font-weight:700}.form-note{font-size:10px;color:var(--muted);margin:0 0 4px}.form-note b{color:#d0312d}

@@ -159,3 +159,28 @@ describe('clearing optional product fields writes NULL and never leaks null into
     expect((await readDb()).products[0].stock).toBe(8);
   });
 });
+
+describe('phone validation', () => {
+  it('accepts Indian mobile numbers, with optional +91/91/0 prefix and spaces or hyphens, stored compact', async () => {
+    for (const [input, stored] of [['9989898999', '9989898999'], ['+91 99898 98999', '+919989898999'], ['91-9989898999', '919989898999'], ['09989898999', '09989898999'], [' 6000000000 ', '6000000000']]) {
+      const p = await updateProduct('p1', { phone: input });
+      expect(p.phone).toBe(stored);
+    }
+  });
+  it('rejects malformed phone numbers with 400 and leaves the row untouched', async () => {
+    for (const phone of ['12345', '5989898999', '99898989', '99898989990', 'abcdefghij', '+1 9989898999', '9989898999; drop', '99898 989 9x']) {
+      await expect(updateProduct('p1', { phone })).rejects.toMatchObject({ status: 400, message: expect.stringContaining('phone') });
+      await expect(createProduct({ ...validProduct, phone })).rejects.toMatchObject({ status: 400 });
+    }
+    expect((await readDb()).products[0].phone).toBeUndefined();
+  });
+});
+
+describe('phone: HTML pattern and server regex agree', () => {
+  it('same verdict on sample inputs', async () => {
+    const { PHONE_PATTERN, normalizePhone } = await import('@/lib/phone');
+    const html = new RegExp(`^(?:${PHONE_PATTERN})$`);
+    for (const v of ['9989898999', '+91 99898 98999', '91-9989898999', '09989898999', '12345', '5989898999', '99898989990', '+1 9989898999', 'abcdefghij', '99898 989 9x'])
+      expect(html.test(v)).toBe(normalizePhone(v) !== undefined);
+  });
+});

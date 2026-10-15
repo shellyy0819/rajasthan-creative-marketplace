@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 import type { Product } from '@/lib/types';
 import type { AdminArtist } from '@/lib/admin-posts';
 import { CATEGORIES, CITIES } from '@/lib/catalog-shared';
@@ -80,29 +81,29 @@ export function PostForm({ initial, artists, onSubmit, onCancel }: Props) {
           const message = await onSubmit(buildPayload(new FormData(e.currentTarget)));
           if (message) { setError(message); setSaving(false); }
         }}>
+          <p className="form-note"><b>*</b> Required</p>
           {error && <p role="alert" className="admin-error">{error}</p>}
-          <label>Title<input name="name" required maxLength={200} defaultValue={v('name')} autoFocus /></label>
-          <label>Artist (seller name)
-            <input name="seller" required maxLength={200} defaultValue={v('seller')} list="artist-names" />
+          <label><span className="lbl">Title</span><input name="name" required maxLength={200} defaultValue={v('name')} autoFocus /></label>
+          <label><span className="lbl">Artist (seller name)</span><input name="seller" required maxLength={200} defaultValue={v('seller')} list="artist-names" />
             <datalist id="artist-names">{artists.map(a => <option key={a.key} value={a.name} />)}</datalist>
             <small>Posts with the same artist name are grouped together. Changing it moves this post to another artist.</small>
           </label>
-          <label>Description<textarea name="description" required maxLength={2000} rows={4} defaultValue={v('description')} /></label>
+          <label><span className="lbl">Description</span><textarea name="description" required maxLength={2000} rows={4} defaultValue={v('description')} /></label>
           <div className="admin-form-row">
-            <label>Category<select name="category" defaultValue={v('category') || CATEGORIES[0]}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></label>
-            <label>City<select name="city" defaultValue={v('city') || CITIES[0]}>{CITIES.map(c => <option key={c}>{c}</option>)}</select></label>
+            <label><span className="lbl">Category</span><select name="category" required defaultValue={v('category') || CATEGORIES[0]}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></label>
+            <label><span className="lbl">City</span><select name="city" required defaultValue={v('city') || CITIES[0]}>{CITIES.map(c => <option key={c}>{c}</option>)}</select></label>
           </div>
           <div className="admin-form-row">
-            <label>Price (₹)<input name="price" type="number" min="0" step="0.01" required defaultValue={initial ? initial.pricePaise / 100 : ''} /></label>
-            <label>Stock<input name="stock" type="number" min="0" step="1" required defaultValue={initial ? initial.stock : ''} /></label>
-            <label>Status<select name="status" defaultValue={initial?.status ?? 'APPROVED'}><option value="APPROVED">Published</option><option value="DRAFT">Draft (admin only)</option></select></label>
+            <label><span className="lbl">Price (₹)</span><input name="price" type="number" min="0" step="0.01" required defaultValue={initial ? initial.pricePaise / 100 : ''} /></label>
+            <label><span className="lbl">Stock</span><input name="stock" type="number" min="0" step="1" required defaultValue={initial ? initial.stock : ''} /></label>
+            <label><span className="lbl">Status</span><select name="status" required defaultValue={initial?.status ?? 'APPROVED'}><option value="APPROVED">Published</option><option value="DRAFT">Draft (admin only)</option></select></label>
           </div>
           <label>Cover image URL (https)<input name="imageUrl" type="url" maxLength={500} placeholder="https://…" defaultValue={v('imageUrl')} /></label>
           <fieldset>
             <legend>Artist contact (shown on this post’s page)</legend>
             <div className="admin-form-row">
               <label>Display name<input name="artistName" maxLength={200} defaultValue={v('artistName')} /></label>
-              <label>Phone<input name="phone" maxLength={40} defaultValue={v('phone')} /></label>
+              <label>Phone<input name="phone" type="tel" inputMode="tel" maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="9989898999" defaultValue={v('phone')} /></label>
             </div>
             <div className="admin-form-row">
               <label>Instagram<input name="instagram" maxLength={200} defaultValue={v('instagram')} /></label>
