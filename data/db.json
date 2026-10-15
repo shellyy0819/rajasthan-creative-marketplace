@@ -1,6 +1,6 @@
 {
   "products": [
-    {"id":"p1","name":"Crochet Lily Bouquet","category":"Crochet & Textiles","city":"Udaipur","pricePaise":85000,"seller":"Shauk and Stuff","description":"Handmade crochet flowers, made to order.","stock":8,"status":"APPROVED"},
+    {"id":"p1","name":"Crochet Lily Bouquet","category":"Crochet & Textiles","city":"Udaipur","pricePaise":85000,"seller":"Shauk and Stuff","artistName":"Shauk and Stuff","instagram":"shaukandstuff","youtube":"shaukandstuff","phone":"9997979999","description":"Handmade crochet flowers, made to order.","stock":8,"status":"APPROVED"},
     {"id":"p2","name":"Pichola Boat Bag Charm","category":"Accessories","city":"Udaipur","pricePaise":29900,"seller":"Lake City Knots","description":"A tiny crochet tribute to Lake Pichola.","stock":12,"status":"APPROVED"},
     {"id":"p3","name":"Pressed Flower Resin Coaster Set","category":"Resin Art","city":"Jaipur","pricePaise":65000,"seller":"Petal & Pour","description":"Set of four handmade floral resin coasters.","stock":5,"status":"APPROVED"},
     {"id":"p4","name":"Blue Pottery Trinket Dish","category":"Pottery","city":"Jaipur","pricePaise":45000,"seller":"Neel Mitti Studio","description":"Small decorative dish inspired by Jaipur blue pottery.","stock":6,"status":"APPROVED"}

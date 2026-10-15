@@ -1,6 +1,7 @@
 export type Product = {
   id: string; name: string; category: string; city: string; pricePaise: number;
   seller: string; description: string; stock: number; status: string;
+  artistName?: string; instagram?: string; youtube?: string; phone?: string; email?: string;
 };
 export type Workshop = {
   id: string; title: string; type: 'FREE' | 'PAID'; pricePaise: number; city: string;

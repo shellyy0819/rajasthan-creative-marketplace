@@ -18,6 +18,11 @@ function int(v: unknown, field: string, min: number, max: number): number {
   if (typeof v !== 'number' || !Number.isInteger(v) || v < min || v > max) throw bad(`${field} must be an integer between ${min} and ${max}.`);
   return v;
 }
+function optionalText(v: unknown, field: string, max: number): string | undefined {
+  if (v === undefined || v === null || v === '') return undefined;
+  if (typeof v !== 'string' || v.trim().length > max) throw bad(`${field} must be text up to ${max} characters.`);
+  return v.trim() || undefined;
+}
 function oneOf<T extends string>(v: unknown, field: string, allowed: readonly T[]): T {
   if (typeof v !== 'string' || !(allowed as readonly string[]).includes(v)) throw bad(`${field} must be one of: ${allowed.join(', ')}.`);
   return v as T;
@@ -27,7 +32,7 @@ function nextId(prefix: string, ids: string[]): string {
   return `${prefix}${max + 1}`;
 }
 
-const PRODUCT_KEYS = ['name', 'category', 'city', 'pricePaise', 'seller', 'description', 'stock', 'status'] as const;
+const PRODUCT_KEYS = ['name', 'category', 'city', 'pricePaise', 'seller', 'description', 'stock', 'status', 'artistName', 'instagram', 'youtube', 'phone', 'email'] as const;
 const WORKSHOP_KEYS = ['title', 'type', 'pricePaise', 'city', 'venue', 'date', 'time', 'seats', 'host', 'description', 'status'] as const;
 const STATUSES = ['APPROVED', 'DRAFT'] as const;
 
@@ -36,6 +41,8 @@ function pick(input: Raw, keys: readonly string[]): Raw {
 }
 
 function validateProduct(v: Raw): Omit<Product, 'id'> {
+  const email = optionalText(v.email, 'email', 200);
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw bad('email must be a valid email address.');
   return {
     name: text(v.name, 'name', 200),
     category: oneOf(v.category, 'category', CATEGORIES),
@@ -45,6 +52,11 @@ function validateProduct(v: Raw): Omit<Product, 'id'> {
     description: text(v.description, 'description', 2000),
     stock: int(v.stock, 'stock', 0, 100_000),
     status: oneOf(v.status ?? 'APPROVED', 'status', STATUSES),
+    artistName: optionalText(v.artistName, 'artistName', 200),
+    instagram: optionalText(v.instagram, 'instagram', 200),
+    youtube: optionalText(v.youtube, 'youtube', 200),
+    phone: optionalText(v.phone, 'phone', 40),
+    email,
   };
 }
 

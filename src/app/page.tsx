@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Hero } from '@/components/Hero';
-import { ProductGrid } from '@/components/ProductGrid';
+import { HomeCraftExplorer } from '@/components/HomeCraftExplorer';
 import { WorkshopList } from '@/components/WorkshopList';
 import { listProducts, listWorkshops, CITIES, citySlug } from '@/lib/catalog';
 import { pageMetadata } from '@/lib/meta';
@@ -27,8 +27,7 @@ export default async function Home() {
           <div><span className="eyebrow">THE MAKERS&apos; SHELF</span><h2 id="shop-h">Handmade finds</h2></div>
           <Link className="text-link" href="/shop">Browse &amp; filter all →</Link>
         </div>
-        <div style={{ height: 24 }} />
-        <ProductGrid products={products} />
+        <HomeCraftExplorer products={products} />
       </section>
       <section className="workshop-band" id="workshops" aria-labelledby="ws-h">
         <div className="workshop-intro">
