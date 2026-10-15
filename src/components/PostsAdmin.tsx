@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Product } from "@/lib/types";
 import type { AdminArtist } from "@/lib/admin-posts";
@@ -8,6 +8,7 @@ import { productSlug } from "@/lib/catalog-shared";
 import { money } from "@/lib/money";
 import { ProductImage } from "./ProductImage";
 import { PostForm } from "./PostForm";
+import { Toast, type ToastState } from "./Toast";
 
 const SYMBOLS = ["🌷", "⛵", "🌼", "🏺", "🧶", "🌸"];
 const POST_STATUSES = [
@@ -40,8 +41,10 @@ export function PostsAdmin({
   const [editing, setEditing] = useState<Product | "new" | null>(null);
   const [confirming, setConfirming] = useState<Product | null>(null);
   const [changingStatus, setChangingStatus] = useState<string | null>(null);
-  const [message, setMessage] = useState("");
-  const [problem, setProblem] = useState("");
+  const [toast, setToast] = useState<ToastState>(null);
+  const notify = (kind: "success" | "error", text: string) =>
+    setToast({ id: Date.now() + Math.random(), kind, text });
+  const closeToast = useCallback(() => setToast(null), []);
 
   async function refresh() {
     try {
@@ -51,13 +54,16 @@ export function PostsAdmin({
       ]);
       if (!p.ok || !a.ok) {
         const bad = p.ok ? a : p;
-        setProblem(explain(bad.status, await bad.json().catch(() => null)));
+        notify(
+          "error",
+          explain(bad.status, await bad.json().catch(() => null)),
+        );
         return;
       }
       setProducts(await p.json());
       setArtists(await a.json());
     } catch {
-      setProblem("Could not refresh the list. Check your connection.");
+      notify("error", "Could not refresh the list. Check your connection.");
     }
   }
 
@@ -90,8 +96,8 @@ export function PostsAdmin({
     );
     if (err) return err;
     setEditing(null);
-    setProblem("");
-    setMessage(isNew ? "Post created." : "Post saved.");
+    setToast(null);
+    notify("success", isNew ? "Post created." : "Post saved.");
     await refresh();
     return null;
   };
@@ -100,25 +106,24 @@ export function PostsAdmin({
     setConfirming(null);
     const err = await call(`/api/products/${p.id}`, "DELETE");
     if (err) {
-      setProblem(err);
+      notify("error", err);
       return;
     }
-    setProblem("");
-    setMessage(`Deleted “${p.name}”.`);
+    setToast(null);
+    notify("success", `Deleted “${p.name}”.`);
     await refresh();
   };
 
   const changeStatus = async (p: Product, nextStatus: string) => {
     if (nextStatus === p.status) return;
     setChangingStatus(p.id);
-    setProblem("");
-    setMessage("");
+    setToast(null);
     const err = await call(`/api/products/${p.id}`, "PATCH", {
       status: nextStatus,
     });
-    if (err) setProblem(err);
+    if (err) notify("error", err);
     else {
-      setMessage(`“${p.name}” status updated.`);
+      notify("success", `“${p.name}” status updated.`);
       await refresh();
     }
     setChangingStatus(null);
@@ -142,23 +147,13 @@ export function PostsAdmin({
   return (
     <section className="admin-posts">
       <div className="page-head">
-        <span className="eyebrow">ADMIN</span>
         <h1>Artists’ posts</h1>
         <p>
           Create, edit and remove each artist’s listings. Published posts appear
           on the site; drafts and archived posts stay here.
         </p>
       </div>
-      {message && (
-        <p role="status" className="admin-flash">
-          {message}
-        </p>
-      )}
-      {problem && (
-        <p role="alert" className="admin-error">
-          {problem}
-        </p>
-      )}
+      <Toast toast={toast} onClose={closeToast} />
 
       <div className="admin-grid">
         <nav aria-label="Artists" className="admin-artists">
@@ -210,7 +205,7 @@ export function PostsAdmin({
               type="button"
               className="button primary"
               onClick={() => {
-                setMessage("");
+                setToast(null);
                 setEditing("new");
               }}
             >
@@ -301,7 +296,7 @@ export function PostsAdmin({
                       className="button"
                       aria-label={`Edit ${p.name}`}
                       onClick={() => {
-                        setMessage("");
+                        setToast(null);
                         setEditing(p);
                       }}
                     >

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, within, waitFor, act } from '@testing-library/react';
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 
@@ -319,5 +319,56 @@ describe('failed writes do not re-fetch', () => {
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/must be one of/));
     expect(fetchMock.mock.calls.map(c => c[0])).toEqual(['/api/products/p2']);
     expect(badgeOf(rowFor('Boat Charm'))).toBe('Published');
+  });
+});
+
+describe('toasts', () => {
+  afterEach(() => { vi.useRealTimers(); });
+  const change = async (name: string, value: string) => {
+    fireEvent.change(screen.getByLabelText(`Change status for ${name}`), { target: { value } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(10); });
+  };
+  const wait = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
+  it('success is green and auto-closes after 3 seconds', async () => {
+    vi.useFakeTimers();
+    mount();
+    await change('Boat Charm', 'DRAFT');
+    const toast = screen.getByRole('status');
+    expect(toast.className).toContain('success');
+    expect(toast.textContent).toMatch(/status updated/);
+    await wait(2800);
+    expect(screen.queryByRole('status')).toBeTruthy();
+    await wait(300);
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+  it('error is red and auto-closes after 3 seconds', async () => {
+    vi.useFakeTimers();
+    mount();
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => init?.method === 'PATCH' ? res(400, { error: 'nope' }) : res(200, []));
+    await change('Boat Charm', 'DRAFT');
+    const toast = screen.getByRole('alert');
+    expect(toast.className).toContain('error');
+    expect(toast.textContent).toMatch(/nope/);
+    await wait(3100);
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+  it('the close button dismisses immediately', async () => {
+    vi.useFakeTimers();
+    mount();
+    await change('Boat Charm', 'DRAFT');
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss message' }));
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+  it('a newer toast restarts the 3 second timer', async () => {
+    vi.useFakeTimers();
+    mount();
+    await change('Boat Charm', 'DRAFT');
+    await wait(2000);
+    await change('Lily Bouquet', 'DRAFT');
+    expect(screen.getByRole('status').textContent).toMatch(/Lily Bouquet/);
+    await wait(2000);
+    expect(screen.queryByRole('status')).toBeTruthy();
+    await wait(1100);
+    expect(screen.queryByRole('status')).toBeNull();
   });
 });

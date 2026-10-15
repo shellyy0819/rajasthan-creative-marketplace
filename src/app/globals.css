@@ -81,3 +81,11 @@ select:disabled{cursor:not-allowed}
 .admin-row .admin-status-select:hover,.admin-row .button:hover{border-color:var(--green)}
 .admin-toolbar select,.admin-toolbar input{min-height:var(--control-h)}
 :is(button,select,input,textarea,a):focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+
+.rr-toast-wrap{position:fixed;top:92px;right:20px;z-index:60;max-width:min(420px,calc(100vw - 32px))}
+.rr-toast{display:flex;align-items:center;gap:14px;justify-content:space-between;padding:13px 16px;border-radius:4px;font-size:12px;font-weight:600;color:#fff;box-shadow:0 10px 30px #252a2440;animation:rr-toast-in .2s ease-out}
+.rr-toast.success{background:var(--green)}.rr-toast.error{background:#b3382c}
+.rr-toast button{border:0;background:transparent;color:inherit;font-size:14px;cursor:pointer;opacity:.8;padding:0}
+.rr-toast button:hover{opacity:1}
+@keyframes rr-toast-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.rr-toast{animation:none}}

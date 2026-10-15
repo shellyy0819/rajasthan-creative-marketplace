@@ -40,6 +40,10 @@ Buttons, selects and inputs that sit on the same row share **height (`--control-
 
 Every mandatory control has the HTML `required` attribute **and** its label text wrapped as `<label><span className="lbl">Name</span><input required …/></label>`. CSS (`label:has(> :required)>.lbl::after`) then draws the red `*` automatically. Show `<p className="form-note"><b>*</b> Required</p>` at the top of long forms. Never put the asterisk in the text itself (it would break label queries and screen readers).
 
+## Feedback toasts
+
+Use `<Toast toast={toast} onClose={…} />` from `src/components/Toast.tsx` for the outcome of an action (never an inline banner for page-level results). Success is green (`role="status"`), error is red (`role="alert"`), both close themselves after 3 seconds (`TOAST_MS`), have a ✕ button, and a new toast restarts the timer. Errors that belong next to form fields stay inline in the form (not duplicated as a toast).
+
 ## Validation
 
 Validate on the server (source of truth, 400 with a specific message) **and** mirror it in the input (`pattern`, `type`, `min`/`max`, `maxLength`, a `title` hint). Keep shared rules in `src/lib/*` (e.g. `src/lib/phone.ts` exports the regex for the server and the matching `pattern` string for the form) and test that both agree.
