@@ -29,3 +29,41 @@
 @media(max-width:700px){.detail{grid-template-columns:1fr}.detail .product-visual,.detail .detail-art{height:260px}.crumbs,.page-head,.link-row{padding-left:5%;padding-right:5%}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.button{transition:none}}
 .product-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.admin-shell{min-height:60vh}
+.admin-grid{display:grid;grid-template-columns:240px minmax(0,1fr);gap:28px;padding:20px 8.5% 80px}
+.admin-posts .page-head{padding-bottom:0}
+.admin-artists{display:flex;flex-direction:column;gap:6px;align-self:start;position:sticky;top:96px}
+.admin-artists button{display:flex;justify-content:space-between;gap:8px;text-align:left;border:1px solid var(--line);background:var(--white);border-radius:3px;padding:10px 12px;font:600 12px var(--font-sans),sans-serif;cursor:pointer;color:var(--ink)}
+.admin-artists button small{color:var(--muted);font-weight:500;font-size:10px}
+.admin-artists button.selected,.admin-artists button:hover{background:var(--green);border-color:var(--green);color:#fff}
+.admin-artists button.selected small,.admin-artists button:hover small{color:#fffc}
+.admin-toolbar{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.admin-toolbar input{flex:1;min-width:180px}
+.admin-toolbar input,.admin-toolbar select{background:var(--white);border:1px solid var(--line);padding:11px 12px;border-radius:3px;font:12px var(--font-sans),sans-serif}
+.admin-row{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:16px;align-items:center;background:var(--white);border:1px solid #eee7dd;padding:14px;margin-bottom:10px}
+.admin-thumb{position:relative;width:72px;height:72px;border-radius:6px;background:var(--cream);display:grid;place-items:center;font-size:30px;overflow:hidden}
+.admin-row-main h3{font:500 17px var(--font-serif),serif;margin:0 0 4px}
+.admin-row-main p{font-size:11px;color:var(--muted);margin:0 0 4px;line-height:1.6}
+.admin-row-main a{color:var(--green);font-weight:700;font-size:11px;margin-left:10px}
+.badge{display:inline-block;border-radius:30px;padding:2px 9px;font:700 9px var(--font-sans),sans-serif;letter-spacing:.8px;text-transform:uppercase}
+.badge.published{background:#dce2d5;color:var(--green)}
+.badge.draft{background:#ead8c5;color:#8a4a2b}
+.admin-row-actions,.admin-confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.admin-confirm span{font-size:11px;color:var(--ink)}
+.admin-row .button,.admin-actions .button{border:1px solid #cfc5b7;background:transparent;padding:9px 13px;font-size:11px;color:var(--ink)}
+.admin-row .button.danger-outline{color:#a74d35;border-color:#e0b9ad}
+.admin-row .button.danger,.button.danger{background:#a74d35;color:#fff;border-color:#a74d35}
+.admin-actions .button.primary,.admin-toolbar .button.primary{background:var(--green);color:#fff;border-color:var(--green)}
+.admin-flash{background:#dce2d5;color:var(--green);padding:10px 14px;border-radius:3px;font-size:12px;margin:12px 8.5% 0}
+.admin-error{background:#f3d9d2;color:#8a2f1a;padding:10px 14px;border-radius:3px;font-size:12px;margin:12px 0}
+.admin-posts>.admin-error{margin:12px 8.5% 0}
+.admin-modal{position:fixed;inset:0;background:#1f251dcc;display:grid;place-items:center;z-index:40;padding:16px;overflow-y:auto}
+.admin-form-card{background:var(--white);border-radius:6px;padding:24px;width:min(640px,100%);max-height:calc(100vh - 32px);overflow-y:auto}
+.admin-form label{display:block;font-size:11px;font-weight:700;margin:12px 0}
+.admin-form label small{display:block;font-weight:500;color:var(--muted);margin-top:5px}
+.admin-form input,.admin-form select,.admin-form textarea{display:block;width:100%;margin-top:6px;padding:11px;border:1px solid var(--line);background:#fff;font:12px var(--font-sans),sans-serif;border-radius:3px}
+.admin-form fieldset{border:1px solid var(--line);border-radius:4px;margin:14px 0;padding:4px 14px 10px}
+.admin-form legend{font-size:10px;letter-spacing:1px;color:var(--orange);font-weight:700;padding:0 6px}
+.admin-form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.admin-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+@media(max-width:800px){.admin-grid{grid-template-columns:1fr;padding-left:5%;padding-right:5%}.admin-artists{position:static;flex-direction:row;overflow-x:auto}.admin-artists button{flex:none}.admin-row{grid-template-columns:56px minmax(0,1fr)}.admin-row-actions,.admin-confirm{grid-column:1/-1}.admin-thumb{width:56px;height:56px}.admin-flash,.admin-posts>.admin-error{margin-left:5%;margin-right:5%}}

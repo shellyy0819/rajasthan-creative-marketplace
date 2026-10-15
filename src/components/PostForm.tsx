@@ -1,0 +1,91 @@
+'use client';
+import { useState } from 'react';
+import type { Product } from '@/lib/types';
+import type { AdminArtist } from '@/lib/admin-posts';
+import { CATEGORIES, CITIES } from '@/lib/catalog-shared';
+
+const text = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
+// Blank or non-numeric → null so the server rejects it with a field-named 400 (Number('') would be a silent 0).
+const num = (f: FormData, k: string, scale = 1) => {
+  const raw = text(f, k);
+  const n = raw === '' ? NaN : Number(raw);
+  return Number.isFinite(n) ? Math.round(n * scale) : null;
+};
+
+export function buildPayload(f: FormData): Record<string, unknown> {
+  return {
+    name: text(f, 'name'), seller: text(f, 'seller'), description: text(f, 'description'),
+    category: text(f, 'category'), city: text(f, 'city'),
+    pricePaise: num(f, 'price', 100),
+    stock: num(f, 'stock'),
+    status: text(f, 'status'),
+    imageUrl: text(f, 'imageUrl'), artistName: text(f, 'artistName'), instagram: text(f, 'instagram'),
+    youtube: text(f, 'youtube'), phone: text(f, 'phone'), email: text(f, 'email'),
+  };
+}
+
+type Props = {
+  initial?: Product;
+  artists: AdminArtist[];
+  onSubmit: (payload: Record<string, unknown>) => Promise<string | null>;
+  onCancel: () => void;
+};
+
+export function PostForm({ initial, artists, onSubmit, onCancel }: Props) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const v = (k: keyof Product) => (initial?.[k] as string | number | undefined) ?? '';
+
+  return (
+    <div className="admin-modal" onKeyDown={e => { if (e.key === 'Escape' && !saving) onCancel(); }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="post-form-title" className="admin-form-card">
+        <div className="dialog-head">
+          <h2 id="post-form-title">{initial ? 'Edit post' : 'New post'}</h2>
+          <button type="button" className="icon-btn" aria-label="Close" onClick={onCancel} disabled={saving}>✕</button>
+        </div>
+        <form className="admin-form" onSubmit={async e => {
+          e.preventDefault();
+          if (saving) return;
+          setSaving(true); setError('');
+          const message = await onSubmit(buildPayload(new FormData(e.currentTarget)));
+          if (message) { setError(message); setSaving(false); }
+        }}>
+          {error && <p role="alert" className="admin-error">{error}</p>}
+          <label>Title<input name="name" required maxLength={200} defaultValue={v('name')} autoFocus /></label>
+          <label>Artist (seller name)
+            <input name="seller" required maxLength={200} defaultValue={v('seller')} list="artist-names" />
+            <datalist id="artist-names">{artists.map(a => <option key={a.key} value={a.name} />)}</datalist>
+            <small>Posts with the same artist name are grouped together. Changing it moves this post to another artist.</small>
+          </label>
+          <label>Description<textarea name="description" required maxLength={2000} rows={4} defaultValue={v('description')} /></label>
+          <div className="admin-form-row">
+            <label>Category<select name="category" defaultValue={v('category') || CATEGORIES[0]}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></label>
+            <label>City<select name="city" defaultValue={v('city') || CITIES[0]}>{CITIES.map(c => <option key={c}>{c}</option>)}</select></label>
+          </div>
+          <div className="admin-form-row">
+            <label>Price (₹)<input name="price" type="number" min="0" step="0.01" required defaultValue={initial ? initial.pricePaise / 100 : ''} /></label>
+            <label>Stock<input name="stock" type="number" min="0" step="1" required defaultValue={initial ? initial.stock : ''} /></label>
+            <label>Status<select name="status" defaultValue={initial?.status ?? 'APPROVED'}><option value="APPROVED">Published</option><option value="DRAFT">Draft (admin only)</option></select></label>
+          </div>
+          <label>Cover image URL (https)<input name="imageUrl" type="url" maxLength={500} placeholder="https://…" defaultValue={v('imageUrl')} /></label>
+          <fieldset>
+            <legend>Artist contact (shown on this post’s page)</legend>
+            <div className="admin-form-row">
+              <label>Display name<input name="artistName" maxLength={200} defaultValue={v('artistName')} /></label>
+              <label>Phone<input name="phone" maxLength={40} defaultValue={v('phone')} /></label>
+            </div>
+            <div className="admin-form-row">
+              <label>Instagram<input name="instagram" maxLength={200} defaultValue={v('instagram')} /></label>
+              <label>YouTube<input name="youtube" maxLength={200} defaultValue={v('youtube')} /></label>
+              <label>Email<input name="email" type="email" maxLength={200} defaultValue={v('email')} /></label>
+            </div>
+          </fieldset>
+          <div className="admin-actions">
+            <button type="button" className="button" onClick={onCancel} disabled={saving}>Cancel</button>
+            <button type="submit" className="button primary" disabled={saving}>{saving ? 'Saving…' : 'Save post'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
