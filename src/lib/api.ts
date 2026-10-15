@@ -1,6 +1,6 @@
 import { ApiError } from './errors';
 
-export const json = (data: unknown, status = 200) => Response.json(data, { status });
+export const json = (data: unknown, status = 200, headers?: HeadersInit) => Response.json(data, { status, headers });
 
 const MAX_BODY = 1_000_000;
 
