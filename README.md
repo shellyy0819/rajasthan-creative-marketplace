@@ -55,8 +55,20 @@ Sign-in is Google OAuth through NextAuth v4 (`/api/auth/*`). Copy `.env.example`
 | `POST /api/bookings` `{ workshopId, attendeeName, email, quantity }` | signed in |
 | `GET /api/bookings` | signed in: own; admin: all |
 | `GET /api/admin/summary` | admin only |
+| `GET /api/admin/artists` | admin only (artists grouped by seller name, with published/draft counts) |
+| `GET /api/admin/products` (`?artist=&status=APPROVED\|DRAFT&q=`) | admin only, includes drafts, `no-store` |
+| `GET /api/admin/products/:id` | admin only |
 
 Errors: `401 {"error":"Authentication required."}`, `403 {"error":"Admin access required."}`. The API is same-origin only (no CORS); cookies are SameSite=Lax.
+
+## Admin: artists' posts
+
+Signed in as an admin (email in `ADMIN_EMAILS`), open **/admin/posts** (the header shows an **Admin** link). Anonymous visitors are redirected to sign-in; non-admins get a 404.
+
+- A *post* is a product listing; an *artist* is the product's seller name (case-insensitive, so `Shauk and Stuff` and `shauk  and stuff` are one artist). Renaming the seller on a post moves it to another artist.
+- **Published** posts are public; **Draft** posts are visible only in the admin view and the admin APIs.
+- Create/edit/delete use the admin product APIs (`POST /api/products`, `PATCH`/`DELETE /api/products/:id`). Delete asks for confirmation.
+- The cover image is a URL field (**https only**); if it fails to load the card falls back to the illustrated placeholder.
 
 ## Reset sample data
 
