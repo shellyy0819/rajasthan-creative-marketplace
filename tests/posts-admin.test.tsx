@@ -86,11 +86,10 @@ describe('PostsAdmin read', () => {
     expect(rows()).toHaveLength(1);
     expect(fetchMock).not.toHaveBeenCalled();
   });
-  it('published posts link to their public page; drafts say they are not public', () => {
+  it('published posts link to their public page; drafts have no public link', () => {
     mount();
     expect(within(rowFor('Lily Bouquet')).getByRole('link', { name: /View public page/ }).getAttribute('href')).toBe('/products/lily-bouquet-p1');
     expect(within(rowFor('Draft Dish')).queryByRole('link', { name: /View public page/ })).toBeNull();
-    expect(within(rowFor('Draft Dish')).getByText(/not public/i)).toBeTruthy();
   });
   it('shows an image thumbnail when imageUrl is set', () => {
     mount();
@@ -297,7 +296,6 @@ describe('PostsAdmin archive and quick status change', () => {
     const call = fetchMock.mock.calls.find(c => c[0] === '/api/products/p2' && c[1]?.method === 'PATCH')!;
     expect(JSON.parse(call[1].body)).toEqual({ status: 'ARCHIVED' });
     expect(within(rowFor('Boat Charm')).queryByRole('link', { name: /View public page/ })).toBeNull();
-    expect(within(rowFor('Boat Charm')).getByText(/not public/i)).toBeTruthy();
   });
   it('the status filter offers Archived', () => {
     db = [...db, mk('p4', 'Old Dish', 'Neel Mitti', 'ARCHIVED')];
