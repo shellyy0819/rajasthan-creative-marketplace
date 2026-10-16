@@ -13,6 +13,7 @@ import { POST as orders, GET as listOrdersRoute } from '@/app/api/orders/route';
 import { POST as bookings, GET as listBookingsRoute } from '@/app/api/bookings/route';
 import { GET as summary } from '@/app/api/admin/summary/route';
 import { resetTestDb } from './helpers/testdb';
+import { setDb } from '@/db/client';
 
 beforeEach(async () => {
   authMock.mockReset();
@@ -28,6 +29,23 @@ describe('api', () => {
     const r = await health();
     expect(r.status).toBe(200);
     expect((await r.json()).ok).toBe(true);
+  });
+  it('health reports db:true when the database answers', async () => {
+    expect((await (await health()).json()).db).toBe(true);
+  });
+  it('health returns 503 without details when the database query rejects', async () => {
+    setDb({ execute: () => Promise.reject(new Error('secret-host:5432')) } as never);
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const r = await health();
+      const text = await r.text();
+      expect(r.status).toBe(503);
+      expect(JSON.parse(text)).toEqual({ ok: false, db: false, error: 'Database unavailable.' });
+      expect(text).not.toContain('secret-host');
+    } finally {
+      spy.mockRestore();
+      await resetTestDb();
+    }
   });
   it('products filters by query string', async () => {
     const r = await products(new Request('http://x/api/products?city=Jaipur&q=blue'));
