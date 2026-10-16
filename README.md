@@ -57,6 +57,10 @@ The credentials in `docker-compose.yml` / `.env.example` (`rr` / `rr_dev_passwor
 
 Admins come from `ADMIN_EMAILS` (bootstrap, never locked out) or an `admin` row in `user_roles`. Roles are looked up on every request, so granting, revoking or deactivating takes effect immediately. A user who owns products, workshops, orders or bookings cannot be deleted; deactivate them instead. The last active admin cannot be removed. Deleting a workshop keeps its products (they just lose the link).
 
+## Pickup-location suggestions
+
+The product form's **Pickup location** field suggests places as you type (areas, cities, landmarks across India, Rajasthan first), like a map search box: `udai` offers *Udaipur, Rajasthan*, `ambra` offers *Ambrai Ghat, Udaipur*. Any text is still accepted. Suggestions come from [Photon](https://photon.komoot.io) (free, no API key, OpenStreetMap data © OpenStreetMap contributors) through `GET /api/places?q=`, which is limited to signed-in sellers and admins, capped at 60 lookups a minute per user, and cached for 10 minutes. Photon is fair-use with no uptime promise: if it is down the field simply works as plain text. For heavy traffic, self-host Photon or swap the one function in `src/lib/places.ts`.
+
 ## Search
 
 `GET /api/products?q=` and `GET /api/workshops?q=` (and the admin list) are typo-tolerant: an exact substring match always counts, and queries with a word of 4+ letters also match by trigram similarity (`pg_trgm`), so `crochat` finds *Crochet*. Exact matches rank first; unrelated text returns nothing.

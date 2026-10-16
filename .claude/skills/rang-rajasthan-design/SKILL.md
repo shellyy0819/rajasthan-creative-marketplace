@@ -48,6 +48,10 @@ Every page except the home page renders `<Breadcrumbs items={crumbs} />` (Home �
 
 Use `<Toast toast={toast} onClose={…} />` from `src/components/Toast.tsx` for the outcome of an action (never an inline banner for page-level results). Success is green (`role="status"`), error is red (`role="alert"`), both close themselves after 3 seconds (`TOAST_MS`), have a ✕ button, and a new toast restarts the timer. Errors that belong next to form fields stay inline in the form (not duplicated as a toast).
 
+## Place and address inputs
+
+Use `<PlaceInput name="…" />` (`src/components/PlaceInput.tsx`) for any location field: debounced type-ahead (3+ characters), keyboard navigation, `role="combobox"`, free text always allowed, silent when the service is down. Never call a geocoding service from the browser; go through `/api/places`.
+
 ## Validation
 
 Validate on the server (source of truth, 400 with a specific message) **and** mirror it in the input (`pattern`, `type`, `min`/`max`, `maxLength`, a `title` hint). Keep shared rules in `src/lib/*` (e.g. `src/lib/phone.ts` exports the regex for the server and the matching `pattern` string for the form) and test that both agree.

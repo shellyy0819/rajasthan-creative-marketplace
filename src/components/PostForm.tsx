@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import type { AdminProduct } from '@/lib/types';
+import { PlaceInput } from './PlaceInput';
 import { CATEGORIES, CITIES } from '@/lib/catalog-shared';
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
@@ -123,7 +124,7 @@ export function PostForm({ initial, role, workshops, sellers, me, onSubmit, onCa
                 {workshops.map(w => <option key={w.id} value={w.id}>{w.title}</option>)}
               </select>
             </label>
-            <label>Pickup location<input name="pickupLocation" maxLength={200} placeholder="Where the product is now" defaultValue={v('pickupLocation')} /></label>
+            <label>Pickup location<PlaceInput name="pickupLocation" maxLength={200} placeholder="Search a city or area, e.g. Udaipur" defaultValue={String(v('pickupLocation'))} /></label>
           </div>
           {!seller && (
             <label>Seller

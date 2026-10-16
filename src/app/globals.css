@@ -92,3 +92,9 @@ select:disabled{cursor:not-allowed}
 
 .admin-tabs{display:flex;gap:10px;padding:18px 8.5% 0}.admin-tabs a{border:1px solid var(--control-border);border-radius:3px;padding:9px 13px;font:600 11px var(--font-sans),sans-serif;background:transparent}.admin-tabs a:hover{border-color:var(--green);color:var(--green)}@media(max-width:700px){.admin-tabs{padding-left:5%;padding-right:5%}}
 .badge.role{background:#dce2d5;color:var(--green)}.badge.inactive{background:#f3d9d2;color:#8a2f1a}
+
+.place-field{position:relative;display:block}
+.place-list{position:absolute;z-index:45;left:0;right:0;top:calc(100% + 2px);margin:0;padding:4px 0;list-style:none;background:var(--white);border:1px solid var(--control-border);border-radius:3px;box-shadow:0 10px 30px #252a2426;max-height:260px;overflow-y:auto}
+.place-list li[role=option]{padding:9px 12px;font:500 12px var(--font-sans),sans-serif;cursor:pointer}
+.place-list li[role=option].active,.place-list li[role=option]:hover{background:var(--cream)}
+.place-credit{padding:6px 12px;font-size:10px;color:var(--muted);border-top:1px solid var(--line);margin-top:4px}
