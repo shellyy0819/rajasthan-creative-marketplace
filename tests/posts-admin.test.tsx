@@ -108,6 +108,13 @@ describe('PostsAdmin read', () => {
 
 describe('PostsAdmin create', () => {
   const open = () => { mount(); fireEvent.click(screen.getByRole('button', { name: 'New post' })); };
+  it('the new-post form defaults the status to Draft for admins and sellers', () => {
+    open();
+    expect((screen.getByLabelText(/^Status/) as HTMLSelectElement).value).toBe('DRAFT');
+    cleanup();
+    mount('seller'); fireEvent.click(screen.getByRole('button', { name: 'New post' }));
+    expect((screen.getByLabelText(/^Status/) as HTMLSelectElement).value).toBe('DRAFT');
+  });
   it('creates a draft: sends rupees as paise, closes, refetches and shows the new row', async () => {
     open();
     fill(/^Title/, 'Lac Bangle'); fill(/^Description/, 'Hand-set.');

@@ -16,7 +16,7 @@ beforeEach(async () => {
   B = await makeSeller('beta@x.co', 'Beta Artist');
 });
 const mine = (a = A) => scopeFor({ email: a.actor.email, role: 'seller' });
-const adminOwned = async (sellerId: string, extra = {}) => createProduct({ ...base, sellerId, ...extra }, admin); // admin creates a published product for a seller
+const adminOwned = async (sellerId: string, extra = {}) => createProduct({ ...base, sellerId, status: 'APPROVED', ...extra }, admin); // admin creates a published product for a seller
 
 describe('seller create', () => {
   it('defaults to DRAFT, owned by the seller, unpublished fields empty; may create an ARCHIVED one', async () => {
@@ -43,8 +43,11 @@ describe('seller create', () => {
 });
 
 describe('admin create and assign', () => {
-  it('admin defaults: APPROVED, seller = themselves, publishedBy/At recorded', async () => {
-    const p = await createProduct(base, admin);
+  it('admin default is DRAFT too (no publish stamp); an explicit APPROVED records who/when', async () => {
+    const d = await createProduct(base, admin);
+    expect(d).toMatchObject({ status: 'DRAFT', sellerEmail: 'root@x.co' });
+    expect(d).not.toHaveProperty('publishedBy');
+    const p = await createProduct({ ...base, status: 'APPROVED' }, admin);
     expect(p).toMatchObject({ status: 'APPROVED', sellerEmail: 'root@x.co' });
     expect(p.publishedBy).toBeTruthy();
     expect(new Date(p.publishedAt!).getTime()).toBeGreaterThan(Date.now() - 60_000);

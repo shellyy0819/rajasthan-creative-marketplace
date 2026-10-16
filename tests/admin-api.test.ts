@@ -81,6 +81,11 @@ describe('admin-only write APIs', () => {
 });
 
 describe('archive and unknown keys through the HTTP routes', () => {
+  it('POST /api/products without a status creates a Draft, for admins too', async () => {
+    asAdmin();
+    const res = await postProduct(req('POST', product));
+    expect((await res.json()).status).toBe('DRAFT');
+  });
   it('POST /api/products ignores contact keys that moved to the seller profile and never stores them', async () => {
     asAdmin();
     const res = await postProduct(req('POST', { ...product, phone: '12345', instagram: 'x', artistName: 'Y', seller: 'Z' }));

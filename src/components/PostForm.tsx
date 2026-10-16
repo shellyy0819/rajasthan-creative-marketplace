@@ -49,7 +49,7 @@ export function PostForm({ initial, role, workshops, sellers, me, onSubmit, onCa
   const statusOptions = seller
     ? [{ value: 'DRAFT', label: 'Draft (admin publishes after review)' }, { value: 'ARCHIVED', label: 'Archived' }]
     : [{ value: 'APPROVED', label: 'Published' }, { value: 'DRAFT', label: 'Draft (admin only)' }, { value: 'ARCHIVED', label: 'Archived' }];
-  const statusDefault = initial?.status && statusOptions.some(o => o.value === initial.status) ? initial.status : seller ? 'DRAFT' : 'APPROVED';
+  const statusDefault = initial?.status && statusOptions.some(o => o.value === initial.status) ? initial.status : 'DRAFT';
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const cardRef = useRef<HTMLDivElement>(null);

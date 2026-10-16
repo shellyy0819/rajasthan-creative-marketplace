@@ -13,11 +13,14 @@ const validProduct = { name: 'Lac Bangle', category: 'Accessories', city: 'Jodhp
 const validWorkshop = { title: 'Lac Craft', type: 'PAID', pricePaise: 30000, city: 'Jodhpur', venue: 'Studio 9', date: '2026-12-01', time: '16:30', seats: 8, host: 'Marwar Lac', description: 'Learn lac craft.' };
 
 describe('products admin', () => {
-  it('creates with a fresh id, APPROVED status, persisted', async () => {
+  it('creates with a fresh id and DRAFT status by default (nothing is published unless an admin says so), persisted', async () => {
     const p = await createProduct(validProduct, admin);
     expect(p.id).toBe('p5');
-    expect(p.status).toBe('APPROVED');
+    expect(p.status).toBe('DRAFT');
     expect((await readDb()).products).toHaveLength(5);
+    expect((await createProduct({ ...validProduct, status: 'APPROVED' }, admin)).status).toBe('APPROVED'); // explicit publish still works
+    const { listProducts } = await import('@/lib/catalog');
+    expect((await listProducts()).map(x => x.id)).not.toContain('p5');
   });
   it('ignores a client-supplied id on create (valid status is honoured)', async () => {
     const p = await createProduct({ ...validProduct, id: 'p1', status: 'DRAFT' }, admin);

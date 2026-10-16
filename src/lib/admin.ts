@@ -31,7 +31,7 @@ function validateProduct(v: Raw): ProductInput {
     pricePaise: int(v.pricePaise, 'pricePaise', 0, 10_000_000),
     description: text(v.description, 'description', 2000),
     stock: int(v.stock, 'stock', 0, 100_000),
-    status: oneOf(v.status ?? 'APPROVED', 'status', PRODUCT_STATUSES),
+    status: oneOf(v.status ?? 'DRAFT', 'status', PRODUCT_STATUSES), // new posts start as drafts; only an explicit admin choice publishes
     imageUrl: optionalImageUrl(v.imageUrl),
     workshopId: optionalWorkshopId(v.workshopId),
     pickupLocation: optionalText(v.pickupLocation, 'pickupLocation', 200),
@@ -68,7 +68,6 @@ export async function createProduct(input: unknown, actor: Actor): Promise<Admin
   const assigned = optionalUuid(raw.sellerId, 'sellerId');
   delete raw.sellerId;
   const seller = actor.role === 'seller';
-  if (seller && raw.status === undefined) raw.status = 'DRAFT';
   const data = validateProduct(raw);
   if (seller && data.status === 'APPROVED') throw PUBLISH_DENIED();
   return getDb().transaction(async tx => {
