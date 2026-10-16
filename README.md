@@ -8,7 +8,7 @@ Requirements: Node.js 20.9+ (22 recommended). Docker Desktop is needed for the l
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in the auth values; DATABASE_URL is pre-filled for the Docker DB
+cp .env.example .env.local   # fill in the auth values and choose a POSTGRES_PASSWORD (keep DATABASE_URL / PG_TEST_URL in sync)
 npm run db:up                # Postgres 16 in Docker on localhost:5434 (your local Postgres on 5432 is untouched)
 npm run db:migrate && npm run db:seed
 npm run dev                  # http://localhost:3000
@@ -93,7 +93,7 @@ All data lives in PostgreSQL (schema in `src/db/schema.ts`, SQL migrations in `d
 | `npm run db:seed` | idempotent import of `data/db.json` (creates a seller user + profile per seller name) |
 | `npm run db:reset` | wipe all tables (including users and role assignments, but not the `roles` list) and re-seed |
 
-The credentials in `docker-compose.yml` / `.env.example` (`rr` / `rr_dev_password`) are for local development only; in production use a managed Postgres (Neon) and a secret `DATABASE_URL`. Use the pooled Neon string for the running app and the direct string for migrations and seeding. The container publishes `127.0.0.1:5434` (not 5432) so it never collides with a locally installed Postgres. Stock and workshop seats are changed inside transactions with row locks, and role/admin changes take an advisory lock; `npm run test:pg` proves both against the real database. `data/db.json` is only the seed source and is never written by the app.
+`docker-compose.yml` has no hardcoded credentials: user, password, database and port come from `.env.local` (`POSTGRES_USER`, `POSTGRES_PASSWORD` (required), `POSTGRES_DB`, `DB_PORT`), and the `db:*` and `test:pg` scripts load that file. In production use a managed Postgres (Neon) and a secret `DATABASE_URL`. Use the pooled Neon string for the running app and the direct string for migrations and seeding. The container publishes `127.0.0.1:5434` (not 5432) so it never collides with a locally installed Postgres. Stock and workshop seats are changed inside transactions with row locks, and role/admin changes take an advisory lock; `npm run test:pg` proves both against the real database. `data/db.json` is only the seed source and is never written by the app.
 
 ## Roles
 

@@ -4,15 +4,15 @@ services:
     container_name: rr-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: rr
-      POSTGRES_PASSWORD: rr_dev_password   # local development only
-      POSTGRES_DB: rajasthan
+      POSTGRES_USER: ${POSTGRES_USER:-rr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.local}
+      POSTGRES_DB: ${POSTGRES_DB:-rajasthan}
     ports:
-      - "127.0.0.1:5434:5432"              # 5432 is left free for any locally installed Postgres
+      - "127.0.0.1:${DB_PORT:-5434}:5432"    # 5432 is left free for any locally installed Postgres
     volumes:
       - rr_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rr -d rajasthan"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-rr} -d $${POSTGRES_DB:-rajasthan}"]
       interval: 3s
       timeout: 3s
       retries: 20

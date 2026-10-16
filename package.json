@@ -14,14 +14,14 @@
     "docker:down": "docker compose -f docker-compose.prod.yml --env-file .env.backend down",
     "docker:logs": "docker compose -f docker-compose.prod.yml --env-file .env.backend logs -f api",
     "docker:seed": "docker compose -f docker-compose.prod.yml --env-file .env.backend run --rm migrate npx tsx scripts/db-seed.ts",
-    "db:up": "docker compose up -d --wait db",
-    "db:down": "docker compose down",
-    "db:logs": "docker compose logs -f db",
+    "db:up": "docker compose --env-file .env.local up -d --wait db",
+    "db:down": "docker compose --env-file .env.local down",
+    "db:logs": "docker compose --env-file .env.local logs -f db",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx scripts/db-seed.ts",
     "db:reset": "tsx scripts/db-seed.ts --reset",
-    "test:pg": "PG_TEST_URL=postgres://rr:rr_dev_password@localhost:5434/postgres vitest run tests/pg-concurrency.test.ts"
+    "test:pg": "node --env-file=.env.local node_modules/vitest/vitest.mjs run tests/pg-concurrency.test.ts"
   },
   "dependencies": {
     "drizzle-orm": "~0.45.4",
