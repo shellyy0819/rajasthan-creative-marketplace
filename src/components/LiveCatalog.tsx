@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Product, Workshop } from '@/lib/types';
 import { CITIES, DEFAULT_CATEGORIES } from '@/lib/catalog-shared';
 import { ProductGrid } from './ProductGrid';
+import { PageLoader } from './PageLoader';
 import { WorkshopList } from './WorkshopList';
 
 type Values = { city?: string; category?: string; type?: string; q?: string };
@@ -98,6 +99,7 @@ export function LiveCatalog(props: Props) {
 
   const results = (
     <div aria-busy={loading} style={{ opacity: loading ? 0.6 : 1, transition: 'opacity .15s' }}>
+      <PageLoader show={loading} blocking={false} label="Searching…" />
       {error && <p role="alert" className="fine-print" style={{ color: '#a74d35', textAlign: 'left' }}>Couldn’t update results: {error}</p>}
       {kind === 'products' ? <ProductGrid products={items as Product[]} /> : <WorkshopList workshops={items as Workshop[]} />}
     </div>

@@ -123,3 +123,55 @@ describe('UsersAdmin', () => {
     expect(within(row('buyer@x.co')).queryByRole('button', { name: /Edit profile/ })).toBeNull();
   });
 });
+
+describe('loaders', () => {
+  const deferred = <T,>() => { let resolve!: (v: T) => void; const promise = new Promise<T>(r => { resolve = r; }); return { promise, resolve }; };
+  const later = (status: number, body: unknown) => ({ ok: status < 400, status, json: () => Promise.resolve(body) } as Response);
+  it('"Add user" shows a busy ring on its right while pending', async () => {
+    mount();
+    const post = deferred<Response>();
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => init?.method === 'POST' ? post.promise : res(200, db));
+    fireEvent.change(document.querySelector('input[type="email"]')!, { target: { value: 'new@x.co' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add user' }));
+    const btn = await screen.findByRole('button', { name: 'Add user' });
+    await waitFor(() => expect(btn.getAttribute('aria-busy')).toBe('true'));
+    expect((btn as HTMLButtonElement).disabled).toBe(true);
+    post.resolve(later(201, U('9', 'new@x.co')));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add user' }).getAttribute('aria-busy')).not.toBe('true'));
+  });
+  it('Deactivate shows a busy ring on that button; a role checkbox change shows the centred page loader', async () => {
+    mount();
+    const patch = deferred<Response>();
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => init?.method === 'PATCH' ? patch.promise : res(200, db));
+    fireEvent.click(within(row('seller@x.co')).getByRole('button', { name: /Deactivate seller@x.co/ }));
+    await waitFor(() => expect(within(row('seller@x.co')).getByRole('button', { name: /Deactivate seller@x.co/ }).getAttribute('aria-busy')).toBe('true'));
+    patch.resolve(later(200, db[1]));
+    await waitFor(() => expect(document.querySelector('.rr-page-loader')).toBeNull());
+    const patch2 = deferred<Response>();
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => init?.method === 'PATCH' ? patch2.promise : res(200, db));
+    fireEvent.click(within(row('buyer@x.co')).getByRole('checkbox', { name: 'seller role for buyer@x.co' }));
+    await waitFor(() => expect(document.querySelector('.rr-page-loader')?.textContent).toContain('Updating roles'));
+    patch2.resolve(later(200, db[2]));
+    await waitFor(() => expect(document.querySelector('.rr-page-loader')).toBeNull());
+  });
+  it('opening a profile shows the page loader until the profile arrives', async () => {
+    mount();
+    const get = deferred<Response>();
+    fetchMock.mockImplementation((url: string) => /profile$/.test(url) ? get.promise : res(200, db));
+    fireEvent.click(within(row('seller@x.co')).getByRole('button', { name: /Edit profile of seller@x.co/ }));
+    await waitFor(() => expect(document.querySelector('.rr-page-loader')?.textContent).toContain('Loading profile'));
+    get.resolve(later(200, { userId: '2', displayName: 'Seller Studio' }));
+    await screen.findByRole('dialog');
+    expect(document.querySelector('.rr-page-loader')).toBeNull();
+  });
+  it('"Yes, delete" keeps its confirmation visible with a busy ring until the delete finishes', async () => {
+    mount();
+    const del = deferred<Response>();
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => init?.method === 'DELETE' ? del.promise : res(200, db));
+    fireEvent.click(within(row('empty@x.co')).getByRole('button', { name: /Delete empty@x.co/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Yes, delete/ }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /Yes, delete/ }).getAttribute('aria-busy')).toBe('true'));
+    del.resolve(later(200, { ok: true }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Yes, delete/ })).toBeNull());
+  });
+});

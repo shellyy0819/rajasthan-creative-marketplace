@@ -67,7 +67,7 @@ export function ProfileDialog({ title, initial, url, accountEmail, onSaved, onCa
           </div>
           <div className="admin-actions">
             <button type="button" className="button" onClick={onCancel} disabled={saving}>Cancel</button>
-            <button type="submit" className="button primary" disabled={saving}>{saving ? 'Saving…' : 'Save profile'}</button>
+            <button type="submit" className="button primary" disabled={saving} aria-busy={saving}>{saving ? 'Saving…' : 'Save profile'}</button>
           </div>
         </form>
       </div>

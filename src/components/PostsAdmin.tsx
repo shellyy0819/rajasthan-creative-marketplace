@@ -10,6 +10,7 @@ import { ProductImage } from "./ProductImage";
 import { PostForm, type SellerOption, type WorkshopOption } from "./PostForm";
 import { ProfileDialog } from "./ProfileDialog";
 import { ProductDetail } from "./ProductDetail";
+import { PageLoader } from "./PageLoader";
 import { Toast, type ToastState } from "./Toast";
 
 const SYMBOLS = ["🌷", "⛵", "🌼", "🏺", "🧶", "🌸"];
@@ -62,12 +63,15 @@ export function PostsAdmin({
   const [editing, setEditing] = useState<Product | "new" | null>(null);
   const [confirming, setConfirming] = useState<Product | null>(null);
   const [changingStatus, setChangingStatus] = useState<string | null>(null);
+  const [pageBusy, setPageBusy] = useState(""); // label of the page-wide loader ("" = idle)
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const notify = (kind: "success" | "error", text: string) =>
     setToast({ id: Date.now() + Math.random(), kind, text });
   const closeToast = useCallback(() => setToast(null), []);
 
   async function refresh() {
+    setPageBusy("Refreshing…");
     try {
       const [p, a] = await Promise.all([
         fetch("/api/admin/products", { cache: "no-store" }),
@@ -85,6 +89,8 @@ export function PostsAdmin({
       setArtists(await a.json());
     } catch {
       notify("error", "Could not refresh the list. Check your connection.");
+    } finally {
+      setPageBusy("");
     }
   }
 
@@ -124,8 +130,10 @@ export function PostsAdmin({
   };
 
   const remove = async (p: Product) => {
-    setConfirming(null);
+    setDeleting(p.id);
     const err = await call(`/api/products/${p.id}`, "DELETE");
+    setDeleting(null);
+    setConfirming(null);
     if (err) {
       notify("error", err);
       return;
@@ -138,6 +146,7 @@ export function PostsAdmin({
   const changeStatus = async (p: Product, nextStatus: string) => {
     if (nextStatus === p.status) return;
     setChangingStatus(p.id);
+    setPageBusy("Updating status…");
     setToast(null);
     const err = await call(`/api/products/${p.id}`, "PATCH", {
       status: nextStatus,
@@ -148,6 +157,7 @@ export function PostsAdmin({
       await refresh();
     }
     setChangingStatus(null);
+    setPageBusy("");
   };
 
   const viewing = products.find((x) => x.id === viewingId) ?? null; // always the latest data for the open post
@@ -185,6 +195,7 @@ export function PostsAdmin({
         </p>
       </div>
       <Toast toast={toast} onClose={closeToast} />
+      <PageLoader show={!!pageBusy} label={pageBusy} />
 
       <div className="admin-grid">
         <nav aria-label="Artists" className="admin-artists">
@@ -316,6 +327,8 @@ export function PostsAdmin({
                     <button
                       type="button"
                       className="button danger"
+                      aria-busy={deleting === p.id}
+                      disabled={deleting === p.id}
                       onClick={() => remove(p)}
                     >
                       Yes, delete

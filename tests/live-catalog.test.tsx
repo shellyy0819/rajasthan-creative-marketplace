@@ -151,3 +151,18 @@ describe('LiveCatalog (workshops)', () => {
     expect(screen.getByText('Sunday Meetup')).toBeTruthy();
   });
 });
+
+describe('loader', () => {
+  it('shows a non-blocking centred loader while results are being fetched and removes it afterwards', async () => {
+    let release!: (v: Response) => void;
+    fetchMock.mockImplementation(() => new Promise<Response>(r => { release = r; }));
+    render(<LiveCatalog kind="products" initialItems={[prod('p1', 'Alpha')]} initialValues={{}} />);
+    fireEvent.change(screen.getByLabelText('Filter by city'), { target: { value: 'Jaipur' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(10); });
+    const l = document.querySelector('.rr-page-loader')!;
+    expect(l).toBeTruthy();
+    expect(l.className).not.toContain('blocking');
+    await act(async () => { release({ ok: true, json: () => Promise.resolve([prod('p2', 'Beta')]) } as Response); await vi.advanceTimersByTimeAsync(10); });
+    expect(document.querySelector('.rr-page-loader')).toBeNull();
+  });
+});

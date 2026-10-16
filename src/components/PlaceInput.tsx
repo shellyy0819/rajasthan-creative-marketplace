@@ -14,6 +14,7 @@ export function PlaceInput({ name, defaultValue = '', maxLength, placeholder }: 
   const [options, setOptions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
+  const [loading, setLoading] = useState(false);
   const listId = useId();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ctrl = useRef<AbortController | null>(null);
@@ -24,6 +25,7 @@ export function PlaceInput({ name, defaultValue = '', maxLength, placeholder }: 
     if (timer.current) { clearTimeout(timer.current); timer.current = null; }
     ctrl.current?.abort();
     ctrl.current = null;
+    setLoading(false);
   }
 
   function onChange(next: string) {
@@ -35,6 +37,7 @@ export function PlaceInput({ name, defaultValue = '', maxLength, placeholder }: 
     timer.current = setTimeout(async () => {
       const c = new AbortController();
       ctrl.current = c;
+      setLoading(true);
       try {
         const res = await fetch(`/api/places?q=${encodeURIComponent(q)}`, { signal: c.signal });
         if (!res.ok) throw new Error(String(res.status));
@@ -44,6 +47,8 @@ export function PlaceInput({ name, defaultValue = '', maxLength, placeholder }: 
         setOpen(list.length > 0);
       } catch {
         if (!c.signal.aborted) { setOptions([]); setOpen(false); } // suggestions are optional: stay quiet
+      } finally {
+        if (ctrl.current === c) setLoading(false);
       }
     }, DEBOUNCE_MS);
   }
@@ -57,10 +62,10 @@ export function PlaceInput({ name, defaultValue = '', maxLength, placeholder }: 
   }
 
   return (
-    <span className="place-field">
+    <span className={`place-field${loading ? ' busy' : ''}`}>
       <input
         name={name} value={value} maxLength={maxLength} placeholder={placeholder} autoComplete="off"
-        role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={open ? listId : undefined}
+        role="combobox" aria-busy={loading} aria-autocomplete="list" aria-expanded={open} aria-controls={open ? listId : undefined}
         aria-activedescendant={open && active >= 0 ? `${listId}-${active}` : undefined}
         onChange={e => onChange(e.target.value)}
         onBlur={() => setTimeout(() => setOpen(false), 120)}

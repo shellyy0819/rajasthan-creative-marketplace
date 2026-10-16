@@ -142,7 +142,7 @@ export function PostForm({ initial, role, categories, workshops, sellers, me, on
                     <input value={newName} maxLength={40} onChange={e => setNewName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void addCategory(); } }} placeholder="e.g. Wooden Toys" autoFocus />
                   </label>
                   <span style={{ display: 'flex', gap: 6 }}>
-                    <button type="button" className="button primary" disabled={catBusy || !newName.trim()} onClick={() => void addCategory()}>{catBusy ? 'Adding…' : 'Add category'}</button>
+                    <button type="button" className="button primary" disabled={catBusy || !newName.trim()} aria-busy={catBusy} onClick={() => void addCategory()}>{catBusy ? 'Adding…' : 'Add category'}</button>
                     <button type="button" className="button" disabled={catBusy} onClick={() => { setAdding(false); setNewName(''); setCatError(''); }}>Cancel</button>
                   </span>
                 </div>
@@ -184,7 +184,7 @@ export function PostForm({ initial, role, categories, workshops, sellers, me, on
           {seller && <p className="form-note">Your public name and contact details come from <b>My profile</b>.</p>}
           <div className="admin-actions">
             <button type="button" className="button" onClick={onCancel} disabled={saving}>Cancel</button>
-            <button type="submit" className="button primary" disabled={saving}>{saving ? 'Saving…' : 'Save post'}</button>
+            <button type="submit" className="button primary" disabled={saving} aria-busy={saving}>{saving ? 'Saving…' : 'Save post'}</button>
           </div>
         </form>
       </div>

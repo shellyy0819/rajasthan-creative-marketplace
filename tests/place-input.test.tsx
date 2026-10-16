@@ -134,4 +134,15 @@ describe('PlaceInput', () => {
     mount({ maxLength: 200 });
     expect(box().maxLength).toBe(200);
   });
+  it('shows a small spinner inside the field while suggestions are loading', async () => {
+    let release!: (v: Response) => void;
+    fetchMock.mockImplementation(() => new Promise<Response>(r => { release = r; }));
+    mount();
+    fireEvent.change(box(), { target: { value: 'udai' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(350); });
+    expect(document.querySelector('.place-field.busy')).toBeTruthy();
+    expect(box().getAttribute('aria-busy')).toBe('true');
+    await act(async () => { release({ ok: true, json: () => Promise.resolve(UDAI) } as Response); await vi.advanceTimersByTimeAsync(10); });
+    expect(document.querySelector('.place-field.busy')).toBeNull();
+  });
 });

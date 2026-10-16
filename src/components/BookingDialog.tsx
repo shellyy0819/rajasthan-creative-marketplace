@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useStore } from './StoreProvider';
 
@@ -7,6 +7,7 @@ export function BookingDialog() {
   const { booking, closeBooking, reserve } = useStore();
   const { data: session } = useSession();
   const ref = useRef<HTMLDialogElement>(null);
+  const [reserving, setReserving] = useState(false);
   useEffect(() => {
     const d = ref.current; if (!d) return;
     if (booking && !d.open) d.showModal();
@@ -22,10 +23,14 @@ export function BookingDialog() {
       {booking && (
         <form onSubmit={async e => {
           e.preventDefault();
+          if (reserving) return;
           const form = e.currentTarget;
           const f = new FormData(form);
-          await reserve({ workshopId: booking.id, attendeeName: String(f.get('attendeeName')), email: String(f.get('email')), quantity: Number(f.get('quantity')) });
-          form.reset();
+          setReserving(true);
+          try {
+            await reserve({ workshopId: booking.id, attendeeName: String(f.get('attendeeName')), email: String(f.get('email')), quantity: Number(f.get('quantity')) });
+            form.reset();
+          } catch { /* the store reports the error; keep the form as typed */ } finally { setReserving(false); }
         }}>
           <label><span className="lbl">Your name</span><input name="attendeeName" required placeholder="Name" /></label>
           <label><span className="lbl">Email</span><input name="email" type="email" required placeholder="you@example.com" defaultValue={session?.user?.email ?? ''} /></label>
@@ -35,7 +40,7 @@ export function BookingDialog() {
             </select>
           </label>
           {session?.user
-            ? <button className="button primary full" type="submit">Reserve demo spot</button>
+            ? <button className="button primary full" type="submit" disabled={reserving} aria-busy={reserving}>Reserve demo spot</button>
             : <button className="button primary full" type="button" onClick={() => signIn('google')}>Sign in with Google to reserve</button>}
           <p className="fine-print">Demo booking only. Paid workshops do not collect payment.</p>
         </form>

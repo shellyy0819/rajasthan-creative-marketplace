@@ -106,3 +106,14 @@ select:disabled{cursor:not-allowed}
 .pd-desc{font-size:13px;line-height:1.7;margin:0 0 6px;white-space:pre-wrap}.pd-h{font:700 10px var(--font-sans),sans-serif;letter-spacing:1px;text-transform:uppercase;color:var(--orange);margin:18px 0 6px}
 .pd-grid{display:grid;grid-template-columns:minmax(110px,160px) minmax(0,1fr);gap:6px 14px;margin:0;font-size:12.5px}.pd-grid dt{color:var(--muted)}.pd-grid dd{margin:0;overflow-wrap:anywhere}.pd-empty{color:var(--muted)}
 @media(max-width:560px){.pd-top{flex-direction:column;align-items:flex-start}.pd-grid{grid-template-columns:1fr}.pd-grid dd{margin-bottom:6px}}
+
+/* Loaders: a busy button shows a ring on its right (set aria-busy + disabled); PageLoader is a centred overlay. */
+@keyframes rr-spin{to{transform:rotate(360deg)}}
+button[aria-busy=true]{position:relative;padding-right:38px!important;pointer-events:none;opacity:.85}
+button[aria-busy=true]::after{content:'';position:absolute;right:12px;top:50%;width:14px;height:14px;margin-top:-7px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:rr-spin .7s linear infinite}
+.rr-spinner{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--green);border-radius:50%;animation:rr-spin .8s linear infinite;display:inline-block;flex:none}
+.rr-page-loader{position:fixed;inset:0;z-index:70;display:grid;place-items:center;pointer-events:none}
+.rr-page-loader.blocking{background:#f8f4eecc;pointer-events:auto;cursor:progress}
+.rr-page-loader-box{display:flex;align-items:center;gap:12px;background:var(--white);border:1px solid var(--line);border-radius:6px;padding:14px 20px;font:600 12px var(--font-sans),sans-serif;box-shadow:0 10px 30px #252a2426}
+.place-field.busy::after{content:'';position:absolute;right:12px;top:50%;width:14px;height:14px;margin-top:-7px;border:2px solid var(--muted);border-right-color:transparent;border-radius:50%;animation:rr-spin .7s linear infinite;pointer-events:none}
+@media(prefers-reduced-motion:reduce){button[aria-busy=true]::after,.rr-spinner,.place-field.busy::after{animation-duration:2.4s}}

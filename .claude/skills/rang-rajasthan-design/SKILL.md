@@ -44,6 +44,10 @@ Every mandatory control has the HTML `required` attribute **and** its label text
 
 Every page except the home page renders `<Breadcrumbs items={crumbs} />` (Home › … › current). Public pages also emit `breadcrumbJsonLd(crumbs)`; admin pages do not (they are noindex). `tests/breadcrumbs.test.tsx` fails if a new `page.tsx` lacks breadcrumbs; add it to the exempt list only for redirects/the root.
 
+## Loaders
+
+Whenever an API call is pending the user must see it. A **button** that triggers the call gets `disabled` and `aria-busy={pending}`: CSS draws a spinner on its right side, so never swap the label for a spinner. Anything **not tied to one button** (refreshing a list, a row dropdown, opening a record) shows `<PageLoader show={…} label="…" />`, a centred overlay; use `blocking={false}` for background fetches like live search so typing keeps working. Typeahead fields show a small ring inside the field (`.place-field.busy`). Always clear the pending state in `finally`.
+
 ## Feedback toasts
 
 Use `<Toast toast={toast} onClose={…} />` from `src/components/Toast.tsx` for the outcome of an action (never an inline banner for page-level results). Success is green (`role="status"`), error is red (`role="alert"`), both close themselves after 3 seconds (`TOAST_MS`), have a ✕ button, and a new toast restarts the timer. Errors that belong next to form fields stay inline in the form (not duplicated as a toast).

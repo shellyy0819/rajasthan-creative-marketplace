@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useState } from 'react';
+import { PageLoader } from './PageLoader';
 import { ProfileDialog } from './ProfileDialog';
 import { Toast, type ToastState } from './Toast';
 import type { AdminUser, SellerProfile } from '@/lib/types';
@@ -13,6 +14,7 @@ export function UsersAdmin({ initialUsers, currentEmail }: { initialUsers: Admin
   const [name, setName] = useState('');
   const [newRoles, setNewRoles] = useState<StoredRole[]>(['seller']);
   const [busy, setBusy] = useState<string | null>(null);
+  const [pageBusy, setPageBusy] = useState(''); // label of the page-wide loader ("" = idle)
   const [confirming, setConfirming] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ user: AdminUser; data: SellerProfile } | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
@@ -20,8 +22,11 @@ export function UsersAdmin({ initialUsers, currentEmail }: { initialUsers: Admin
   const closeToast = useCallback(() => setToast(null), []);
 
   async function reload() {
-    const r = await fetch('/api/admin/users', { cache: 'no-store' });
-    if (r.ok) setUsers(await r.json()); else notify('error', 'Could not refresh the list.');
+    setPageBusy('Refreshing…');
+    try {
+      const r = await fetch('/api/admin/users', { cache: 'no-store' });
+      if (r.ok) setUsers(await r.json()); else notify('error', 'Could not refresh the list.');
+    } catch { notify('error', 'Could not refresh the list.'); } finally { setPageBusy(''); }
   }
   async function call(url: string, method: string, body?: unknown): Promise<{ error: string | null; data: unknown }> {
     try {
@@ -31,17 +36,19 @@ export function UsersAdmin({ initialUsers, currentEmail }: { initialUsers: Admin
     } catch { return { error: 'Network error. Please try again.', data: null }; }
   }
   // A failed write shows the API error and does not re-fetch the list.
-  async function act(key: string, fn: () => Promise<{ error: string | null }>, ok: string): Promise<boolean> {
+  async function act(key: string, fn: () => Promise<{ error: string | null }>, ok: string, pageLabel?: string): Promise<boolean> {
     if (busy) return false;
     setBusy(key);
+    if (pageLabel) setPageBusy(pageLabel);
     const res = await fn();
+    if (pageLabel) setPageBusy('');
     if (res.error) notify('error', res.error); else { notify('success', ok); await reload(); }
     setBusy(null);
     return !res.error;
   }
   const toggleRole = (u: AdminUser, role: StoredRole) => {
     const roles = u.roles.includes(role) ? u.roles.filter(r => r !== role) : [...u.roles, role];
-    return act(`roles-${u.id}`, () => call(`/api/admin/users/${u.id}`, 'PATCH', { roles }), `${u.email} updated.`);
+    return act(`roles-${u.id}`, () => call(`/api/admin/users/${u.id}`, 'PATCH', { roles }), `${u.email} updated.`, 'Updating roles…');
   };
 
   return (
@@ -51,6 +58,7 @@ export function UsersAdmin({ initialUsers, currentEmail }: { initialUsers: Admin
         <p>Give people the seller or admin role. Sellers manage their own products; only admins publish. Deactivate a user instead of deleting when they own products, workshops, orders or bookings.</p>
       </div>
       <Toast toast={toast} onClose={closeToast} />
+      <PageLoader show={!!pageBusy} label={pageBusy} />
       <div className="admin-grid" style={{ gridTemplateColumns: '1fr' }}>
         <div>
           <form className="admin-toolbar admin-form" onSubmit={e => {
@@ -71,7 +79,7 @@ export function UsersAdmin({ initialUsers, currentEmail }: { initialUsers: Admin
                 </label>
               ))}
             </fieldset>
-            <button type="submit" className="button primary" disabled={busy === 'add'} style={{ alignSelf: 'flex-end' }}>Add user</button>
+            <button type="submit" className="button primary" disabled={busy === 'add'} aria-busy={busy === 'add'} style={{ alignSelf: 'flex-end' }}>Add user</button>
           </form>
           {users.length === 0 ? <div className="empty">No users yet.</div> : users.map(u => {
             const me = u.email.toLowerCase() === currentEmail.toLowerCase();
@@ -99,17 +107,19 @@ export function UsersAdmin({ initialUsers, currentEmail }: { initialUsers: Admin
                   <div className="admin-confirm" role="group" aria-label={`Confirm delete ${u.email}`}>
                     <span>Delete {u.email}? This can’t be undone.</span>
                     <button type="button" className="button" onClick={() => setConfirming(null)}>Cancel</button>
-                    <button type="button" className="button danger" onClick={() => { setConfirming(null); void act(`del-${u.id}`, () => call(`/api/admin/users/${u.id}`, 'DELETE'), `Deleted ${u.email}.`); }}>Yes, delete</button>
+                    <button type="button" className="button danger" disabled={busy === `del-${u.id}`} aria-busy={busy === `del-${u.id}`} onClick={() => { void act(`del-${u.id}`, () => call(`/api/admin/users/${u.id}`, 'DELETE'), `Deleted ${u.email}.`).then(() => setConfirming(null)); }}>Yes, delete</button>
                   </div>
                 ) : (
                   <div className="admin-row-actions">
                     {u.roles.length > 0 && (
                       <button type="button" className="button" aria-label={`Edit profile of ${u.email}`} onClick={async () => {
+                        setPageBusy('Loading profile…');
                         const r = await call(`/api/admin/users/${u.id}/profile`, 'GET');
+                        setPageBusy('');
                         if (r.error) notify('error', r.error); else setProfile({ user: u, data: r.data as SellerProfile });
                       }}>Profile</button>
                     )}
-                    <button type="button" className="button" aria-label={u.active ? `Deactivate ${u.email}` : `Activate ${u.email}`} disabled={!!busy || me}
+                    <button type="button" className="button" aria-label={u.active ? `Deactivate ${u.email}` : `Activate ${u.email}`} aria-busy={busy === `active-${u.id}`} disabled={!!busy || me}
                       onClick={() => void act(`active-${u.id}`, () => call(`/api/admin/users/${u.id}`, 'PATCH', { active: !u.active }), `${u.email} ${u.active ? 'deactivated' : 'activated'}.`)}>
                       {u.active ? 'Deactivate' : 'Activate'}
                     </button>

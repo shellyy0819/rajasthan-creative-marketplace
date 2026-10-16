@@ -641,3 +641,77 @@ describe('row detail view', () => {
     expect(document.activeElement).toBe(items[0]);
   });
 });
+
+describe('loaders', () => {
+  const deferred = <T,>() => { let resolve!: (v: T) => void; const promise = new Promise<T>(r => { resolve = r; }); return { promise, resolve }; };
+  const later = (status: number, body: unknown) => ({ ok: status < 400, status, json: () => Promise.resolve(body) } as Response);
+
+  it('a row status change shows the centred page loader (and disables the dropdown) until the request and the refresh finish', async () => {
+    mount();
+    const patch = deferred<Response>();
+    const list = deferred<Response>();
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => init?.method === 'PATCH' ? patch.promise : url === '/api/admin/products' ? list.promise : url === '/api/admin/artists' ? res(200, artistsOf(db)) : res(500, {}));
+    fireEvent.change(screen.getByLabelText('Change status for Draft Dish'), { target: { value: 'ARCHIVED' } });
+    await waitFor(() => expect(document.querySelector('.rr-page-loader')).toBeTruthy());
+    const loader = document.querySelector('.rr-page-loader')!;
+    expect(loader.textContent).toContain('Updating status');
+    expect(loader.className).toContain('blocking');
+    patch.resolve(later(200, { ...db[0], status: 'ARCHIVED' }));
+    await waitFor(() => expect(document.querySelector('.rr-page-loader')?.textContent).toContain('Refreshing'));
+    list.resolve(later(200, db));
+    await waitFor(() => expect(document.querySelector('.rr-page-loader')).toBeNull());
+  });
+  it('the loader also goes away when the request fails', async () => {
+    mount();
+    fetchMock.mockImplementation((_u: string, init?: RequestInit) => init?.method === 'PATCH' ? res(400, { error: 'nope' }) : res(200, []));
+    fireEvent.change(screen.getByLabelText('Change status for Draft Dish'), { target: { value: 'ARCHIVED' } });
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/nope/));
+    expect(document.querySelector('.rr-page-loader')).toBeNull();
+  });
+  it('the Save post button shows a busy ring on its right while the request is pending, and the form cannot be double-submitted', async () => {
+    mount(); fireEvent.click(screen.getByRole('button', { name: 'New post' }));
+    const post = deferred<Response>();
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => init?.method === 'POST' ? post.promise : res(200, db));
+    fill(/^Title/, 'T'); fill(/^Description/, 'x'); fill(/^Price/, '10'); fill(/^Stock/, '1');
+    const save = screen.getByRole('button', { name: 'Save post' });
+    expect(save.getAttribute('aria-busy')).not.toBe('true');
+    fireEvent.click(save);
+    const busy = await screen.findByRole('button', { name: /Saving/ });
+    expect(busy.getAttribute('aria-busy')).toBe('true');
+    expect((busy as HTMLButtonElement).disabled).toBe(true);
+    post.resolve(later(201, mk('p9', 'T', 'Me')));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+  it('"Yes, delete" shows a busy ring while the delete is pending', async () => {
+    mount();
+    const del = deferred<Response>();
+    fetchMock.mockImplementation((_u: string, init?: RequestInit) => init?.method === 'DELETE' ? del.promise : res(200, db));
+    fireEvent.click(within(rowFor('Boat Charm')).getByRole('button', { name: /^Delete/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Yes, delete/ }));
+    const yes = await screen.findByRole('button', { name: /Yes, delete/ });
+    expect(yes.getAttribute('aria-busy')).toBe('true');
+    expect((yes as HTMLButtonElement).disabled).toBe(true);
+    del.resolve(later(200, { ok: true }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Yes, delete/ })).toBeNull());
+  });
+  it('the profile Save button and the "Add category" button show a busy ring while pending', async () => {
+    mount('seller');
+    fireEvent.click(screen.getByRole('button', { name: 'My profile' }));
+    const put = deferred<Response>();
+    fetchMock.mockImplementation(() => put.promise);
+    fireEvent.click(screen.getByRole('button', { name: 'Save profile' }));
+    expect((await screen.findByRole('button', { name: /Saving/ })).getAttribute('aria-busy')).toBe('true');
+    put.resolve(later(400, { error: 'x' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
+    cleanup();
+    mount(); fireEvent.click(screen.getByRole('button', { name: 'New post' }));
+    fireEvent.change(screen.getByLabelText(/^Category/), { target: { value: '__new__' } });
+    const cat = deferred<Response>();
+    fetchMock.mockImplementation(() => cat.promise);
+    fireEvent.change(screen.getByLabelText(/^New category name/), { target: { value: 'Toys' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add category' }));
+    expect((await screen.findByRole('button', { name: /Adding/ })).getAttribute('aria-busy')).toBe('true');
+    cat.resolve(later(201, { name: 'Toys' }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Adding/ })).toBeNull());
+  });
+});
