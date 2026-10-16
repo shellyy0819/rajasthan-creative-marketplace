@@ -111,6 +111,13 @@ describe('UsersAdmin', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(fetchMock.mock.calls.some(c => c[0] === '/api/admin/users/2/profile' && c[1]?.method === 'PUT')).toBe(true);
   });
+  it('the admin profile dialog offers the seller\'s own sign-in email, not the admin\'s', async () => {
+    mount();
+    fireEvent.click(within(row('seller@x.co')).getByRole('button', { name: /Edit profile of seller@x.co/ }));
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getByRole('button', { name: /Use .*sign-in email/ }));
+    expect((screen.getByLabelText(/^Public email/) as HTMLInputElement).value).toBe('seller@x.co');
+  });
   it('users with no role have no Profile button', () => {
     mount();
     expect(within(row('buyer@x.co')).queryByRole('button', { name: /Edit profile/ })).toBeNull();

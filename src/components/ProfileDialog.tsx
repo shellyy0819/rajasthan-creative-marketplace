@@ -8,6 +8,8 @@ type Props = {
   initial: SellerProfile;
   /** Where to PUT the profile: /api/profile for your own, /api/admin/users/:id/profile for another seller. */
   url: string;
+  /** The account's sign-in email: offered (never filled automatically) as the public email. */
+  accountEmail?: string;
   onSaved: (p: SellerProfile) => void;
   onCancel: () => void;
 };
@@ -15,7 +17,8 @@ type Props = {
 const field = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 
 /** Public name and contact shown on a seller's product pages. */
-export function ProfileDialog({ title, initial, url, onSaved, onCancel }: Props) {
+export function ProfileDialog({ title, initial, url, accountEmail, onSaved, onCancel }: Props) {
+  const emailRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const cardRef = useRef<HTMLDivElement>(null);
@@ -53,7 +56,10 @@ export function ProfileDialog({ title, initial, url, onSaved, onCancel }: Props)
           <label><span className="lbl">Display name</span><input name="displayName" required maxLength={100} defaultValue={initial.displayName} autoFocus /></label>
           <div className="admin-form-row">
             <label>Public phone<input name="publicPhone" type="tel" inputMode="tel" maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="9989898999" defaultValue={initial.publicPhone ?? ''} /></label>
-            <label>Public email<input name="publicEmail" type="email" maxLength={200} defaultValue={initial.publicEmail ?? ''} /></label>
+            <label>Public email<input ref={emailRef} name="publicEmail" type="email" maxLength={200} defaultValue={initial.publicEmail ?? ''} />
+              <small>Shown publicly on your product pages. Leave empty to hide it.</small>
+              {accountEmail && <button type="button" className="button" style={{ marginTop: 6 }} onClick={() => { if (emailRef.current) emailRef.current.value = accountEmail; }}>Use my sign-in email ({accountEmail})</button>}
+            </label>
           </div>
           <div className="admin-form-row">
             <label>Instagram<input name="instagram" maxLength={200} defaultValue={initial.instagram ?? ''} /></label>

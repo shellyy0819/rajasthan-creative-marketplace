@@ -358,6 +358,7 @@ export function PostsAdmin({
           title="My profile"
           initial={myProfile}
           url="/api/profile"
+          accountEmail={me?.email}
           onSaved={(p) => {
             setMyProfile(p);
             setEditingProfile(false);

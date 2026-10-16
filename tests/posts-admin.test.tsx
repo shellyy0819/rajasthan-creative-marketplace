@@ -314,6 +314,15 @@ describe('PostForm field rules', () => {
 });
 
 describe('Profile dialog (public name and contact)', () => {
+  it('"Use my sign-in email" fills the public email (explicit opt-in); the field starts empty so nothing is published by accident', () => {
+    mount('seller');
+    fireEvent.click(screen.getByRole('button', { name: 'My profile' }));
+    const email = screen.getByLabelText(/^Public email/) as HTMLInputElement;
+    expect(email.value).toBe('');
+    fireEvent.click(screen.getByRole('button', { name: /Use my sign-in email/ }));
+    expect(email.value).toBe('root@x.co');
+    expect(screen.getAllByText(/shown publicly/i).length).toBeGreaterThan(0);
+  });
   it('opens from "My profile", validates the phone pattern in the browser, PUTs /api/profile and toasts', async () => {
     mount('seller');
     fireEvent.click(screen.getByRole('button', { name: 'My profile' }));
