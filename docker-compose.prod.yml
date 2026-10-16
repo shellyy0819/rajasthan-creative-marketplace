@@ -11,7 +11,7 @@ services:
     volumes:
       - rr_pgdata_prod:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rr -d rajasthan"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U rr -d rajasthan"]
       interval: 3s
       timeout: 3s
       retries: 20
@@ -32,6 +32,7 @@ services:
       migrate: { condition: service_completed_successfully }
     env_file: .env.backend
     environment:
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?set NEXTAUTH_SECRET in .env.backend}
       DATABASE_URL: postgres://rr:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.backend}@db:5432/rajasthan
     ports:
       - "127.0.0.1:${API_PORT:-3001}:3000"
