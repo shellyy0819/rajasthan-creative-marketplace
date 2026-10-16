@@ -20,21 +20,22 @@ BASE_URL=http://localhost:3000 npm run seo:check   # against a running server
 
 ## Run the backend in Docker
 
-Builds the app as a production image and runs it with Postgres (frontend deployment is planned separately).
+Builds the app as a production image and runs it against a hosted Postgres such as [Neon](https://neon.tech) (frontend deployment is planned separately).
 
 ```bash
-cp .env.backend.example .env.backend   # fill in POSTGRES_PASSWORD, NEXTAUTH_SECRET, Google and admin values
-npm run docker:up                      # db -> migrate (one-shot) -> api on 127.0.0.1:3001
+cp .env.backend.example .env.backend   # fill in DATABASE_URL, NEXTAUTH_SECRET, Google and admin values
+npm run docker:up                      # migrate (one-shot) -> api on 127.0.0.1:3001
 curl localhost:3001/api/health         # {"ok":true,"db":true,...}
 npm run docker:seed                    # optional, manual only: idempotent import of data/db.json
 npm run docker:logs                    # tail the api
-npm run docker:down                    # stop; data stays in the rr_pgdata_prod volume (`down -v` deletes it)
+npm run docker:down                    # stop the containers (the database lives in Neon and is untouched)
 ```
 
+- `DATABASE_URL` is the **pooled** Neon string (host contains `-pooler`). Remove `&channel_binding=require` from it (the driver does not support it); keep `sslmode=require`. Optionally set `MIGRATE_DATABASE_URL` to the **direct** string (no `-pooler`) for the migrate step; it defaults to `DATABASE_URL`.
 - Re-running `docker:up` after a code change rebuilds the image; migrations re-run and are idempotent. Seeding is never automatic.
-- Postgres is not published to the host; only the API is, on `127.0.0.1:${API_PORT:-3001}` (put a reverse proxy with TLS in front).
+- Only the API is published, on `127.0.0.1:${API_PORT:-3001}` (put a reverse proxy with TLS in front).
 - `/api/health` returns 503 when the database is unreachable (used by the container `HEALTHCHECK`).
-- `next build` no longer needs a database: `/` and `/cities/*` render on demand. This is separate from the dev database below (`npm run db:up`, port 5434).
+- `next build` no longer needs a database: `/` and `/cities/*` render on demand. Local development still uses the dev database below (`npm run db:up`, port 5434) or a Neon branch via `.env.local`.
 
 ## SEO
 
