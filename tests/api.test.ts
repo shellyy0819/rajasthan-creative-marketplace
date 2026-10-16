@@ -1,7 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 const authMock = vi.hoisted(() => vi.fn());
@@ -15,14 +12,13 @@ import { GET as workshops } from '@/app/api/workshops/route';
 import { POST as orders, GET as listOrdersRoute } from '@/app/api/orders/route';
 import { POST as bookings, GET as listBookingsRoute } from '@/app/api/bookings/route';
 import { GET as summary } from '@/app/api/admin/summary/route';
+import { resetTestDb } from './helpers/testdb';
+import { setDb } from '@/db/client';
 
-beforeEach(() => {
+beforeEach(async () => {
   authMock.mockReset();
   authMock.mockResolvedValue(null);
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rrapi-'));
-  const file = path.join(dir, 'db.json');
-  fs.copyFileSync(path.resolve('tests/fixtures/db.json'), file);
-  process.env.DB_PATH = file;
+  await resetTestDb();
 });
 
 const post = (url: string, body: string) =>
@@ -33,6 +29,23 @@ describe('api', () => {
     const r = await health();
     expect(r.status).toBe(200);
     expect((await r.json()).ok).toBe(true);
+  });
+  it('health reports db:true when the database answers', async () => {
+    expect((await (await health()).json()).db).toBe(true);
+  });
+  it('health returns 503 without details when the database query rejects', async () => {
+    setDb({ execute: () => Promise.reject(new Error('secret-host:5432')) } as never);
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const r = await health();
+      const text = await r.text();
+      expect(r.status).toBe(503);
+      expect(JSON.parse(text)).toEqual({ ok: false, db: false, error: 'Database unavailable.' });
+      expect(text).not.toContain('secret-host');
+    } finally {
+      spy.mockRestore();
+      await resetTestDb();
+    }
   });
   it('products filters by query string', async () => {
     const r = await products(new Request('http://x/api/products?city=Jaipur&q=blue'));
@@ -107,5 +120,20 @@ describe('api', () => {
     expect(await r.json()).toEqual({ error: 'Admin access required.' });
     asAdmin();
     expect((await summary()).status).toBe(200);
+  });
+});
+
+describe('GET /api/products fuzzy q', () => {
+  it('finds a product despite a typo, returns [] for noise, and exact matches come first', async () => {
+    const { GET } = await import('@/app/api/products/route');
+    const get = async (q: string) => (await (await GET(new Request(`http://x/api/products?q=${encodeURIComponent(q)}`))).json()).map((p: { id: string }) => p.id);
+    expect(await get('crochat')).toContain('p1');
+    expect(await get('xylophone')).toEqual([]);
+    expect((await get('resin'))[0]).toBe('p3');
+  });
+  it('GET /api/workshops?q= is fuzzy too', async () => {
+    const { GET } = await import('@/app/api/workshops/route');
+    const ids = (await (await GET(new Request('http://x/api/workshops?q=begginer'))).json()).map((w: { id: string }) => w.id);
+    expect(ids).toContain('w1');
   });
 });

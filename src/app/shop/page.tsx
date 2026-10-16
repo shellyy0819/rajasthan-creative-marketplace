@@ -3,6 +3,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { LiveCatalog } from '@/components/LiveCatalog';
 import { JsonLd } from '@/components/JsonLd';
 import { listProducts } from '@/lib/catalog';
+import { listCategories } from '@/lib/categories';
 import { hasFilters, parseFilters } from '@/lib/filters';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
@@ -21,7 +22,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 export default async function ShopPage({ searchParams }: Props) {
   const f = parseFilters(await searchParams);
-  const products = await listProducts(f);
+  const [products, categories] = await Promise.all([listProducts(f), listCategories()]);
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Shop', path: '/shop' }];
   return (
     <>
@@ -32,7 +33,7 @@ export default async function ShopPage({ searchParams }: Props) {
         <h1>Handmade finds from Rajasthan</h1>
         <p>Crochet, resin art, pottery and accessories from independent makers in Udaipur, Jaipur and Jodhpur.</p>
       </div>
-      <LiveCatalog kind="products" initialItems={products} initialValues={f} />
+      <LiveCatalog kind="products" initialItems={products} initialValues={f} categories={categories} />
     </>
   );
 }

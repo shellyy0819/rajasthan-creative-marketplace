@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { AddToCartButton } from '@/components/AddToCartButton';
+import { ProductImage } from '@/components/ProductImage';
 import { SYMBOLS, visualIndex } from '@/components/ProductCard';
 import { citySlug, getProductBySlug, productSlug } from '@/lib/catalog';
 import { breadcrumbJsonLd, productJsonLd } from '@/lib/jsonld';
@@ -12,6 +13,16 @@ import { money } from '@/lib/money';
 
 export const dynamic = 'force-dynamic';
 type Props = { params: Promise<{ slug: string }> };
+
+function instagramUrl(value: string) {
+  const handle = value.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/^@/, '').replace(/\/$/, '');
+  return `https://www.instagram.com/${encodeURIComponent(handle)}/`;
+}
+
+function youtubeUrl(value: string) {
+  if (/^https:\/\/(www\.)?youtube\.com\//i.test(value) || /^https:\/\/youtu\.be\//i.test(value)) return value;
+  return `https://www.youtube.com/@${encodeURIComponent(value.replace(/^@/, ''))}`;
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = await getProductBySlug((await params).slug);
@@ -34,15 +45,19 @@ export default async function ProductPage({ params }: Props) {
       <JsonLd data={[productJsonLd(p), breadcrumbJsonLd(crumbs)]} />
       <Breadcrumbs items={crumbs} />
       <article className="detail">
-        <div className={`product-visual detail-art visual-${i % 4}`} aria-hidden="true"><span className="symbol">{SYMBOLS[i % SYMBOLS.length]}</span></div>
+        <div className={`product-visual detail-art visual-${i % 4}`}><ProductImage src={p.imageUrl} alt={p.name} fallback={<span className="symbol" aria-hidden="true">{SYMBOLS[i % SYMBOLS.length]}</span>} /></div>
         <div>
           <span className="product-meta">{p.category}</span>
           <h1>{p.name}</h1>
           <p className="lead">{p.description}</p>
           <dl>
-            <dt>Maker</dt><dd>{p.seller}</dd>
-            <dt>City</dt><dd><Link href={`/cities/${citySlug(p.city)}`}>{p.city}</Link></dd>
-            <dt>Availability</dt><dd>{p.stock > 0 ? `${p.stock} in stock` : 'Sold out'}</dd>
+            <dt><span className="detail-label"><svg className="detail-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Artist</span></dt><dd>{p.seller}</dd>
+            <dt><span className="detail-label"><svg className="detail-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>City</span></dt><dd><Link href={`/cities/${citySlug(p.city)}`}>{p.city}</Link></dd>
+            <dt><span className="detail-label"><svg className="detail-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 9-4 9 4v10l-9 4-9-4V7Z"/><path d="m3 7 9 4 9-4M12 11v10"/></svg>Availability</span></dt><dd>{p.stock > 0 ? `${p.stock} in stock` : 'Sold out'}</dd>
+            {p.instagram && <><dt><span className="detail-label"><svg className="social-icon instagram-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="18" cy="6" r="1.2" fill="currentColor"/></svg>Instagram</span></dt><dd><a href={instagramUrl(p.instagram)} target="_blank" rel="noreferrer">{p.instagram.startsWith('@') ? p.instagram : `@${p.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/\/$/, '')}`} ↗</a></dd></>}
+            {p.youtube && <><dt><span className="detail-label"><svg className="social-icon youtube-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8Z"/><path d="m9.6 15.7 6.2-3.7-6.2-3.7v7.4Z" fill="white"/></svg>YouTube</span></dt><dd><a href={youtubeUrl(p.youtube)} target="_blank" rel="noreferrer">Visit channel ↗</a></dd></>}
+            {p.phone && <><dt><span className="detail-label"><svg className="detail-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18H7z"/><path d="M10 18h4"/></svg>Phone</span></dt><dd><a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`}>{p.phone}</a></dd></>}
+            {p.email && <><dt><span className="detail-label"><svg className="detail-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>Email</span></dt><dd><a href={`mailto:${p.email}`}>{p.email}</a></dd></>}
           </dl>
           <div className="product-bottom" style={{ gap: 20, justifyContent: 'flex-start' }}>
             <span className="price">{money(p.pricePaise)}</span>

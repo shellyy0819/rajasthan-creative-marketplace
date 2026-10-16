@@ -8,6 +8,7 @@ import { CITIES, citySlug, cityFromSlug, listProducts, listWorkshops } from '@/l
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
 
+export const dynamic = 'force-dynamic';
 export const dynamicParams = false;
 type Props = { params: Promise<{ city: string }> };
 

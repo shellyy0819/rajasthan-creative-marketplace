@@ -35,8 +35,8 @@ export function CartDialog() {
         await checkout({ customerName: String(f.get('customerName')), email: String(f.get('email')) });
         form.reset();
       }}>
-        <label>Your name<input name="customerName" required placeholder="Name" /></label>
-        <label>Email<input name="email" type="email" required placeholder="you@example.com" defaultValue={session?.user?.email ?? ''} /></label>
+        <label><span className="lbl">Your name</span><input name="customerName" required placeholder="Name" /></label>
+        <label><span className="lbl">Email</span><input name="email" type="email" required placeholder="you@example.com" defaultValue={session?.user?.email ?? ''} /></label>
         {session?.user
           ? <button className="button primary full" type="submit">Place demo order</button>
           : <button className="button primary full" type="button" onClick={() => signIn('google')}>Sign in with Google to order</button>}

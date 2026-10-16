@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.env*
+client_secret_*.json
+.superpowers
+.claude
+tests
+docs
+*.tsbuildinfo
+Dockerfile
+docker-compose*.yml

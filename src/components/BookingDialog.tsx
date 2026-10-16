@@ -27,8 +27,8 @@ export function BookingDialog() {
           await reserve({ workshopId: booking.id, attendeeName: String(f.get('attendeeName')), email: String(f.get('email')), quantity: Number(f.get('quantity')) });
           form.reset();
         }}>
-          <label>Your name<input name="attendeeName" required placeholder="Name" /></label>
-          <label>Email<input name="email" type="email" required placeholder="you@example.com" defaultValue={session?.user?.email ?? ''} /></label>
+          <label><span className="lbl">Your name</span><input name="attendeeName" required placeholder="Name" /></label>
+          <label><span className="lbl">Email</span><input name="email" type="email" required placeholder="you@example.com" defaultValue={session?.user?.email ?? ''} /></label>
           <label>Number of seats
             <select name="quantity">
               {Array.from({ length: Math.max(1, max) }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1} seat{i ? 's' : ''}</option>)}

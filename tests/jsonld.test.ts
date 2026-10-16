@@ -55,3 +55,11 @@ describe('breadcrumb + org', () => {
     expect(organizationJsonLd()).toMatchObject({ '@type': 'Organization', name: 'Rang Rajasthan', url: 'https://rr.test' });
   });
 });
+
+describe('productJsonLd imageUrl', () => {
+  it('lists the admin-provided image first, then the generated OG image', () => {
+    const j = productJsonLd({ ...product, imageUrl: 'https://cdn.example.com/a.jpg' }) as any;
+    expect(j.image[0]).toBe('https://cdn.example.com/a.jpg');
+    expect(j.image[1]).toBe('https://rr.test/products/crochet-lily-bouquet-p1/opengraph-image');
+  });
+});

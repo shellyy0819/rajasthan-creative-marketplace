@@ -3,7 +3,8 @@ import { slugify } from './slug';
 import type { Product, Workshop } from './types';
 
 export const CITIES = ['Udaipur', 'Jaipur', 'Jodhpur'] as const;
-export const CATEGORIES = ['Crochet & Textiles', 'Accessories', 'Resin Art', 'Pottery'] as const;
+/** Fallback/starter list: the live list is the `categories` table (see lib/categories.ts). */
+export const DEFAULT_CATEGORIES = ['Crochet & Textiles', 'Accessories', 'Resin Art', 'Pottery'] as const;
 
 export const citySlug = (city: string) => slugify(city);
 export const cityFromSlug = (slug: string) => CITIES.find(c => citySlug(c) === slug);
