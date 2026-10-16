@@ -103,4 +103,12 @@ describe.skipIf(!adminUrl)('real Postgres: concurrency and locking', () => {
     expect(rs.filter(r => r.status === 'fulfilled')).toHaveLength(1); // the second one is refused (409)
     void active;
   });
+
+  it('fuzzy search works on real Postgres (pg_trgm installed by the migration): typos match, noise does not, exact ranks first', async () => {
+    const { listProducts } = await import('@/lib/catalog');
+    expect((await listProducts({ q: 'crochat' })).map(p => p.id)).toContain('p1');
+    expect((await listProducts({ q: 'potery' })).map(p => p.id)).toContain('p4');
+    expect(await listProducts({ q: 'xylophone' })).toEqual([]);
+    expect((await listProducts({ q: 'resin' }))[0].id).toBe('p3');
+  });
 });

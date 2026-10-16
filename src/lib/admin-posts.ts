@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { productsQuery, sellerNameSql, toAdminProduct } from '../db/mappers';
 import { ROLE_ID } from '../db/people';
@@ -6,7 +6,7 @@ import { products, sellerProfiles, userRoles, users, workshops } from '../db/sch
 import { artistKey } from './artist';
 import type { Role } from './authz';
 import { ApiError } from './errors';
-import { textMatch } from './search';
+import { textSearch } from './search';
 import type { AdminProduct } from './types';
 
 export { artistKey };
@@ -27,9 +27,10 @@ export async function listProductsForAdmin(f: AdminProductQuery = {}, scope: Sco
   const where: (SQL | undefined)[] = scopeWhere(scope);
   if (f.artist) where.push(sql`${keySql} = ${artistKey(f.artist)}`);
   if (f.status) where.push(eq(products.status, f.status));
-  where.push(textMatch(docSql, (f.q ?? '').trim()));
+  const search = textSearch(docSql, f.q);
+  where.push(search.where);
   const rows = await productsQuery(getDb()).where(and(...where))
-    .orderBy(sql`length(${products.id}) desc`, sql`${products.id} desc`);
+    .orderBy(...(search.rank ? [desc(search.rank)] : []), sql`length(${products.id}) desc`, sql`${products.id} desc`);
   return rows.map(toAdminProduct);
 }
 

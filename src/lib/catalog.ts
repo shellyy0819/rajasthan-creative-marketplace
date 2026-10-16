@@ -1,8 +1,8 @@
-import { and, asc, eq, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, sql, type SQL } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { productsQuery, sellerNameSql, toProduct, toWorkshop } from '../db/mappers';
 import { products as productsT, workshops as workshopsT } from '../db/schema';
-import { textMatch } from './search';
+import { textSearch } from './search';
 import { productSlug, workshopSlug } from './catalog-shared';
 import type { Product, Workshop } from './types';
 
@@ -20,8 +20,9 @@ export async function listProducts(f: ProductFilter = {}): Promise<Product[]> {
   const where: (SQL | undefined)[] = [eq(productsT.status, 'APPROVED')];
   if (!anyCity(f.city)) where.push(eq(productsT.city, f.city!));
   if (f.category && f.category !== 'All categories') where.push(eq(productsT.category, f.category));
-  where.push(textMatch(productDoc, f.q));
-  const rows = await productsQuery(getDb()).where(and(...where)).orderBy(...idOrder(productsT));
+  const search = textSearch(productDoc, f.q);
+  where.push(search.where);
+  const rows = await productsQuery(getDb()).where(and(...where)).orderBy(...(search.rank ? [desc(search.rank)] : []), ...idOrder(productsT));
   return rows.map(toProduct);
 }
 
@@ -29,8 +30,9 @@ export async function listWorkshops(f: WorkshopFilter = {}): Promise<Workshop[]>
   const where: (SQL | undefined)[] = [eq(workshopsT.status, 'APPROVED')];
   if (!anyCity(f.city)) where.push(eq(workshopsT.city, f.city!));
   if (f.type && f.type !== 'ALL') where.push(eq(workshopsT.type, f.type));
-  where.push(textMatch(workshopDoc, f.q));
-  const rows = await getDb().select().from(workshopsT).where(and(...where)).orderBy(...idOrder(workshopsT));
+  const search = textSearch(workshopDoc, f.q);
+  where.push(search.where);
+  const rows = await getDb().select().from(workshopsT).where(and(...where)).orderBy(...(search.rank ? [desc(search.rank)] : []), ...idOrder(workshopsT));
   return rows.map(toWorkshop);
 }
 

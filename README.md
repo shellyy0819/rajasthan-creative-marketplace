@@ -24,17 +24,42 @@ Server-rendered pages; per-page metadata + canonical; JSON-LD (Organization, Web
 
 ## Database
 
-All data lives in PostgreSQL (tables `products`, `workshops`, `orders`, `order_items`, `bookings`, `id_counters`; schema in `src/db/schema.ts`, SQL migrations in `drizzle/`).
+All data lives in PostgreSQL (schema in `src/db/schema.ts`, SQL migrations in `drizzle/`).
+
+| Table | Purpose |
+|---|---|
+| `roles` | reference data: `seller` (1), `admin` (2). *Customer* is implicit (every signed-in user can buy and read) |
+| `users` | one row per person (email unique case-insensitively, `google_sub` filled at first sign-in, `active` flag) |
+| `user_roles` | **many-to-many** users ↔ roles (a user can be seller and admin), with who assigned it |
+| `seller_profiles` | public name and contact (phone, email, Instagram, YouTube) shown on a seller's product pages |
+| `products` | listing owned by `seller_id`; optional `workshop_id` (one workshop can feature many products), `pickup_location` (admin/seller only), `published_by`/`published_at` |
+| `workshops` | hosted sessions (`starts_at` is stored as a timestamp; the API still shows `date` and `time` in India time) |
+| `orders`, `order_items`, `bookings` | demo checkout; orders/bookings point at `users`; items and bookings keep a copy of names with no foreign key so history survives deletes |
+| `id_counters` | `p`/`w` id counters (ids are never reused) |
 
 | Command | What it does |
 |---|---|
 | `npm run db:up` / `db:down` / `db:logs` | start / stop / tail the container (data stays in the `rr_pgdata` volume; `docker compose down -v` deletes it) |
-| `npm run db:migrate` | apply migrations |
+| `npm run db:migrate` | apply migrations (also installs the `pg_trgm` extension used by search) |
 | `npm run db:generate` | create a new migration after editing `src/db/schema.ts` |
-| `npm run db:seed` | idempotent import of `data/db.json` (existing ids are kept; id counters never go down) |
-| `npm run db:reset` | wipe all tables and re-seed from `data/db.json` |
+| `npm run db:seed` | idempotent import of `data/db.json` (creates a seller user + profile per seller name) |
+| `npm run db:reset` | wipe all tables (including users and role assignments, but not the `roles` list) and re-seed |
 
-The credentials in `docker-compose.yml` / `.env.example` (`rr` / `rr_dev_password`) are for local development only; in production use a managed Postgres and a secret `DATABASE_URL`. The container publishes `127.0.0.1:5434` (not 5432) so it never collides with a locally installed Postgres. Stock and workshop seats are changed inside transactions with row locks; `npm run test:pg` proves this against the real database. `data/db.json` is now only the seed source and is never written by the app. `npm run build` renders pages from the database, so it must be up and migrated.
+The credentials in `docker-compose.yml` / `.env.example` (`rr` / `rr_dev_password`) are for local development only; in production use a managed Postgres and a secret `DATABASE_URL`. The container publishes `127.0.0.1:5434` (not 5432) so it never collides with a locally installed Postgres. Stock and workshop seats are changed inside transactions with row locks, and role/admin changes take an advisory lock; `npm run test:pg` proves both against the real database. `data/db.json` is only the seed source and is never written by the app. `npm run build` renders pages from the database, so it must be up and migrated.
+
+## Roles
+
+| Role | Can do |
+|---|---|
+| Buyer (any signed-in user) | read the catalog; demo orders and bookings |
+| Seller | create, read, edit and archive **their own** products (always Draft or Archived, never published); edit their public profile (`My profile`). Editing a published product returns it to Draft for admin review. Cannot delete products or touch workshops |
+| Admin | everything: publish products, delete products/workshops, manage users and roles at `/admin/users`, edit any seller's profile, assign a product's seller |
+
+Admins come from `ADMIN_EMAILS` (bootstrap, never locked out) or an `admin` row in `user_roles`. Roles are looked up on every request, so granting, revoking or deactivating takes effect immediately. A user who owns products, workshops, orders or bookings cannot be deleted; deactivate them instead. The last active admin cannot be removed. Deleting a workshop keeps its products (they just lose the link).
+
+## Search
+
+`GET /api/products?q=` and `GET /api/workshops?q=` (and the admin list) are typo-tolerant: an exact substring match always counts, and queries with a word of 3+ letters also match by trigram similarity (`pg_trgm`), so `crochat` finds *Crochet*. Exact matches rank first; unrelated text returns nothing.
 
 ## Included and working
 
@@ -61,16 +86,21 @@ Sign-in is Google OAuth through NextAuth v4 (`/api/auth/*`). Copy `.env.example`
 | `GET /api/health` | public |
 | `GET /api/products?city=&category=&q=` | public |
 | `GET /api/workshops?city=&type=&q=` | public |
-| `POST /api/products`, `PATCH` / `DELETE /api/products/:id` | admin only |
+| `POST /api/products`, `PATCH /api/products/:id` | admin or seller (sellers: own products, never publish) |
+| `DELETE /api/products/:id` | admin only |
 | `POST /api/workshops`, `PATCH` / `DELETE /api/workshops/:id` | admin only |
 | `POST /api/orders` `{ customerName, email, items:[{productId,quantity}] }` | signed in (owner = session email) |
 | `GET /api/orders` | signed in: own orders; admin: all |
 | `POST /api/bookings` `{ workshopId, attendeeName, email, quantity }` | signed in |
 | `GET /api/bookings` | signed in: own; admin: all |
 | `GET /api/admin/summary` | admin only |
-| `GET /api/admin/artists` | admin only (artists grouped by seller name, with published/draft counts) |
-| `GET /api/admin/products` (`?artist=&status=APPROVED\|DRAFT&q=`) | admin only, includes drafts, `no-store` |
-| `GET /api/admin/products/:id` | admin only |
+| `GET /api/admin/artists` | admin or seller (sellers: own products only) |
+| `GET /api/admin/products` (`?artist=&status=APPROVED\|DRAFT\|ARCHIVED&q=`) | admin or seller (sellers: own products only), includes drafts, `no-store` |
+| `GET /api/admin/products/:id` | admin or seller (own) |
+| `GET\|PUT /api/profile` | seller or admin: own public profile |
+| `GET /api/admin/users`, `POST /api/admin/users` | admin only |
+| `PATCH\|DELETE /api/admin/users/:id` | admin only (roles, active; delete blocked when the user owns data) |
+| `GET\|PUT /api/admin/users/:id/profile` | admin only |
 
 Errors: `401 {"error":"Authentication required."}`, `403 {"error":"Admin access required."}`. The API is same-origin only (no CORS); cookies are SameSite=Lax.
 

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
+import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm';
 import { asc, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
@@ -18,7 +19,7 @@ const loadFixture = (): LegacyDb => JSON.parse(fs.readFileSync(path.resolve('tes
 /** One in-memory Postgres (PGlite) per test file, migrated once. */
 export async function getTestDb(): Promise<Database> {
   if (!db) {
-    const client = new PGlite();
+    const client = new PGlite({ extensions: { pg_trgm } });
     const d = drizzle(client, { schema });
     await migrate(d, { migrationsFolder: path.resolve('drizzle') });
     db = d as unknown as Database;

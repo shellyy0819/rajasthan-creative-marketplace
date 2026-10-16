@@ -104,3 +104,18 @@ describe('api', () => {
     expect((await summary()).status).toBe(200);
   });
 });
+
+describe('GET /api/products fuzzy q', () => {
+  it('finds a product despite a typo, returns [] for noise, and exact matches come first', async () => {
+    const { GET } = await import('@/app/api/products/route');
+    const get = async (q: string) => (await (await GET(new Request(`http://x/api/products?q=${encodeURIComponent(q)}`))).json()).map((p: { id: string }) => p.id);
+    expect(await get('crochat')).toContain('p1');
+    expect(await get('xylophone')).toEqual([]);
+    expect((await get('resin'))[0]).toBe('p3');
+  });
+  it('GET /api/workshops?q= is fuzzy too', async () => {
+    const { GET } = await import('@/app/api/workshops/route');
+    const ids = (await (await GET(new Request('http://x/api/workshops?q=begginer'))).json()).map((w: { id: string }) => w.id);
+    expect(ids).toContain('w1');
+  });
+});
