@@ -18,6 +18,24 @@ npm run test:pg              # concurrency tests against the Docker Postgres
 BASE_URL=http://localhost:3000 npm run seo:check   # against a running server
 ```
 
+## Run the backend in Docker
+
+Builds the app as a production image and runs it with Postgres (frontend deployment is planned separately).
+
+```bash
+cp .env.backend.example .env.backend   # fill in POSTGRES_PASSWORD, NEXTAUTH_SECRET, Google and admin values
+npm run docker:up                      # db -> migrate (one-shot) -> api on 127.0.0.1:3001
+curl localhost:3001/api/health         # {"ok":true,"db":true,...}
+npm run docker:seed                    # optional, manual only: idempotent import of data/db.json
+npm run docker:logs                    # tail the api
+npm run docker:down                    # stop; data stays in the rr_pgdata_prod volume (`down -v` deletes it)
+```
+
+- Re-running `docker:up` after a code change rebuilds the image; migrations re-run and are idempotent. Seeding is never automatic.
+- Postgres is not published to the host; only the API is, on `127.0.0.1:${API_PORT:-3001}` (put a reverse proxy with TLS in front).
+- `/api/health` returns 503 when the database is unreachable (used by the container `HEALTHCHECK`).
+- `next build` no longer needs a database: `/` and `/cities/*` render on demand. This is separate from the dev database below (`npm run db:up`, port 5434).
+
 ## SEO
 
 Server-rendered pages; per-page metadata + canonical; JSON-LD (Organization, WebSite + SearchAction, Product + Offer, Event, BreadcrumbList); `/sitemap.xml`, `/robots.txt`, `/manifest.webmanifest`; dynamic OG images; filtered views are `noindex,follow` with canonical to the base list page; unknown slugs return real 404s. Pages: `/`, `/shop`, `/workshops`, `/products/[slug]`, `/workshops/[slug]`, `/cities/[city]`.
@@ -46,7 +64,7 @@ All data lives in PostgreSQL (schema in `src/db/schema.ts`, SQL migrations in `d
 | `npm run db:seed` | idempotent import of `data/db.json` (creates a seller user + profile per seller name) |
 | `npm run db:reset` | wipe all tables (including users and role assignments, but not the `roles` list) and re-seed |
 
-The credentials in `docker-compose.yml` / `.env.example` (`rr` / `rr_dev_password`) are for local development only; in production use a managed Postgres and a secret `DATABASE_URL`. The container publishes `127.0.0.1:5434` (not 5432) so it never collides with a locally installed Postgres. Stock and workshop seats are changed inside transactions with row locks, and role/admin changes take an advisory lock; `npm run test:pg` proves both against the real database. `data/db.json` is only the seed source and is never written by the app. `npm run build` renders pages from the database, so it must be up and migrated.
+The credentials in `docker-compose.yml` / `.env.example` (`rr` / `rr_dev_password`) are for local development only; in production use a managed Postgres and a secret `DATABASE_URL`. The container publishes `127.0.0.1:5434` (not 5432) so it never collides with a locally installed Postgres. Stock and workshop seats are changed inside transactions with row locks, and role/admin changes take an advisory lock; `npm run test:pg` proves both against the real database. `data/db.json` is only the seed source and is never written by the app. Pages render from the database on demand, so it must be up and migrated when the app runs.
 
 ## Roles
 

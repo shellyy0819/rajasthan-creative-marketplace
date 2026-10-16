@@ -29,7 +29,7 @@ FROM deps AS tooling
 ENV NODE_ENV=development
 COPY package.json tsconfig.json drizzle.config.ts ./
 COPY drizzle ./drizzle
-COPY src/db ./src/db
+COPY src ./src
 COPY scripts ./scripts
 COPY data ./data
 USER node
