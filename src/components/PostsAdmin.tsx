@@ -34,6 +34,7 @@ export function PostsAdmin({
   role,
   workshops = [],
   sellers = [],
+  me,
   profile,
 }: {
   initialProducts: Product[];
@@ -41,6 +42,7 @@ export function PostsAdmin({
   role: "admin" | "seller";
   workshops?: WorkshopOption[];
   sellers?: SellerOption[];
+  me?: SellerOption;
   profile?: SellerProfile;
 }) {
   const seller = role === "seller";
@@ -346,6 +348,7 @@ export function PostsAdmin({
           role={role}
           workshops={workshops}
           sellers={sellers}
+          me={me}
           onSubmit={save}
           onCancel={() => setEditing(null)}
         />

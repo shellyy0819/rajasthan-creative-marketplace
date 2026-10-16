@@ -62,7 +62,8 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const WORKSHOPS = [{ id: 'w1', title: 'Beginner Crochet' }, { id: 'w2', title: 'Tote Bag Painting' }];
 const SELLERS = [{ id: 'u-Shauk', name: 'Shauk and Stuff', email: 'shauk@x.co', phone: '9989898999' }, { id: 'u-Lake', name: 'Lake City Knots', email: 'lake@x.co' }, { id: 'u-Lake2', name: 'Lake City Knots', email: 'lake2@x.co', phone: '9876543210' }];
 const PROFILE = { userId: 'me', displayName: 'My Studio' };
-const mount = (role: 'admin' | 'seller' = 'admin') => render(<PostsAdmin initialProducts={[...db]} initialArtists={artistsOf(db)} role={role} workshops={WORKSHOPS} sellers={role === 'admin' ? SELLERS : []} profile={PROFILE} />);
+const ME = { id: 'me', name: 'Shelly Agarwal', email: 'root@x.co', phone: '9989898999' };
+const mount = (role: 'admin' | 'seller' = 'admin') => render(<PostsAdmin initialProducts={[...db]} initialArtists={artistsOf(db)} role={role} workshops={WORKSHOPS} sellers={role === 'admin' ? SELLERS : []} me={ME} profile={PROFILE} />);
 const rows = () => screen.queryAllByTestId('post-row');
 const rowFor = (name: string) => rows().find(r => within(r).queryByText(name))!;
 const badgeOf = (row: HTMLElement) => row.querySelector('.badge')!.textContent;
@@ -468,7 +469,7 @@ describe('PostsAdmin as an admin (seller info)', () => {
     expect(screen.getAllByRole('button', { name: /^Delete / }).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: 'New post' }));
     const picker = screen.getByLabelText(/^Seller/) as HTMLSelectElement;
-    expect(Array.from(picker.options).map(o => o.textContent)).toEqual(['Me (admin)', 'Shauk and Stuff · shauk@x.co · 9989898999', 'Lake City Knots · lake@x.co', 'Lake City Knots · lake2@x.co · 9876543210']);
+    expect(Array.from(picker.options).map(o => o.textContent)).toEqual(['Me (admin) · Shelly Agarwal · root@x.co · 9989898999', 'Shauk and Stuff · shauk@x.co · 9989898999', 'Lake City Knots · lake@x.co', 'Lake City Knots · lake2@x.co · 9876543210']);
     expect(Array.from((screen.getByLabelText(/^Status/) as HTMLSelectElement).options).map(o => o.value)).toEqual(['APPROVED', 'DRAFT', 'ARCHIVED']);
   });
 });

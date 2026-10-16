@@ -36,11 +36,13 @@ type Props = {
   role: 'admin' | 'seller';
   workshops: WorkshopOption[];
   sellers: SellerOption[];
+  /** The signed-in admin, shown on the "Me (admin)" option. */
+  me?: SellerOption;
   onSubmit: (payload: Record<string, unknown>) => Promise<string | null>;
   onCancel: () => void;
 };
 
-export function PostForm({ initial, role, workshops, sellers, onSubmit, onCancel }: Props) {
+export function PostForm({ initial, role, workshops, sellers, me, onSubmit, onCancel }: Props) {
   const seller = role === 'seller';
   const lockedStatus = seller && initial?.status === 'APPROVED'; // a seller cannot choose a status for a published post
   const statusOptions = seller
@@ -126,7 +128,7 @@ export function PostForm({ initial, role, workshops, sellers, onSubmit, onCancel
           {!seller && (
             <label>Seller
               <select name="sellerId" defaultValue={initial?.sellerId ?? ''}>
-                {!initial && <option value="">Me (admin)</option>}
+                {!initial && <option value="">{me ? `Me (admin) · ${sellerLabel(me)}` : 'Me (admin)'}</option>}
                 {initial && !sellers.some(x => x.id === initial.sellerId) && <option value={initial.sellerId}>{[initial.seller, initial.sellerEmail].filter(Boolean).join(' · ')}</option>}
                 {sellers.map(x => <option key={x.id} value={x.id}>{sellerLabel(x)}</option>)}
               </select>

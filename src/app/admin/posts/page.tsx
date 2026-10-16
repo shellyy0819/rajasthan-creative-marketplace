@@ -20,7 +20,7 @@ export default async function AdminPostsPage() {
   return (
     <>
       <Breadcrumbs items={crumbs} />
-      <PostsAdmin initialProducts={products} initialArtists={artists} role={user.role} workshops={workshops} sellers={sellers} profile={profile} />
+      <PostsAdmin initialProducts={products} initialArtists={artists} role={user.role} workshops={workshops} sellers={sellers} me={{ id: profile.userId, name: profile.displayName, email: user.email, phone: profile.publicPhone }} profile={profile} />
     </>
   );
 }
