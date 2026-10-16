@@ -48,6 +48,10 @@ Every page except the home page renders `<Breadcrumbs items={crumbs} />` (Home �
 
 Use `<Toast toast={toast} onClose={…} />` from `src/components/Toast.tsx` for the outcome of an action (never an inline banner for page-level results). Success is green (`role="status"`), error is red (`role="alert"`), both close themselves after 3 seconds (`TOAST_MS`), have a ✕ button, and a new toast restarts the timer. Errors that belong next to form fields stay inline in the form (not duplicated as a toast).
 
+## Lists that users can extend (categories)
+
+A select whose options live in the database (categories) ends with a `＋ Add a new…` entry that reveals an inline name box (Enter adds, Cancel closes) and posts to the API; the new value is selected immediately and the parent list is updated. Never hard-code such a list in a client component; pass it from the server page.
+
 ## Place and address inputs
 
 Use `<PlaceInput name="…" />` (`src/components/PlaceInput.tsx`) for any location field: debounced type-ahead (3+ characters), keyboard navigation, `role="combobox"`, free text always allowed, silent when the service is down. Never call a geocoding service from the browser; go through `/api/places`.

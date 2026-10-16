@@ -32,6 +32,7 @@ export function PostsAdmin({
   initialProducts,
   initialArtists,
   role,
+  categories: initialCategories = [],
   workshops = [],
   sellers = [],
   me,
@@ -40,12 +41,14 @@ export function PostsAdmin({
   initialProducts: Product[];
   initialArtists: AdminArtist[];
   role: "admin" | "seller";
+  categories?: string[];
   workshops?: WorkshopOption[];
   sellers?: SellerOption[];
   me?: SellerOption;
   profile?: SellerProfile;
 }) {
   const seller = role === "seller";
+  const [categories, setCategories] = useState(initialCategories);
   const [editingProfile, setEditingProfile] = useState(false);
   const [myProfile, setMyProfile] = useState(profile);
   const [products, setProducts] = useState(initialProducts);
@@ -346,6 +349,8 @@ export function PostsAdmin({
           key={editing === "new" ? "new" : editing.id}
           initial={editing === "new" ? undefined : editing}
           role={role}
+          categories={categories}
+          onCategoryCreated={(name) => setCategories((c) => (c.includes(name) ? c : [...c, name]))}
           workshops={workshops}
           sellers={sellers}
           me={me}

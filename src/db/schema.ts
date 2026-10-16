@@ -34,10 +34,18 @@ export const sellerProfiles = pgTable('seller_profiles', {
   youtube: text('youtube'),
 });
 
+/** Product categories. Anyone who can create products may add one; names are unique ignoring case. */
+export const categories = pgTable('categories', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [uniqueIndex('categories_name_lower_idx').on(sql`lower(${t.name})`)]);
+
 export const products = pgTable('products', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  category: text('category').notNull(),
+  category: text('category').notNull().references(() => categories.name, { onUpdate: 'cascade', onDelete: 'restrict' }),
   city: text('city').notNull(),
   pricePaise: integer('price_paise').notNull(),
   description: text('description').notNull(),

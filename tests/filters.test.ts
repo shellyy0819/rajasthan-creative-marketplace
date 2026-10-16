@@ -10,8 +10,11 @@ describe('parseFilters', () => {
     expect(parseFilters({ city: 'Jaipur', category: 'Pottery', type: 'FREE' }))
       .toEqual({ city: 'Jaipur', category: 'Pottery', type: 'FREE' });
   });
-  it('drops unknown city/category/type', () => {
-    expect(parseFilters({ city: 'Mars', category: 'x', type: 'weird' })).toEqual({});
+  it('drops unknown city/type; categories are user-created so any sane name is kept (an unknown one just finds nothing)', () => {
+    expect(parseFilters({ city: 'Mars', category: 'x', type: 'weird' })).toEqual({ category: 'x' });
+    expect(parseFilters({ category: 'Wooden Toys' })).toEqual({ category: 'Wooden Toys' });
+    expect(parseFilters({ category: ' ' })).toEqual({});
+    expect(parseFilters({ category: 'y'.repeat(61) })).toEqual({});
   });
   it('uses first value of repeated params', () => {
     expect(parseFilters({ city: ['Jaipur', 'Udaipur'] })).toEqual({ city: 'Jaipur' });

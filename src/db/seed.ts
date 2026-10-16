@@ -4,14 +4,15 @@ import type { Db as LegacyDb } from '../lib/types';
 import type { Database } from './client';
 import { ensureSellerProfile, ensureUser, grantRole } from './people';
 import { istToDate, toProductRow } from './mappers';
-import { bookings, idCounters, orderItems, orders, products, sellerProfiles, workshops } from './schema';
+import { bookings, categories, idCounters, orderItems, orders, products, sellerProfiles, workshops } from './schema';
+import { DEFAULT_CATEGORIES } from '../lib/catalog-shared';
 
 export type { LegacyDb };
 const LEGACY_EMAIL = 'legacy@rangrajasthan.invalid';
 
 export async function truncateAll(db: Database): Promise<void> {
   // roles is reference data (seeded by a migration) and is deliberately kept.
-  await db.execute(sql`truncate table order_items, orders, bookings, products, workshops, seller_profiles, user_roles, users, id_counters restart identity cascade`);
+  await db.execute(sql`truncate table order_items, orders, bookings, products, workshops, seller_profiles, user_roles, users, categories, id_counters restart identity cascade`);
 }
 
 const maxNumericId = (prefix: string, ids: string[]) =>
@@ -26,6 +27,10 @@ const slug = (s: string) => artistKey(s).replace(/[^a-z0-9]+/g, '-').replace(/^-
 export async function seedFromJson(db: Database, data: LegacyDb) {
   return db.transaction(async tx => {
     const inserted = { products: 0, workshops: 0, orders: 0, bookings: 0 };
+
+    // categories: the starter four plus anything the imported products use (products reference categories by name)
+    for (const name of new Set<string>([...DEFAULT_CATEGORIES, ...(data.products ?? []).map(p => p.category)]))
+      await tx.insert(categories).values({ name }).onConflictDoNothing();
 
     const sellers = new Map<string, string>(); // artistKey -> user id
     for (const p of data.products ?? []) {

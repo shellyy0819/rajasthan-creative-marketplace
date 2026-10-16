@@ -5,7 +5,8 @@ import { productsQuery, toAdminProduct, toProductRow, toWorkshop, toAdminWorksho
 import { ROLE_ID, ensureUser } from '../db/people';
 import { products as productsT, userRoles, users, workshops as workshopsT } from '../db/schema';
 import type { Tx } from '../db/client';
-import { CATEGORIES, CITIES } from './catalog-shared';
+import { CITIES } from './catalog-shared';
+import { canonicalCategory } from './categories';
 import type { Actor } from './authz';
 import { ApiError } from './errors';
 import { bad, int, obj, oneOf, optionalImageUrl, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
@@ -26,7 +27,7 @@ function optionalWorkshopId(v: unknown): string | undefined {
 function validateProduct(v: Raw): ProductInput {
   return {
     name: text(v.name, 'name', 200),
-    category: oneOf(v.category, 'category', CATEGORIES),
+    category: typeof v.category === 'string' ? v.category : '', // checked against the categories table inside the transaction
     city: oneOf(v.city, 'city', CITIES),
     pricePaise: int(v.pricePaise, 'pricePaise', 0, 10_000_000),
     description: text(v.description, 'description', 2000),
@@ -79,6 +80,7 @@ export async function createProduct(input: unknown, actor: Actor): Promise<Admin
       await requireSellerUser(tx, assigned);
       sellerId = assigned;
     }
+    data.category = await canonicalCategory(tx, data.category);
     await requireWorkshop(tx, data.workshopId);
     const id = await allocateId(tx, 'p');
     const published = data.status === 'APPROVED' ? { publishedBy: me.id, publishedAt: new Date() } : {};
@@ -107,6 +109,7 @@ export async function updateProduct(id: string, input: unknown, actor: Actor): P
     }
     let sellerId = row.sellerId;
     if (!seller && assigned && assigned !== row.sellerId) { await requireSellerUser(tx, assigned); sellerId = assigned; }
+    next.category = await canonicalCategory(tx, next.category);
     await requireWorkshop(tx, next.workshopId);
     const publishing = next.status === 'APPROVED' && row.status !== 'APPROVED';
     await tx.update(productsT).set({

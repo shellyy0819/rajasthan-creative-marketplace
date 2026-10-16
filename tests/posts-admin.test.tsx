@@ -59,11 +59,12 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+const CATEGORIES = ['Crochet & Textiles', 'Accessories', 'Resin Art', 'Pottery'];
 const WORKSHOPS = [{ id: 'w1', title: 'Beginner Crochet' }, { id: 'w2', title: 'Tote Bag Painting' }];
 const SELLERS = [{ id: 'u-Shauk', name: 'Shauk and Stuff', email: 'shauk@x.co', phone: '9989898999' }, { id: 'u-Lake', name: 'Lake City Knots', email: 'lake@x.co' }, { id: 'u-Lake2', name: 'Lake City Knots', email: 'lake2@x.co', phone: '9876543210' }];
 const PROFILE = { userId: 'me', displayName: 'My Studio' };
 const ME = { id: 'me', name: 'Shelly Agarwal', email: 'root@x.co', phone: '9989898999' };
-const mount = (role: 'admin' | 'seller' = 'admin') => render(<PostsAdmin initialProducts={[...db]} initialArtists={artistsOf(db)} role={role} workshops={WORKSHOPS} sellers={role === 'admin' ? SELLERS : []} me={ME} profile={PROFILE} />);
+const mount = (role: 'admin' | 'seller' = 'admin') => render(<PostsAdmin initialProducts={[...db]} initialArtists={artistsOf(db)} role={role} categories={CATEGORIES} workshops={WORKSHOPS} sellers={role === 'admin' ? SELLERS : []} me={ME} profile={PROFILE} />);
 const rows = () => screen.queryAllByTestId('post-row');
 const rowFor = (name: string) => rows().find(r => within(r).queryByText(name))!;
 const badgeOf = (row: HTMLElement) => row.querySelector('.badge')!.textContent;
@@ -487,5 +488,66 @@ describe('PostsAdmin as an admin (seller info)', () => {
     const picker = screen.getByLabelText(/^Seller/) as HTMLSelectElement;
     expect(Array.from(picker.options).map(o => o.textContent)).toEqual(['Me (admin) · Shelly Agarwal · root@x.co · 9989898999', 'Shauk and Stuff · shauk@x.co · 9989898999', 'Lake City Knots · lake@x.co', 'Lake City Knots · lake2@x.co · 9876543210']);
     expect(Array.from((screen.getByLabelText(/^Status/) as HTMLSelectElement).options).map(o => o.value)).toEqual(['APPROVED', 'DRAFT', 'ARCHIVED']);
+  });
+});
+
+describe('creating a category from the product form', () => {
+  const open = () => { mount(); fireEvent.click(screen.getByRole('button', { name: 'New post' })); };
+  it('lists the existing categories plus an "Add a new category" entry, default first category', () => {
+    open();
+    const sel = screen.getByLabelText(/^Category/) as HTMLSelectElement;
+    expect(Array.from(sel.options).map(o => o.textContent)).toEqual([...CATEGORIES, '＋ Add a new category…']);
+    expect(sel.value).toBe('Crochet & Textiles');
+  });
+  it('choosing "Add a new category" shows a name box; Add POSTs /api/categories, selects the new one and the product save sends it', async () => {
+    open();
+    fireEvent.change(screen.getByLabelText(/^Category/), { target: { value: '__new__' } });
+    const name = screen.getByLabelText(/^New category name/) as HTMLInputElement;
+    expect(screen.getByRole('button', { name: 'Add category' }).hasAttribute('disabled')).toBe(true); // empty name
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => url === '/api/categories' && init?.method === 'POST' ? res(201, { name: 'Wooden Toys' }) : url === '/api/products' ? res(201, mk('p9', 'X', 'Me', 'DRAFT')) : url === '/api/admin/products' ? res(200, db) : url === '/api/admin/artists' ? res(200, artistsOf(db)) : res(500, {}));
+    fireEvent.change(name, { target: { value: '  wooden toys ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add category' }));
+    await waitFor(() => expect((screen.getByLabelText(/^Category/) as HTMLSelectElement).value).toBe('Wooden Toys'));
+    expect(JSON.parse(fetchMock.mock.calls.find(c => c[0] === '/api/categories')![1].body)).toEqual({ name: 'wooden toys' });
+    expect(screen.queryByLabelText(/^New category name/)).toBeNull();
+    fill(/^Title/, 'Toy'); fill(/^Description/, 'x'); fill(/^Price/, '10'); fill(/^Stock/, '1');
+    fireEvent.click(screen.getByRole('button', { name: 'Save post' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(JSON.parse(fetchMock.mock.calls.find(c => c[0] === '/api/products')![1].body).category).toBe('Wooden Toys');
+  });
+  it('a category that already exists (API returns the stored spelling) is selected, not duplicated', async () => {
+    open();
+    fireEvent.change(screen.getByLabelText(/^Category/), { target: { value: '__new__' } });
+    fetchMock.mockImplementation(() => res(200, { name: 'Resin Art' }));
+    fireEvent.change(screen.getByLabelText(/^New category name/), { target: { value: 'resin art' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add category' }));
+    await waitFor(() => expect((screen.getByLabelText(/^Category/) as HTMLSelectElement).value).toBe('Resin Art'));
+    expect(Array.from((screen.getByLabelText(/^Category/) as HTMLSelectElement).options).filter(o => o.value === 'Resin Art')).toHaveLength(1);
+  });
+  it('an API error is shown next to the field, keeps the typed name, and can be cancelled', async () => {
+    open();
+    fireEvent.change(screen.getByLabelText(/^Category/), { target: { value: '__new__' } });
+    fetchMock.mockImplementation(() => res(400, { error: 'name must be 2-40 characters' }));
+    fireEvent.change(screen.getByLabelText(/^New category name/), { target: { value: '<b>' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add category' }));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/2-40 characters/));
+    expect((screen.getByLabelText(/^New category name/) as HTMLInputElement).value).toBe('<b>');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Cancel' })[0]); // the category panel's Cancel comes before the form's
+    expect(screen.queryByLabelText(/^New category name/)).toBeNull();
+    expect((screen.getByLabelText(/^Category/) as HTMLSelectElement).value).toBe('Crochet & Textiles');
+  });
+  it('Enter in the name box adds the category without submitting the whole form', async () => {
+    open();
+    fireEvent.change(screen.getByLabelText(/^Category/), { target: { value: '__new__' } });
+    fetchMock.mockImplementation(() => res(201, { name: 'Brass' }));
+    fireEvent.change(screen.getByLabelText(/^New category name/), { target: { value: 'Brass' } });
+    fireEvent.keyDown(screen.getByLabelText(/^New category name/), { key: 'Enter' });
+    await waitFor(() => expect((screen.getByLabelText(/^Category/) as HTMLSelectElement).value).toBe('Brass'));
+    expect(fetchMock.mock.calls.every(c => c[0] === '/api/categories')).toBe(true);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+  it('sellers can add categories too', () => {
+    mount('seller'); fireEvent.click(screen.getByRole('button', { name: 'New post' }));
+    expect(Array.from((screen.getByLabelText(/^Category/) as HTMLSelectElement).options).map(o => o.value)).toContain('__new__');
   });
 });

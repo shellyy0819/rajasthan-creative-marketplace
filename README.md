@@ -35,6 +35,7 @@ All data lives in PostgreSQL (schema in `src/db/schema.ts`, SQL migrations in `d
 | `products` | listing owned by `seller_id`; optional `workshop_id` (one workshop can feature many products), `pickup_location` (admin/seller only), `published_by`/`published_at` |
 | `workshops` | hosted sessions (`starts_at` is stored as a timestamp; the API still shows `date` and `time` in India time) |
 | `orders`, `order_items`, `bookings` | demo checkout; orders/bookings point at `users`; items and bookings keep a copy of names with no foreign key so history survives deletes |
+| `categories` | product categories (user-creatable, unique ignoring case, max 100); `products.category` references the name |
 | `id_counters` | `p`/`w` id counters (ids are never reused) |
 
 | Command | What it does |
@@ -92,6 +93,8 @@ Sign-in is Google OAuth through NextAuth v4 (`/api/auth/*`). Copy `.env.example`
 | `GET /api/workshops?city=&type=&q=` | public |
 | `POST /api/products`, `PATCH /api/products/:id` | admin or seller (sellers: own products, never publish) |
 | `DELETE /api/products/:id` | admin only |
+| `GET /api/categories` | public: the category names |
+| `POST /api/categories` `{ name }` | admin or seller: creates a category (201), or returns the existing one (200) |
 | `POST /api/workshops`, `PATCH` / `DELETE /api/workshops/:id` | admin only |
 | `POST /api/orders` `{ customerName, email, items:[{productId,quantity}] }` | signed in (owner = session email) |
 | `GET /api/orders` | signed in: own orders; admin: all |

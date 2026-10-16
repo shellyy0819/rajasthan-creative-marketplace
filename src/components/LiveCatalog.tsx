@@ -1,13 +1,13 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import type { Product, Workshop } from '@/lib/types';
-import { CATEGORIES, CITIES } from '@/lib/catalog-shared';
+import { CITIES, DEFAULT_CATEGORIES } from '@/lib/catalog-shared';
 import { ProductGrid } from './ProductGrid';
 import { WorkshopList } from './WorkshopList';
 
 type Values = { city?: string; category?: string; type?: string; q?: string };
 type Props =
-  | { kind: 'products'; initialItems: Product[]; initialValues: Values }
+  | { kind: 'products'; initialItems: Product[]; initialValues: Values; categories?: readonly string[] }
   | { kind: 'workshops'; initialItems: Workshop[]; initialValues: Values };
 
 const SEARCH_DELAY_MS = 300;
@@ -82,7 +82,7 @@ export function LiveCatalog(props: Props) {
       {kind === 'products' ? (
         <select name="category" value={values.category ?? ''} onChange={e => set({ category: e.target.value }, 0)} aria-label="Filter by category">
           <option value="">All categories</option>
-          {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+          {(props.kind === 'products' && props.categories ? props.categories : DEFAULT_CATEGORIES).map(c => <option key={c}>{c}</option>)}
         </select>
       ) : (
         <select name="type" value={values.type ?? ''} onChange={e => set({ type: e.target.value }, 0)} aria-label="Filter by price">

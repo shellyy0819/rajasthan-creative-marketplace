@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AdminProduct } from '@/lib/types';
 import { PlaceInput } from './PlaceInput';
-import { CATEGORIES, CITIES } from '@/lib/catalog-shared';
+import { CITIES } from '@/lib/catalog-shared';
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 // Blank or non-numeric → null so the server rejects it with a field-named 400 (Number('') would be a silent 0).
@@ -35,15 +35,41 @@ export const sellerLabel = (s: SellerOption) => [s.name, s.email, s.phone].filte
 type Props = {
   initial?: AdminProduct;
   role: 'admin' | 'seller';
+  categories: string[];
   workshops: WorkshopOption[];
   sellers: SellerOption[];
+  /** Called after a new category was created through the API so the parent can keep its list in sync. */
+  onCategoryCreated?: (name: string) => void;
   /** The signed-in admin, shown on the "Me (admin)" option. */
   me?: SellerOption;
   onSubmit: (payload: Record<string, unknown>) => Promise<string | null>;
   onCancel: () => void;
 };
 
-export function PostForm({ initial, role, workshops, sellers, me, onSubmit, onCancel }: Props) {
+const NEW_CATEGORY = '__new__';
+
+export function PostForm({ initial, role, categories, workshops, sellers, me, onCategoryCreated, onSubmit, onCancel }: Props) {
+  const [cats, setCats] = useState(categories);
+  const [category, setCategory] = useState(initial?.category && categories.includes(initial.category) ? initial.category : categories[0] ?? '');
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [catBusy, setCatBusy] = useState(false);
+  const [catError, setCatError] = useState('');
+  async function addCategory() {
+    const name = newName.trim();
+    if (!name || catBusy) return;
+    setCatBusy(true); setCatError('');
+    try {
+      const r = await fetch('/api/categories', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name }) });
+      const body = await r.json().catch(() => null);
+      if (!r.ok) { setCatError(body?.error ?? 'Could not add the category.'); setCatBusy(false); return; }
+      const created = (body as { name: string }).name;
+      setCats(c => (c.includes(created) ? c : [...c, created]));
+      onCategoryCreated?.(created);
+      setCategory(created); setAdding(false); setNewName('');
+    } catch { setCatError('Network error. Please try again.'); }
+    setCatBusy(false);
+  }
   const seller = role === 'seller';
   const lockedStatus = seller && initial?.status === 'APPROVED'; // a seller cannot choose a status for a published post
   const statusOptions = seller
@@ -103,7 +129,26 @@ export function PostForm({ initial, role, workshops, sellers, me, onSubmit, onCa
           <label><span className="lbl">Title</span><input name="name" required maxLength={200} defaultValue={v('name')} autoFocus /></label>
           <label><span className="lbl">Description</span><textarea name="description" required maxLength={2000} rows={4} defaultValue={v('description')} /></label>
           <div className="admin-form-row">
-            <label><span className="lbl">Category</span><select name="category" required defaultValue={v('category') || CATEGORIES[0]}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></label>
+            <div>
+              <label><span className="lbl">Category</span>
+                <select name="category" required value={category} onChange={e => { if (e.target.value === NEW_CATEGORY) { setAdding(true); setCatError(''); } else { setCategory(e.target.value); setAdding(false); } }}>
+                  {cats.map(c => <option key={c} value={c}>{c}</option>)}
+                  <option value={NEW_CATEGORY}>＋ Add a new category…</option>
+                </select>
+              </label>
+              {adding && (
+                <div className="admin-form-row" style={{ marginTop: 6, alignItems: 'end' }}>
+                  <label style={{ margin: 0 }}>New category name
+                    <input value={newName} maxLength={40} onChange={e => setNewName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void addCategory(); } }} placeholder="e.g. Wooden Toys" autoFocus />
+                  </label>
+                  <span style={{ display: 'flex', gap: 6 }}>
+                    <button type="button" className="button primary" disabled={catBusy || !newName.trim()} onClick={() => void addCategory()}>{catBusy ? 'Adding…' : 'Add category'}</button>
+                    <button type="button" className="button" disabled={catBusy} onClick={() => { setAdding(false); setNewName(''); setCatError(''); }}>Cancel</button>
+                  </span>
+                </div>
+              )}
+              {catError && <p role="alert" className="admin-error" style={{ margin: '6px 0 0' }}>{catError}</p>}
+            </div>
             <label><span className="lbl">City</span><select name="city" required defaultValue={v('city') || CITIES[0]}>{CITIES.map(c => <option key={c}>{c}</option>)}</select></label>
           </div>
           <div className="admin-form-row">

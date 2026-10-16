@@ -43,6 +43,13 @@
       "when": 1792127576062,
       "tag": "0005_pg_trgm",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792138114295,
+      "tag": "0006_categories",
+      "breakpoints": true
     }
   ]
 }
