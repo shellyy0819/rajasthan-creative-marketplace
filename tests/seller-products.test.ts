@@ -166,3 +166,25 @@ describe('workshop host ids stay out of the public API', () => {
     expect(JSON.stringify(await getWorkshopBySlug(`hosted-${w.id}`))).not.toContain(A.id);
   });
 });
+
+describe('admin product details (for the detail view)', () => {
+  it('admin results carry created/updated times, the publisher email and the workshop title; public ones carry none of that', async () => {
+    const p = await createProduct({ ...base, status: 'APPROVED', workshopId: 'w1', sellerId: A.id }, admin);
+    const got = await getProductForAdmin(p.id);
+    expect(got).toMatchObject({ workshopId: 'w1', workshopTitle: 'Beginner Crochet: Make Your First Flower', publishedByEmail: 'root@x.co' });
+    expect(new Date(got.createdAt!).getTime()).toBeGreaterThan(Date.now() - 60_000);
+    expect(new Date(got.updatedAt!).getTime()).toBeGreaterThanOrEqual(new Date(got.createdAt!).getTime());
+    const pub = JSON.stringify((await listProducts()).find(x => x.id === p.id));
+    for (const k of ['createdAt', 'updatedAt', 'publishedByEmail', 'workshopTitle']) expect(pub).not.toContain(k);
+    const draft = await createProduct(base, A.actor);
+    expect(draft).not.toHaveProperty('publishedByEmail');
+    expect(draft).not.toHaveProperty('workshopTitle');
+  });
+  it('updatedAt moves when the product changes', async () => {
+    const p = await createProduct(base, A.actor);
+    await new Promise(r => setTimeout(r, 15));
+    const u = await updateProduct(p.id, { stock: 9 }, A.actor);
+    expect(new Date(u.updatedAt!).getTime()).toBeGreaterThan(new Date(p.updatedAt!).getTime());
+    expect(u.createdAt).toBe(p.createdAt);
+  });
+});

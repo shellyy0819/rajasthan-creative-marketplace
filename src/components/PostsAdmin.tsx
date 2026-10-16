@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { AdminProduct as Product, SellerProfile } from "@/lib/types";
 import type { AdminArtist } from "@/lib/admin-posts";
@@ -9,6 +9,7 @@ import { money } from "@/lib/money";
 import { ProductImage } from "./ProductImage";
 import { PostForm, type SellerOption, type WorkshopOption } from "./PostForm";
 import { ProfileDialog } from "./ProfileDialog";
+import { ProductDetail } from "./ProductDetail";
 import { Toast, type ToastState } from "./Toast";
 
 const SYMBOLS = ["🌷", "⛵", "🌼", "🏺", "🧶", "🌸"];
@@ -50,6 +51,8 @@ export function PostsAdmin({
   const seller = role === "seller";
   const [categories, setCategories] = useState(initialCategories);
   const [editingProfile, setEditingProfile] = useState(false);
+  const [viewingId, setViewingId] = useState<string | null>(null);
+  const lastViewed = useRef<string | null>(null);
   const [myProfile, setMyProfile] = useState(profile);
   const [products, setProducts] = useState(initialProducts);
   const [artists, setArtists] = useState(initialArtists);
@@ -147,6 +150,15 @@ export function PostsAdmin({
     setChangingStatus(null);
   };
 
+  const viewing = products.find((x) => x.id === viewingId) ?? null; // always the latest data for the open post
+  useEffect(() => {
+    if (viewingId) lastViewed.current = viewingId;
+    else if (lastViewed.current) {
+      document.querySelector<HTMLElement>(`[data-open-id="${lastViewed.current}"]`)?.focus();
+      lastViewed.current = null;
+    }
+  }, [viewingId]);
+
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return products.filter(
@@ -243,7 +255,16 @@ export function PostsAdmin({
             <div className="empty">No posts match those filters.</div>
           ) : (
             shown.map((p) => (
-              <article key={p.id} className="admin-row" data-testid="post-row">
+              <article
+                key={p.id}
+                className="admin-row clickable"
+                data-testid="post-row"
+                onClick={(e) => {
+                  // clicks on the row's own controls (status, Edit, Delete, links) keep their own meaning
+                  if ((e.target as HTMLElement).closest("button,a,select,input,label,textarea")) return;
+                  setViewingId(p.id);
+                }}
+              >
                 <div className="admin-thumb">
                   <ProductImage
                     src={p.imageUrl}
@@ -252,7 +273,11 @@ export function PostsAdmin({
                   />
                 </div>
                 <div className="admin-row-main">
-                  <h3>{p.name}</h3>
+                  <h3>
+                    <button type="button" className="admin-row-open" data-open-id={p.id} onClick={() => setViewingId(p.id)}>
+                      {p.name}
+                    </button>
+                  </h3>
                   <p>
                     {p.seller}{!seller && p.sellerEmail ? ` (${p.sellerEmail})` : ""} · {p.category} · {p.city} · {money(p.pricePaise)}{" "}
                     · {p.stock} in stock
@@ -344,6 +369,17 @@ export function PostsAdmin({
         </div>
       </div>
 
+      {viewing && !editing && (
+        <ProductDetail
+          product={viewing}
+          role={role}
+          onClose={() => setViewingId(null)}
+          onEdit={() => {
+            setViewingId(null);
+            setEditing(viewing);
+          }}
+        />
+      )}
       {editing && (
         <PostForm
           key={editing === "new" ? "new" : editing.id}

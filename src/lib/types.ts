@@ -6,6 +6,7 @@ export type Product = {
 /** What admins and sellers see: the public product plus ownership and publishing details. */
 export type AdminProduct = Product & {
   sellerId: string; sellerEmail: string; pickupLocation?: string; publishedBy?: string; publishedAt?: string;
+  publishedByEmail?: string; workshopTitle?: string; createdAt?: string; updatedAt?: string;
 };
 export type Workshop = {
   id: string; title: string; type: 'FREE' | 'PAID'; pricePaise: number; city: string;

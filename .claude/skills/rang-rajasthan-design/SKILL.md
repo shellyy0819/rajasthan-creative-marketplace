@@ -48,6 +48,10 @@ Every page except the home page renders `<Breadcrumbs items={crumbs} />` (Home �
 
 Use `<Toast toast={toast} onClose={…} />` from `src/components/Toast.tsx` for the outcome of an action (never an inline banner for page-level results). Success is green (`role="status"`), error is red (`role="alert"`), both close themselves after 3 seconds (`TOAST_MS`), have a ✕ button, and a new toast restarts the timer. Errors that belong next to form fields stay inline in the form (not duplicated as a toast).
 
+## Row detail views
+
+A list row opens a read-only detail dialog on click (`ProductDetail`): the title is a real `<button>` for keyboard users, clicks on the row's own controls (select, Edit, Delete, links) keep their meaning, Escape/Done/✕/backdrop close it, Tab is trapped, focus returns to the title. Empty values show `—`. Admin-only data (account email, publisher, timestamps) comes from `toAdminProduct`, never the public mapper.
+
 ## Lists that users can extend (categories)
 
 A select whose options live in the database (categories) ends with a `＋ Add a new…` entry that reveals an inline name box (Enter adds, Cancel closes) and posts to the API; the new value is selected immediately and the parent list is updated. Never hard-code such a list in a client component; pass it from the server page.

@@ -22,10 +22,13 @@ export const productSelect = {
   publicEmail: sellerProfiles.publicEmail,
   instagram: sellerProfiles.instagram,
   youtube: sellerProfiles.youtube,
+  publishedByEmail: sql<string | null>`(select pu.email from users pu where pu.id = ${products.publishedBy})`,
+  workshopTitle: sql<string | null>`(select pw.title from workshops pw where pw.id = ${products.workshopId})`,
 };
 export type ProductJoinRow = {
   p: ProductRow; sellerName: string; sellerEmail: string;
   publicPhone: string | null; publicEmail: string | null; instagram: string | null; youtube: string | null;
+  publishedByEmail: string | null; workshopTitle: string | null;
 };
 /** SELECT products + seller + profile. Add .where(...) / .orderBy(...) / .for('update', { of: products }) as needed. */
 export const productsQuery = (q: Q) =>
@@ -43,7 +46,8 @@ export const toProduct = (r: ProductJoinRow): Product => ({
 export const toAdminProduct = (r: ProductJoinRow): AdminProduct => ({
   ...toProduct(r), sellerId: r.p.sellerId, sellerEmail: r.sellerEmail,
   ...opt('pickupLocation', r.p.pickupLocation), ...opt('publishedBy', r.p.publishedBy),
-  ...opt('publishedAt', r.p.publishedAt?.toISOString()),
+  ...opt('publishedAt', r.p.publishedAt?.toISOString()), ...opt('publishedByEmail', r.publishedByEmail), ...opt('workshopTitle', r.workshopTitle),
+  createdAt: r.p.createdAt.toISOString(), updatedAt: r.p.updatedAt.toISOString(),
 });
 
 export type ProductInput = Omit<Product, 'id' | 'seller' | 'instagram' | 'youtube' | 'phone' | 'email'> & { pickupLocation?: string };

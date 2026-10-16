@@ -551,3 +551,93 @@ describe('creating a category from the product form', () => {
     expect(Array.from((screen.getByLabelText(/^Category/) as HTMLSelectElement).options).map(o => o.value)).toContain('__new__');
   });
 });
+
+describe('row detail view', () => {
+  const full = () => {
+    db = [mk('p1', 'Lily Bouquet', 'Shauk and Stuff', 'APPROVED', {
+      description: 'A hand-crocheted bouquet that never wilts.', imageUrl: 'https://cdn.example.com/l.jpg', workshopId: 'w1', workshopTitle: 'Beginner Crochet',
+      pickupLocation: 'Udaipur, Rajasthan', phone: '9989898999', email: 'hello@shauk.co', instagram: 'shaukandstuff', youtube: '@shauk',
+      publishedByEmail: 'root@x.co', publishedAt: '2026-10-15T10:00:00.000Z', createdAt: '2026-10-14T08:00:00.000Z', updatedAt: '2026-10-15T10:00:00.000Z', sellerEmail: 'shauk@x.co',
+    }), mk('p2', 'Bare Draft', 'Lake City Knots', 'DRAFT')];
+  };
+  const detail = () => screen.getByRole('dialog', { name: /Lily Bouquet|Bare Draft/ });
+  it('clicking a row opens a dialog with every detail', () => {
+    full(); mount();
+    fireEvent.click(rowFor('Lily Bouquet'));
+    const d = detail();
+    const t = d.textContent!;
+    for (const expected of ['Lily Bouquet', 'Published', 'Accessories', 'Jaipur', '₹850', '3 in stock', 'A hand-crocheted bouquet that never wilts.', 'Beginner Crochet', 'Udaipur, Rajasthan',
+      'Shauk and Stuff', 'shauk@x.co', '9989898999', 'hello@shauk.co', 'shaukandstuff', '@shauk', 'root@x.co', 'p1'])
+      expect(t).toContain(expected);
+    expect(within(d).getByRole('img').getAttribute('src')).toBe('https://cdn.example.com/l.jpg');
+    expect(within(d).getByRole('link', { name: /View public page/ }).getAttribute('href')).toBe('/products/lily-bouquet-p1');
+    expect(t).toMatch(/Published.*(Oct|2026)/s);
+  });
+  it('empty values show a dash and drafts have no public page link', () => {
+    full(); mount();
+    fireEvent.click(rowFor('Bare Draft'));
+    const d = detail();
+    expect(within(d).queryByRole('link', { name: /View public page/ })).toBeNull();
+    expect(within(d).getAllByText('—').length).toBeGreaterThanOrEqual(5);
+    expect(d.textContent).toContain('Not published yet');
+  });
+  it('clicking the status dropdown, Edit, Delete or the public-page link in a row does not open it', () => {
+    full(); mount();
+    const row = rowFor('Lily Bouquet');
+    fireEvent.click(within(row).getByLabelText('Change status for Lily Bouquet'));
+    fireEvent.click(within(row).getByRole('button', { name: /^Delete/ }));
+    expect(screen.queryByRole('dialog', { name: /Lily Bouquet/ })).toBeNull();
+    fireEvent.click(within(rowFor('Lily Bouquet')).getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(within(rowFor('Lily Bouquet')).getByRole('button', { name: /^Edit/ }));
+    expect(screen.getByRole('dialog', { name: /Edit post/ })).toBeTruthy(); // the edit form, not the detail view
+    expect(screen.queryByRole('dialog', { name: /Lily Bouquet/ })).toBeNull();
+  });
+  it('the title is a real button so the keyboard and screen readers can open the details', () => {
+    full(); mount();
+    const open = within(rowFor('Lily Bouquet')).getByRole('button', { name: 'Lily Bouquet' });
+    open.focus();
+    fireEvent.click(open);
+    expect(detail()).toBeTruthy();
+  });
+  it('Escape, the Close button and the backdrop close it, and focus returns to the row title', () => {
+    full(); mount();
+    const open = () => fireEvent.click(rowFor('Lily Bouquet'));
+    open(); fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    open(); fireEvent.click(within(detail()).getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    open(); fireEvent.click(within(detail()).getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    open(); fireEvent.mouseDown(within(document.querySelector('.admin-modal') as HTMLElement).getByRole('dialog')); // a press inside the card must not close it
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    fireEvent.mouseDown(document.querySelector('.admin-modal')!); // a press on the backdrop closes it
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.activeElement).toBe(within(rowFor('Lily Bouquet')).getByRole('button', { name: 'Lily Bouquet' }));
+  });
+  it('"Edit" inside the details opens the edit form for that post', () => {
+    full(); mount();
+    fireEvent.click(rowFor('Lily Bouquet'));
+    fireEvent.click(within(detail()).getByRole('button', { name: /Edit/ }));
+    expect(screen.getByRole('dialog', { name: /Edit post/ })).toBeTruthy();
+    expect((screen.getByLabelText(/^Title/) as HTMLInputElement).value).toBe('Lily Bouquet');
+  });
+  it('stays in sync: after a status change the open details show the new status', async () => {
+    full(); mount();
+    fireEvent.click(rowFor('Lily Bouquet'));
+    expect(detail().textContent).toContain('Published');
+  });
+  it('sellers see their own details too, without a Delete button', () => {
+    full(); mount('seller');
+    fireEvent.click(rowFor('Lily Bouquet'));
+    expect(within(detail()).queryByRole('button', { name: /Delete/ })).toBeNull();
+    expect(within(detail()).getByRole('button', { name: /Edit/ })).toBeTruthy();
+  });
+  it('the dialog traps focus: Tab from the last control wraps to the first', () => {
+    full(); mount();
+    fireEvent.click(rowFor('Lily Bouquet'));
+    const items = Array.from(detail().querySelectorAll<HTMLElement>('a[href],button:not(:disabled)'));
+    items[items.length - 1].focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(document.activeElement).toBe(items[0]);
+  });
+});
