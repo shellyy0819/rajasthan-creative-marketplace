@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildPayload } from '@/components/PostForm';
 
 const form = (o: Record<string, string>) => { const f = new FormData(); for (const [k, v] of Object.entries(o)) f.set(k, v); return f; };
-const base = { name: ' Lac Bangle ', seller: 'Marwar Lac', description: 'Hand-set.', category: 'Accessories', city: 'Jodhpur', price: '19.99', stock: '3', status: 'DRAFT', imageUrl: '', artistName: '', instagram: '', youtube: '', phone: '', email: '' };
+const base = { name: ' Lac Bangle ', description: 'Hand-set.', category: 'Accessories', city: 'Jodhpur', price: '19.99', stock: '3', status: 'DRAFT', imageUrl: '', workshopId: '', pickupLocation: '' };
 
 describe('buildPayload', () => {
   it('converts rupees to exact paise and trims text', () => {
@@ -28,6 +28,18 @@ describe('buildPayload', () => {
   it('sends empty optional fields as empty strings (so PATCH clears them)', () => {
     const p = buildPayload(form(base));
     expect(p.imageUrl).toBe('');
-    expect(p.instagram).toBe('');
+    expect(p.workshopId).toBe('');
+    expect(p.pickupLocation).toBe('');
+  });
+  it('no longer sends seller or contact fields (they live in the seller profile)', () => {
+    const p = buildPayload(form({ ...base, seller: 'X', phone: '1', instagram: 'i', youtube: 'y', email: 'e', artistName: 'a' }));
+    for (const k of ['seller', 'phone', 'instagram', 'youtube', 'email', 'artistName']) expect(p).not.toHaveProperty(k);
+  });
+  it('status and sellerId are sent only when the form has those controls', () => {
+    const { status: _s, ...noStatus } = base;
+    expect(buildPayload(form(noStatus))).not.toHaveProperty('status');
+    expect(buildPayload(form(base))).not.toHaveProperty('sellerId');
+    expect(buildPayload(form({ ...base, sellerId: ' abc ' })).sellerId).toBe('abc');
+    expect(buildPayload(form({ ...base, sellerId: '' })).sellerId).toBe('');
   });
 });

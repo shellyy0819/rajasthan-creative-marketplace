@@ -1,12 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
-import { asc } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { setDb, type Database } from '../../src/db/client';
 import { toBooking, toOrder, toProduct, toWorkshop } from '../../src/db/mappers';
-import { bookings, orderItems, orders, products, workshops } from '../../src/db/schema';
+import { bookings, orderItems, orders, users, userRoles } from '../../src/db/schema';
+import { productsQuery } from '../../src/db/mappers';
+import { workshops } from '../../src/db/schema';
 import * as schema from '../../src/db/schema';
 import { seedFromJson, truncateAll, type LegacyDb } from '../../src/db/seed';
 
@@ -39,15 +41,37 @@ const byId = <T extends { id: string }>(rows: T[]) => [...rows].sort((a, b) => a
 export async function snapshot() {
   const d = await getTestDb();
   const [p, w, o, items, b] = await Promise.all([
-    d.select().from(products), d.select().from(workshops),
-    d.select().from(orders).orderBy(asc(orders.createdAt), asc(orders.id)),
+    productsQuery(d), d.select().from(workshops),
+    d.select({ o: orders, email: users.email }).from(orders).innerJoin(users, eq(users.id, orders.userId)).orderBy(asc(orders.createdAt), asc(orders.id)),
     d.select().from(orderItems).orderBy(asc(orderItems.id)),
-    d.select().from(bookings).orderBy(asc(bookings.createdAt), asc(bookings.id)),
+    d.select({ b: bookings, email: users.email }).from(bookings).innerJoin(users, eq(users.id, bookings.userId)).orderBy(asc(bookings.createdAt), asc(bookings.id)),
   ]);
   return {
     products: byId(p.map(toProduct)),
     workshops: byId(w.map(toWorkshop)),
-    orders: o.map(r => toOrder(r, items.filter(i => i.orderId === r.id))),
-    bookings: b.map(toBooking),
+    orders: o.map(r => toOrder(r.o, r.email, items.filter(i => i.orderId === r.o.id))),
+    bookings: b.map(r => toBooking(r.b, r.email)),
   };
+}
+
+/** Make `email` an admin/seller in the test database (creates the user). */
+export async function giveRole(email: string, role: 'seller' | 'admin' | 'customer') {
+  const { ensureUser, grantRole } = await import('../../src/db/people');
+  const d = await getTestDb();
+  const u = await ensureUser(d, email);
+  if (role !== 'customer') await grantRole(d, u.id, role);
+  return u;
+}
+export { userRoles };
+
+/** A seller user with a public profile; returns the user id and the matching Actor. */
+export async function makeSeller(email: string, displayName?: string) {
+  const { ensureSellerProfile, grantRole } = await import('../../src/db/people');
+  const { sellerProfiles } = await import('../../src/db/schema');
+  const d = await getTestDb();
+  const u = await giveRole(email, 'seller');
+  await ensureSellerProfile(d, u.id, displayName ?? u.name);
+  if (displayName) await d.update(sellerProfiles).set({ displayName }).where(eq(sellerProfiles.userId, u.id));
+  void grantRole;
+  return { id: u.id, actor: { email, role: 'seller' as const } };
 }

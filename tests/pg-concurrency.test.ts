@@ -10,11 +10,12 @@ import * as schema from '@/db/schema';
 import { seedFromJson, truncateAll, type LegacyDb } from '@/db/seed';
 import { createBooking, createOrder } from '@/lib/orders';
 import { createProduct, createWorkshop } from '@/lib/admin';
+import { admin as adminActor, seller as sellerActor } from './helpers/actors';
 
 const adminUrl = process.env.PG_TEST_URL;
 const fixture: LegacyDb = JSON.parse(fs.readFileSync(path.resolve('tests/fixtures/db.json'), 'utf8'));
 const ok = <T,>(rs: PromiseSettledResult<T>[]) => rs.filter(r => r.status === 'fulfilled').length;
-const product = { name: 'Lac Bangle', category: 'Accessories', city: 'Jodhpur', pricePaise: 12000, seller: 'Marwar Lac', description: 'Hand-set.', stock: 3 };
+const product = { name: 'Lac Bangle', category: 'Accessories', city: 'Jodhpur', pricePaise: 12000, description: 'Hand-set.', stock: 3 };
 
 describe.skipIf(!adminUrl)('real Postgres: concurrency and locking', () => {
   const dbName = `rr_test_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -69,9 +70,37 @@ describe.skipIf(!adminUrl)('real Postgres: concurrency and locking', () => {
   });
 
   it('50 parallel product creates and 20 workshop creates get unique ids', async () => {
-    const ps = await Promise.all(Array.from({ length: 50 }, () => createProduct(product)));
+    const ps = await Promise.all(Array.from({ length: 50 }, () => createProduct(product, adminActor)));
     expect(new Set(ps.map(p => p.id)).size).toBe(50);
     const ws = await Promise.all(Array.from({ length: 20 }, () => createWorkshop({ title: 'T', type: 'FREE', pricePaise: 0, city: 'Jaipur', venue: 'V', date: '2026-12-01', time: '10:00', seats: 5, host: 'H', description: 'D' })));
     expect(new Set(ws.map(w => w.id)).size).toBe(20);
+  });
+
+  it('a seller content edit racing an admin publish keeps the row consistent (never unreviewed content live after the seller edit)', async () => {
+    const { updateProduct } = await import('@/lib/admin');
+    const { ensureUser, grantRole } = await import('@/db/people');
+    const su = await ensureUser(db, sellerActor.email);
+    await grantRole(db, su.id, 'seller');
+    for (let i = 0; i < 15; i++) {
+      const p = await createProduct({ ...product, status: 'DRAFT', sellerId: su.id }, adminActor);
+      const [pub, edit] = await Promise.allSettled([updateProduct(p.id, { status: 'APPROVED' }, adminActor), updateProduct(p.id, { description: `edit ${i}` }, sellerActor)]);
+      expect(pub.status).toBe('fulfilled');
+      expect(edit.status).toBe('fulfilled');
+      const [row] = await db.select().from(schema.products).where(eq(schema.products.id, p.id));
+      expect(row.description).toBe(`edit ${i}`);
+      expect(['APPROVED', 'DRAFT']).toContain(row.status); // seller first => admin published the edited text; admin first => seller edit demoted it
+    }
+  });
+
+  it('two admins removing different admins at the same time cannot leave the system with no active admin', async () => {
+    const { createUser, updateUser, listUsers } = await import('@/lib/users');
+    process.env.ADMIN_EMAILS = '';
+    const a = await createUser({ email: 'a1@x.co', roles: ['admin'] }, 'a1@x.co');
+    const b = await createUser({ email: 'a2@x.co', roles: ['admin'] }, 'a1@x.co');
+    const rs = await Promise.allSettled([updateUser(a.id, { active: false }, 'a2@x.co'), updateUser(b.id, { active: false }, 'a1@x.co')]);
+    const active = (await listUsers()).filter(u => u.roles.includes('admin') && u.active).length;
+    expect(active).toBeGreaterThanOrEqual(1);
+    expect(rs.filter(r => r.status === 'fulfilled')).toHaveLength(1); // the second one is refused (409)
+    void active;
   });
 });

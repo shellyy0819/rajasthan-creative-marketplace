@@ -1,14 +1,16 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { listProductsForAdmin, getProductForAdmin, listArtists } from '@/lib/admin-posts';
+import { listProductsForAdmin, getProductForAdmin, listArtists, scopeFor } from '@/lib/admin-posts';
 import { artistKey } from '@/lib/artist';
-import { createProduct, deleteProduct, updateProduct } from '@/lib/admin';
+import { createProduct, deleteProduct } from '@/lib/admin';
 import { listProducts } from '@/lib/catalog';
-import { resetTestDb } from './helpers/testdb';
+import { saveProfile } from '@/lib/users';
+import { admin } from './helpers/actors';
+import { makeSeller, resetTestDb } from './helpers/testdb';
 
 beforeEach(async () => {
   await resetTestDb();
 });
-const base = { name: 'Lac Bangle', category: 'Accessories', city: 'Jodhpur', pricePaise: 12000, seller: 'Marwar Lac', description: 'Hand-set.', stock: 3 };
+const base = { name: 'Lac Bangle', category: 'Accessories', city: 'Jodhpur', pricePaise: 12000, description: 'Hand-set.', stock: 3 };
 
 describe('artistKey', () => {
   it('treats case and spacing variants as one artist', () => {
@@ -17,42 +19,61 @@ describe('artistKey', () => {
 });
 
 describe('listProductsForAdmin', () => {
-  it('includes drafts that the public listing hides, newest first', async () => {
-    await createProduct({ ...base, status: 'DRAFT' });
-    const admin = await listProductsForAdmin();
-    expect(admin.map(p => p.id)).toEqual(['p5', 'p4', 'p3', 'p2', 'p1']);
+  it('includes drafts that the public listing hides, newest first, with seller details', async () => {
+    const s = await makeSeller('marwar@x.co', 'Marwar Lac');
+    await createProduct({ ...base, status: 'DRAFT' }, s.actor);
+    const all = await listProductsForAdmin();
+    expect(all.map(p => p.id)).toEqual(['p5', 'p4', 'p3', 'p2', 'p1']);
+    expect(all[0]).toMatchObject({ seller: 'Marwar Lac', sellerId: s.id, sellerEmail: 'marwar@x.co', status: 'DRAFT' });
     expect((await listProducts()).map(p => p.id)).not.toContain('p5');
   });
   it('filters by artist (case/space-insensitive), status and text', async () => {
-    await createProduct({ ...base, status: 'DRAFT' });
+    const s = await makeSeller('marwar@x.co', 'Marwar Lac');
+    await createProduct({ ...base, status: 'DRAFT' }, s.actor);
     expect((await listProductsForAdmin({ artist: '  shauk AND stuff' })).map(p => p.id)).toEqual(['p1']);
     expect((await listProductsForAdmin({ status: 'DRAFT' })).map(p => p.id)).toEqual(['p5']);
     expect((await listProductsForAdmin({ q: 'BLUE' })).map(p => p.id)).toEqual(['p4']);
+    expect((await listProductsForAdmin({ q: 'marwar' })).map(p => p.id)).toEqual(['p5']); // searches the seller name too
   });
 });
 
 describe('getProductForAdmin', () => {
   it('returns a draft; 404 for a missing id', async () => {
-    const d = await createProduct({ ...base, status: 'DRAFT' });
+    const s = await makeSeller('marwar@x.co', 'Marwar Lac');
+    const d = await createProduct({ ...base, status: 'DRAFT' }, s.actor);
     expect((await getProductForAdmin(d.id)).status).toBe('DRAFT');
     await expect(getProductForAdmin('nope')).rejects.toMatchObject({ status: 404 });
   });
 });
 
 describe('listArtists', () => {
-  it('groups by seller case-insensitively with published/draft counts, sorted by name', async () => {
-    await createProduct({ ...base, seller: 'shauk and stuff', status: 'DRAFT' });
+  it('groups by the seller public name case-insensitively with published/draft counts, sorted by name', async () => {
+    const a = await makeSeller('a@x.co', 'shauk and stuff'); // same public name as the seeded seller, different user
+    await createProduct({ ...base, status: 'DRAFT' }, a.actor);
     const artists = await listArtists();
-    const shauk = artists.find(a => a.key === 'shauk and stuff')!;
-    expect(shauk).toMatchObject({ name: 'Shauk and Stuff', total: 2, published: 1, drafts: 1 });
-    expect(artists.map(a => a.name)).toEqual([...artists.map(a => a.name)].sort((a, b) => a.localeCompare(b)));
+    const shauk = artists.find(x => x.key === 'shauk and stuff')!;
+    expect(shauk).toMatchObject({ total: 2, published: 1, drafts: 1 });
+    expect(artists.map(x => x.name)).toEqual([...artists.map(x => x.name)].sort((x, y) => x.localeCompare(y)));
   });
-  it('an artist disappears when their last post is deleted; renaming moves a post', async () => {
+  it('an artist disappears when their last post is deleted; renaming the seller profile moves their posts', async () => {
     await deleteProduct('p2');
     expect((await listArtists()).some(a => a.name === 'Lake City Knots')).toBe(false);
-    await updateProduct('p1', { seller: 'New Studio' });
+    const { users } = await import('@/db/schema');
+    const { getTestDb } = await import('./helpers/testdb');
+    const { eq } = await import('drizzle-orm');
+    const [u] = await (await getTestDb()).select().from(users).where(eq(users.email, 'shauk-and-stuff@seed.rangrajasthan.invalid'));
+    await saveProfile(u.id, { displayName: 'New Studio' });
     const names = (await listArtists()).map(a => a.name);
     expect(names).toContain('New Studio');
     expect(names).not.toContain('Shauk and Stuff');
+    expect((await getProductForAdmin('p1')).seller).toBe('New Studio');
+  });
+  it('a seller scope only counts their own posts', async () => {
+    const s = await makeSeller('marwar@x.co', 'Marwar Lac');
+    await createProduct(base, s.actor);
+    await createProduct(base, admin);
+    const mine = await listArtists(scopeFor({ email: 'marwar@x.co', role: 'seller' }));
+    expect(mine).toHaveLength(1);
+    expect(mine[0]).toMatchObject({ name: 'Marwar Lac', total: 1 });
   });
 });

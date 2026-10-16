@@ -31,6 +31,16 @@ describe('robots', () => {
   });
 });
 
+describe('AuthButton seller link', () => {
+  it('shows My products (not Admin) for sellers and labels the sign-out button', () => {
+    session.value = { data: { user: { email: 's@x.co', role: 'seller' } }, status: 'authenticated' };
+    render(<AuthButton />);
+    expect(screen.getByRole('link', { name: 'My products' }).getAttribute('href')).toBe('/admin/posts');
+    expect(screen.queryByRole('link', { name: 'Admin' })).toBeNull();
+    expect(screen.getByRole('button', { name: /Sign out \(seller\)/ })).toBeTruthy();
+  });
+});
+
 describe('AuthButton admin link', () => {
   it('shows an Admin link only for admins', () => {
     session.value = { data: { user: { email: 'a@x.co', role: 'admin' } }, status: 'authenticated' };

@@ -3,7 +3,7 @@ import {
   listProducts, listWorkshops, getProductBySlug, getWorkshopBySlug,
   productSlug, workshopSlug, cityFromSlug, citySlug,
 } from '@/lib/catalog';
-import { resetTestDb, getTestDb } from './helpers/testdb';
+import { resetTestDb, getTestDb, giveRole } from './helpers/testdb';
 import { products as productsTable } from '@/db/schema';
 
 beforeEach(async () => {
@@ -47,13 +47,15 @@ describe('catalog', () => {
 });
 
 describe('search text is a literal, injection-safe substring match', () => {
-  const extra = { category: 'Pottery', city: 'Jaipur', pricePaise: 100, seller: 'Odd Seller', stock: 1, status: 'APPROVED' };
+  const extra = () => ({ category: 'Pottery', city: 'Jaipur', pricePaise: 100, sellerId: sid, stock: 1, status: 'APPROVED' });
+  let sid: string;
   beforeEach(async () => {
     const db = await getTestDb();
+    sid = (await giveRole('odd@seller.co', 'seller')).id;
     await db.insert(productsTable).values([
-      { id: 'p91', name: 'Rock 100% Cotton', description: 'soft', ...extra },
-      { id: 'p92', name: 'Under_score Dish', description: 'plain', ...extra },
-      { id: 'p93', name: 'Back\\slash Bowl', description: 'plain', ...extra },
+      { id: 'p91', name: 'Rock 100% Cotton', description: 'soft', ...extra() },
+      { id: 'p92', name: 'Under_score Dish', description: 'plain', ...extra() },
+      { id: 'p93', name: 'Back\\slash Bowl', description: 'plain', ...extra() },
     ]);
   });
   it('treats % _ and \\ literally', async () => {
@@ -73,7 +75,7 @@ describe('search text is a literal, injection-safe substring match', () => {
   it('matching is still case-insensitive and ordered by id (p2 before p10)', async () => {
     expect((await listProducts({ q: 'FLOWER' })).map(p => p.id)).toEqual(['p1', 'p3']);
     const db = await getTestDb();
-    await db.insert(productsTable).values({ id: 'p10', name: 'Ten', description: 'd', ...extra });
+    await db.insert(productsTable).values({ id: 'p10', name: 'Ten', description: 'd', ...extra() });
     const ids = (await listProducts()).map(p => p.id);
     expect(ids.indexOf('p2')).toBeLessThan(ids.indexOf('p10'));
   });

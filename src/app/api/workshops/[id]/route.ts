@@ -15,7 +15,7 @@ export const PATCH = (req: Request, { params }: Ctx) => handle(async () => {
 
 export const DELETE = (_req: Request, { params }: Ctx) => handle(async () => {
   requireAdmin(await auth());
-  await deleteWorkshop((await params).id);
+  const { unlinkedProducts } = await deleteWorkshop((await params).id);
   revalidatePath('/', 'layout');
-  return json({ ok: true });
+  return json({ ok: true, unlinkedProducts });
 });

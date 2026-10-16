@@ -1,13 +1,14 @@
 "use client";
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import type { Product } from "@/lib/types";
+import type { AdminProduct as Product, SellerProfile } from "@/lib/types";
 import type { AdminArtist } from "@/lib/admin-posts";
 import { artistKey } from "@/lib/artist";
 import { productSlug } from "@/lib/catalog-shared";
 import { money } from "@/lib/money";
 import { ProductImage } from "./ProductImage";
-import { PostForm } from "./PostForm";
+import { PostForm, type SellerOption, type WorkshopOption } from "./PostForm";
+import { ProfileDialog } from "./ProfileDialog";
 import { Toast, type ToastState } from "./Toast";
 
 const SYMBOLS = ["🌷", "⛵", "🌼", "🏺", "🧶", "🌸"];
@@ -22,17 +23,29 @@ const JSON_HEADERS = { "content-type": "application/json" };
 
 function explain(status: number, body: { error?: string } | null): string {
   if (status === 401) return "Your session expired. Please sign in again.";
-  if (status === 403) return "You do not have permission to do that.";
+  // 403s carry a specific reason (e.g. "Only an admin can publish a product."): show it.
+  if (status === 403) return body?.error || "You do not have permission to do that.";
   return body?.error || "Something went wrong. Please try again.";
 }
 
 export function PostsAdmin({
   initialProducts,
   initialArtists,
+  role,
+  workshops = [],
+  sellers = [],
+  profile,
 }: {
   initialProducts: Product[];
   initialArtists: AdminArtist[];
+  role: "admin" | "seller";
+  workshops?: WorkshopOption[];
+  sellers?: SellerOption[];
+  profile?: SellerProfile;
 }) {
+  const seller = role === "seller";
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [myProfile, setMyProfile] = useState(profile);
   const [products, setProducts] = useState(initialProducts);
   const [artists, setArtists] = useState(initialArtists);
   const [artist, setArtist] = useState("");
@@ -147,10 +160,11 @@ export function PostsAdmin({
   return (
     <section className="admin-posts">
       <div className="page-head">
-        <h1>Artists’ posts</h1>
+        <h1>{seller ? "My products" : "Artists’ posts"}</h1>
         <p>
-          Create, edit and remove each artist’s listings. Published posts appear
-          on the site; drafts and archived posts stay here.
+          {seller
+            ? "Create and edit your own listings. An admin reviews and publishes them; archive anything you no longer sell."
+            : "Create, edit and remove each artist’s listings. Published posts appear on the site; drafts and archived posts stay here."}
         </p>
       </div>
       <Toast toast={toast} onClose={closeToast} />
@@ -211,6 +225,11 @@ export function PostsAdmin({
             >
               New post
             </button>
+            {myProfile && (
+              <button type="button" className="button" onClick={() => setEditingProfile(true)}>
+                My profile
+              </button>
+            )}
           </div>
 
           {products.length === 0 ? (
@@ -230,7 +249,7 @@ export function PostsAdmin({
                 <div className="admin-row-main">
                   <h3>{p.name}</h3>
                   <p>
-                    {p.seller} · {p.category} · {p.city} · {money(p.pricePaise)}{" "}
+                    {p.seller}{!seller && p.sellerEmail ? ` (${p.sellerEmail})` : ""} · {p.category} · {p.city} · {money(p.pricePaise)}{" "}
                     · {p.stock} in stock
                   </p>
                   <p className="admin-status-line">
@@ -286,7 +305,7 @@ export function PostsAdmin({
                       onChange={(e) => void changeStatus(p, e.target.value)}
                     >
                       {POST_STATUSES.map((status) => (
-                        <option value={status.value} key={status.value}>
+                        <option value={status.value} key={status.value} disabled={seller && status.value === "APPROVED"}>
                           {status.label}
                         </option>
                       ))}
@@ -302,14 +321,16 @@ export function PostsAdmin({
                     >
                       Edit
                     </button>
+                    {!seller && (
                     <button
-                      type="button"
-                      className="button danger-outline"
-                      aria-label={`Delete ${p.name}`}
-                      onClick={() => setConfirming(p)}
-                    >
-                      Delete
-                    </button>
+                        type="button"
+                        className="button danger-outline"
+                        aria-label={`Delete ${p.name}`}
+                        onClick={() => setConfirming(p)}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 )}
               </article>
@@ -322,9 +343,25 @@ export function PostsAdmin({
         <PostForm
           key={editing === "new" ? "new" : editing.id}
           initial={editing === "new" ? undefined : editing}
-          artists={artists}
+          role={role}
+          workshops={workshops}
+          sellers={sellers}
           onSubmit={save}
           onCancel={() => setEditing(null)}
+        />
+      )}
+      {editingProfile && myProfile && (
+        <ProfileDialog
+          title="My profile"
+          initial={myProfile}
+          url="/api/profile"
+          onSaved={(p) => {
+            setMyProfile(p);
+            setEditingProfile(false);
+            notify("success", "Profile saved.");
+            void refresh();
+          }}
+          onCancel={() => setEditingProfile(false)}
         />
       )}
     </section>

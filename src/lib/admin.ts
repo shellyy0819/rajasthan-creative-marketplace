@@ -1,95 +1,129 @@
-import { eq } from 'drizzle-orm';
+import { and, count, eq, inArray } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { allocateId } from '../db/ids';
-import { toProduct, toProductRow, toWorkshop, toWorkshopRow } from '../db/mappers';
-import { products as productsT, workshops as workshopsT } from '../db/schema';
+import { productsQuery, toAdminProduct, toProductRow, toWorkshop, toWorkshopRow, type ProductInput } from '../db/mappers';
+import { ROLE_ID, ensureUser } from '../db/people';
+import { products as productsT, userRoles, users, workshops as workshopsT } from '../db/schema';
+import type { Tx } from '../db/client';
+import { CATEGORIES, CITIES } from './catalog-shared';
+import type { Actor } from './authz';
 import { ApiError } from './errors';
-import { normalizePhone, PHONE_HINT } from './phone';
-import { CATEGORIES, CITIES } from './catalog';
-import type { Product, Workshop } from './types';
+import { bad, int, obj, oneOf, optionalImageUrl, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
+import type { AdminProduct, Workshop } from './types';
 
-type Raw = Record<string, unknown>;
-const bad = (msg: string) => new ApiError(400, msg);
+const PRODUCT_KEYS = ['name', 'category', 'city', 'pricePaise', 'description', 'stock', 'status', 'imageUrl', 'workshopId', 'pickupLocation'] as const;
+const WORKSHOP_KEYS = ['title', 'type', 'pricePaise', 'city', 'venue', 'date', 'time', 'seats', 'host', 'hostId', 'description', 'status'] as const;
+const PRODUCT_STATUSES = ['APPROVED', 'DRAFT', 'ARCHIVED'] as const;
+const WORKSHOP_STATUSES = ['APPROVED', 'DRAFT', 'ARCHIVED'] as const;
+const PUBLISH_DENIED = () => new ApiError(403, 'Only an admin can publish a product.');
 
-function obj(input: unknown): Raw {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) throw bad('Body must be a JSON object.');
-  return input as Raw;
-}
-function text(v: unknown, field: string, max: number): string {
-  if (typeof v !== 'string' || !v.trim() || v.trim().length > max) throw bad(`${field} must be a non-empty string up to ${max} characters.`);
-  return v.trim();
-}
-function int(v: unknown, field: string, min: number, max: number): number {
-  if (typeof v !== 'number' || !Number.isInteger(v) || v < min || v > max) throw bad(`${field} must be an integer between ${min} and ${max}.`);
+function optionalWorkshopId(v: unknown): string | undefined {
+  if (v === undefined || v === null || v === '') return undefined;
+  if (typeof v !== 'string' || !/^w\d+$/.test(v)) throw bad('workshopId must look like w1.');
   return v;
 }
-function optionalText(v: unknown, field: string, max: number): string | undefined {
-  if (v === undefined || v === null || v === '') return undefined;
-  if (typeof v !== 'string' || v.trim().length > max) throw bad(`${field} must be text up to ${max} characters.`);
-  return v.trim() || undefined;
-}
-function optionalPhone(v: unknown): string | undefined {
-  const t = optionalText(v, 'phone', 40);
-  if (t === undefined) return undefined;
-  const n = normalizePhone(t);
-  if (!n) throw bad(`phone is invalid. ${PHONE_HINT}`);
-  return n;
-}
-function oneOf<T extends string>(v: unknown, field: string, allowed: readonly T[]): T {
-  if (typeof v !== 'string' || !(allowed as readonly string[]).includes(v)) throw bad(`${field} must be one of: ${allowed.join(', ')}.`);
-  return v as T;
-}
-// Ids are never reused: a persisted counter survives deletes, so a stale form/URL can never hit a different, newer record.
-const PRODUCT_KEYS = ['name', 'category', 'city', 'pricePaise', 'seller', 'description', 'stock', 'status', 'artistName', 'instagram', 'youtube', 'phone', 'email', 'imageUrl'] as const;
-const WORKSHOP_KEYS = ['title', 'type', 'pricePaise', 'city', 'venue', 'date', 'time', 'seats', 'host', 'description', 'status'] as const;
-const PRODUCT_STATUSES = ['APPROVED', 'DRAFT', 'ARCHIVED'] as const;
-const WORKSHOP_STATUSES = ['APPROVED', 'DRAFT'] as const;
 
-function pick(input: Raw, keys: readonly string[]): Raw {
-  return Object.fromEntries(keys.filter(k => k in input).map(k => [k, input[k]]));
-}
-
-function optionalImageUrl(v: unknown): string | undefined {
-  if (v === undefined || v === null || v === '') return undefined;
-  const msg = 'imageUrl must be an https URL up to 500 characters.';
-  if (typeof v !== 'string' || v.trim().length > 500) throw bad(msg);
-  let u: URL;
-  try { u = new URL(v.trim()); } catch { throw bad(msg); }
-  if (u.protocol !== 'https:' || u.username || u.password) throw bad(msg);
-  return u.toString();
-}
-
-function validateProduct(v: Raw): Omit<Product, 'id'> {
-  const email = optionalText(v.email, 'email', 200);
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw bad('email must be a valid email address.');
+function validateProduct(v: Raw): ProductInput {
   return {
     name: text(v.name, 'name', 200),
     category: oneOf(v.category, 'category', CATEGORIES),
     city: oneOf(v.city, 'city', CITIES),
     pricePaise: int(v.pricePaise, 'pricePaise', 0, 10_000_000),
-    seller: text(v.seller, 'seller', 200),
     description: text(v.description, 'description', 2000),
     stock: int(v.stock, 'stock', 0, 100_000),
     status: oneOf(v.status ?? 'APPROVED', 'status', PRODUCT_STATUSES),
-    artistName: optionalText(v.artistName, 'artistName', 200),
-    instagram: optionalText(v.instagram, 'instagram', 200),
-    youtube: optionalText(v.youtube, 'youtube', 200),
-    phone: optionalPhone(v.phone),
-    email,
     imageUrl: optionalImageUrl(v.imageUrl),
+    workshopId: optionalWorkshopId(v.workshopId),
+    pickupLocation: optionalText(v.pickupLocation, 'pickupLocation', 200),
   };
 }
 
-function validDate(d: unknown): string {
-  const ok = typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) && (() => {
-    const t = new Date(`${d}T00:00:00Z`);
-    return !Number.isNaN(t.getTime()) && t.toISOString().slice(0, 10) === d;
-  })();
-  if (!ok) throw bad('date must be a real date in YYYY-MM-DD format.');
-  return d as string;
+const inputOf = (p: typeof productsT.$inferSelect): ProductInput => ({
+  name: p.name, category: p.category, city: p.city, pricePaise: p.pricePaise, description: p.description,
+  stock: p.stock, status: p.status, imageUrl: p.imageUrl ?? undefined, workshopId: p.workshopId ?? undefined,
+  pickupLocation: p.pickupLocation ?? undefined,
+});
+const contentOf = (p: ProductInput) => { const { status: _s, ...rest } = toProductRow(p); return JSON.stringify(rest); };
+
+async function requireWorkshop(tx: Tx, id: string | undefined) {
+  if (!id) return;
+  const [w] = await tx.select({ id: workshopsT.id }).from(workshopsT).where(eq(workshopsT.id, id));
+  if (!w) throw bad('workshopId does not match a workshop.');
 }
 
-function validateWorkshop(v: Raw): Omit<Workshop, 'id' | 'booked'> {
+/** The user must exist, be active, and hold the seller or admin role to own products. */
+async function requireSellerUser(tx: Tx, id: string) {
+  const [u] = await tx.select({ id: users.id, active: users.active }).from(users).where(eq(users.id, id));
+  const roleRows = u ? await tx.select({ r: userRoles.roleId }).from(userRoles).where(and(eq(userRoles.userId, id), inArray(userRoles.roleId, [ROLE_ID.seller, ROLE_ID.admin]))) : [];
+  if (!u || !u.active || !roleRows.length) throw bad('sellerId must be an active user with the seller role.');
+}
+
+async function loadAdminProduct(tx: Tx, id: string): Promise<AdminProduct> {
+  const [row] = await productsQuery(tx).where(eq(productsT.id, id));
+  return toAdminProduct(row);
+}
+
+export async function createProduct(input: unknown, actor: Actor): Promise<AdminProduct> {
+  const raw = pick(obj(input), [...PRODUCT_KEYS, 'sellerId']);
+  const assigned = optionalUuid(raw.sellerId, 'sellerId');
+  delete raw.sellerId;
+  const seller = actor.role === 'seller';
+  if (seller && raw.status === undefined) raw.status = 'DRAFT';
+  const data = validateProduct(raw);
+  if (seller && data.status === 'APPROVED') throw PUBLISH_DENIED();
+  return getDb().transaction(async tx => {
+    const me = await ensureUser(tx, actor.email);
+    let sellerId = me.id;
+    if (seller) {
+      if (assigned && assigned !== me.id) throw new ApiError(403, 'Only an admin can assign a seller.');
+    } else if (assigned) {
+      await requireSellerUser(tx, assigned);
+      sellerId = assigned;
+    }
+    await requireWorkshop(tx, data.workshopId);
+    const id = await allocateId(tx, 'p');
+    const published = data.status === 'APPROVED' ? { publishedBy: me.id, publishedAt: new Date() } : {};
+    await tx.insert(productsT).values({ id, sellerId, ...toProductRow(data), ...published });
+    return loadAdminProduct(tx, id);
+  });
+}
+
+export async function updateProduct(id: string, input: unknown, actor: Actor): Promise<AdminProduct> {
+  const raw = pick(obj(input), [...PRODUCT_KEYS, 'sellerId']);
+  const assigned = optionalUuid(raw.sellerId, 'sellerId');
+  delete raw.sellerId;
+  const seller = actor.role === 'seller';
+  return getDb().transaction(async tx => {
+    const me = await ensureUser(tx, actor.email);
+    const [row] = await tx.select().from(productsT).where(eq(productsT.id, id)).for('update');
+    // A seller must not learn that someone else's product exists.
+    if (!row || (seller && row.sellerId !== me.id)) throw new ApiError(404, 'Product not found.');
+    if (seller && assigned && assigned !== me.id) throw new ApiError(403, 'Only an admin can assign a seller.');
+    const current = inputOf(row);
+    let next = validateProduct({ ...current, ...raw });
+    if (seller) {
+      if (row.status !== 'APPROVED' && next.status === 'APPROVED') throw PUBLISH_DENIED();
+      // A live listing whose content changed goes back to review.
+      if (row.status === 'APPROVED' && next.status === 'APPROVED' && contentOf(next) !== contentOf(current)) next = { ...next, status: 'DRAFT' };
+    }
+    let sellerId = row.sellerId;
+    if (!seller && assigned && assigned !== row.sellerId) { await requireSellerUser(tx, assigned); sellerId = assigned; }
+    await requireWorkshop(tx, next.workshopId);
+    const publishing = next.status === 'APPROVED' && row.status !== 'APPROVED';
+    await tx.update(productsT).set({
+      ...toProductRow(next), sellerId, updatedAt: new Date(),
+      ...(publishing ? { publishedBy: me.id, publishedAt: new Date() } : {}),
+    }).where(eq(productsT.id, id));
+    return loadAdminProduct(tx, id);
+  });
+}
+
+export async function deleteProduct(id: string): Promise<void> {
+  const rows = await getDb().delete(productsT).where(eq(productsT.id, id)).returning({ id: productsT.id });
+  if (!rows.length) throw new ApiError(404, 'Product not found.');
+}
+
+function validateWorkshop(v: Raw): Omit<Workshop, 'id' | 'booked' | 'hostId'> {
   const type = oneOf(v.type, 'type', ['FREE', 'PAID'] as const);
   const pricePaise = type === 'FREE' ? 0 : int(v.pricePaise, 'pricePaise', 1, 10_000_000);
   if (typeof v.time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(v.time)) throw bad('time must be HH:MM (24-hour).');
@@ -107,53 +141,46 @@ function validateWorkshop(v: Raw): Omit<Workshop, 'id' | 'booked'> {
   };
 }
 
-export async function createProduct(input: unknown): Promise<Product> {
-  const data = validateProduct(pick(obj(input), PRODUCT_KEYS));
-  return getDb().transaction(async tx => {
-    const id = await allocateId(tx, 'p');
-    const [row] = await tx.insert(productsT).values({ id, ...toProductRow(data) }).returning();
-    return toProduct(row);
-  });
-}
-
-export async function updateProduct(id: string, input: unknown): Promise<Product> {
-  const patch = pick(obj(input), PRODUCT_KEYS);
-  return getDb().transaction(async tx => {
-    const [row] = await tx.select().from(productsT).where(eq(productsT.id, id)).for('update');
-    if (!row) throw new ApiError(404, 'Product not found.');
-    const next = validateProduct({ ...toProduct(row), ...patch });
-    const [saved] = await tx.update(productsT).set(toProductRow(next)).where(eq(productsT.id, id)).returning();
-    return toProduct(saved);
-  });
-}
-
-export async function deleteProduct(id: string): Promise<void> {
-  const rows = await getDb().delete(productsT).where(eq(productsT.id, id)).returning({ id: productsT.id });
-  if (!rows.length) throw new ApiError(404, 'Product not found.');
+async function requireHost(tx: Tx, id: string | undefined) {
+  if (!id) return;
+  const [u] = await tx.select({ id: users.id }).from(users).where(eq(users.id, id));
+  if (!u) throw bad('hostId does not match a user.');
 }
 
 export async function createWorkshop(input: unknown): Promise<Workshop> {
-  const data = validateWorkshop({ ...pick(obj(input), WORKSHOP_KEYS), status: undefined });
+  const raw: Raw = { ...pick(obj(input), WORKSHOP_KEYS), status: undefined };
+  const hostId = optionalUuid(raw.hostId, 'hostId');
+  const data = validateWorkshop(raw);
   return getDb().transaction(async tx => {
+    await requireHost(tx, hostId);
     const id = await allocateId(tx, 'w');
-    const [row] = await tx.insert(workshopsT).values({ id, ...toWorkshopRow(data), booked: 0 }).returning();
+    const [row] = await tx.insert(workshopsT).values({ id, ...toWorkshopRow(data), hostId: hostId ?? null, booked: 0 }).returning();
     return toWorkshop(row);
   });
 }
 
 export async function updateWorkshop(id: string, input: unknown): Promise<Workshop> {
   const patch = pick(obj(input), WORKSHOP_KEYS);
+  const hostId = optionalUuid(patch.hostId, 'hostId');
   return getDb().transaction(async tx => {
     const [row] = await tx.select().from(workshopsT).where(eq(workshopsT.id, id)).for('update');
     if (!row) throw new ApiError(404, 'Workshop not found.');
     const next = validateWorkshop({ ...toWorkshop(row), ...patch });
     if (next.seats < row.booked) throw bad(`seats cannot be less than the ${row.booked} already booked.`);
-    const [saved] = await tx.update(workshopsT).set(toWorkshopRow(next)).where(eq(workshopsT.id, id)).returning();
+    if (hostId) await requireHost(tx, hostId);
+    const [saved] = await tx.update(workshopsT).set({
+      ...toWorkshopRow(next), updatedAt: new Date(), ...(hostId ? { hostId } : patch.hostId === null || patch.hostId === '' ? { hostId: null } : {}),
+    }).where(eq(workshopsT.id, id)).returning();
     return toWorkshop(saved);
   });
 }
 
-export async function deleteWorkshop(id: string): Promise<void> {
-  const rows = await getDb().delete(workshopsT).where(eq(workshopsT.id, id)).returning({ id: workshopsT.id });
-  if (!rows.length) throw new ApiError(404, 'Workshop not found.');
+/** Deleting a workshop keeps its products (they just lose the link). Returns how many were unlinked. */
+export async function deleteWorkshop(id: string): Promise<{ unlinkedProducts: number }> {
+  return getDb().transaction(async tx => {
+    const [{ n }] = await tx.select({ n: count() }).from(productsT).where(eq(productsT.workshopId, id));
+    const rows = await tx.delete(workshopsT).where(eq(workshopsT.id, id)).returning({ id: workshopsT.id });
+    if (!rows.length) throw new ApiError(404, 'Workshop not found.');
+    return { unlinkedProducts: n };
+  });
 }

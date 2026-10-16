@@ -1,6 +1,7 @@
 import { getServerSession, type NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
-import { roleFor, type AppSession } from '@/lib/authz';
+import { asRole, type AppSession } from '@/lib/authz';
+import { resolveAccess, upsertUserOnSignIn } from '@/lib/roles';
 
 export const authOptions: NextAuthOptions = {
   // Getter: read at request time. Never let next-auth derive a dev secret (it is guessable).
@@ -13,16 +14,29 @@ export const authOptions: NextAuthOptions = {
   ],
   session: { strategy: 'jwt', maxAge: 60 * 60 * 24 * 7 },
   callbacks: {
-    // Only verified Google emails may sign in.
+    // Only verified Google emails may sign in, and the user row is created/refreshed here. Deactivated users are refused.
     async signIn({ account, profile }) {
-      return account?.provider === 'google' && (profile as { email_verified?: boolean } | undefined)?.email_verified === true;
+      const p = profile as { email?: string; email_verified?: boolean; name?: string; sub?: string } | undefined;
+      if (account?.provider !== 'google' || p?.email_verified !== true || !p.email) return false;
+      try {
+        return (await upsertUserOnSignIn({ email: p.email, name: p.name, sub: p.sub ?? account.providerAccountId })).active;
+      } catch (err) {
+        console.error('sign-in user upsert failed', err);
+        return false;
+      }
     },
+    // Re-resolved on every session read, so role changes and deactivation apply on the next request.
     async jwt({ token }) {
-      token.role = token.email ? roleFor(token.email) : 'customer';
+      const access = token.email ? await resolveAccess(token.email) : { role: 'customer' as const, active: true };
+      token.role = access.role;
+      token.active = access.active;
       return token;
     },
     async session({ session, token }) {
-      if (session.user) session.user.role = token.role === 'admin' ? 'admin' : 'customer';
+      if (session.user) {
+        session.user.role = asRole(token.role);
+        session.user.active = token.active !== false;
+      }
       return session;
     },
   },

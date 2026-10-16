@@ -9,8 +9,9 @@ export function AuthButton() {
   return (
     <>
       {session.user.role === 'admin' && <Link href="/admin/posts">Admin</Link>}
+      {session.user.role === 'seller' && <Link href="/admin/posts">My products</Link>}
       <button className="cart-btn" onClick={() => signOut()} title={session.user.email ?? undefined}>
-        Sign out{session.user.role === 'admin' ? ' (admin)' : ''}
+        Sign out{session.user.role === 'admin' ? ' (admin)' : session.user.role === 'seller' ? ' (seller)' : ''}
       </button>
     </>
   );

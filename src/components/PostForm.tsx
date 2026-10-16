@@ -1,8 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
-import type { Product } from '@/lib/types';
-import type { AdminArtist } from '@/lib/admin-posts';
+import type { AdminProduct } from '@/lib/types';
 import { CATEGORIES, CITIES } from '@/lib/catalog-shared';
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
@@ -14,25 +12,39 @@ const num = (f: FormData, k: string, scale = 1) => {
 };
 
 export function buildPayload(f: FormData): Record<string, unknown> {
-  return {
-    name: text(f, 'name'), seller: text(f, 'seller'), description: text(f, 'description'),
+  const payload: Record<string, unknown> = {
+    name: text(f, 'name'), description: text(f, 'description'),
     category: text(f, 'category'), city: text(f, 'city'),
     pricePaise: num(f, 'price', 100),
     stock: num(f, 'stock'),
-    status: text(f, 'status'),
-    imageUrl: text(f, 'imageUrl'), artistName: text(f, 'artistName'), instagram: text(f, 'instagram'),
-    youtube: text(f, 'youtube'), phone: text(f, 'phone'), email: text(f, 'email'),
+    imageUrl: text(f, 'imageUrl'), workshopId: text(f, 'workshopId'), pickupLocation: text(f, 'pickupLocation'),
   };
+  // Only sent when the form shows the control: a seller editing a published post must not send a status,
+  // and only admins get a seller picker.
+  if (f.has('status')) payload.status = text(f, 'status');
+  if (f.has('sellerId')) payload.sellerId = text(f, 'sellerId');
+  return payload;
 }
 
+export type WorkshopOption = { id: string; title: string };
+export type SellerOption = { id: string; name: string };
+
 type Props = {
-  initial?: Product;
-  artists: AdminArtist[];
+  initial?: AdminProduct;
+  role: 'admin' | 'seller';
+  workshops: WorkshopOption[];
+  sellers: SellerOption[];
   onSubmit: (payload: Record<string, unknown>) => Promise<string | null>;
   onCancel: () => void;
 };
 
-export function PostForm({ initial, artists, onSubmit, onCancel }: Props) {
+export function PostForm({ initial, role, workshops, sellers, onSubmit, onCancel }: Props) {
+  const seller = role === 'seller';
+  const lockedStatus = seller && initial?.status === 'APPROVED'; // a seller cannot choose a status for a published post
+  const statusOptions = seller
+    ? [{ value: 'DRAFT', label: 'Draft (admin publishes after review)' }, { value: 'ARCHIVED', label: 'Archived' }]
+    : [{ value: 'APPROVED', label: 'Published' }, { value: 'DRAFT', label: 'Draft (admin only)' }, { value: 'ARCHIVED', label: 'Archived' }];
+  const statusDefault = initial?.status && statusOptions.some(o => o.value === initial.status) ? initial.status : seller ? 'DRAFT' : 'APPROVED';
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const cardRef = useRef<HTMLDivElement>(null);
@@ -65,7 +77,7 @@ export function PostForm({ initial, artists, onSubmit, onCancel }: Props) {
     document.addEventListener('keydown', onTab);
     return () => document.removeEventListener('keydown', onTab);
   }, []);
-  const v = (k: keyof Product) => (initial?.[k] as string | number | undefined) ?? '';
+  const v = (k: keyof AdminProduct) => (initial?.[k] as string | number | undefined) ?? '';
 
   return (
     <div className="admin-modal">
@@ -84,10 +96,6 @@ export function PostForm({ initial, artists, onSubmit, onCancel }: Props) {
           <p className="form-note"><b>*</b> Required</p>
           {error && <p role="alert" className="admin-error">{error}</p>}
           <label><span className="lbl">Title</span><input name="name" required maxLength={200} defaultValue={v('name')} autoFocus /></label>
-          <label><span className="lbl">Artist (seller name)</span><input name="seller" required maxLength={200} defaultValue={v('seller')} list="artist-names" />
-            <datalist id="artist-names">{artists.map(a => <option key={a.key} value={a.name} />)}</datalist>
-            <small>Posts with the same artist name are grouped together. Changing it moves this post to another artist.</small>
-          </label>
           <label><span className="lbl">Description</span><textarea name="description" required maxLength={2000} rows={4} defaultValue={v('description')} /></label>
           <div className="admin-form-row">
             <label><span className="lbl">Category</span><select name="category" required defaultValue={v('category') || CATEGORIES[0]}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></label>
@@ -96,21 +104,34 @@ export function PostForm({ initial, artists, onSubmit, onCancel }: Props) {
           <div className="admin-form-row">
             <label><span className="lbl">Price (₹)</span><input name="price" type="number" min="0" step="0.01" required defaultValue={initial ? initial.pricePaise / 100 : ''} /></label>
             <label><span className="lbl">Stock</span><input name="stock" type="number" min="0" step="1" required defaultValue={initial ? initial.stock : ''} /></label>
-            <label><span className="lbl">Status</span><select name="status" required defaultValue={initial?.status ?? 'APPROVED'}><option value="APPROVED">Published</option><option value="DRAFT">Draft</option><option value="ARCHIVED">Archived</option></select></label>
+            {!lockedStatus && (
+              <label><span className="lbl">Status</span>
+                <select name="status" required defaultValue={statusDefault}>{statusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+              </label>
+            )}
           </div>
+          {lockedStatus && <p className="form-note">This post is published. Saving changes sends it back to Draft until an admin publishes it again.</p>}
           <label>Cover image URL (https)<input name="imageUrl" type="url" maxLength={500} placeholder="https://…" defaultValue={v('imageUrl')} /></label>
-          <fieldset>
-            <legend>Artist contact (shown on this post’s page)</legend>
-            <div className="admin-form-row">
-              <label>Display name<input name="artistName" maxLength={200} defaultValue={v('artistName')} /></label>
-              <label>Phone<input name="phone" type="tel" inputMode="tel" maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="9989898999" defaultValue={v('phone')} /></label>
-            </div>
-            <div className="admin-form-row">
-              <label>Instagram<input name="instagram" maxLength={200} defaultValue={v('instagram')} /></label>
-              <label>YouTube<input name="youtube" maxLength={200} defaultValue={v('youtube')} /></label>
-              <label>Email<input name="email" type="email" maxLength={200} defaultValue={v('email')} /></label>
-            </div>
-          </fieldset>
+          <div className="admin-form-row">
+            <label>Workshop
+              <select name="workshopId" defaultValue={initial?.workshopId ?? ''}>
+                <option value="">No workshop</option>
+                {workshops.map(w => <option key={w.id} value={w.id}>{w.title}</option>)}
+              </select>
+            </label>
+            <label>Pickup location<input name="pickupLocation" maxLength={200} placeholder="Where the product is now" defaultValue={v('pickupLocation')} /></label>
+          </div>
+          {!seller && (
+            <label>Seller
+              <select name="sellerId" defaultValue={initial?.sellerId ?? ''}>
+                {!initial && <option value="">Me (admin)</option>}
+                {initial && !sellers.some(x => x.id === initial.sellerId) && <option value={initial.sellerId}>{initial.seller}</option>}
+                {sellers.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+              </select>
+              <small>Their public name and contact come from the seller’s profile.</small>
+            </label>
+          )}
+          {seller && <p className="form-note">Your public name and contact details come from <b>My profile</b>.</p>}
           <div className="admin-actions">
             <button type="button" className="button" onClick={onCancel} disabled={saving}>Cancel</button>
             <button type="submit" className="button primary" disabled={saving}>{saving ? 'Saving…' : 'Save post'}</button>

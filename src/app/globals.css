@@ -89,3 +89,6 @@ select:disabled{cursor:not-allowed}
 .rr-toast button:hover{opacity:1}
 @keyframes rr-toast-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.rr-toast{animation:none}}
+
+.admin-tabs{display:flex;gap:10px;padding:18px 8.5% 0}.admin-tabs a{border:1px solid var(--control-border);border-radius:3px;padding:9px 13px;font:600 11px var(--font-sans),sans-serif;background:transparent}.admin-tabs a:hover{border-color:var(--green);color:var(--green)}@media(max-width:700px){.admin-tabs{padding-left:5%;padding-right:5%}}
+.badge.role{background:#dce2d5;color:var(--green)}.badge.inactive{background:#f3d9d2;color:#8a2f1a}

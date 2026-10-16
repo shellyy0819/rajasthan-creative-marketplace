@@ -9,7 +9,8 @@ import { GET as listRoute } from '@/app/api/admin/products/route';
 import { GET as oneRoute } from '@/app/api/admin/products/[id]/route';
 import { GET as publicProducts } from '@/app/api/products/route';
 import { createProduct } from '@/lib/admin';
-import { resetTestDb } from './helpers/testdb';
+import { makeSeller, resetTestDb } from './helpers/testdb';
+import { admin } from './helpers/actors';
 
 const asCustomer = () => authMock.mockResolvedValue({ user: { email: 'c@x.co', role: 'customer' } });
 const asAdmin = () => authMock.mockResolvedValue({ user: { email: 'root@x.co', role: 'admin' } });
@@ -21,7 +22,8 @@ beforeEach(async () => {
   authMock.mockReset();
   authMock.mockResolvedValue(null);
   await resetTestDb();
-  await createProduct({ name: 'Secret Draft', category: 'Accessories', city: 'Jodhpur', pricePaise: 100, seller: 'Marwar Lac', description: 'Hidden.', stock: 1, status: 'DRAFT' });
+  const marwar = await makeSeller('marwar@x.co', 'Marwar Lac');
+  await createProduct({ name: 'Secret Draft', category: 'Accessories', city: 'Jodhpur', pricePaise: 100, description: 'Hidden.', stock: 1, status: 'DRAFT' }, marwar.actor);
 });
 
 describe('admin read APIs', () => {
@@ -62,7 +64,7 @@ describe('admin read APIs', () => {
 describe('ARCHIVED in admin read APIs and the public API', () => {
   it('status=ARCHIVED filter works, artist counts include archived, public API hides archived', async () => {
     const { updateProduct } = await import('@/lib/admin');
-    await updateProduct('p1', { status: 'ARCHIVED' });
+    await updateProduct('p1', { status: 'ARCHIVED' }, admin);
     asAdmin();
     const archived = await (await listRoute(req('?status=ARCHIVED'))).json();
     expect(archived.map((p: { id: string }) => p.id)).toEqual(['p1']);

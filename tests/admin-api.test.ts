@@ -48,7 +48,7 @@ describe('admin-only write APIs', () => {
     for (const c of calls()) {
       const r = await c();
       expect(r.status).toBe(403);
-      expect(await r.json()).toEqual({ error: 'Admin access required.' });
+      expect((await r.json()).error).toMatch(/^(Seller or admin|Admin) access required\.$/);
     }
     const db = await readDb();
     expect(db.products).toHaveLength(4);
@@ -80,26 +80,26 @@ describe('admin-only write APIs', () => {
   });
 });
 
-describe('phone and ARCHIVED through the HTTP routes', () => {
-  it('POST /api/products rejects a malformed phone with 400 and stores a valid one compact', async () => {
+describe('archive and unknown keys through the HTTP routes', () => {
+  it('POST /api/products ignores contact keys that moved to the seller profile and never stores them', async () => {
     asAdmin();
-    const bad = await postProduct(req('POST', { ...product, phone: '12345' }));
-    expect(bad.status).toBe(400);
-    expect((await bad.json()).error).toMatch(/phone is invalid/);
-    const good = await postProduct(req('POST', { ...product, phone: '+91 99898 98999' }));
-    expect(good.status).toBe(201);
-    expect((await good.json()).phone).toBe('+919989898999');
-    expect((await readDb()).products).toHaveLength(5);
+    const res = await postProduct(req('POST', { ...product, phone: '12345', instagram: 'x', artistName: 'Y', seller: 'Z' }));
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body).not.toHaveProperty('artistName');
+    expect(body.seller).not.toBe('Z');
+    expect(body).not.toHaveProperty('phone');
   });
-  it('PATCH can archive and restore a product; workshops reject ARCHIVED', async () => {
+  it('PATCH can archive and restore a product; workshops can be archived too but not given an unknown status', async () => {
     asAdmin();
     const a = await patchProduct(req('PATCH', { status: 'ARCHIVED' }), ctx('p1'));
     expect(a.status).toBe(200);
     expect((await a.json()).status).toBe('ARCHIVED');
     expect((await patchProduct(req('PATCH', { status: 'APPROVED' }), ctx('p1'))).status).toBe(200);
-    const w = await patchWorkshop(req('PATCH', { status: 'ARCHIVED' }), ctx('w1'));
+    expect((await patchWorkshop(req('PATCH', { status: 'ARCHIVED' }), ctx('w1'))).status).toBe(200);
+    const w = await patchWorkshop(req('PATCH', { status: 'HACK' }), ctx('w2'));
     expect(w.status).toBe(400);
-    expect((await w.json()).error).toBe('status must be one of: APPROVED, DRAFT.');
+    expect((await w.json()).error).toBe('status must be one of: APPROVED, DRAFT, ARCHIVED.');
   });
   it('customers cannot archive', async () => {
     asCustomer();

@@ -1,5 +1,7 @@
-import type { Booking, Order, OrderItem, Product, Workshop } from '../lib/types';
-import type { bookings, orderItems, orders, products, workshops } from './schema';
+import { eq, sql } from 'drizzle-orm';
+import type { AdminProduct, Booking, Order, OrderItem, Product, Workshop } from '../lib/types';
+import type { Q } from './client';
+import { bookings, orderItems, orders, products, sellerProfiles, users, workshops } from './schema';
 
 type ProductRow = typeof products.$inferSelect;
 type WorkshopRow = typeof workshops.$inferSelect;
@@ -7,47 +9,85 @@ type OrderRow = typeof orders.$inferSelect;
 type OrderItemRow = typeof orderItems.$inferSelect;
 type BookingRow = typeof bookings.$inferSelect;
 
-// Optional fields are omitted (never null) so API JSON stays identical to the old JSON-file store.
-const opt = <K extends string>(key: K, v: string | null) => (v == null ? {} : { [key]: v }) as Partial<Record<K, string>>;
+// Optional fields are omitted (never null) so API JSON stays free of nulls.
+const opt = <K extends string>(key: K, v: string | null | undefined) => (v == null ? {} : { [key]: v }) as Partial<Record<K, string>>;
 
-export const toProduct = (r: ProductRow): Product => ({
-  id: r.id, name: r.name, category: r.category, city: r.city, pricePaise: r.pricePaise,
-  seller: r.seller, description: r.description, stock: r.stock, status: r.status,
-  ...opt('artistName', r.artistName), ...opt('instagram', r.instagram), ...opt('youtube', r.youtube),
-  ...opt('phone', r.phone), ...opt('email', r.email), ...opt('imageUrl', r.imageUrl),
+// ---------- products (joined with the seller's user + public profile) ----------
+export const sellerNameSql = sql<string>`coalesce(${sellerProfiles.displayName}, ${users.name})`;
+export const productSelect = {
+  p: products,
+  sellerName: sellerNameSql,
+  sellerEmail: users.email,
+  publicPhone: sellerProfiles.publicPhone,
+  publicEmail: sellerProfiles.publicEmail,
+  instagram: sellerProfiles.instagram,
+  youtube: sellerProfiles.youtube,
+};
+export type ProductJoinRow = {
+  p: ProductRow; sellerName: string; sellerEmail: string;
+  publicPhone: string | null; publicEmail: string | null; instagram: string | null; youtube: string | null;
+};
+/** SELECT products + seller + profile. Add .where(...) / .orderBy(...) / .for('update', { of: products }) as needed. */
+export const productsQuery = (q: Q) =>
+  q.select(productSelect).from(products)
+    .innerJoin(users, eq(users.id, products.sellerId))
+    .leftJoin(sellerProfiles, eq(sellerProfiles.userId, users.id));
+
+export const toProduct = (r: ProductJoinRow): Product => ({
+  id: r.p.id, name: r.p.name, category: r.p.category, city: r.p.city, pricePaise: r.p.pricePaise,
+  seller: r.sellerName, description: r.p.description, stock: r.p.stock, status: r.p.status,
+  ...opt('instagram', r.instagram), ...opt('youtube', r.youtube), ...opt('phone', r.publicPhone),
+  ...opt('email', r.publicEmail), ...opt('imageUrl', r.p.imageUrl), ...opt('workshopId', r.p.workshopId),
 });
 
+export const toAdminProduct = (r: ProductJoinRow): AdminProduct => ({
+  ...toProduct(r), sellerId: r.p.sellerId, sellerEmail: r.sellerEmail,
+  ...opt('pickupLocation', r.p.pickupLocation), ...opt('publishedBy', r.p.publishedBy),
+  ...opt('publishedAt', r.p.publishedAt?.toISOString()),
+});
+
+export type ProductInput = Omit<Product, 'id' | 'seller' | 'instagram' | 'youtube' | 'phone' | 'email'> & { pickupLocation?: string };
 /** undefined → null so that UPDATE really clears a field (Drizzle ignores undefined keys). */
-export const toProductRow = (p: Omit<Product, 'id'>) => ({
-  name: p.name, category: p.category, city: p.city, pricePaise: p.pricePaise, seller: p.seller,
-  description: p.description, stock: p.stock, status: p.status,
-  artistName: p.artistName ?? null, instagram: p.instagram ?? null, youtube: p.youtube ?? null,
-  phone: p.phone ?? null, email: p.email ?? null, imageUrl: p.imageUrl ?? null,
+export const toProductRow = (p: ProductInput) => ({
+  name: p.name, category: p.category, city: p.city, pricePaise: p.pricePaise, description: p.description,
+  stock: p.stock, status: p.status, imageUrl: p.imageUrl ?? null, workshopId: p.workshopId ?? null,
+  pickupLocation: p.pickupLocation ?? null,
 });
+
+// ---------- workshops (starts_at <-> the API's date + time strings, India time) ----------
+const IST_PARTS = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+});
+export function istParts(d: Date): { date: string; time: string } {
+  const p = Object.fromEntries(IST_PARTS.formatToParts(d).map(x => [x.type, x.value]));
+  return { date: `${p.year}-${p.month}-${p.day}`, time: `${p.hour}:${p.minute}` };
+}
+export const istToDate = (date: string, time: string) => new Date(`${date}T${time}:00+05:30`);
 
 export const toWorkshop = (r: WorkshopRow): Workshop => ({
   id: r.id, title: r.title, type: r.type as Workshop['type'], pricePaise: r.pricePaise, city: r.city,
-  venue: r.venue, date: r.date, time: r.time, seats: r.seats, booked: r.booked, host: r.host,
-  description: r.description, status: r.status,
+  venue: r.venue, ...istParts(r.startsAt), seats: r.seats, booked: r.booked, host: r.hostName,
+  description: r.description, status: r.status, ...opt('hostId', r.hostId),
 });
 
-export const toWorkshopRow = (w: Omit<Workshop, 'id' | 'booked'>) => ({
+export const toWorkshopRow = (w: Omit<Workshop, 'id' | 'booked' | 'hostId'>) => ({
   title: w.title, type: w.type, pricePaise: w.pricePaise, city: w.city, venue: w.venue,
-  date: w.date, time: w.time, seats: w.seats, host: w.host, description: w.description, status: w.status,
+  startsAt: istToDate(w.date, w.time), seats: w.seats, hostName: w.host, description: w.description, status: w.status,
 });
 
+// ---------- orders & bookings ----------
 const toItem = (i: OrderItemRow): OrderItem => ({
   productId: i.productId, name: i.name, seller: i.seller, quantity: i.quantity,
   unitPricePaise: i.unitPricePaise, lineTotalPaise: i.lineTotalPaise,
 });
 
-export const toOrder = (r: OrderRow, items: OrderItemRow[]): Order => ({
-  id: r.id, createdAt: r.createdAt.toISOString(), userEmail: r.userEmail, customerName: r.customerName,
+export const toOrder = (r: OrderRow, userEmail: string, items: OrderItemRow[]): Order => ({
+  id: r.id, createdAt: r.createdAt.toISOString(), userEmail, customerName: r.customerName,
   email: r.email, items: items.map(toItem), totalPaise: r.totalPaise, status: r.status, note: r.note,
 });
 
-export const toBooking = (r: BookingRow): Booking => ({
-  id: r.id, createdAt: r.createdAt.toISOString(), userEmail: r.userEmail, workshopId: r.workshopId,
+export const toBooking = (r: BookingRow, userEmail: string): Booking => ({
+  id: r.id, createdAt: r.createdAt.toISOString(), userEmail, workshopId: r.workshopId,
   title: r.title, attendeeName: r.attendeeName, email: r.email, quantity: r.quantity,
   totalPaise: r.totalPaise, status: r.status, note: r.note,
 });
