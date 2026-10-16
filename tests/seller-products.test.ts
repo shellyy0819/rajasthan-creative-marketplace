@@ -151,3 +151,15 @@ describe('delete', () => {
     await expect(deleteProduct(p.id)).rejects.toMatchObject({ status: 404 });
   });
 });
+
+describe('workshop host ids stay out of the public API', () => {
+  it('public workshop lists and pages omit hostId; the admin create/update responses include it', async () => {
+    const { createWorkshop, updateWorkshop } = await import('@/lib/admin');
+    const { listWorkshops, getWorkshopBySlug } = await import('@/lib/catalog');
+    const w = await createWorkshop({ title: 'Hosted', type: 'FREE', pricePaise: 0, city: 'Jaipur', venue: 'V', date: '2026-12-01', time: '10:00', seats: 5, host: 'H', hostId: A.id, description: 'D' });
+    expect(w.hostId).toBe(A.id);
+    expect((await updateWorkshop(w.id, { seats: 6 })).hostId).toBe(A.id);
+    expect(JSON.stringify(await listWorkshops())).not.toContain(A.id);
+    expect(JSON.stringify(await getWorkshopBySlug(`hosted-${w.id}`))).not.toContain(A.id);
+  });
+});

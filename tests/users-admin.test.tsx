@@ -63,6 +63,17 @@ describe('UsersAdmin', () => {
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/already exists/));
     expect(fetchMock.mock.calls.filter(c => (c[1]?.method ?? 'GET') === 'GET')).toHaveLength(0);
   });
+  it('a failed add keeps what you typed; a successful add clears the form', async () => {
+    mount();
+    const email = document.querySelector('input[type="email"]') as HTMLInputElement;
+    fireEvent.change(email, { target: { value: 'seller@x.co' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add user' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
+    expect(email.value).toBe('seller@x.co');
+    fireEvent.change(email, { target: { value: 'fresh@x.co' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add user' }));
+    await waitFor(() => expect(email.value).toBe(''));
+  });
   it('toggling a role PATCHes the full role set', async () => {
     mount();
     fireEvent.click(within(row('buyer@x.co')).getByRole('checkbox', { name: 'seller role for buyer@x.co' }));

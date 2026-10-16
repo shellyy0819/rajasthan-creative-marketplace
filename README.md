@@ -59,7 +59,7 @@ Admins come from `ADMIN_EMAILS` (bootstrap, never locked out) or an `admin` row 
 
 ## Search
 
-`GET /api/products?q=` and `GET /api/workshops?q=` (and the admin list) are typo-tolerant: an exact substring match always counts, and queries with a word of 3+ letters also match by trigram similarity (`pg_trgm`), so `crochat` finds *Crochet*. Exact matches rank first; unrelated text returns nothing.
+`GET /api/products?q=` and `GET /api/workshops?q=` (and the admin list) are typo-tolerant: an exact substring match always counts, and queries with a word of 4+ letters also match by trigram similarity (`pg_trgm`), so `crochat` finds *Crochet*. Exact matches rank first; unrelated text returns nothing.
 
 ## Included and working
 

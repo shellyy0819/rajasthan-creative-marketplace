@@ -81,6 +81,23 @@ describe('upsertUserOnSignIn', () => {
   });
 });
 
+describe('sign-in edge cases', () => {
+  it('a deactivated bootstrap admin row never blocks sign-in', async () => {
+    const u = await giveRole('boss@shop.com', 'admin');
+    await (await getTestDb()).update(users).set({ active: false }).where(eq(users.id, u.id));
+    expect(await upsertUserOnSignIn({ email: 'boss@shop.com', name: 'Boss', sub: 'g-boss' })).toEqual({ active: true });
+    const [row] = await (await getTestDb()).select().from(users).where(eq(users.id, u.id));
+    expect(row.active).toBe(true); // reactivated so the guards and the UI agree
+  });
+  it('a Google id already attached to another row (changed email) does not block sign-in', async () => {
+    await upsertUserOnSignIn({ email: 'old@x.co', name: 'Old', sub: 'g-same' });
+    await expect(upsertUserOnSignIn({ email: 'new@x.co', name: 'New', sub: 'g-same' })).resolves.toEqual({ active: true });
+    const rows = await (await getTestDb()).select().from(users).where(eq(users.email, 'new@x.co'));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].googleSub).toBeNull();
+  });
+});
+
 describe('NextAuth callbacks', () => {
   it('signIn: only verified Google emails; creates the user; refuses deactivated users; fails closed on DB errors', async () => {
     const signIn = authOptions.callbacks!.signIn!;

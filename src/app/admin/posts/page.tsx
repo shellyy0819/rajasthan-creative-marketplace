@@ -15,7 +15,7 @@ export default async function AdminPostsPage() {
   ]);
   const crumbs = [
     { name: 'Home', path: '/' },
-    { name: user.role === 'admin' ? 'Admin' : 'Seller', path: '/admin' },
+    { name: user.role === 'admin' ? 'Admin' : 'Seller', path: '/admin/posts' },
     { name: user.role === 'admin' ? 'Artists’ posts' : 'My products', path: '/admin/posts' },
   ];
   return (

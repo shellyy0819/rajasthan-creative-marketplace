@@ -1,7 +1,7 @@
 import { and, count, eq, inArray } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { allocateId } from '../db/ids';
-import { productsQuery, toAdminProduct, toProductRow, toWorkshop, toWorkshopRow, type ProductInput } from '../db/mappers';
+import { productsQuery, toAdminProduct, toProductRow, toWorkshop, toAdminWorkshop, toWorkshopRow, type ProductInput } from '../db/mappers';
 import { ROLE_ID, ensureUser } from '../db/people';
 import { products as productsT, userRoles, users, workshops as workshopsT } from '../db/schema';
 import type { Tx } from '../db/client';
@@ -155,7 +155,7 @@ export async function createWorkshop(input: unknown): Promise<Workshop> {
     await requireHost(tx, hostId);
     const id = await allocateId(tx, 'w');
     const [row] = await tx.insert(workshopsT).values({ id, ...toWorkshopRow(data), hostId: hostId ?? null, booked: 0 }).returning();
-    return toWorkshop(row);
+    return toAdminWorkshop(row);
   });
 }
 
@@ -171,7 +171,7 @@ export async function updateWorkshop(id: string, input: unknown): Promise<Worksh
     const [saved] = await tx.update(workshopsT).set({
       ...toWorkshopRow(next), updatedAt: new Date(), ...(hostId ? { hostId } : patch.hostId === null || patch.hostId === '' ? { hostId: null } : {}),
     }).where(eq(workshopsT.id, id)).returning();
-    return toWorkshop(saved);
+    return toAdminWorkshop(saved);
   });
 }
 

@@ -84,6 +84,8 @@ export async function updateUser(id: string, input: unknown, actorEmail: string)
     const wasAdmin = (await tx.select().from(userRoles).where(and(eq(userRoles.userId, id), eq(userRoles.roleId, ROLE_ID.admin)))).length > 0;
     const willBeAdmin = roles ? roles.includes('admin') : wasAdmin;
     const willBeActive = raw.active === undefined ? u.active : raw.active;
+    if (roleFor(u.email) === 'admin' && (!willBeActive || !willBeAdmin))
+      throw new ApiError(409, 'Bootstrap admins (ADMIN_EMAILS) cannot be deactivated or lose admin access.');
     if (id === me.id && (!willBeActive || (wasAdmin && !willBeAdmin))) throw new ApiError(409, 'You cannot remove your own admin access or deactivate yourself.');
     if (wasAdmin && (!willBeAdmin || !willBeActive) && (await adminsExcluding(tx, id)) === 0) throw LAST_ADMIN();
     const patch: Partial<typeof users.$inferInsert> = { updatedAt: new Date() };

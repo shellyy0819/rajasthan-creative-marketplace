@@ -67,8 +67,10 @@ export const istToDate = (date: string, time: string) => new Date(`${date}T${tim
 export const toWorkshop = (r: WorkshopRow): Workshop => ({
   id: r.id, title: r.title, type: r.type as Workshop['type'], pricePaise: r.pricePaise, city: r.city,
   venue: r.venue, ...istParts(r.startsAt), seats: r.seats, booked: r.booked, host: r.hostName,
-  description: r.description, status: r.status, ...opt('hostId', r.hostId),
+  description: r.description, status: r.status,
 });
+/** Admin responses also carry the host's user id; the public API never does. */
+export const toAdminWorkshop = (r: WorkshopRow): Workshop => ({ ...toWorkshop(r), ...opt('hostId', r.hostId) });
 
 export const toWorkshopRow = (w: Omit<Workshop, 'id' | 'booked' | 'hostId'>) => ({
   title: w.title, type: w.type, pricePaise: w.pricePaise, city: w.city, venue: w.venue,

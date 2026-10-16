@@ -34,9 +34,16 @@ export async function upsertUserOnSignIn(p: { email: string; name?: string | nul
     const u = await ensureUser(tx, p.email, p.name ?? undefined);
     const patch: Partial<typeof users.$inferInsert> = { updatedAt: new Date() };
     if (p.name?.trim() && u.name !== p.name.trim()) patch.name = p.name.trim();
-    if (p.sub && !u.googleSub) patch.googleSub = p.sub;
+    // A Google id already attached to another row (the person changed email) must not block sign-in.
+    if (p.sub && !u.googleSub) {
+      const [taken] = await tx.select({ id: users.id }).from(users).where(sql`${users.googleSub} = ${p.sub} and ${users.id} <> ${u.id}`);
+      if (!taken) patch.googleSub = p.sub;
+    }
+    // Bootstrap admins are never locked out: sign-in reactivates them.
+    const bootstrap = roleFor(p.email) === 'admin';
+    if (bootstrap && !u.active) patch.active = true;
     if (Object.keys(patch).length > 1) await tx.update(users).set(patch).where(eq(users.id, u.id));
     if (roleFor(p.email) === 'admin') await grantRole(tx, u.id, 'admin');
-    return { active: u.active };
+    return { active: bootstrap || u.active };
   });
 }

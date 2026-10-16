@@ -31,12 +31,13 @@ export function UsersAdmin({ initialUsers, currentEmail }: { initialUsers: Admin
     } catch { return { error: 'Network error. Please try again.', data: null }; }
   }
   // A failed write shows the API error and does not re-fetch the list.
-  async function act(key: string, fn: () => Promise<{ error: string | null }>, ok: string) {
-    if (busy) return;
+  async function act(key: string, fn: () => Promise<{ error: string | null }>, ok: string): Promise<boolean> {
+    if (busy) return false;
     setBusy(key);
     const res = await fn();
     if (res.error) notify('error', res.error); else { notify('success', ok); await reload(); }
     setBusy(null);
+    return !res.error;
   }
   const toggleRole = (u: AdminUser, role: StoredRole) => {
     const roles = u.roles.includes(role) ? u.roles.filter(r => r !== role) : [...u.roles, role];
@@ -54,7 +55,7 @@ export function UsersAdmin({ initialUsers, currentEmail }: { initialUsers: Admin
         <div>
           <form className="admin-toolbar admin-form" onSubmit={e => {
             e.preventDefault();
-            void act('add', () => call('/api/admin/users', 'POST', { email: email.trim(), name: name.trim() || undefined, roles: newRoles }), `${email.trim().toLowerCase()} added.`).then(() => { setEmail(''); setName(''); });
+            void act('add', () => call('/api/admin/users', 'POST', { email: email.trim(), name: name.trim() || undefined, roles: newRoles }), `${email.trim().toLowerCase()} added.`).then(done => { if (done) { setEmail(''); setName(''); } });
           }}>
             <label style={{ flex: 2, margin: 0 }}>
               <span className="lbl">Google account email</span>

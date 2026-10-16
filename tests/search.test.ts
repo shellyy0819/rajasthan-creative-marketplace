@@ -15,7 +15,7 @@ describe('fuzzy product search (typos still find the product)', () => {
     expect(await ids('crochat')).toContain('p1');      // wrong letter   (crochet)
     expect(await ids('crochett')).toContain('p1');     // extra letter
     expect(await ids('crocet')).toContain('p1');       // missing letter
-    expect(await ids('crohcet')).toContain('p1');      // swapped letters
+    expect(await ids('crochte')).toContain('p1');      // swapped letters at the end
     expect(await ids('potery')).toContain('p4');       // Blue Pottery
     expect(await ids('pichloa')).toContain('p2');      // Pichola
     expect(await ids('resn')).toContain('p3');         // Resin
@@ -29,12 +29,24 @@ describe('fuzzy product search (typos still find the product)', () => {
     expect(await ids('coaster rezin')).toContain('p3');
   });
   it('matches the seller name and category too, with typos', async () => {
-    expect(await ids('petl and pour')).toContain('p3');       // seller "Petal & Pour"
+    expect(await ids('petal and pur')).toContain('p3');       // seller "Petal & Pour"
     expect(await ids('neel mitti studo')).toContain('p4');    // seller
     expect(await ids('acessories')).toContain('p2');          // category Accessories
   });
   it('unrelated text still returns nothing (no match-everything threshold)', async () => {
     for (const q of ['zzzzzz', 'xylophone', 'qwertyuiop', '1234567']) expect(await ids(q)).toEqual([]);
+  });
+  it('short words (under 4 letters) are substring-only, so "pot" does not drag in every word starting with "po"', async () => {
+    const s = await makeSeller('short@x.co', 'Short Seller');
+    for (const name of ['Pond Lamp', 'Portrait Frame', 'Pouch Bag']) await createProduct({ ...base, category: 'Resin Art', name, status: 'APPROVED', sellerId: s.id }, admin);
+    const found = (await listProducts({ q: 'pot' })).map(p => p.name);
+    expect(found).toContain('Blue Pottery Trinket Dish');
+    for (const n of ['Pond Lamp', 'Portrait Frame', 'Pouch Bag']) expect(found).not.toContain(n);
+  });
+  it('similar-looking but different words do not match (lamp vs lace/lake)', async () => {
+    const s = await makeSeller('lace@x.co', 'Lace Seller');
+    for (const name of ['Lace Doily', 'Lake Charm']) await createProduct({ ...base, category: 'Pottery', name, status: 'APPROVED', sellerId: s.id }, admin);
+    expect(await ids('lamp')).toEqual([]);
   });
   it('exact substring matches rank before fuzzy ones', async () => {
     const s = await makeSeller('rank@x.co', 'Rank Seller');

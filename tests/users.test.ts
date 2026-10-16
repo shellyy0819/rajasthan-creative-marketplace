@@ -141,3 +141,15 @@ describe('seller profiles (public name and contact)', () => {
     expect((await (await getTestDb()).select().from(users).where(eq(users.email, 'fresh@x.co')))).toHaveLength(1);
   });
 });
+
+describe('bootstrap (ADMIN_EMAILS) admins are protected', () => {
+  it('cannot be deactivated or lose the admin role, even by another admin', async () => {
+    process.env.ADMIN_EMAILS = 'boot@x.co';
+    const boot = await createUser({ email: 'boot@x.co', roles: ['admin'] }, admin.email);
+    await expect(updateUser(boot.id, { active: false }, admin.email)).rejects.toMatchObject({ status: 409, message: expect.stringContaining('ADMIN_EMAILS') });
+    await expect(updateUser(boot.id, { roles: ['seller'] }, admin.email)).rejects.toMatchObject({ status: 409 });
+    await expect(updateUser(boot.id, { roles: [] }, admin.email)).rejects.toMatchObject({ status: 409 });
+    expect((await updateUser(boot.id, { roles: ['admin', 'seller'] }, admin.email)).roles).toEqual(['admin', 'seller']);
+    await expect(deleteUser(boot.id, admin.email)).resolves.toBeUndefined(); // owns nothing: deleting the row is harmless, they re-create at sign-in
+  });
+});
