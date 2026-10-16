@@ -9,6 +9,7 @@
     "start": "next start",
     "test": "vitest run",
     "seo:check": "node scripts/seo-check.mjs",
+    "docker:build": "docker build --target runner -t rr-api .",
     "db:up": "docker compose up -d --wait db",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f db",

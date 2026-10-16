@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  output: process.env.DOCKER_BUILD === '1' ? 'standalone' : undefined,
   async headers() {
     return [
       {

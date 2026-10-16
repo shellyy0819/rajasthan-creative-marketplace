@@ -7,6 +7,8 @@ import { listProducts, listWorkshops, CITIES, citySlug } from '@/lib/catalog';
 import { pageMetadata } from '@/lib/meta';
 import { SITE } from '@/lib/site';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   ...pageMetadata({
     title: `${SITE.name} — ${SITE.tagline}`,
