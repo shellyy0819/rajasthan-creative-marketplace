@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import React from 'react';
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, cleanup, within } from '@testing-library/react';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 
@@ -26,3 +26,13 @@ describe('breadcrumbs on every inner page', () => {
     expect(within(nav).getByText('Artists’ posts').getAttribute('aria-current')).toBe('page');
   });
 });
+
+describe('breadcrumb keys', () => {
+  it('two crumbs with the same path do not trigger React\'s duplicate-key warning', () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    render(<Breadcrumbs items={[{ name: 'Home', path: '/' }, { name: 'Seller', path: '/admin/posts' }, { name: 'My products', path: '/admin/posts' }]} />);
+    expect(err.mock.calls.filter(c => String(c[0]).includes('same key'))).toEqual([]);
+    err.mockRestore();
+  });
+});
+

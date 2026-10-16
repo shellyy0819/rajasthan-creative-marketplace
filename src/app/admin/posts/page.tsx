@@ -13,11 +13,10 @@ export default async function AdminPostsPage() {
     listProductsForAdmin({}, scope), listArtists(scope), listWorkshopOptions(),
     user.role === 'admin' ? listSellerOptions() : Promise.resolve([]), getProfileByEmail(user.email),
   ]);
-  const crumbs = [
-    { name: 'Home', path: '/' },
-    { name: user.role === 'admin' ? 'Admin' : 'Seller', path: '/admin/posts' },
-    { name: user.role === 'admin' ? 'Artists’ posts' : 'My products', path: '/admin/posts' },
-  ];
+  // A seller has one level (Home > My products); an admin sees Home > Admin > Artists' posts.
+  const crumbs = user.role === 'admin'
+    ? [{ name: 'Home', path: '/' }, { name: 'Admin', path: '/admin' }, { name: 'Artists’ posts', path: '/admin/posts' }]
+    : [{ name: 'Home', path: '/' }, { name: 'My products', path: '/admin/posts' }];
   return (
     <>
       <Breadcrumbs items={crumbs} />
