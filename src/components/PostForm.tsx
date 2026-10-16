@@ -27,7 +27,9 @@ export function buildPayload(f: FormData): Record<string, unknown> {
 }
 
 export type WorkshopOption = { id: string; title: string };
-export type SellerOption = { id: string; name: string };
+export type SellerOption = { id: string; name: string; email?: string; phone?: string };
+/** "Name · email · phone" so two sellers with the same public name can be told apart. */
+export const sellerLabel = (s: SellerOption) => [s.name, s.email, s.phone].filter(Boolean).join(' · ');
 
 type Props = {
   initial?: AdminProduct;
@@ -125,8 +127,8 @@ export function PostForm({ initial, role, workshops, sellers, onSubmit, onCancel
             <label>Seller
               <select name="sellerId" defaultValue={initial?.sellerId ?? ''}>
                 {!initial && <option value="">Me (admin)</option>}
-                {initial && !sellers.some(x => x.id === initial.sellerId) && <option value={initial.sellerId}>{initial.seller}</option>}
-                {sellers.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+                {initial && !sellers.some(x => x.id === initial.sellerId) && <option value={initial.sellerId}>{[initial.seller, initial.sellerEmail].filter(Boolean).join(' · ')}</option>}
+                {sellers.map(x => <option key={x.id} value={x.id}>{sellerLabel(x)}</option>)}
               </select>
               <small>Their public name and contact come from the seller’s profile.</small>
             </label>

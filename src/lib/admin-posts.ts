@@ -66,10 +66,12 @@ export async function listWorkshopOptions(): Promise<{ id: string; title: string
 }
 
 /** Users who can own products (seller or admin role, active), for the admin's seller picker. */
-export async function listSellerOptions(): Promise<{ id: string; name: string }[]> {
-  const rows = await getDb().selectDistinct({ id: users.id, name: sellerNameSql }).from(users)
+export type SellerOption = { id: string; name: string; email: string; phone?: string };
+export async function listSellerOptions(): Promise<SellerOption[]> {
+  const rows = await getDb().selectDistinct({ id: users.id, name: sellerNameSql, email: users.email, phone: sellerProfiles.publicPhone }).from(users)
     .innerJoin(userRoles, and(eq(userRoles.userId, users.id), inArray(userRoles.roleId, [ROLE_ID.seller, ROLE_ID.admin])))
     .leftJoin(sellerProfiles, eq(sellerProfiles.userId, users.id))
     .where(eq(users.active, true));
-  return rows.sort((a, b) => a.name.localeCompare(b.name));
+  return rows.map(r => ({ id: r.id, name: r.name, email: r.email, ...(r.phone ? { phone: r.phone } : {}) }))
+    .sort((a, b) => a.name.localeCompare(b.name) || a.email.localeCompare(b.email));
 }

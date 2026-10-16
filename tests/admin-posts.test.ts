@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { listProductsForAdmin, getProductForAdmin, listArtists, scopeFor } from '@/lib/admin-posts';
+import { listProductsForAdmin, getProductForAdmin, listArtists, listSellerOptions, scopeFor } from '@/lib/admin-posts';
 import { artistKey } from '@/lib/artist';
 import { createProduct, deleteProduct } from '@/lib/admin';
 import { listProducts } from '@/lib/catalog';
@@ -75,5 +75,31 @@ describe('listArtists', () => {
     const mine = await listArtists(scopeFor({ email: 'marwar@x.co', role: 'seller' }));
     expect(mine).toHaveLength(1);
     expect(mine[0]).toMatchObject({ name: 'Marwar Lac', total: 1 });
+  });
+});
+
+describe('listSellerOptions (admin seller picker)', () => {
+  it('returns id, display name, email and public phone so same-named sellers can be told apart', async () => {
+    const a = await makeSeller('twin1@x.co', 'Twin Studio');
+    const b = await makeSeller('twin2@x.co', 'Twin Studio');
+    await saveProfile(a.id, { displayName: 'Twin Studio', publicPhone: '99898 98999' });
+    const opts = await listSellerOptions();
+    const twins = opts.filter(o => o.name === 'Twin Studio');
+    expect(twins).toHaveLength(2);
+    expect(twins.find(o => o.id === a.id)).toEqual({ id: a.id, name: 'Twin Studio', email: 'twin1@x.co', phone: '9989898999' });
+    expect(twins.find(o => o.id === b.id)).toEqual({ id: b.id, name: 'Twin Studio', email: 'twin2@x.co' });
+  });
+  it('lists only active users with the seller or admin role', async () => {
+    const { giveRole } = await import('./helpers/testdb');
+    await giveRole('buyer@x.co', 'customer');
+    const off = await makeSeller('off@x.co', 'Off');
+    const { users } = await import('@/db/schema');
+    const { getTestDb } = await import('./helpers/testdb');
+    const { eq } = await import('drizzle-orm');
+    await (await getTestDb()).update(users).set({ active: false }).where(eq(users.id, off.id));
+    const emails = (await listSellerOptions()).map(o => o.email);
+    expect(emails).not.toContain('buyer@x.co');
+    expect(emails).not.toContain('off@x.co');
+    expect(emails).toContain('shauk-and-stuff@seed.rangrajasthan.invalid');
   });
 });

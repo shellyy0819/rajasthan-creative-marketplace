@@ -60,7 +60,7 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 const WORKSHOPS = [{ id: 'w1', title: 'Beginner Crochet' }, { id: 'w2', title: 'Tote Bag Painting' }];
-const SELLERS = [{ id: 'u-Shauk', name: 'Shauk and Stuff' }, { id: 'u-Lake', name: 'Lake City Knots' }];
+const SELLERS = [{ id: 'u-Shauk', name: 'Shauk and Stuff', email: 'shauk@x.co', phone: '9989898999' }, { id: 'u-Lake', name: 'Lake City Knots', email: 'lake@x.co' }, { id: 'u-Lake2', name: 'Lake City Knots', email: 'lake2@x.co', phone: '9876543210' }];
 const PROFILE = { userId: 'me', displayName: 'My Studio' };
 const mount = (role: 'admin' | 'seller' = 'admin') => render(<PostsAdmin initialProducts={[...db]} initialArtists={artistsOf(db)} role={role} workshops={WORKSHOPS} sellers={role === 'admin' ? SELLERS : []} profile={PROFILE} />);
 const rows = () => screen.queryAllByTestId('post-row');
@@ -468,7 +468,7 @@ describe('PostsAdmin as an admin (seller info)', () => {
     expect(screen.getAllByRole('button', { name: /^Delete / }).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: 'New post' }));
     const picker = screen.getByLabelText(/^Seller/) as HTMLSelectElement;
-    expect(Array.from(picker.options).map(o => o.textContent)).toEqual(['Me (admin)', 'Shauk and Stuff', 'Lake City Knots']);
+    expect(Array.from(picker.options).map(o => o.textContent)).toEqual(['Me (admin)', 'Shauk and Stuff · shauk@x.co · 9989898999', 'Lake City Knots · lake@x.co', 'Lake City Knots · lake2@x.co · 9876543210']);
     expect(Array.from((screen.getByLabelText(/^Status/) as HTMLSelectElement).options).map(o => o.value)).toEqual(['APPROVED', 'DRAFT', 'ARCHIVED']);
   });
 });
