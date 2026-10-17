@@ -6,7 +6,7 @@ export function Brand() {
   return (
     <Link className="brand" href="/" aria-label="Rang Rajasthan home">
       <span className="brand-mark" aria-hidden="true">✿</span>
-      <span><b>rang rajasthan</b><small>MADE BY HAND, SHARED WITH HEART</small></span>
+      <span><b>Craftology</b><small>MADE BY HAND, SHARED WITH HEART</small></span>
     </Link>
   );
 }
