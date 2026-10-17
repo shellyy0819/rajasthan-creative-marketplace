@@ -38,7 +38,7 @@ export default async function Home() {
           <p>Find friendly workshops, creative meetups and pop-up experiences hosted by local makers and venues.</p>
           <p><Link className="text-link" href="/workshops">Browse &amp; filter all →</Link></p>
         </div>
-        <WorkshopList workshops={workshops} />
+        <WorkshopList workshops={workshops} emptyMessage="No workshops are scheduled yet. Check back soon." />
       </section>
       <section className="maker-cta">
         <div className="cta-flower" aria-hidden="true">✿</div>

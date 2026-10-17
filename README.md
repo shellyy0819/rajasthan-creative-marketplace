@@ -90,7 +90,7 @@ All data lives in PostgreSQL (schema in `src/db/schema.ts`, SQL migrations in `d
 | `npm run docker:up` / `docker:down` / `docker:logs` / `docker:seed` | build/run, stop, tail and seed the production backend container (see above) |
 | `npm run db:migrate` | apply migrations (also installs the `pg_trgm` extension used by search) |
 | `npm run db:generate` | create a new migration after editing `src/db/schema.ts` |
-| `npm run db:seed` | idempotent import of `data/db.json` (creates a seller user + profile per seller name) |
+| `npm run db:seed` | idempotent import of `data/db.json`, which ships **empty** (no sample products or workshops; only id counters). Put real data in through the app. |
 | `npm run db:reset` | wipe all tables (including users and role assignments, but not the `roles` list) and re-seed |
 
 `docker-compose.yml` has no hardcoded credentials: user, password, database and port come from `.env.local` (`POSTGRES_USER`, `POSTGRES_PASSWORD` (required), `POSTGRES_DB`, `DB_PORT`), and the `db:*` and `test:pg` scripts load that file. In production use a managed Postgres (Neon) and a secret `DATABASE_URL`. Use the pooled Neon string for the running app and the direct string for migrations and seeding. The container publishes `127.0.0.1:5434` (not 5432) so it never collides with a locally installed Postgres. Stock and workshop seats are changed inside transactions with row locks, and role/admin changes take an advisory lock; `npm run test:pg` proves both against the real database. `data/db.json` is only the seed source and is never written by the app.
@@ -172,7 +172,7 @@ Signed in as an admin (email in `ADMIN_EMAILS`) or a seller, open **/admin/posts
 
 ## Reset sample data
 
-`npm run db:reset` wipes the database and re-imports `data/db.json`.
+`npm run db:reset` wipes the database and re-imports `data/db.json` (which is empty, so you get a blank shop). Sample data exists only in `tests/fixtures` and is never shown or seeded by the app (`tests/no-dummy-data.test.ts` enforces this).
 
 ## Upcoming features
 
@@ -187,6 +187,7 @@ Planned, not started unless marked otherwise. Each item is tracked here so the s
 | 5 | **Blogs** | Planned | Editorial posts (stories about artisans, crafts and Rajasthan) with their own list and detail pages, SEO metadata and admin-only publishing. |
 | 6 | **Workshops / Exhibition** | Planned | Extend workshops to cover exhibitions (multi-day, venue and stall listings) alongside single-session workshops. Depends on the stall interest flow (item 4). |
 | 7 | **Language support (Hindi / English)** | Planned | Switch the UI between Hindi and English, with translated static text, localized dates and numbers, and a language choice remembered per user. Product and workshop content entry stays in the language it was written in unless translated by the seller or admin. |
+| 8 | **Voluntary workshops arranged for NGO people** | Planned | Free, volunteer-led workshops for NGO members, arranged with partner NGOs and open to their staff and beneficiaries. Needs an NGO (organization) profile, a way for NGOs to request or host a workshop, and a free-seat option that skips payment. Builds on the existing workshop and booking flow. |
 
 ## Suggested next build
 
