@@ -6,11 +6,11 @@ export function Hero() {
       <section className="hero">
         <div className="hero-copy">
           <span className="eyebrow">THE CREATIVE SIDE OF RAJASTHAN</span>
-          <h1>Good things are<br /><em>made by hand.</em></h1>
-          <p>Discover independent makers, thoughtful handmade finds, and creative workshops happening around Rajasthan.</p>
+          <h1><span>Discover the Craft.</span> <span>Meet the Maker.</span> <span><em>Learn the Art.</em></span></h1>
+          <p>Shop thoughtfully curated handmade products from India&apos;s independent artisans and book hands-on workshops to experience traditional crafts firsthand.</p>
           <div className="hero-actions">
-            <Link className="button primary" href="/shop">Explore handmade <span>↗</span></Link>
-            <Link className="text-link" href="/workshops">Find a workshop ↓</Link>
+            <Link className="button primary" href="/shop">Explore Handmade <span>↗</span></Link>
+            <Link className="button outline" href="/workshops">Find a Workshop <span>↓</span></Link>
           </div>
           <div className="hero-proof"><span>✦ Independent makers</span><span>✦ Local experiences</span><span>✦ Rajasthan first</span></div>
         </div>

@@ -174,6 +174,20 @@ Signed in as an admin (email in `ADMIN_EMAILS`) or a seller, open **/admin/posts
 
 `npm run db:reset` wipes the database and re-imports `data/db.json`.
 
+## Upcoming features
+
+Planned, not started unless marked otherwise. Each item is tracked here so the scope stays visible; move it to **Included and working** when it ships.
+
+| # | Feature | Status | Scope (planned) |
+|---|---|---|---|
+| 1 | **Favorites** | Planned | Signed-in buyers save products and workshops to a favorites list and revisit it from their account. Needs a per-user favorites table and a toggle on product and workshop cards. |
+| 2 | **GTAG** (Google tag / gtag.js analytics) | Planned | Page and event tracking through a Google tag, loaded only with a configured measurement ID. Needs an env variable, a consent decision and a privacy note before launch. |
+| 3 | **Chatbot** | Planned | Help assistant for buyers and sellers (finding products, workshops, order and seller questions). Scope and provider still to be decided. |
+| 4 | **Willing to put a stall** | Planned | Sellers and artisans express interest in taking a stall at a workshop or exhibition. Captures the seller, the event and their availability for admin follow-up. Builds on the seller profile and the workshop/exhibition items below. |
+| 5 | **Blogs** | Planned | Editorial posts (stories about artisans, crafts and Rajasthan) with their own list and detail pages, SEO metadata and admin-only publishing. |
+| 6 | **Workshops / Exhibition** | Planned | Extend workshops to cover exhibitions (multi-day, venue and stall listings) alongside single-session workshops. Depends on the stall interest flow (item 4). |
+| 7 | **Language support (Hindi / English)** | Planned | Switch the UI between Hindi and English, with translated static text, localized dates and numbers, and a language choice remembered per user. Product and workshop content entry stays in the language it was written in unless translated by the seller or admin. |
+
 ## Suggested next build
 
 Build the production foundation in increments: (1) deploy the backend (Docker image + Neon, done) and the frontend (Vercel, to be planned), backups and monitoring, (2) finer-grained role/resource guards, (3) seller onboarding and admin moderation, (4) product/order lifecycle, (5) approved marketplace payment flow and ledger, (6) workshop capacity and bookings, (7) shipping, emails, audit trail, monitoring and deployment.

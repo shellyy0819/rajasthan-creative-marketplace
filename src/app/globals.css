@@ -117,3 +117,6 @@ button[aria-busy=true]::after{content:'';position:absolute;right:12px;top:50%;wi
 .rr-page-loader-box{display:flex;align-items:center;gap:12px;background:var(--white);border:1px solid var(--line);border-radius:6px;padding:14px 20px;font:600 12px var(--font-sans),sans-serif;box-shadow:0 10px 30px #252a2426}
 .place-field.busy::after{content:'';position:absolute;right:12px;top:50%;width:14px;height:14px;margin-top:-7px;border:2px solid var(--muted);border-right-color:transparent;border-radius:50%;animation:rr-spin .7s linear infinite;pointer-events:none}
 @media(prefers-reduced-motion:reduce){button[aria-busy=true]::after,.rr-spinner,.place-field.busy::after{animation-duration:2.4s}}
+
+.hero h1 span{display:block}.hero h1{font-size:clamp(40px,5vw,64px);letter-spacing:-2px}
+.button.outline{background:transparent;color:var(--ink);border:1px solid var(--control-border)}.button.outline:hover{border-color:var(--green);color:var(--green)}.hero-actions{flex-wrap:wrap;gap:14px}

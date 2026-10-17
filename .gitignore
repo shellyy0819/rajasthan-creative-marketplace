@@ -7,3 +7,7 @@ data/db.json.tmp
 .superpowers
 client_secret_*.json
 .env.backend
+
+# private keys must never be committed
+*.pem
+*.key

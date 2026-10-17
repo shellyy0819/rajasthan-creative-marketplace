@@ -2,7 +2,7 @@ export const SITE = {
   name: 'Rang Rajasthan',
   tagline: 'Handmade finds & creative workshops in Rajasthan',
   description:
-    'Discover independent Rajasthan makers, thoughtful handmade finds, and creative workshops in Udaipur, Jaipur and Jodhpur.',
+    'Shop thoughtfully curated handmade products from independent artisans and book hands-on workshops in Udaipur, Jaipur and Jodhpur.',
   locale: 'en_IN',
   email: 'hello@rangrajasthan.example',
 };
