@@ -66,11 +66,14 @@ for (const [m, p] of [['POST', '/api/products'], ['PATCH', '/api/products/p1'], 
 }
 
 for (const p of ['/api/admin/artists', '/api/admin/products', '/api/admin/products/p1', '/api/admin/users', '/api/profile']) ok((await get(p)).status === 401, `${p} → 401 without session`);
-const adminAnon = await fetch(BASE + '/admin/posts', { redirect: 'manual' });
-ok([302, 303, 307, 308].includes(adminAnon.status) && (adminAnon.headers.get('location') || '').includes('/api/auth/signin'), '/admin/posts redirects anonymous users to sign-in');
-ok(!(await adminAnon.text()).includes('Draft'), 'redirect body leaks no admin content');
-ok((await get('/robots.txt')).text.includes('Disallow: /admin/'), 'robots.txt disallows /admin/');
-ok(!(await get('/sitemap.xml')).text.includes('/admin'), 'sitemap has no admin urls');
+const dashAnon = await fetch(BASE + '/dashboard/posts', { redirect: 'manual' });
+// single host: sign-in redirect; split hosts: the public host answers 404 for /dashboard (it lives on the dashboard host)
+ok(([302, 303, 307, 308].includes(dashAnon.status) && (dashAnon.headers.get('location') || '').includes('/api/auth/signin')) || dashAnon.status === 404, '/dashboard/posts redirects anonymous users to sign-in (or is a 404 on the public host)');
+ok(!(await dashAnon.text()).includes('Draft'), 'dashboard response leaks no content');
+const legacy = await fetch(BASE + '/admin/posts', { redirect: 'manual' });
+ok(legacy.status === 308 && (legacy.headers.get('location') || '').includes('/dashboard/posts'), '/admin/posts permanently redirects to /dashboard/posts');
+ok((await get('/robots.txt')).text.includes('Disallow: /dashboard/'), 'robots.txt disallows /dashboard/');
+ok(!(await get('/sitemap.xml')).text.includes('/dashboard'), 'sitemap has no dashboard urls');
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll SEO checks passed');
 process.exit(failed ? 1 : 0);

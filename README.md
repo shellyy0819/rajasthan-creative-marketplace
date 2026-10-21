@@ -95,13 +95,17 @@ All data lives in PostgreSQL (schema in `src/db/schema.ts`, SQL migrations in `d
 
 `docker-compose.yml` has no hardcoded credentials: user, password, database and port come from `.env.local` (`POSTGRES_USER`, `POSTGRES_PASSWORD` (required), `POSTGRES_DB`, `DB_PORT`), and the `db:*` and `test:pg` scripts load that file. In production use a managed Postgres (Neon) and a secret `DATABASE_URL`. Use the pooled Neon string for the running app and the direct string for migrations and seeding. The container publishes `127.0.0.1:5434` (not 5432) so it never collides with a locally installed Postgres. Stock and workshop seats are changed inside transactions with row locks, and role/admin changes take an advisory lock; `npm run test:pg` proves both against the real database. `data/db.json` is only the seed source and is never written by the app.
 
+## Dashboard on its own subdomain
+
+The seller/admin dashboard lives at `/dashboard/*`. With `DASHBOARD_URL` set, one deployment serves the shop on the public host and the dashboard on a second host (`dashboard.example.com`); see [docs/subdomains.md](docs/subdomains.md) for the settings, DNS, Caddy HTTPS config and Google sign-in steps. Old `/admin/*` links redirect to `/dashboard/*`. The hostname only separates the two sites: the API and every dashboard page still check the user's role.
+
 ## Roles
 
 | Role | Can do |
 |---|---|
 | Buyer (any signed-in user) | read the catalog; demo orders and bookings |
 | Seller | create, read, edit and archive **their own** products (always Draft or Archived, never published); edit their public profile (`My profile`). Editing a published product returns it to Draft for admin review. Cannot delete products or touch workshops |
-| Admin | everything: publish products, delete products/workshops, manage users and roles at `/admin/users`, edit any seller's profile, assign a product's seller |
+| Admin | everything: publish products, delete products/workshops, manage users and roles at `/dashboard/users`, edit any seller's profile, assign a product's seller |
 
 Admins come from `ADMIN_EMAILS` (bootstrap, never locked out) or an `admin` row in `user_roles`. Roles are looked up on every request, so granting, revoking or deactivating takes effect immediately. A user who owns products, workshops, orders or bookings cannot be deleted; deactivate them instead. The last active admin cannot be removed. Deleting a workshop keeps its products (they just lose the link).
 
@@ -155,15 +159,15 @@ Sign-in is Google OAuth through NextAuth v4 (`/api/auth/*`). Copy `.env.example`
 | `GET /api/admin/products` (`?artist=&status=APPROVED\|DRAFT\|ARCHIVED&q=`) | admin or seller (sellers: own products only), includes drafts, `no-store` |
 | `GET /api/admin/products/:id` | admin or seller (own) |
 | `GET\|PUT /api/profile` | seller or admin: own public profile |
-| `GET /api/admin/users`, `POST /api/admin/users` | admin only |
-| `PATCH\|DELETE /api/admin/users/:id` | admin only (roles, active; delete blocked when the user owns data) |
-| `GET\|PUT /api/admin/users/:id/profile` | admin only |
+| `GET /api/dashboard/users`, `POST /api/dashboard/users` | admin only |
+| `PATCH\|DELETE /api/dashboard/users/:id` | admin only (roles, active; delete blocked when the user owns data) |
+| `GET\|PUT /api/dashboard/users/:id/profile` | admin only |
 
 Errors: `401 {"error":"Authentication required."}`, `403 {"error":"Admin access required."}`. The API is same-origin only (no CORS); cookies are SameSite=Lax.
 
 ## Admin: artists' posts
 
-Signed in as an admin (email in `ADMIN_EMAILS`) or a seller, open **/admin/posts** (the header shows an **Admin** link; sellers see **My products**). Anonymous visitors are redirected to sign-in; other users get a 404. `/admin/users` (user and role management) is admin only.
+Signed in as an admin (email in `ADMIN_EMAILS`) or a seller, open **/dashboard/posts** (the header shows an **Admin** link; sellers see **My products**). Anonymous visitors are redirected to sign-in; other users get a 404. `/dashboard/users` (user and role management) is admin only.
 
 - A *post* is a product listing; an *artist* is the product's seller name (case-insensitive, so `Shauk and Stuff` and `shauk  and stuff` are one artist). Renaming the seller on a post moves it to another artist.
 - New posts default to **Draft**. **Published** posts are public; **Draft** and **Archived** posts are visible only in the admin view and the admin APIs. Only admins can publish.
