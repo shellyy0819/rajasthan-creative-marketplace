@@ -75,5 +75,15 @@ ok(legacy.status === 308 && (legacy.headers.get('location') || '').includes('/da
 ok((await get('/robots.txt')).text.includes('Disallow: /dashboard/'), 'robots.txt disallows /dashboard/');
 ok(!(await get('/sitemap.xml')).text.includes('/dashboard'), 'sitemap has no dashboard urls');
 
+// Trending and likes: JSON-only writes, public cacheable trending list, trending page
+{
+  const t = await get('/trending');
+  ok(t.status === 200 && (t.text.match(/<h1[\s>]/g) || []).length === 1, '/trending → 200 with exactly one <h1>');
+  ok((await fetch(BASE + '/api/events', { method: 'POST', body: 'type=view' })).status === 415, 'POST /api/events without a JSON content type → 415');
+  ok((await fetch(BASE + '/api/products/p1/like', { method: 'POST' })).status === 415, 'POST /api/products/p1/like without a JSON content type → 415');
+  const tr = await fetch(BASE + '/api/trending');
+  ok(tr.status === 200 && (tr.headers.get('cache-control') || '').includes('s-maxage=300'), 'GET /api/trending → 200 with the public cache header');
+}
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll SEO checks passed');
 process.exit(failed ? 1 : 0);
