@@ -31,6 +31,9 @@ Weights live in `WEIGHTS` in `src/lib/trending.ts`; the maths is covered by `tes
 Writes need `Content-Type: application/json` (blocks cross-site form posts). Likes: 30 per minute per actor. Events: 120 per minute per IP. The limiter is in memory, per process; use a shared store if you run several containers.
 Clearing cookies lets a visitor like again, so anonymous likes can be inflated slowly; the rate limit and normalised scoring limit the effect.
 
+## Reverse proxy requirement
+Event and like limits and the daily visitor hash use the client address from `X-Forwarded-For` (first entry), then `X-Real-IP`. Run the app behind a proxy that sets it from the real connection and does not pass a client-supplied value through (Caddy's `reverse_proxy` does this by default, see `docs/subdomains.md`). Without a proxy header every visitor shares one address and the limits are shared by the whole site.
+
 ## Housekeeping
 `product_events` grows by one row per product, type, visitor and day. Trending reads only 7 days, so old rows can be deleted safely:
 ```sql

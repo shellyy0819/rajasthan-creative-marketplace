@@ -37,6 +37,12 @@ describe('LikeButton', () => {
     expect(new URL(calls[0][0] as string, 'http://x').searchParams.get('ids')!.split(',').sort()).toEqual(['p1', 'p2']);
     expect(btn(/Unlike Dish/).getAttribute('aria-pressed')).toBe('true');
   });
+  it('the same product shown twice on one page (e.g. Trending row + catalog) gets its liked state in both places', async () => {
+    likes.p2 = { count: 5, liked: true };
+    render(<><LikeButton productId="p2" initialCount={5} productName="Dish" /><LikeButton productId="p2" initialCount={5} productName="Dish" /></>);
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /Unlike Dish/ })).toHaveLength(2));
+    expect(fetchMock.mock.calls.filter(c => String(c[0]).startsWith('/api/likes'))).toHaveLength(1);
+  });
   it('liking is optimistic: the count and pressed state change immediately, then settle on the server count', async () => {
     render(<LikeButton productId="p1" initialCount={3} productName="Bag" />);
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());

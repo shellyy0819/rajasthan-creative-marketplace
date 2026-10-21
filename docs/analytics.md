@@ -12,6 +12,9 @@ Set `GA_MEASUREMENT_ID=G-XXXXXXXXXX` in `.env.local` (development) or `.env.back
 It is a runtime variable: restart the server or run `docker compose -f docker-compose.prod.yml --env-file .env.backend up -d`. No rebuild is needed.
 Empty or malformed value: no banner is shown and nothing is loaded.
 
+## 2b. Turn off history-based page views in GA4
+The site sends its own `page_view` on every page change. In GA4: Admin, Data streams, your web stream, Enhanced measurement, the gear icon, and **switch off "Page changes based on browser history events"**. Left on, GA4 can count each client-side navigation twice and can also record page changes inside the dashboard.
+
 ## 3. Verify
 - Open the site, click **Accept**. The Realtime report shows you within a minute. DebugView shows the events in detail.
 - Before Accept, or after Decline, there are no requests to `googletagmanager.com` or `google-analytics.com` and no `_ga*` cookies.

@@ -75,6 +75,17 @@ describe('POST/DELETE /api/products/:id/like', () => {
   });
 });
 
+describe('like rate limit without a cookie', () => {
+  it('a client that never keeps the cookie still hits a per-IP limit (429), so it cannot mint unlimited visitors', async () => {
+    const ip = { ...JSON_H, 'x-forwarded-for': '5.5.5.5' };
+    let last = 200;
+    for (let i = 0; i < 130; i++) last = (await like(i % 2 ? 'p1' : 'p2', ip)).status;
+    expect(last).toBe(429);
+    expect((await (await getTestDb()).select().from(productLikes)).length).toBeLessThanOrEqual(120);
+    expect((await like('p1', { ...JSON_H, 'x-forwarded-for': '6.6.6.6' })).status).toBe(200);   // other networks unaffected
+  });
+});
+
 describe('GET /api/likes', () => {
   it('returns counts for the requested published products and which ones this visitor liked; never cached', async () => {
     const r = await like('p1');

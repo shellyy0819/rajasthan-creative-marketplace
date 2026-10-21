@@ -28,6 +28,14 @@ describe('sendEvent', () => {
   });
 });
 
+describe('sendEvent when sendBeacon throws (older Chrome with non-safelisted Blob types)', () => {
+  it('falls back to fetch instead of dropping the event', () => {
+    beacon.mockImplementation(() => { throw new TypeError('blocked'); });
+    expect(() => sendEvent('view', 'p4')).not.toThrow();
+    expect(fetchMock).toHaveBeenCalledWith('/api/events', expect.objectContaining({ method: 'POST', keepalive: true }));
+  });
+});
+
 describe('TrackOnMount', () => {
   it('sends once per mount, even if re-rendered; renders nothing', async () => {
     const { container, rerender } = render(<TrackOnMount productId="p1" type="view" />);

@@ -3,25 +3,28 @@ import { useEffect, useState } from 'react';
 import { gaEvent } from '@/lib/analytics';
 
 type LikeInfo = { counts: Record<string, number>; liked: string[] };
-let pending: Map<string, (i: { count: number; liked: boolean }) => void> | null = null;
+type Info = { count: number; liked: boolean };
+let pending: Map<string, ((i: Info) => void)[]> | null = null;
 export const __resetLikeBatchForTests = () => { pending = null; };
 
-/** All LikeButtons that mount in the same tick share ONE GET /api/likes?ids=…, so a grid of 24 cards costs one request. */
-function loadState(id: string): Promise<{ count: number; liked: boolean }> {
+/** All LikeButtons that mount in the same tick share ONE GET /api/likes?ids=…, so a grid of 24 cards costs one request.
+ *  The same product can be on the page twice (Trending row + catalog): every waiter for an id is resolved. */
+function loadState(id: string): Promise<Info> {
   return new Promise(resolve => {
     if (!pending) {
-      const batch = new Map<string, (i: { count: number; liked: boolean }) => void>();
+      const batch = new Map<string, ((i: Info) => void)[]>();
       pending = batch;
       setTimeout(async () => {
         pending = null;
+        const settle = (pid: string, info: Info) => batch.get(pid)?.forEach(done => done(info));
         try {
           const r = await fetch(`/api/likes?ids=${encodeURIComponent([...batch.keys()].join(','))}`);
           const data = (await r.json()) as LikeInfo;
-          for (const [pid, done] of batch) done({ count: data.counts[pid] ?? 0, liked: data.liked.includes(pid) });
-        } catch { for (const done of batch.values()) done({ count: -1, liked: false }); }
+          for (const pid of batch.keys()) settle(pid, { count: data.counts[pid] ?? 0, liked: data.liked.includes(pid) });
+        } catch { for (const pid of batch.keys()) settle(pid, { count: -1, liked: false }); }
       }, 0);
     }
-    pending.set(id, resolve);
+    pending.set(id, [...(pending.get(id) ?? []), resolve]);
   });
 }
 

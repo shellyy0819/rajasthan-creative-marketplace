@@ -1,5 +1,5 @@
 import { auth } from '@/auth';
-import { VISITOR_COOKIE, isVisitorId, likeActor, newVisitorId, readCookie, visitorCookie } from '@/lib/actors';
+import { VISITOR_COOKIE, clientIp, isVisitorId, likeActor, newVisitorId, readCookie, visitorCookie } from '@/lib/actors';
 import { handle, json } from '@/lib/api';
 import { ApiError } from '@/lib/errors';
 import { likeProduct, unlikeProduct } from '@/lib/engagement';
@@ -16,6 +16,7 @@ async function identify(req: Request) {
 }
 const guard = (req: Request) => {
   if (!/^application\/json\b/i.test(req.headers.get('content-type') ?? '')) throw new ApiError(415, 'Content-Type must be application/json');
+  if (!limits.ipLikeLimiter.hit(clientIp(req.headers))) throw new ApiError(429, 'Too many requests.');
 };
 const respond = (body: unknown, setCookie: string | null) => json(body, 200, setCookie ? { 'set-cookie': setCookie } : undefined);
 
