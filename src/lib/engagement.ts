@@ -7,6 +7,9 @@ export type EventType = 'view' | 'contact' | 'artist';
 const NOT_FOUND = () => new ApiError(404, 'Product not found.');
 const MAX_IDS = 60;
 
+/** Postgres foreign_key_violation (drizzle wraps the driver error in `cause`). */
+const isFkViolation = (e: unknown) => [e, (e as { cause?: unknown } | null)?.cause].some(x => (x as { code?: string } | null)?.code === '23503');
+
 async function publishedStatus(id: string): Promise<'APPROVED' | 'OTHER' | 'MISSING'> {
   const [row] = await getDb().select({ status: products.status }).from(products).where(eq(products.id, id));
   return !row ? 'MISSING' : row.status === 'APPROVED' ? 'APPROVED' : 'OTHER';
@@ -15,7 +18,8 @@ const likeCount = async (id: string) => (await getDb().select({ n: count() }).fr
 
 export async function likeProduct(productId: string, actor: string): Promise<{ liked: true; count: number }> {
   if ((await publishedStatus(productId)) !== 'APPROVED') throw NOT_FOUND();
-  await getDb().insert(productLikes).values({ productId, actor }).onConflictDoNothing();
+  try { await getDb().insert(productLikes).values({ productId, actor }).onConflictDoNothing(); }
+  catch (e) { if (isFkViolation(e)) throw NOT_FOUND(); throw e; } // product deleted after the check
   return { liked: true, count: await likeCount(productId) };
 }
 
@@ -39,6 +43,8 @@ export async function likeState(ids: string[], actor?: string): Promise<{ counts
 export async function recordEvent(e: { productId: string; type: EventType; actor: string }, now = new Date()): Promise<'recorded' | 'duplicate' | 'ignored'> {
   if ((await publishedStatus(e.productId)) !== 'APPROVED') return 'ignored';
   const day = now.toISOString().slice(0, 10);
-  const rows = await getDb().insert(productEvents).values({ productId: e.productId, type: e.type, actor: e.actor, day }).onConflictDoNothing().returning({ id: productEvents.id });
-  return rows.length ? 'recorded' : 'duplicate';
+  try {
+    const rows = await getDb().insert(productEvents).values({ productId: e.productId, type: e.type, actor: e.actor, day }).onConflictDoNothing().returning({ id: productEvents.id });
+    return rows.length ? 'recorded' : 'duplicate';
+  } catch (err) { if (isFkViolation(err)) return 'ignored'; throw err; } // product deleted after the check
 }

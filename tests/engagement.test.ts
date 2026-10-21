@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { likeProduct, likeState, recordEvent, unlikeProduct } from '@/lib/engagement';
 import { createProduct, deleteProduct, updateProduct } from '@/lib/admin';
@@ -87,5 +87,27 @@ describe('events', () => {
     const rs = await Promise.all(Array.from({ length: 15 }, () => recordEvent({ productId: 'p2', type: 'view', actor: 'h:same' }, new Date('2026-10-20T10:00:00Z'))));
     expect(rs.filter(r => r === 'recorded')).toHaveLength(1);
     expect((await db.select().from(productEvents).where(eq(productEvents.productId, 'p2')))).toHaveLength(1);
+  });
+});
+
+describe('product deleted between the published check and the write', () => {
+  it('liking answers 404 (not a 500 foreign-key error)', async () => {
+    const db = await getTestDb();
+    const real = db.insert.bind(db);
+    vi.spyOn(db, 'insert').mockImplementationOnce(((table: never) => { throw Object.assign(new Error('violates foreign key'), { code: '23503' }); void real; }) as never);
+    await expect(likeProduct('p1', 'v:a')).rejects.toMatchObject({ status: 404, message: 'Product not found.' });
+    vi.restoreAllMocks();
+  });
+  it('an event for it is ignored, not an error', async () => {
+    const db = await getTestDb();
+    vi.spyOn(db, 'insert').mockImplementationOnce((() => { throw Object.assign(new Error('violates foreign key'), { cause: { code: '23503' } }); }) as never);
+    expect(await recordEvent({ productId: 'p1', type: 'view', actor: 'h:a' })).toBe('ignored');
+    vi.restoreAllMocks();
+  });
+  it('other database errors still surface', async () => {
+    const db = await getTestDb();
+    vi.spyOn(db, 'insert').mockImplementationOnce((() => { throw new Error('boom'); }) as never);
+    await expect(likeProduct('p1', 'v:a')).rejects.toThrow('boom');
+    vi.restoreAllMocks();
   });
 });
