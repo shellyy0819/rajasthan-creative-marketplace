@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Playfair_Display } from 'next/font/google';
 import './globals.css';
@@ -8,6 +9,8 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { StoreProvider } from '@/components/StoreProvider';
 import { AuthProvider } from '@/components/AuthProvider';
+import { Analytics } from '@/components/Analytics';
+import { hostConfig } from '@/lib/hosts';
 
 const sans = DM_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-sans', display: 'swap' });
 const serif = Playfair_Display({ subsets: ['latin'], weight: ['500', '600', '700'], style: ['normal', 'italic'], variable: '--font-serif', display: 'swap' });
@@ -37,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </StoreProvider>
         </AuthProvider>
         <Footer />
+        <Suspense fallback={null}><Analytics measurementId={process.env.GA_MEASUREMENT_ID} dashboardHost={hostConfig().dashboardHost} /></Suspense>
       </body>
     </html>
   );
