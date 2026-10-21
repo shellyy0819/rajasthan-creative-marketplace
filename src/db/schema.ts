@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { type AnyPgColumn, bigint, boolean, check, index, integer, pgTable, primaryKey, serial, smallint, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { type AnyPgColumn, bigint, bigserial, boolean, check, date, index, integer, pgTable, primaryKey, serial, smallint, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 export const roles = pgTable('roles', {
   id: smallint('id').primaryKey(),
@@ -141,3 +141,22 @@ export const idCounters = pgTable('id_counters', {
   prefix: text('prefix').primaryKey(),
   value: integer('value').notNull(),
 });
+
+export const productLikes = pgTable('product_likes', {
+  productId: text('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  actor: text('actor').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [primaryKey({ columns: [t.productId, t.actor] }), index('product_likes_created_idx').on(t.createdAt)]);
+
+export const productEvents = pgTable('product_events', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  productId: text('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(),
+  actor: text('actor').notNull(),
+  day: date('day', { mode: 'string' }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [
+  check('product_events_type_valid', sql`${t.type} in ('view', 'contact', 'artist')`),
+  uniqueIndex('product_events_unique_idx').on(t.productId, t.type, t.actor, t.day),
+  index('product_events_day_idx').on(t.day),
+]);

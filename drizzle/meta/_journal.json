@@ -50,6 +50,13 @@
       "when": 1792138114295,
       "tag": "0006_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792599826753,
+      "tag": "0007_trending",
+      "breakpoints": true
     }
   ]
 }

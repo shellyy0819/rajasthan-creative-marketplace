@@ -1,5 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
 import type { AdminProduct, Booking, Order, OrderItem, Product, Workshop } from '../lib/types';
+import { artistSlug } from '../lib/artist-slug';
 import type { Q } from './client';
 import { bookings, orderItems, orders, products, sellerProfiles, users, workshops } from './schema';
 
@@ -22,13 +23,14 @@ export const productSelect = {
   publicEmail: sellerProfiles.publicEmail,
   instagram: sellerProfiles.instagram,
   youtube: sellerProfiles.youtube,
+  likeCount: sql<number>`(select count(*) from product_likes pl where pl.product_id = ${products.id})`.mapWith(Number),
   publishedByEmail: sql<string | null>`(select pu.email from users pu where pu.id = ${products.publishedBy})`,
   workshopTitle: sql<string | null>`(select pw.title from workshops pw where pw.id = ${products.workshopId})`,
 };
 export type ProductJoinRow = {
   p: ProductRow; sellerName: string; sellerEmail: string;
   publicPhone: string | null; publicEmail: string | null; instagram: string | null; youtube: string | null;
-  publishedByEmail: string | null; workshopTitle: string | null;
+  publishedByEmail: string | null; workshopTitle: string | null; likeCount: number;
 };
 /** SELECT products + seller + profile. Add .where(...) / .orderBy(...) / .for('update', { of: products }) as needed. */
 export const productsQuery = (q: Q) =>
@@ -41,6 +43,7 @@ export const toProduct = (r: ProductJoinRow): Product => ({
   seller: r.sellerName, description: r.p.description, stock: r.p.stock, status: r.p.status,
   ...opt('instagram', r.instagram), ...opt('youtube', r.youtube), ...opt('phone', r.publicPhone),
   ...opt('email', r.publicEmail), ...opt('imageUrl', r.p.imageUrl), ...opt('workshopId', r.p.workshopId),
+  likeCount: r.likeCount, sellerSlug: artistSlug(r.sellerName, r.p.sellerId),
 });
 
 export const toAdminProduct = (r: ProductJoinRow): AdminProduct => ({
