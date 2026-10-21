@@ -4,6 +4,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 
 const nav = vi.hoisted(() => ({ path: '/', search: '' }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 vi.mock('next/navigation', () => ({ usePathname: () => nav.path, useSearchParams: () => new URLSearchParams(nav.search) }));
 import { Analytics, OPEN_SETTINGS_EVENT } from '@/components/Analytics';
 import { CONSENT_KEY, __resetAnalyticsForTests } from '@/lib/analytics';
@@ -140,5 +142,33 @@ describe('Analytics: changing your mind', () => {
     const region = screen.getByRole('region', { name: /cookie/i });
     expect(region.textContent).toMatch(/Google Analytics/);
     for (const b of screen.getAllByRole('button')) expect((b as HTMLButtonElement).type).toBe('button');
+  });
+});
+
+import { CookieSettings } from '@/components/CookieSettings';
+
+describe('CookieSettings link', () => {
+  it('is a button that dispatches the open-settings event', () => {
+    const seen = vi.fn(); window.addEventListener(OPEN_SETTINGS_EVENT, seen);
+    render(<CookieSettings />);
+    const b = screen.getByRole('button', { name: 'Cookie settings' }) as HTMLButtonElement;
+    expect(b.type).toBe('button');
+    fireEvent.click(b);
+    expect(seen).toHaveBeenCalledTimes(1);
+    window.removeEventListener(OPEN_SETTINGS_EVENT, seen);
+  });
+  it('the footer has it', async () => {
+    const { Footer } = await import('@/components/Footer');
+    render(<Footer />);
+    expect(screen.getByRole('button', { name: 'Cookie settings' })).toBeTruthy();
+  });
+});
+
+describe('banner styles', () => {
+  it('is fixed to the bottom, above content, full width on phones, and keeps the shared control height', async () => {
+    const css = (await import('node:fs')).readFileSync('src/app/globals.css', 'utf8');
+    expect(css).toMatch(/\.cookie-banner\{[^}]*position:fixed[^}]*bottom/);
+    expect(css).toMatch(/\.cookie-banner\{[^}]*z-index:\d+/);
+    expect(css).toMatch(/@media\(max-width:\d+px\)\{[^}]*\.cookie-banner/);
   });
 });
