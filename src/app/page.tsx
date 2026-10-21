@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Hero } from '@/components/Hero';
 import { HomeCraftExplorer } from '@/components/HomeCraftExplorer';
 import { WorkshopList } from '@/components/WorkshopList';
+import { TrendingSection } from '@/components/TrendingSection';
 import { listProducts, listWorkshops, CITIES, citySlug } from '@/lib/catalog';
 import { pageMetadata } from '@/lib/meta';
 import { SITE } from '@/lib/site';
@@ -24,6 +25,7 @@ export default async function Home() {
   return (
     <>
       <Hero />
+      <TrendingSection />
       <section className="section" id="shop" aria-labelledby="shop-h">
         <div className="section-heading">
           <div><span className="eyebrow">THE MAKERS&apos; SHELF</span><h2 id="shop-h">Handmade finds</h2></div>

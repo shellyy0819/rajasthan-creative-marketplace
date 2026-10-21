@@ -5,6 +5,7 @@ import { render, screen, fireEvent, act, cleanup } from '@testing-library/react'
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 vi.mock('@/components/AddToCartButton', () => ({ AddToCartButton: ({ product }: any) => <button>add {product.id}</button> }));
+vi.mock('@/components/LikeButton', () => ({ LikeButton: () => null }));
 vi.mock('@/components/ReserveButton', () => ({ ReserveButton: ({ workshop }: any) => <button>reserve {workshop.id}</button> }));
 
 import { LiveCatalog } from '@/components/LiveCatalog';
