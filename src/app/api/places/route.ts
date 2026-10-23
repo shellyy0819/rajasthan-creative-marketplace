@@ -20,8 +20,10 @@ function limit(email: string) {
 /** Place suggestions for the pickup-location field. Sellers and admins only (it proxies a third-party service). */
 export const GET = (req: Request) => handle(async () => {
   const user = requireStaff(await auth());
-  const q = new URL(req.url).searchParams.get('q') ?? '';
+  const params = new URL(req.url).searchParams;
+  const q = params.get('q') ?? '';
   if (q.trim().length < 2) return json([], 200, { 'cache-control': 'private, max-age=60' });
   limit(user.email);
-  return json(await searchPlaces(q), 200, { 'cache-control': 'private, max-age=300' });
+  const found = params.get('type') === 'city' ? await searchPlaces(q, undefined, { cityOnly: true }) : await searchPlaces(q);
+  return json(found, 200, { 'cache-control': 'private, max-age=300' });
 });
