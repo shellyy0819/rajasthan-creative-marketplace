@@ -4,6 +4,7 @@ import type { Db as LegacyDb } from '../lib/types';
 import type { Database } from './client';
 import { ensureSellerProfile, ensureUser, grantRole } from './people';
 import { istToDate, toProductRow } from './mappers';
+import { ensureCityByName, LAUNCH_CITIES } from '../lib/cities';
 import { bookings, categories, idCounters, orderItems, orders, products, sellerProfiles, workshops } from './schema';
 import { DEFAULT_CATEGORIES } from '../lib/catalog-shared';
 
@@ -11,8 +12,9 @@ export type { LegacyDb };
 const LEGACY_EMAIL = 'legacy@rangrajasthan.invalid';
 
 export async function truncateAll(db: Database): Promise<void> {
+  // cities is wiped too (the migration's launch cities included); seedFromJson recreates the ones it needs.
   // roles is reference data (seeded by a migration) and is deliberately kept.
-  await db.execute(sql`truncate table order_items, orders, bookings, products, workshops, seller_profiles, user_roles, users, categories, id_counters restart identity cascade`);
+  await db.execute(sql`truncate table order_items, orders, bookings, products, workshops, seller_profiles, user_roles, users, categories, cities, id_counters restart identity cascade`);
 }
 
 const maxNumericId = (prefix: string, ids: string[]) =>
@@ -32,6 +34,16 @@ export async function seedFromJson(db: Database, data: LegacyDb) {
     for (const name of new Set<string>([...DEFAULT_CATEGORIES, ...(data.products ?? []).map(p => p.category)]))
       await tx.insert(categories).values({ name }).onConflictDoNothing();
 
+    const cityIds = new Map<string, number>(); // lower(name) -> cities.id
+    const cityId = async (name: string) => {
+      const key = name.trim().replace(/\s+/g, ' ').toLowerCase();
+      if (!cityIds.has(key)) {
+        const launch = LAUNCH_CITIES.find(c => c.name.toLowerCase() === key);
+        cityIds.set(key, (await ensureCityByName(tx, name, launch)).id);
+      }
+      return cityIds.get(key)!;
+    };
+
     const sellers = new Map<string, string>(); // artistKey -> user id
     for (const p of data.products ?? []) {
       const key = artistKey(p.seller);
@@ -47,12 +59,13 @@ export async function seedFromJson(db: Database, data: LegacyDb) {
     }
 
     for (const p of data.products ?? []) {
-      const r = await tx.insert(products).values({ id: p.id, sellerId: sellers.get(artistKey(p.seller))!, ...toProductRow(p) }).onConflictDoNothing().returning({ id: products.id });
+      const { city, ...row } = toProductRow(p);
+      const r = await tx.insert(products).values({ id: p.id, sellerId: sellers.get(artistKey(p.seller))!, ...row, cityId: await cityId(city) }).onConflictDoNothing().returning({ id: products.id });
       inserted.products += r.length;
     }
     for (const w of data.workshops ?? []) {
       const r = await tx.insert(workshops).values({
-        id: w.id, title: w.title, type: w.type, pricePaise: w.pricePaise, city: w.city, venue: w.venue,
+        id: w.id, title: w.title, type: w.type, pricePaise: w.pricePaise, cityId: await cityId(w.city), venue: w.venue,
         startsAt: istToDate(w.date, w.time), seats: w.seats, booked: w.booked, hostName: w.host,
         description: w.description, status: w.status,
       }).onConflictDoNothing().returning({ id: workshops.id });
