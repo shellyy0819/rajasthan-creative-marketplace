@@ -1,10 +1,24 @@
 import { sql } from 'drizzle-orm';
-import { type AnyPgColumn, bigint, bigserial, boolean, check, date, index, integer, pgTable, primaryKey, serial, smallint, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { type AnyPgColumn, bigint, bigserial, boolean, check, date, doublePrecision, index, integer, pgTable, primaryKey, serial, smallint, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 export const roles = pgTable('roles', {
   id: smallint('id').primaryKey(),
   name: text('name').notNull().unique(),
 });
+
+/** Cities where artists, products and workshops are located. Rows come from OpenStreetMap (osm_*) or the launch seed. */
+export const cities = pgTable('cities', {
+  id: serial('id').primaryKey(),
+  osmType: text('osm_type'),
+  osmId: bigint('osm_id', { mode: 'number' }),
+  name: text('name').notNull(),
+  state: text('state'),
+  slug: text('slug').notNull().unique(),
+  lat: doublePrecision('lat'),
+  lng: doublePrecision('lng'),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [uniqueIndex('cities_osm_idx').on(t.osmType, t.osmId)]);
+export type CityRow = typeof cities.$inferSelect;
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -12,11 +26,11 @@ export const users = pgTable('users', {
   googleSub: text('google_sub').unique(),
   name: text('name').notNull(),
   phone: text('phone'),
-  city: text('city'),
+  cityId: integer('city_id').references(() => cities.id, { onDelete: 'set null' }),
   active: boolean('active').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
-}, t => [uniqueIndex('users_email_lower_idx').on(sql`lower(${t.email})`)]);
+}, t => [uniqueIndex('users_email_lower_idx').on(sql`lower(${t.email})`), index('users_city_idx').on(t.cityId)]);
 
 export const userRoles = pgTable('user_roles', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -33,8 +47,8 @@ export const sellerProfiles = pgTable('seller_profiles', {
   instagram: text('instagram'),
   youtube: text('youtube'),
   bio: text('bio'),
-  city: text('city'),
-});
+  cityId: integer('city_id').references(() => cities.id, { onDelete: 'set null' }),
+}, t => [index('seller_profiles_city_idx').on(t.cityId)]);
 
 /** Product categories. Anyone who can create products may add one; names are unique ignoring case. */
 export const categories = pgTable('categories', {
@@ -48,7 +62,7 @@ export const products = pgTable('products', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   category: text('category').notNull().references(() => categories.name, { onUpdate: 'cascade', onDelete: 'restrict' }),
-  city: text('city').notNull(),
+  cityId: integer('city_id').notNull().references(() => cities.id, { onDelete: 'restrict' }),
   pricePaise: integer('price_paise').notNull(),
   description: text('description').notNull(),
   stock: integer('stock').notNull(),
@@ -68,6 +82,7 @@ export const products = pgTable('products', {
   index('products_status_idx').on(t.status),
   index('products_seller_idx').on(t.sellerId),
   index('products_workshop_idx').on(t.workshopId),
+  index('products_city_idx').on(t.cityId),
 ]);
 
 export const workshops = pgTable('workshops', {
@@ -75,7 +90,7 @@ export const workshops = pgTable('workshops', {
   title: text('title').notNull(),
   type: text('type').notNull(),
   pricePaise: integer('price_paise').notNull(),
-  city: text('city').notNull(),
+  cityId: integer('city_id').notNull().references(() => cities.id, { onDelete: 'restrict' }),
   venue: text('venue').notNull(),
   seats: integer('seats').notNull(),
   booked: integer('booked').notNull().default(0),
@@ -95,6 +110,7 @@ export const workshops = pgTable('workshops', {
   index('workshops_status_idx').on(t.status),
   index('workshops_host_idx').on(t.hostId),
   index('workshops_starts_idx').on(t.startsAt),
+  index('workshops_city_idx').on(t.cityId),
 ]);
 
 export const orders = pgTable('orders', {

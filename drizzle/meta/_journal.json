@@ -64,6 +64,13 @@
       "when": 1792772864625,
       "tag": "0008_artist_bio_city",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792776817808,
+      "tag": "0009_cities",
+      "breakpoints": true
     }
   ]
 }

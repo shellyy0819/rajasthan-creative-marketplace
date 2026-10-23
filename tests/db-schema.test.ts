@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import { getTestDb, giveRole, resetTestDb, snapshot } from './helpers/testdb';
 import { seedFromJson, truncateAll, type LegacyDb } from '@/db/seed';
 import { allocateId } from '@/db/ids';
-import { idCounters, orderItems, orders, products, workshops, users } from '@/db/schema';
+import { cities, idCounters, orderItems, orders, products, workshops, users } from '@/db/schema';
 import { productsQuery, toProduct, toProductRow } from '@/db/mappers';
 
 const valid = { name: 'N', category: 'Pottery', city: 'Jaipur', pricePaise: 100, description: 'D', stock: 1, status: 'APPROVED' };
@@ -12,6 +12,32 @@ let sellerId: string;
 let buyerId: string;
 const fixture = (): LegacyDb => JSON.parse(fs.readFileSync('tests/fixtures/db.json', 'utf8'));
 
+// Bare migrated database (no seed): these run before any seeded test truncates the launch cities.
+describe('cities table (fresh migration)', () => {
+  it('creates Udaipur, Jaipur and Jodhpur in Rajasthan with their old slugs and coordinates', async () => {
+    const db = await getTestDb();
+    const rows = await db.select().from(cities);
+    expect(rows.map(r => r.slug).sort()).toEqual(['jaipur', 'jodhpur', 'udaipur']);
+    for (const r of rows) {
+      expect(r.state).toBe('Rajasthan');
+      expect(r.lat).not.toBeNull();
+      expect(r.lng).not.toBeNull();
+    }
+  });
+  it('rejects two cities with the same osm type and id', async () => {
+    const db = await getTestDb();
+    await db.insert(cities).values({ osmType: 'relation', osmId: 12345, name: 'Kota', slug: 'kota' });
+    await expect(db.insert(cities).values({ osmType: 'relation', osmId: 12345, name: 'Kota 2', slug: 'kota-2' })).rejects.toThrow();
+  });
+  it('rejects a product without a city', async () => {
+    const db = await getTestDb();
+    const [u] = await db.insert(users).values({ email: 'nocity@x.co', name: 'N' }).returning();
+    const { city: _city, ...rest } = valid;
+    await expect(db.insert(products).values({ id: 'nc1', sellerId: u.id, ...rest } as any)).rejects.toThrow();
+  });
+});
+
+describe('seeded database', () => {
 beforeEach(async () => {
   await resetTestDb();
   sellerId = (await giveRole('s@x.co', 'seller')).id;
@@ -163,4 +189,5 @@ describe('users, roles and profiles (new tables)', () => {
     const [row] = await db.select().from(workshops).where(eq(workshops.id, 'w1'));
     expect(row.startsAt.toISOString()).toBe('2026-11-08T05:30:00.000Z');
   });
+});
 });
