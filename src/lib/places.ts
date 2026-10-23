@@ -29,14 +29,16 @@ export function placeLabel(p: Props): string {
   return parts.filter(x => (seen.has(x.toLowerCase()) ? false : (seen.add(x.toLowerCase()), true))).join(', ');
 }
 
-const cache = new Map<string, { at: number; value: Place[] }>();
-export const clearPlacesCache = () => cache.clear();
+type CacheEntry = { at: number; value: Place[] };
+const caches = { plain: new Map<string, CacheEntry>(), city: new Map<string, CacheEntry>() };
+export const clearPlacesCache = () => { caches.plain.clear(); caches.city.clear(); };
 
 export async function searchPlaces(q: string, fetchImpl: typeof fetch = fetch, opts: { cityOnly?: boolean } = {}): Promise<Place[]> {
   const needle = normalizeQuery(q);
   if (needle.length < 2) return [];
   const cityOnly = !!opts.cityOnly;
-  const key = `${cityOnly ? 'city:' : ''}${needle.toLowerCase()}`;
+  const cache = cityOnly ? caches.city : caches.plain;
+  const key = needle.toLowerCase();
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value;
 

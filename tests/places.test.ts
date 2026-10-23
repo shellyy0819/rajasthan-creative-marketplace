@@ -138,6 +138,20 @@ describe('searchPlaces cityOnly', () => {
     expect(city[0].ref).toBeTruthy();
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
+  it('plain and cityOnly caches never serve each other, even for a query that looks like a prefix', async () => {
+    const mk = () => vi.fn(() => photon(g({ name: 'Udaipur', osm_value: 'city', osm_type: 'R', osm_id: 1, state: 'Rajasthan' })));
+    const a = mk();
+    await searchPlaces('city:udai', a as never);
+    const cityHit = await searchPlaces('udai', a as never, { cityOnly: true });
+    expect(a).toHaveBeenCalledTimes(2);
+    expect(cityHit[0].ref).toBeTruthy();
+    clearPlacesCache();
+    const b = mk();
+    await searchPlaces('udai', b as never, { cityOnly: true });
+    const plain = await searchPlaces('city:udai', b as never);
+    expect(b).toHaveBeenCalledTimes(2);
+    expect(plain[0]).not.toHaveProperty('ref');
+  });
   it('without cityOnly is unchanged (no ref)', async () => {
     const fetchImpl = vi.fn(() => photon(g({ name: 'Udaipur', osm_value: 'city', osm_type: 'R', osm_id: 1, state: 'Rajasthan' })));
     expect(await searchPlaces('udai', fetchImpl as never)).toEqual([{ label: 'Udaipur, Rajasthan', name: 'Udaipur', state: 'Rajasthan' }]);

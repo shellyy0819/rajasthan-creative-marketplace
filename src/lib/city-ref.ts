@@ -36,5 +36,7 @@ export function verifyCityRef(ref: unknown, now: number = Date.now()): CityPick 
   const { osmType, osmId, name, state, lat, lng } = d;
   if (typeof osmType !== 'string' || typeof osmId !== 'number' || typeof name !== 'string' || typeof lat !== 'number' || typeof lng !== 'number'
     || (state !== undefined && typeof state !== 'string')) throw INVALID();
+  if (!Number.isInteger(osmId) || !(lat >= -90 && lat <= 90) || !(lng >= -180 && lng <= 180)
+    || !name.trim() || name.length > 200 || (state !== undefined && state.length > 100)) throw INVALID();
   return { osmType, osmId, name, ...(state ? { state } : {}), lat, lng };
 }

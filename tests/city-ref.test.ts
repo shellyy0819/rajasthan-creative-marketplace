@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { signCityRef, verifyCityRef, type CityPick } from '@/lib/city-ref';
 import { ApiError } from '@/lib/errors';
@@ -42,5 +43,29 @@ describe('city refs', () => {
     vi.stubEnv('NEXTAUTH_SECRET', '');
     expect(() => signCityRef(pick, NOW)).toThrow(/NEXTAUTH_SECRET/);
     expect(() => verifyCityRef('a.b', NOW)).toThrow(/NEXTAUTH_SECRET/);
+  });
+
+  describe('signed but malformed payloads', () => {
+    const raw = (payload: string) => `${payload}.${createHmac('sha256', 'test-secret').update(payload).digest('base64url')}`;
+    const obj = (o: unknown) => raw(Buffer.from(JSON.stringify(o)).toString('base64url'));
+    const good = { ...pick, exp: NOW + DAY };
+    it('accepts the baseline', () => expect(verifyCityRef(obj(good), NOW)).toEqual(pick));
+    it('rejects bad JSON, non-objects and bad base64', () => {
+      invalid(() => verifyCityRef(raw(Buffer.from('{nope').toString('base64url')), NOW));
+      for (const v of [null, 5, 'x', [1]]) invalid(() => verifyCityRef(obj(v), NOW));
+      invalid(() => verifyCityRef(raw('!!!'), NOW));
+      invalid(() => verifyCityRef('nodot', NOW));
+      invalid(() => verifyCityRef('a.b.c', NOW));
+      invalid(() => verifyCityRef('.', NOW));
+    });
+    it('rejects wrong field types and missing exp', () => {
+      for (const bad of [{ osmType: 1 }, { osmId: '1' }, { name: 5 }, { lat: '1' }, { lng: null }, { state: 3 }, { exp: '9' }, { exp: undefined }])
+        invalid(() => verifyCityRef(obj({ ...good, ...bad }), NOW));
+    });
+    it('rejects out-of-range or odd values', () => {
+      for (const bad of [{ lat: 91 }, { lat: -91 }, { lng: 181 }, { lng: -181 }, { name: '' }, { name: '   ' }, { name: 'x'.repeat(201) },
+        { state: 'x'.repeat(101) }, { osmId: 1.5 }])
+        invalid(() => verifyCityRef(obj({ ...good, ...bad }), NOW));
+    });
   });
 });
