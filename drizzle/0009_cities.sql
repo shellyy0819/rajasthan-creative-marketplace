@@ -65,7 +65,25 @@ UPDATE "seller_profiles" SET "city_id" = (SELECT c.id FROM "cities" c WHERE lowe
 --> statement-breakpoint
 UPDATE "users" SET "city_id" = (SELECT c.id FROM "cities" c WHERE lower(c.name) = lower(btrim("users".city)) ORDER BY c.id LIMIT 1) WHERE btrim(city) <> '';
 --> statement-breakpoint
+DO $$
+DECLARE n integer;
+BEGIN
+	SELECT count(*) INTO n FROM "products" WHERE city_id IS NULL;
+	IF n > 0 THEN
+		RAISE EXCEPTION 'cities migration: % products have a blank city; fix them first', n;
+	END IF;
+END $$;
+--> statement-breakpoint
 ALTER TABLE "products" ALTER COLUMN "city_id" SET NOT NULL;
+--> statement-breakpoint
+DO $$
+DECLARE n integer;
+BEGIN
+	SELECT count(*) INTO n FROM "workshops" WHERE city_id IS NULL;
+	IF n > 0 THEN
+		RAISE EXCEPTION 'cities migration: % workshops have a blank city; fix them first', n;
+	END IF;
+END $$;
 --> statement-breakpoint
 ALTER TABLE "workshops" ALTER COLUMN "city_id" SET NOT NULL;
 --> statement-breakpoint
