@@ -7,12 +7,11 @@ import { TrackOnMount } from '@/components/TrackOnMount';
 import { getArtist } from '@/lib/artists';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
+import { instagramUrl, youtubeUrl } from '@/lib/social';
 
 export const dynamic = 'force-dynamic';
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ from?: string }> };
 
-const instagramUrl = (v: string) => `https://www.instagram.com/${encodeURIComponent(v.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/^@/, '').replace(/\/$/, ''))}/`;
-const youtubeUrl = (v: string) => (/^https:\/\/(www\.)?youtube\.com\//i.test(v) || /^https:\/\/youtu\.be\//i.test(v) ? v : `https://www.youtube.com/@${encodeURIComponent(v.replace(/^@/, ''))}`);
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = (await params).slug;
@@ -40,6 +39,8 @@ export default async function ArtistPage({ params, searchParams }: Props) {
       <div className="page-head">
         <span className="eyebrow">ARTIST</span>
         <h1>{a.name}</h1>
+        {a.city && <p className="artist-city">{a.city}</p>}
+        {a.bio && <p className="contact-bio">{a.bio}</p>}
         <ul className="artist-contact">
           {a.phone && <li><a href={`tel:${a.phone.replace(/[^\d+]/g, '')}`}>{a.phone}</a></li>}
           {a.email && <li><a href={`mailto:${a.email}`}>{a.email}</a></li>}

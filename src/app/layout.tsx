@@ -22,10 +22,14 @@ export const metadata: Metadata = {
   applicationName: SITE.name,
   openGraph: { siteName: SITE.name, locale: SITE.locale, type: 'website' },
   twitter: { card: 'summary_large_image' },
+  icons: {
+    icon: [{ url: '/icons/favicon.svg', type: 'image/svg+xml' }, { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' }, { url: '/icons/favicon-16.png', sizes: '16x16', type: 'image/png' }],
+    apple: [{ url: '/icons/apple-touch-icon-180.png', sizes: '180x180', type: 'image/png' }],
+  },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } },
 };
 
-export const viewport: Viewport = { themeColor: '#f8f4ee', width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { themeColor: '#c8553d', width: 'device-width', initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

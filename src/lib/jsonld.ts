@@ -10,7 +10,7 @@ export const serializeJsonLd = (data: unknown) => JSON.stringify(data).replace(/
 export const organizationJsonLd = () => ({
   '@context': CTX, '@type': 'Organization',
   name: SITE.name, url: siteUrl(), description: SITE.description,
-  areaServed: { '@type': 'AdministrativeArea', name: 'Rajasthan, India' },
+  areaServed: { '@type': 'AdministrativeArea', name: 'India' },
 });
 
 export const websiteJsonLd = () => ({

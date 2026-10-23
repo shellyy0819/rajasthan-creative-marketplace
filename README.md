@@ -1,6 +1,6 @@
-# Rang Rajasthan — Creative Marketplace (Runnable Starter)
+# Craftology — Creative Marketplace (Runnable Starter)
 
-A small, runnable full-stack MVP for a Rajasthan handmade-products marketplace and local workshop discovery experience. Built with Next.js (App Router), Drizzle ORM and PostgreSQL (local Docker for development, [Neon](https://neon.tech) or any hosted Postgres for production). Sign-in is Google OAuth with buyer, seller and admin roles.
+A small, runnable full-stack MVP for an India-wide handmade-products marketplace and local workshop discovery experience across India. Built with Next.js (App Router), Drizzle ORM and PostgreSQL (local Docker for development, [Neon](https://neon.tech) or any hosted Postgres for production). Sign-in is Google OAuth with buyer, seller and admin roles.
 
 ## Run it
 
@@ -109,6 +109,16 @@ The seller/admin dashboard lives at `/dashboard/*`. With `DASHBOARD_URL` set, on
 
 Admins come from `ADMIN_EMAILS` (bootstrap, never locked out) or an `admin` row in `user_roles`. Roles are looked up on every request, so granting, revoking or deactivating takes effect immediately. A user who owns products, workshops, orders or bookings cannot be deleted; deactivate them instead. The last active admin cannot be removed. Deleting a workshop keeps its products (they just lose the link).
 
+## Analytics (GA4)
+
+Set `GA_MEASUREMENT_ID` to load Google Analytics 4 on the public shop after the visitor accepts the cookie banner. The dashboard is never tracked. Setup and how to read unique visitors: [docs/analytics.md](docs/analytics.md).
+
+## Trending and likes
+
+Anyone can like a published product. The home page and `/trending` show what is trending this week: a weighted mix of unique views, contact clicks, artist-profile visits and likes, with at most one product per artist. How it is computed and what is stored: [docs/trending.md](docs/trending.md).
+
+New endpoints: `POST|DELETE /api/products/:id/like`, `GET /api/likes?ids=`, `POST /api/events`, `GET /api/trending`. New pages: `/trending`, `/artists/:slug`.
+
 ## Pickup-location suggestions
 
 The product form's **Pickup location** field suggests places as you type (areas, cities, landmarks across India, Rajasthan first), like a map search box: `udai` offers *Udaipur, Rajasthan*, `ambra` offers *Ambrai Ghat, Udaipur*. Any text is still accepted. Suggestions come from [Photon](https://photon.komoot.io) (free, no API key, OpenStreetMap data © OpenStreetMap contributors) through `GET /api/places?q=`, which is limited to signed-in sellers and admins, capped at 60 lookups a minute per user, and cached for 10 minutes. Photon is fair-use with no uptime promise: if it is down the field simply works as plain text. For heavy traffic, self-host Photon or swap the one function in `src/lib/places.ts`.
@@ -188,7 +198,7 @@ Planned, not started unless marked otherwise. Each item is tracked here so the s
 | 2 | **GTAG** (Google tag / gtag.js analytics) | Planned | Page and event tracking through a Google tag, loaded only with a configured measurement ID. Needs an env variable, a consent decision and a privacy note before launch. |
 | 3 | **Chatbot** | Planned | Help assistant for buyers and sellers (finding products, workshops, order and seller questions). Scope and provider still to be decided. |
 | 4 | **Willing to put a stall** | Planned | Sellers and artisans express interest in taking a stall at a workshop or exhibition. Captures the seller, the event and their availability for admin follow-up. Builds on the seller profile and the workshop/exhibition items below. |
-| 5 | **Blogs** | Planned | Editorial posts (stories about artisans, crafts and Rajasthan) with their own list and detail pages, SEO metadata and admin-only publishing. |
+| 5 | **Blogs** | Planned | Editorial posts (stories about artisans, crafts and India) with their own list and detail pages, SEO metadata and admin-only publishing. |
 | 6 | **Workshops / Exhibition** | Planned | Extend workshops to cover exhibitions (multi-day, venue and stall listings) alongside single-session workshops. Depends on the stall interest flow (item 4). |
 | 7 | **Language support (Hindi / English)** | Planned | Switch the UI between Hindi and English, with translated static text, localized dates and numbers, and a language choice remembered per user. Product and workshop content entry stays in the language it was written in unless translated by the seller or admin. |
 | 8 | **Voluntary workshops arranged for NGO people** | Planned | Free, volunteer-led workshops for NGO members, arranged with partner NGOs and open to their staff and beneficiaries. Needs an NGO (organization) profile, a way for NGOs to request or host a workshop, and a free-seat option that skips payment. Builds on the existing workshop and booking flow. |

@@ -2,7 +2,7 @@
   "name": "rajasthan-creative-marketplace",
   "version": "0.2.0",
   "private": true,
-  "description": "Next.js marketplace for Rajasthan handmade products and creative workshops",
+  "description": "Next.js marketplace for India handmade products and creative workshops",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

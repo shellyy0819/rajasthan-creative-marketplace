@@ -116,6 +116,7 @@ const toProfile = (r: typeof sellerProfiles.$inferSelect): SellerProfile => ({
   userId: r.userId, displayName: r.displayName,
   ...(r.publicPhone ? { publicPhone: r.publicPhone } : {}), ...(r.publicEmail ? { publicEmail: r.publicEmail } : {}),
   ...(r.instagram ? { instagram: r.instagram } : {}), ...(r.youtube ? { youtube: r.youtube } : {}),
+  ...(r.bio ? { bio: r.bio } : {}), ...(r.city ? { city: r.city } : {}),
 });
 
 export async function getProfileByEmail(email: string): Promise<SellerProfile> {
@@ -139,6 +140,8 @@ export async function saveProfile(userId: string, input: unknown): Promise<Selle
     publicEmail: optionalEmail(raw.publicEmail, 'publicEmail') ?? null,
     instagram: optionalText(raw.instagram, 'instagram', 200) ?? null,
     youtube: optionalText(raw.youtube, 'youtube', 200) ?? null,
+    bio: optionalText(raw.bio, 'bio', 500) ?? null,
+    city: optionalText(raw.city, 'city', 100) ?? null,
   };
   return getDb().transaction(async tx => {
     const [u] = await tx.select({ id: users.id }).from(users).where(eq(users.id, userId));

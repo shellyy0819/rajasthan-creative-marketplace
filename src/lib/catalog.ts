@@ -11,7 +11,7 @@ export { CITIES, DEFAULT_CATEGORIES, citySlug, cityFromSlug, productSlug, worksh
 export type ProductFilter = { city?: string; category?: string; q?: string };
 export type WorkshopFilter = { city?: string; type?: string; q?: string };
 
-const anyCity = (c?: string) => !c || c === 'All Rajasthan';
+const anyCity = (c?: string) => !c || c === 'All India';
 const idOrder = (t: { id: typeof productsT.id | typeof workshopsT.id }) => [sql`length(${t.id})`, asc(t.id)] as const;
 const productDoc = sql`concat_ws(' ', ${productsT.name}, ${productsT.description}, ${sellerNameSql}, ${productsT.category})`;
 const workshopDoc = sql`concat_ws(' ', ${workshopsT.title}, ${workshopsT.description}, ${workshopsT.venue}, ${workshopsT.hostName})`;

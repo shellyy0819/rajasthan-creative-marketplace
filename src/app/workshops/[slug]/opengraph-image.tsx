@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { getWorkshopBySlug } from '@/lib/catalog';
 import { renderOg, ogSize } from '@/lib/og';
 
-export const alt = 'Creative workshop in Rajasthan';
+export const alt = 'Creative workshop in India';
 export const size = ogSize;
 export const contentType = 'image/png';
 

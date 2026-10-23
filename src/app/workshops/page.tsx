@@ -12,7 +12,7 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const f = parseFilters(await searchParams);
   return pageMetadata({
-    title: 'Creative workshops & pop-ups in Rajasthan',
+    title: 'Creative workshops & pop-ups in India',
     description: 'Hands-on crochet, painting and maker meetups hosted by local studios and cafés in Udaipur, Jaipur and Jodhpur. Free and paid.',
     path: '/workshops',
     noindex: hasFilters(f),

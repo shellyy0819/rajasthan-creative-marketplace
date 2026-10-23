@@ -44,7 +44,7 @@ export function ProfileDialog({ title, initial, url, accountEmail, onSaved, onCa
           try {
             const r = await fetch(url, {
               method: 'PUT', headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ displayName: field(f, 'displayName'), publicPhone: field(f, 'publicPhone'), publicEmail: field(f, 'publicEmail'), instagram: field(f, 'instagram'), youtube: field(f, 'youtube') }),
+              body: JSON.stringify({ displayName: field(f, 'displayName'), publicPhone: field(f, 'publicPhone'), publicEmail: field(f, 'publicEmail'), instagram: field(f, 'instagram'), youtube: field(f, 'youtube'), bio: field(f, 'bio'), city: field(f, 'city') }),
             });
             const body = await r.json().catch(() => null);
             if (!r.ok) { setError(body?.error ?? 'Something went wrong. Please try again.'); setSaving(false); return; }
@@ -65,6 +65,12 @@ export function ProfileDialog({ title, initial, url, accountEmail, onSaved, onCa
             <label>Instagram<input name="instagram" maxLength={200} defaultValue={initial.instagram ?? ''} /></label>
             <label>YouTube<input name="youtube" maxLength={200} defaultValue={initial.youtube ?? ''} /></label>
           </div>
+          <div className="admin-form-row">
+            <label>City<input name="city" maxLength={100} placeholder="Jaipur" defaultValue={initial.city ?? ''} /></label>
+          </div>
+          <label>About the artist<textarea name="bio" rows={4} maxLength={500} placeholder="A few lines about you and your craft." defaultValue={initial.bio ?? ''} />
+            <small>Shown on your Contact artist sheet and artist page. Up to 500 characters.</small>
+          </label>
           <div className="admin-actions">
             <button type="button" className="button" onClick={onCancel} disabled={saving}>Cancel</button>
             <button type="submit" className="button primary" disabled={saving} aria-busy={saving}>{saving ? 'Saving…' : 'Save profile'}</button>

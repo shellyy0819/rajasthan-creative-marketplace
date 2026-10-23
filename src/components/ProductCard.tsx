@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Product } from '@/lib/types';
 import { money } from '@/lib/money';
 import { productSlug } from '@/lib/catalog-shared';
-import { AddToCartButton } from './AddToCartButton';
+import { ContactArtistButton } from './ContactArtistButton';
 import { LikeButton } from './LikeButton';
 import { ProductImage } from './ProductImage';
 
@@ -20,7 +20,7 @@ export function ProductCard({ p }: { p: Product }) {
         <p>{p.description}<br />By {p.seller}</p>
         <div className="product-bottom">
           <span className="price-like"><span className="price">{money(p.pricePaise)}</span><LikeButton productId={p.id} initialCount={p.likeCount ?? 0} productName={p.name} /></span>
-          <AddToCartButton product={p} />
+          <ContactArtistButton product={p} />
         </div>
       </div>
     </article>

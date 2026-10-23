@@ -66,7 +66,7 @@ export function LiveCatalog(props: Props) {
   const n = items.length;
   const summary = kind === 'products'
     ? `${n} ${n === 1 ? 'find' : 'finds'} to love${values.city ? ` in ${values.city}` : ''}.`
-    : `${n} ${n === 1 ? 'experience' : 'experiences'}${values.city ? ` in ${values.city}` : ' around Rajasthan'}.`;
+    : `${n} ${n === 1 ? 'experience' : 'experiences'}${values.city ? ` in ${values.city}` : ' around India'}.`;
 
   const form = (
     <form className="filters" action={path} method="get" role="search" onSubmit={e => { e.preventDefault(); setDelay(0); setValues(v => ({ ...v })); }}>
@@ -77,7 +77,7 @@ export function LiveCatalog(props: Props) {
         aria-label={kind === 'products' ? 'Search products' : 'Search workshops'}
       />
       <select name="city" value={values.city ?? ''} onChange={e => set({ city: e.target.value }, 0)} aria-label="Filter by city">
-        <option value="">All Rajasthan</option>
+        <option value="">All India</option>
         {CITIES.map(c => <option key={c}>{c}</option>)}
       </select>
       {kind === 'products' ? (

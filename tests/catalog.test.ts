@@ -14,8 +14,8 @@ describe('catalog', () => {
   it('lists all approved products with no filter', async () => {
     expect(await listProducts()).toHaveLength(4);
   });
-  it('treats "All Rajasthan"/"All categories" as no filter', async () => {
-    expect(await listProducts({ city: 'All Rajasthan', category: 'All categories' })).toHaveLength(4);
+  it('treats "All India"/"All categories" as no filter', async () => {
+    expect(await listProducts({ city: 'All India', category: 'All categories' })).toHaveLength(4);
   });
   it('filters by city, category and q', async () => {
     expect((await listProducts({ city: 'Jaipur' })).map(p => p.id)).toEqual(['p3', 'p4']);

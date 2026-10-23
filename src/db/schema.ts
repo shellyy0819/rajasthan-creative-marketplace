@@ -32,6 +32,8 @@ export const sellerProfiles = pgTable('seller_profiles', {
   publicEmail: text('public_email'),
   instagram: text('instagram'),
   youtube: text('youtube'),
+  bio: text('bio'),
+  city: text('city'),
 });
 
 /** Product categories. Anyone who can create products may add one; names are unique ignoring case. */

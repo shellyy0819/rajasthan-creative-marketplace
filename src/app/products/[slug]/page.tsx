@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
-import { AddToCartButton } from '@/components/AddToCartButton';
+import { ContactArtistButton } from '@/components/ContactArtistButton';
 import { LikeButton } from '@/components/LikeButton';
 import { TrackOnMount } from '@/components/TrackOnMount';
 import { TrackedLink } from '@/components/TrackedLink';
@@ -13,19 +13,10 @@ import { citySlug, getProductBySlug, productSlug } from '@/lib/catalog';
 import { breadcrumbJsonLd, productJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
 import { money } from '@/lib/money';
+import { instagramUrl, youtubeUrl } from '@/lib/social';
 
 export const dynamic = 'force-dynamic';
 type Props = { params: Promise<{ slug: string }> };
-
-function instagramUrl(value: string) {
-  const handle = value.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/^@/, '').replace(/\/$/, '');
-  return `https://www.instagram.com/${encodeURIComponent(handle)}/`;
-}
-
-function youtubeUrl(value: string) {
-  if (/^https:\/\/(www\.)?youtube\.com\//i.test(value) || /^https:\/\/youtu\.be\//i.test(value)) return value;
-  return `https://www.youtube.com/@${encodeURIComponent(value.replace(/^@/, ''))}`;
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = await getProductBySlug((await params).slug);
@@ -66,9 +57,8 @@ export default async function ProductPage({ params }: Props) {
           </dl>
           <div className="product-bottom" style={{ gap: 20, justifyContent: 'flex-start' }}>
             <span className="price">{money(p.pricePaise)}</span>
-            <AddToCartButton product={p} />
+            <ContactArtistButton product={p} />
           </div>
-          <p className="fine-print" style={{ textAlign: 'left' }}>Demo checkout only. No payment is collected.</p>
         </div>
       </article>
     </>

@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!city) return { title: 'City not found', robots: { index: false } };
   return pageMetadata({
     title: `Handmade finds & creative workshops in ${city}`,
-    description: `Shop handmade crafts by ${city} makers and book creative workshops and meetups in ${city}, Rajasthan.`,
+    description: `Shop handmade crafts by ${city} makers and book creative workshops and meetups in ${city}, India.`,
     path: `/cities/${citySlug(city)}`,
   });
 }
@@ -34,7 +34,7 @@ export default async function CityPage({ params }: Props) {
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
       <Breadcrumbs items={crumbs} />
       <div className="page-head">
-        <span className="eyebrow">{city.toUpperCase()}, RAJASTHAN</span>
+        <span className="eyebrow">{city.toUpperCase()}, INDIA</span>
         <h1>Handmade finds &amp; workshops in {city}</h1>
         <p>Independent makers and creative gatherings in {city}.</p>
       </div>

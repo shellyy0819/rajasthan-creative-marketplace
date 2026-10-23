@@ -10,6 +10,17 @@ import { Hero } from '@/components/Hero';
 afterEach(cleanup);
 
 describe('homepage hero', () => {
+  it('second section: "Shop unique. Support Craftpreneurs." with products and workshops buttons', () => {
+    const { container } = render(<Hero />);
+    const intro = container.querySelector('section.intro') as HTMLElement;
+    expect(intro.querySelector('h2')?.textContent).toBe('Shop unique. Support Craftpreneurs.');
+    expect(intro.textContent).toContain('independent Craftpreneurs');
+    const products = screen.getByRole('link', { name: /Explore products/ });
+    const workshops = screen.getByRole('link', { name: 'Discover workshops' });
+    expect(products.getAttribute('href')).toBe('/shop');
+    expect(workshops.getAttribute('href')).toBe('/workshops');
+    expect(intro.contains(products) && intro.contains(workshops)).toBe(true);
+  });
   it('has exactly one h1 with the three-part headline', () => {
     render(<Hero />);
     const h1 = screen.getAllByRole('heading', { level: 1 });

@@ -5,7 +5,7 @@ import { products, sellerProfiles, users } from '../db/schema';
 import { artistIdPrefix, artistSlug } from './artist-slug';
 import type { Product } from './types';
 
-export type Artist = { name: string; slug: string; phone?: string; email?: string; instagram?: string; youtube?: string; products: Product[] };
+export type Artist = { name: string; slug: string; phone?: string; email?: string; instagram?: string; youtube?: string; bio?: string; city?: string; products: Product[] };
 
 /** Public artist page data. Undefined unless the artist has at least one published product and the slug is exactly current. */
 export async function getArtist(slug: string): Promise<Artist | undefined> {
@@ -23,6 +23,7 @@ export async function getArtist(slug: string): Promise<Artist | undefined> {
       name, slug,
       ...(pf?.publicPhone ? { phone: pf.publicPhone } : {}), ...(pf?.publicEmail ? { email: pf.publicEmail } : {}),
       ...(pf?.instagram ? { instagram: pf.instagram } : {}), ...(pf?.youtube ? { youtube: pf.youtube } : {}),
+      ...(pf?.bio ? { bio: pf.bio } : {}), ...(pf?.city ? { city: pf.city } : {}),
       products: rows.map(toProduct),
     };
   }

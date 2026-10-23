@@ -52,7 +52,7 @@ describe('breadcrumb + org', () => {
     expect(j.itemListElement[1]).toMatchObject({ position: 2, name: 'Shop', item: 'https://rr.test/shop' });
   });
   it('organization has name and url', () => {
-    expect(organizationJsonLd()).toMatchObject({ '@type': 'Organization', name: 'Rang Rajasthan', url: 'https://rr.test' });
+    expect(organizationJsonLd()).toMatchObject({ '@type': 'Organization', name: 'Craftology', url: 'https://rr.test' });
   });
 });
 

@@ -19,8 +19,8 @@ describe('parseFilters', () => {
   it('uses first value of repeated params', () => {
     expect(parseFilters({ city: ['Jaipur', 'Udaipur'] })).toEqual({ city: 'Jaipur' });
   });
-  it('treats "All Rajasthan" as no filter', () => {
-    expect(parseFilters({ city: 'All Rajasthan' })).toEqual({});
+  it('treats "All India" as no filter', () => {
+    expect(parseFilters({ city: 'All India' })).toEqual({});
   });
   it('trims q and caps length at 100', () => {
     expect(parseFilters({ q: '  hi  ' })).toEqual({ q: 'hi' });

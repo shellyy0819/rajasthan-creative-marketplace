@@ -32,7 +32,7 @@ describe('searchPlaces', () => {
     expect(u.searchParams.get('bbox')).toBe('68.1,6.7,97.4,35.7');
     expect(u.searchParams.get('limit')).toBe('20');
     expect(u.searchParams.has('lat')).toBe(false); // a location bias buries big cities under nearby villages
-    expect((init.headers as Record<string, string>)['user-agent']).toMatch(/RangRajasthan/);
+    expect((init.headers as Record<string, string>)['user-agent']).toMatch(/Craftology/);
   });
   it('keeps only India, puts Rajasthan first, removes duplicates and returns at most 6 labelled suggestions', async () => {
     const fetchImpl = vi.fn(() => photon(

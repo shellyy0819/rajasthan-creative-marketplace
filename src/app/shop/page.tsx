@@ -13,7 +13,7 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const f = parseFilters(await searchParams);
   return pageMetadata({
-    title: 'Shop handmade crafts from Rajasthan',
+    title: 'Shop handmade crafts from India',
     description: 'Crochet, resin art, pottery and accessories from independent makers in Udaipur, Jaipur and Jodhpur. Search by city and category.',
     path: '/shop',
     noindex: hasFilters(f),
@@ -30,7 +30,7 @@ export default async function ShopPage({ searchParams }: Props) {
       <Breadcrumbs items={crumbs} />
       <div className="page-head">
         <span className="eyebrow">THE MAKERS&apos; SHELF</span>
-        <h1>Handmade finds from Rajasthan</h1>
+        <h1>Handmade finds from India</h1>
         <p>Crochet, resin art, pottery and accessories from independent makers in Udaipur, Jaipur and Jodhpur.</p>
       </div>
       <LiveCatalog kind="products" initialItems={products} initialValues={f} categories={categories} />

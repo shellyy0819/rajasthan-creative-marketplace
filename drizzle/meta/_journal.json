@@ -57,6 +57,13 @@
       "when": 1792599826753,
       "tag": "0007_trending",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792772864625,
+      "tag": "0008_artist_bio_city",
+      "breakpoints": true
     }
   ]
 }

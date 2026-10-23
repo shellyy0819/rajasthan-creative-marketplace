@@ -332,11 +332,11 @@ describe('Profile dialog (public name and contact)', () => {
     for (const good of ['9989898999', '+91 99898 98999', '']) { fireEvent.change(phone, { target: { value: good } }); expect(phone.validity.patternMismatch).toBe(false); }
     expect((document.querySelector('[name="displayName"]') as HTMLInputElement).required).toBe(true);
     fetchMock.mockImplementation((url: string, init?: RequestInit) => url === '/api/profile' && init?.method === 'PUT' ? res(200, { userId: 'me', displayName: 'New Studio' }) : url === '/api/admin/products' ? res(200, db) : url === '/api/admin/artists' ? res(200, artistsOf(db)) : res(500, {}));
-    fill(/^Display name/, 'New Studio'); fill(/^Public phone/, '99898 98999'); fill(/^Instagram/, 'newstudio');
+    fill(/^Display name/, 'New Studio'); fill(/^Public phone/, '99898 98999'); fill(/^Instagram/, 'newstudio'); fill(/^City/, 'Jaipur'); fill(/^About the artist/, 'Potter.\nBlue pottery.');
     fireEvent.click(screen.getByRole('button', { name: 'Save profile' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     const call = fetchMock.mock.calls.find(c => c[0] === '/api/profile')!;
-    expect(JSON.parse(call[1].body)).toEqual({ displayName: 'New Studio', publicPhone: '99898 98999', publicEmail: '', instagram: 'newstudio', youtube: '' });
+    expect(JSON.parse(call[1].body)).toEqual({ displayName: 'New Studio', publicPhone: '99898 98999', publicEmail: '', instagram: 'newstudio', youtube: '', bio: 'Potter.\nBlue pottery.', city: 'Jaipur' });
     expect(screen.getByRole('status').textContent).toMatch(/Profile saved/);
   });
   it('a server error keeps the dialog open with the message', async () => {

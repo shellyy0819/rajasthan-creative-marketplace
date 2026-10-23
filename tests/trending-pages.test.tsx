@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
-vi.mock('@/components/AddToCartButton', () => ({ AddToCartButton: () => <button>add</button> }));
+vi.mock('@/components/ContactArtistButton', () => ({ ContactArtistButton: () => <button>add</button> }));
 vi.mock('@/components/LikeButton', () => ({ LikeButton: ({ productId, initialCount }: any) => <button data-like={productId}>{`♡ ${initialCount}`}</button> }));
 vi.mock('@/components/TrackOnMount', () => ({ TrackOnMount: ({ productId, type }: any) => <i data-track={`${type}:${productId}`} /> }));
 vi.mock('@/components/TrackedLink', () => ({ TrackedLink: ({ productId, type, ...r }: any) => <a data-tracked={`${type}:${productId}`} {...r} /> }));

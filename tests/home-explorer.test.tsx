@@ -4,7 +4,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
-vi.mock('@/components/AddToCartButton', () => ({ AddToCartButton: () => <button>add</button> }));
+vi.mock('@/components/ContactArtistButton', () => ({ ContactArtistButton: () => <button>add</button> }));
 import { HomeCraftExplorer } from '@/components/HomeCraftExplorer';
 
 afterEach(cleanup);
