@@ -59,8 +59,8 @@ export async function seedFromJson(db: Database, data: LegacyDb) {
     }
 
     for (const p of data.products ?? []) {
-      const { city, ...row } = toProductRow(p);
-      const r = await tx.insert(products).values({ id: p.id, sellerId: sellers.get(artistKey(p.seller))!, ...row, cityId: await cityId(city) }).onConflictDoNothing().returning({ id: products.id });
+      const row = toProductRow({ ...p, cityId: await cityId(p.city) });
+      const r = await tx.insert(products).values({ id: p.id, sellerId: sellers.get(artistKey(p.seller))!, ...row }).onConflictDoNothing().returning({ id: products.id });
       inserted.products += r.length;
     }
     for (const w of data.workshops ?? []) {

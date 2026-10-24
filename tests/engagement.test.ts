@@ -6,9 +6,10 @@ import { listProducts } from '@/lib/catalog';
 import { productEvents, productLikes } from '@/db/schema';
 import { admin } from './helpers/actors';
 import { getTestDb, makeSeller, resetTestDb } from './helpers/testdb';
+import { cityRef } from './helpers/cities';
 
 beforeEach(async () => { await resetTestDb(); });
-const base = { name: 'Thing', category: 'Pottery', city: 'Jaipur', pricePaise: 100, description: 'D', stock: 1 };
+const base = { name: 'Thing', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 100, description: 'D', stock: 1 };
 
 describe('likes', () => {
   it('liking is idempotent per actor and counts distinct actors', async () => {

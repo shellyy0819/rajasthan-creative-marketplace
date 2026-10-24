@@ -3,6 +3,7 @@ import { getDb, type Q, type Tx } from '../db/client';
 import { ROLE_ID, ensureSellerProfile, ensureUser, normEmail, type StoredRole } from '../db/people';
 import { cities, sellerProfiles, userRoles, users } from '../db/schema';
 import { roleFor } from './authz';
+import { resolveCityInput } from './cities';
 import { ApiError } from './errors';
 import type { AdminUser, SellerProfile } from './types';
 import { EMAIL_RE, bad, obj, optionalEmail, optionalPhone, optionalText, pick, text } from './validate';
@@ -148,16 +149,18 @@ export async function saveProfile(userId: string, input: unknown): Promise<Selle
     instagram: optionalText(raw.instagram, 'instagram', 200) ?? null,
     youtube: optionalText(raw.youtube, 'youtube', 200) ?? null,
     bio: optionalText(raw.bio, 'bio', 500) ?? null,
-    city: optionalText(raw.city, 'city', 100) ?? null,
   };
+  if ('city' in raw) throw bad('city is not accepted; send cityId or cityRef.');
   return getDb().transaction(async tx => {
     const [u] = await tx.select({ id: users.id }).from(users).where(eq(users.id, userId));
     if (!u) throw new ApiError(404, 'User not found.');
     const holds = await tx.select({ r: userRoles.roleId }).from(userRoles).where(and(eq(userRoles.userId, userId), inArray(userRoles.roleId, [ROLE_ID.seller, ROLE_ID.admin])));
     if (!holds.length && !(await isEnvAdmin(tx, userId))) throw bad('That user is not a seller.');
-    const [row] = await tx.insert(sellerProfiles).values({ userId, ...v })
-      .onConflictDoUpdate({ target: sellerProfiles.userId, set: v }).returning();
-    return toProfile(row);
+    // Neither cityId nor cityRef clears the profile city.
+    const cityId = await resolveCityInput(tx, raw);
+    await tx.insert(sellerProfiles).values({ userId, ...v, cityId })
+      .onConflictDoUpdate({ target: sellerProfiles.userId, set: { ...v, cityId } });
+    return toProfile((await loadProfile(tx, userId))!);
   });
 }
 async function isEnvAdmin(tx: Tx, userId: string) {

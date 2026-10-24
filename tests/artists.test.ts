@@ -6,6 +6,7 @@ import { saveProfile } from '@/lib/users';
 import { listProducts } from '@/lib/catalog';
 import { admin } from './helpers/actors';
 import { makeSeller, resetTestDb } from './helpers/testdb';
+import { cityRef } from './helpers/cities';
 
 beforeEach(async () => { await resetTestDb(); });
 const slugOf = async (productId: string) => (await listProducts()).find(p => p.id === productId)!.sellerSlug!;
@@ -33,14 +34,14 @@ describe('getArtist', () => {
   it('shows public profile contact details (phone, email, social) and nothing private', async () => {
     const s = await makeSeller('contact@x.co', 'Contact Studio');
     await saveProfile(s.id, { displayName: 'Contact Studio', publicPhone: '99898 98999', publicEmail: 'hi@studio.co', instagram: 'studio', youtube: '@studio' });
-    const p = await createProduct({ name: 'Bowl', category: 'Pottery', city: 'Jaipur', pricePaise: 1, description: 'D', stock: 1, status: 'APPROVED', sellerId: s.id }, admin);
+    const p = await createProduct({ name: 'Bowl', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 1, description: 'D', stock: 1, status: 'APPROVED', sellerId: s.id }, admin);
     const a = (await getArtist(await slugOf(p.id)))!;
     expect(a).toMatchObject({ phone: '9989898999', email: 'hi@studio.co', instagram: 'studio', youtube: '@studio' });
     expect(JSON.stringify(a)).not.toContain('contact@x.co');                       // the login email is private
   });
   it('is undefined for unknown slugs, a wrong name part, junk, and artists with no published product (drafts are not enumerable)', async () => {
     const s = await makeSeller('draft@x.co', 'Only Drafts');
-    const d = await createProduct({ name: 'Hidden', category: 'Pottery', city: 'Jaipur', pricePaise: 1, description: 'D', stock: 1, status: 'DRAFT', sellerId: s.id }, admin);
+    const d = await createProduct({ name: 'Hidden', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 1, description: 'D', stock: 1, status: 'DRAFT', sellerId: s.id }, admin);
     const draftSlug = artistSlug('Only Drafts', s.id);
     expect(await getArtist(draftSlug)).toBeUndefined();
     const real = await slugOf('p1');

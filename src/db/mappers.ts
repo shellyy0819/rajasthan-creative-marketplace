@@ -66,10 +66,10 @@ export const toAdminProduct = (r: ProductJoinRow): AdminProduct => ({
   createdAt: r.p.createdAt.toISOString(), updatedAt: r.p.updatedAt.toISOString(),
 });
 
-export type ProductInput = Omit<Product, 'id' | 'seller' | 'instagram' | 'youtube' | 'phone' | 'email'> & { pickupLocation?: string };
+export type ProductInput = Omit<Product, 'id' | 'seller' | 'instagram' | 'youtube' | 'phone' | 'email' | 'city' | 'citySlug' | 'cityState'> & { pickupLocation?: string };
 /** undefined → null so that UPDATE really clears a field (Drizzle ignores undefined keys). */
 export const toProductRow = (p: ProductInput) => ({
-  name: p.name, category: p.category, city: p.city, pricePaise: p.pricePaise, description: p.description,
+  name: p.name, category: p.category, cityId: p.cityId, pricePaise: p.pricePaise, description: p.description,
   stock: p.stock, status: p.status, imageUrl: p.imageUrl ?? null, workshopId: p.workshopId ?? null,
   pickupLocation: p.pickupLocation ?? null,
 });
@@ -104,8 +104,9 @@ export const toWorkshop = (r: WorkshopJoinRow): Workshop => ({
 /** Admin responses also carry the host's user id; the public API never does. */
 export const toAdminWorkshop = (r: WorkshopJoinRow): Workshop => ({ ...toWorkshop(r), ...opt('hostId', r.w.hostId) });
 
-export const toWorkshopRow = (w: Omit<Workshop, 'id' | 'booked' | 'hostId'>) => ({
-  title: w.title, type: w.type, pricePaise: w.pricePaise, city: w.city, venue: w.venue,
+export type WorkshopInput = Omit<Workshop, 'id' | 'booked' | 'hostId' | 'city' | 'citySlug' | 'cityState'>;
+export const toWorkshopRow = (w: WorkshopInput) => ({
+  title: w.title, type: w.type, pricePaise: w.pricePaise, cityId: w.cityId, venue: w.venue,
   startsAt: istToDate(w.date, w.time), seats: w.seats, hostName: w.host, description: w.description, status: w.status,
 });
 

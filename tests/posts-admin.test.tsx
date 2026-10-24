@@ -10,7 +10,7 @@ import { artistKey } from '@/lib/artist';
 import type { AdminProduct as Product } from '@/lib/types';
 
 const mk = (id: string, name: string, seller: string, status = 'APPROVED', extra: Partial<Product> = {}): Product => ({
-  id, name, category: 'Accessories', city: 'Jaipur', pricePaise: 85000, seller, description: 'd', stock: 3, status,
+  id, name, category: 'Accessories', city: 'Jaipur', cityId: 1, citySlug: 'jaipur', pricePaise: 85000, seller, description: 'd', stock: 3, status,
   sellerId: `u-${seller}`, sellerEmail: `${seller.split(' ')[0].toLowerCase()}@x.co`, ...extra,
 });
 let db: Product[];

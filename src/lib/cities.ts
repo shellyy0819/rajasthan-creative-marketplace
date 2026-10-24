@@ -2,6 +2,8 @@ import { and, eq, exists, or, sql } from 'drizzle-orm';
 import { getDb, type Q } from '../db/client';
 import { cities, products, workshops, type CityRow } from '../db/schema';
 import { slugify } from './slug';
+import { ApiError } from './errors';
+import { verifyCityRef } from './city-ref';
 
 export type City = { id: number; name: string; state?: string; slug: string; lat?: number; lng?: number };
 
@@ -117,4 +119,26 @@ export async function nearestActiveCities(
   const withKm = active.map(c => ({ ...c, km: c.lat != null && c.lng != null ? haversineKm(from, { lat: c.lat, lng: c.lng }) : -1 }));
   const near = withKm.filter(c => c.km >= 0 && c.km <= maxKm).sort((a, b) => a.km - b.km).slice(0, limit);
   return near.length ? near : withKm.sort((a, b) => (a.km < 0 ? 1 : 0) - (b.km < 0 ? 1 : 0) || a.km - b.km || a.name.localeCompare(b.name));
+}
+
+/**
+ * The only way a write path turns user input into a city id. A signed `cityRef` (from place search) is verified and
+ * upserted and wins over `cityId`; a numeric `cityId` must already exist. Neither => null, or 400 when required.
+ */
+export async function resolveCityInput(
+  q: Q,
+  raw: { cityId?: unknown; cityRef?: unknown },
+  opts: { required: boolean } = { required: false },
+): Promise<number | null> {
+  const blank = (v: unknown) => v === undefined || v === null || v === '';
+  if (!blank(raw.cityRef)) return (await upsertCity(q, verifyCityRef(raw.cityRef))).id;
+  if (!blank(raw.cityId)) {
+    const id = raw.cityId;
+    if (typeof id !== 'number' || !Number.isInteger(id) || id < 1) throw new ApiError(400, 'Unknown city.');
+    const [r] = await q.select({ id: cities.id }).from(cities).where(eq(cities.id, id)).limit(1);
+    if (!r) throw new ApiError(400, 'Unknown city.');
+    return r.id;
+  }
+  if (opts.required) throw new ApiError(400, 'city is required.');
+  return null;
 }

@@ -12,7 +12,7 @@ import { instagramUrl, youtubeUrl } from '@/lib/social';
 import type { Product } from '@/lib/types';
 
 const P: Product = {
-  id: 'p1', name: 'Crochet Lily Bouquet', category: 'Crochet', city: 'Jaipur', pricePaise: 100000, seller: 'Shauk and Stuff',
+  id: 'p1', name: 'Crochet Lily Bouquet', category: 'Crochet', city: 'Jaipur', cityId: 1, citySlug: 'jaipur', pricePaise: 100000, seller: 'Shauk and Stuff',
   description: 'd', stock: 3, status: 'APPROVED', phone: '+91 99898 98999', email: 'hello@shauk.example', instagram: '@shaukandstuff',
   youtube: '@shaukandstuff', artistBio: 'Third-generation maker.\nCrochet from Jaipur.', artistCity: 'Jaipur', sellerSlug: 'shauk-and-stuff-6b13cbf3',
 };

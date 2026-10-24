@@ -5,6 +5,7 @@ vi.mock('@/auth', () => ({ auth: authMock }));
 import { GET, POST } from '@/app/api/categories/route';
 import { POST as postProduct } from '@/app/api/products/route';
 import { resetTestDb } from './helpers/testdb';
+import { cityRef } from './helpers/cities';
 
 const as = (role: string) => authMock.mockResolvedValue({ user: { email: `${role}@x.co`, role } });
 const post = (body: unknown) => POST(new Request('http://x/api/categories', { method: 'POST', body: JSON.stringify(body), headers: { 'content-type': 'application/json' } }));
@@ -42,7 +43,7 @@ describe('/api/categories', () => {
   it('end to end: create a category over the API, then create a product in it', async () => {
     as('admin');
     await post({ name: 'Brass Ware' });
-    const res = await postProduct(new Request('http://x', { method: 'POST', body: JSON.stringify({ name: 'Brass Lamp', category: 'Brass Ware', city: 'Jaipur', pricePaise: 100, description: 'D', stock: 1 }), headers: { 'content-type': 'application/json' } }));
+    const res = await postProduct(new Request('http://x', { method: 'POST', body: JSON.stringify({ name: 'Brass Lamp', category: 'Brass Ware', cityRef: cityRef('Jaipur'), pricePaise: 100, description: 'D', stock: 1 }), headers: { 'content-type': 'application/json' } }));
     expect(res.status).toBe(201);
     expect((await res.json()).category).toBe('Brass Ware');
   });

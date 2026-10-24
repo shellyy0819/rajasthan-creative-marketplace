@@ -33,7 +33,7 @@ describe('TrendingSection (home page)', () => {
 
 describe('ProductCard', () => {
   it('has a like button with the count, and the card still links to the product', () => {
-    const p = { id: 'p1', name: 'Bag', category: 'Pottery', city: 'Jaipur', pricePaise: 100, seller: 'S', description: 'd', stock: 1, status: 'APPROVED', likeCount: 4, sellerSlug: 's-12345678' };
+    const p = { id: 'p1', name: 'Bag', category: 'Pottery', city: 'Jaipur', cityId: 1, citySlug: 'jaipur', pricePaise: 100, seller: 'S', description: 'd', stock: 1, status: 'APPROVED', likeCount: 4, sellerSlug: 's-12345678' };
     render(<ProductCard p={p} />);
     expect(document.querySelector('[data-like="p1"]')!.textContent).toBe('♡ 4');
     expect(screen.getByRole('link', { name: 'Bag' }).getAttribute('href')).toBe('/products/bag-p1');

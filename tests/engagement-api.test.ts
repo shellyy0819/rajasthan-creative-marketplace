@@ -9,6 +9,7 @@ import { getTestDb, makeSeller, resetTestDb } from './helpers/testdb';
 import { productEvents, productLikes } from '@/db/schema';
 import { createProduct } from '@/lib/admin';
 import { admin } from './helpers/actors';
+import { cityRef } from './helpers/cities';
 
 const VID = 'b3d9f2c0-5a1e-4c2b-9d3e-7f6a8b9c0d1e';
 const JSON_H = { 'content-type': 'application/json' };
@@ -61,7 +62,7 @@ describe('POST/DELETE /api/products/:id/like', () => {
   });
   it('404 for unknown or unpublished products', async () => {
     const s = await makeSeller('d@x.co', 'D');
-    const draft = await createProduct({ name: 'Draft', category: 'Pottery', city: 'Jaipur', pricePaise: 1, description: 'D', stock: 1, status: 'DRAFT', sellerId: s.id }, admin);
+    const draft = await createProduct({ name: 'Draft', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 1, description: 'D', stock: 1, status: 'DRAFT', sellerId: s.id }, admin);
     expect((await like('nope')).status).toBe(404);
     expect((await like(draft.id)).status).toBe(404);
   });
@@ -131,7 +132,7 @@ describe('POST /api/events', () => {
   });
   it('events for unpublished or unknown products are accepted with 204 but ignored (no information leak)', async () => {
     const s = await makeSeller('d@x.co', 'D');
-    const draft = await createProduct({ name: 'Draft', category: 'Pottery', city: 'Jaipur', pricePaise: 1, description: 'D', stock: 1, status: 'DRAFT', sellerId: s.id }, admin);
+    const draft = await createProduct({ name: 'Draft', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 1, description: 'D', stock: 1, status: 'DRAFT', sellerId: s.id }, admin);
     expect((await event({ type: 'view', productId: draft.id })).status).toBe(204);
     expect((await event({ type: 'view', productId: 'p999' })).status).toBe(204);
     expect(await (await getTestDb()).select().from(productEvents)).toHaveLength(0);

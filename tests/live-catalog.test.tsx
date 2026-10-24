@@ -10,8 +10,8 @@ vi.mock('@/components/ReserveButton', () => ({ ReserveButton: ({ workshop }: any
 
 import { LiveCatalog } from '@/components/LiveCatalog';
 
-const prod = (id: string, name: string, city = 'Jaipur') => ({ id, name, category: 'Pottery', city, pricePaise: 10000, seller: 'S', description: 'd', stock: 3, status: 'APPROVED' });
-const ws = (id: string, title: string) => ({ id, title, type: 'FREE', pricePaise: 0, city: 'Jodhpur', venue: 'V', date: '2026-11-22', time: '10:30', seats: 20, booked: 6, host: 'H', description: 'd', status: 'APPROVED' });
+const prod = (id: string, name: string, city = 'Jaipur') => ({ id, name, category: 'Pottery', city, cityId: 1, citySlug: city.toLowerCase(), pricePaise: 10000, seller: 'S', description: 'd', stock: 3, status: 'APPROVED' });
+const ws = (id: string, title: string) => ({ id, title, type: 'FREE', pricePaise: 0, city: 'Jodhpur', cityId: 1, citySlug: 'jodhpur', venue: 'V', date: '2026-11-22', time: '10:30', seats: 20, booked: 6, host: 'H', description: 'd', status: 'APPROVED' });
 
 let fetchMock: ReturnType<typeof vi.fn>;
 const reply = (data: unknown, ok = true) => Promise.resolve({ ok, json: () => Promise.resolve(data) } as Response);

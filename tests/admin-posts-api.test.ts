@@ -11,6 +11,7 @@ import { GET as publicProducts } from '@/app/api/products/route';
 import { createProduct } from '@/lib/admin';
 import { makeSeller, resetTestDb } from './helpers/testdb';
 import { admin } from './helpers/actors';
+import { cityRef } from './helpers/cities';
 
 const asCustomer = () => authMock.mockResolvedValue({ user: { email: 'c@x.co', role: 'customer' } });
 const asAdmin = () => authMock.mockResolvedValue({ user: { email: 'root@x.co', role: 'admin' } });
@@ -23,7 +24,7 @@ beforeEach(async () => {
   authMock.mockResolvedValue(null);
   await resetTestDb();
   const marwar = await makeSeller('marwar@x.co', 'Marwar Lac');
-  await createProduct({ name: 'Secret Draft', category: 'Accessories', city: 'Jodhpur', pricePaise: 100, description: 'Hidden.', stock: 1, status: 'DRAFT' }, marwar.actor);
+  await createProduct({ name: 'Secret Draft', category: 'Accessories', cityRef: cityRef('Jodhpur'), pricePaise: 100, description: 'Hidden.', stock: 1, status: 'DRAFT' }, marwar.actor);
 });
 
 describe('admin read APIs', () => {

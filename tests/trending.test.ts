@@ -6,6 +6,7 @@ import { createProduct, updateProduct } from '@/lib/admin';
 import { productLikes } from '@/db/schema';
 import { admin } from './helpers/actors';
 import { getTestDb, makeSeller, resetTestDb } from './helpers/testdb';
+import { cityRef } from './helpers/cities';
 
 const NOW = new Date('2026-10-21T12:00:00Z');
 beforeEach(async () => { await resetTestDb(); });
@@ -43,7 +44,7 @@ describe('trending()', () => {
   });
   it('shows at most one product per artist (their best), even if one artist has the top three', async () => {
     const s = await makeSeller('star@x.co', 'Star Artist');
-    const mk = async (name: string) => (await createProduct({ name, category: 'Pottery', city: 'Jaipur', pricePaise: 1, description: 'D', stock: 1, status: 'APPROVED', sellerId: s.id }, admin)).id;
+    const mk = async (name: string) => (await createProduct({ name, category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 1, description: 'D', stock: 1, status: 'APPROVED', sellerId: s.id }, admin)).id;
     const [a, b, c] = [await mk('Star A'), await mk('Star B'), await mk('Star C')];
     for (const [pid, n] of [[a, 5], [b, 4], [c, 3]] as const) for (let i = 0; i < n; i++) await view(pid, `h:${pid}${i}`);
     await view('p1', 'h:solo'); await view('p2', 'h:solo2');
@@ -54,7 +55,7 @@ describe('trending()', () => {
   });
   it('respects the limit (default 6, clamped to 1..24) and ignores nonsense', async () => {
     const s = await makeSeller('many@x.co', 'Many');
-    for (let i = 0; i < 30; i++) { const m = await makeSeller(`m${i}@x.co`, `Maker ${i}`); const p = await createProduct({ name: `P${i}`, category: 'Pottery', city: 'Jaipur', pricePaise: 1, description: 'D', stock: 1, status: 'APPROVED', sellerId: m.id }, admin); await view(p.id, `h:${i}`); }
+    for (let i = 0; i < 30; i++) { const m = await makeSeller(`m${i}@x.co`, `Maker ${i}`); const p = await createProduct({ name: `P${i}`, category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 1, description: 'D', stock: 1, status: 'APPROVED', sellerId: m.id }, admin); await view(p.id, `h:${i}`); }
     void s;
     expect((await ids()).length).toBe(6);
     expect((await ids({ limit: 3 })).length).toBe(3);
