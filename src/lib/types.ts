@@ -1,5 +1,5 @@
 export type Product = {
-  id: string; name: string; category: string; city: string; pricePaise: number;
+  id: string; name: string; category: string; city: string; cityId: number; citySlug: string; cityState?: string; pricePaise: number;
   seller: string; description: string; stock: number; status: string;
   instagram?: string; youtube?: string; phone?: string; email?: string; imageUrl?: string; workshopId?: string;
   likeCount?: number; sellerSlug?: string; artistBio?: string; artistCity?: string;
@@ -10,7 +10,7 @@ export type AdminProduct = Product & {
   publishedByEmail?: string; workshopTitle?: string; createdAt?: string; updatedAt?: string;
 };
 export type Workshop = {
-  id: string; title: string; type: 'FREE' | 'PAID'; pricePaise: number; city: string;
+  id: string; title: string; type: 'FREE' | 'PAID'; pricePaise: number; city: string; cityId: number; citySlug: string; cityState?: string;
   venue: string; date: string; time: string; seats: number; booked: number;
   host: string; description: string; status: string; hostId?: string;
 };
@@ -27,7 +27,7 @@ export type Booking = {
   email: string; quantity: number; totalPaise: number; status: string; note: string;
 };
 export type SellerProfile = {
-  userId: string; displayName: string; publicPhone?: string; publicEmail?: string; instagram?: string; youtube?: string; bio?: string; city?: string;
+  userId: string; displayName: string; publicPhone?: string; publicEmail?: string; instagram?: string; youtube?: string; bio?: string; city?: string; cityId?: number;
 };
 export type AdminUser = {
   id: string; email: string; name: string; active: boolean; roles: ('seller' | 'admin')[]; createdAt: string;

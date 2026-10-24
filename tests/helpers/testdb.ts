@@ -6,10 +6,9 @@ import { asc, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { setDb, type Database } from '../../src/db/client';
-import { toBooking, toOrder, toProduct, toWorkshop } from '../../src/db/mappers';
+import { toBooking, toOrder, toProduct, toWorkshop, workshopsQuery } from '../../src/db/mappers';
 import { bookings, orderItems, orders, users, userRoles } from '../../src/db/schema';
 import { productsQuery } from '../../src/db/mappers';
-import { workshops } from '../../src/db/schema';
 import * as schema from '../../src/db/schema';
 import { seedFromJson, truncateAll, type LegacyDb } from '../../src/db/seed';
 
@@ -42,7 +41,7 @@ const byId = <T extends { id: string }>(rows: T[]) => [...rows].sort((a, b) => a
 export async function snapshot() {
   const d = await getTestDb();
   const [p, w, o, items, b] = await Promise.all([
-    productsQuery(d), d.select().from(workshops),
+    productsQuery(d), workshopsQuery(d),
     d.select({ o: orders, email: users.email }).from(orders).innerJoin(users, eq(users.id, orders.userId)).orderBy(asc(orders.createdAt), asc(orders.id)),
     d.select().from(orderItems).orderBy(asc(orderItems.id)),
     d.select({ b: bookings, email: users.email }).from(bookings).innerJoin(users, eq(users.id, bookings.userId)).orderBy(asc(bookings.createdAt), asc(bookings.id)),

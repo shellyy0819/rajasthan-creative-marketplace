@@ -1,7 +1,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import { getDb, type Tx } from '../db/client';
+import { getDb, type Q, type Tx } from '../db/client';
 import { ROLE_ID, ensureSellerProfile, ensureUser, normEmail, type StoredRole } from '../db/people';
-import { sellerProfiles, userRoles, users } from '../db/schema';
+import { cities, sellerProfiles, userRoles, users } from '../db/schema';
 import { roleFor } from './authz';
 import { ApiError } from './errors';
 import type { AdminUser, SellerProfile } from './types';
@@ -112,23 +112,30 @@ export async function deleteUser(id: string, actorEmail: string): Promise<void> 
 }
 
 // ---------- seller profiles ----------
-const toProfile = (r: typeof sellerProfiles.$inferSelect): SellerProfile => ({
+type ProfileRow = typeof sellerProfiles.$inferSelect & { cityName?: string | null };
+const toProfile = (r: ProfileRow): SellerProfile => ({
   userId: r.userId, displayName: r.displayName,
   ...(r.publicPhone ? { publicPhone: r.publicPhone } : {}), ...(r.publicEmail ? { publicEmail: r.publicEmail } : {}),
   ...(r.instagram ? { instagram: r.instagram } : {}), ...(r.youtube ? { youtube: r.youtube } : {}),
-  ...(r.bio ? { bio: r.bio } : {}), ...(r.city ? { city: r.city } : {}),
+  ...(r.bio ? { bio: r.bio } : {}), ...(r.cityName ? { city: r.cityName, cityId: r.cityId! } : {}),
 });
+
+async function loadProfile(q: Q, userId: string): Promise<ProfileRow | undefined> {
+  const [r] = await q.select({ pf: sellerProfiles, cityName: cities.name }).from(sellerProfiles)
+    .leftJoin(cities, eq(cities.id, sellerProfiles.cityId)).where(eq(sellerProfiles.userId, userId));
+  return r && { ...r.pf, cityName: r.cityName };
+}
 
 export async function getProfileByEmail(email: string): Promise<SellerProfile> {
   const u = await ensureUser(getDb(), email);
-  const [p] = await getDb().select().from(sellerProfiles).where(eq(sellerProfiles.userId, u.id));
+  const p = await loadProfile(getDb(), u.id);
   return p ? toProfile(p) : { userId: u.id, displayName: u.name };
 }
 
 export async function getProfileById(userId: string): Promise<SellerProfile> {
   const [u] = await getDb().select().from(users).where(eq(users.id, userId));
   if (!u) throw new ApiError(404, 'User not found.');
-  const [p] = await getDb().select().from(sellerProfiles).where(eq(sellerProfiles.userId, userId));
+  const p = await loadProfile(getDb(), userId);
   return p ? toProfile(p) : { userId, displayName: u.name };
 }
 

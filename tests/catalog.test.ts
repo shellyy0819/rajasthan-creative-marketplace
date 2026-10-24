@@ -5,6 +5,7 @@ import {
 } from '@/lib/catalog';
 import { resetTestDb, getTestDb, giveRole } from './helpers/testdb';
 import { products as productsTable } from '@/db/schema';
+import { getCityBySlug } from '@/lib/cities';
 
 beforeEach(async () => {
   await resetTestDb();
@@ -21,6 +22,25 @@ describe('catalog', () => {
     expect((await listProducts({ city: 'Jaipur' })).map(p => p.id)).toEqual(['p3', 'p4']);
     expect((await listProducts({ category: 'Pottery' })).map(p => p.id)).toEqual(['p4']);
     expect((await listProducts({ q: 'FLOWER' })).map(p => p.id).sort()).toEqual(['p1', 'p3']);
+  });
+  it('city filter accepts a name or a slug, case-insensitively, with the same result', async () => {
+    const a = (await listProducts({ city: 'udaipur' })).map(p => p.id);
+    const b = (await listProducts({ city: 'Udaipur' })).map(p => p.id);
+    expect(a).toEqual(['p1', 'p2']);
+    expect(b).toEqual(a);
+    expect((await listWorkshops({ city: 'jaipur' })).map(w => w.id)).toEqual((await listWorkshops({ city: 'Jaipur' })).map(w => w.id));
+  });
+  it('an unknown city yields no results instead of an error', async () => {
+    expect(await listProducts({ city: 'Nowhere' })).toEqual([]);
+    expect(await listWorkshops({ city: 'Nowhere' })).toEqual([]);
+  });
+  it('products and workshops carry cityId, citySlug and the display name', async () => {
+    const jaipur = (await getCityBySlug('jaipur'))!;
+    const [p] = await listProducts({ city: 'Jaipur' });
+    expect(p).toMatchObject({ city: 'Jaipur', cityId: jaipur.id, citySlug: 'jaipur', cityState: 'Rajasthan' });
+    const w = await listWorkshops({ city: 'Jaipur' });
+    for (const x of w) expect(x).toMatchObject({ city: 'Jaipur', cityId: jaipur.id, citySlug: 'jaipur' });
+    expect(await getWorkshopBySlug(workshopSlug((await listWorkshops())[0]))).toHaveProperty('cityId');
   });
   it('filters workshops by type', async () => {
     expect((await listWorkshops({ type: 'FREE' })).map(w => w.id)).toEqual(['w3']);
@@ -47,10 +67,11 @@ describe('catalog', () => {
 });
 
 describe('search text is a literal, injection-safe substring match', () => {
-  const extra = () => ({ category: 'Pottery', city: 'Jaipur', pricePaise: 100, sellerId: sid, stock: 1, status: 'APPROVED' });
-  let sid: string;
+  const extra = () => ({ category: 'Pottery', cityId: cid, pricePaise: 100, sellerId: sid, stock: 1, status: 'APPROVED' });
+  let sid: string, cid: number;
   beforeEach(async () => {
     const db = await getTestDb();
+    cid = (await getCityBySlug('jaipur'))!.id;
     sid = (await giveRole('odd@seller.co', 'seller')).id;
     await db.insert(productsTable).values([
       { id: 'p91', name: 'Rock 100% Cotton', description: 'soft', ...extra() },

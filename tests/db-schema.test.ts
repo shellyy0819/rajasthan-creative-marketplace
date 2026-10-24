@@ -9,9 +9,10 @@ import { allocateId } from '@/db/ids';
 import { cities, idCounters, orderItems, orders, products, workshops, users } from '@/db/schema';
 import { productsQuery, toProduct, toProductRow } from '@/db/mappers';
 
-const valid = { name: 'N', category: 'Pottery', city: 'Jaipur', pricePaise: 100, description: 'D', stock: 1, status: 'APPROVED' };
+const valid = { name: 'N', category: 'Pottery', cityId: 0, pricePaise: 100, description: 'D', stock: 1, status: 'APPROVED' };
 let sellerId: string;
 let buyerId: string;
+const jaipurId = async () => (await (await getTestDb()).select().from(cities).where(eq(cities.slug, 'jaipur')))[0].id;
 const fixture = (): LegacyDb => JSON.parse(fs.readFileSync('tests/fixtures/db.json', 'utf8'));
 
 // Bare migrated database (no seed): these run before any seeded test truncates the launch cities.
@@ -41,7 +42,7 @@ describe('cities table (fresh migration)', () => {
     const [u] = await db.insert(users).values({ email: 'nocity@x.co', name: 'N' }).returning();
     await db.insert(categories).values({ name: 'Pottery' }).onConflictDoNothing();
     try {
-      const { city: _city, ...rest } = valid;
+      const { cityId: _cityId, ...rest } = valid;
       let message = '';
       try { await db.insert(products).values({ id: 'nc1', sellerId: u.id, ...rest } as any); } catch (e: any) { message = `${e.message} ${e.cause?.message ?? ''}`; }
       expect(message).toMatch(/city_id|not-null|null value/i);
@@ -115,12 +116,12 @@ describe('constraints protect the data even if app code is wrong', () => {
   it('rejects negative stock/price, unknown status', async () => {
     const db = await getTestDb();
     for (const bad of [{ stock: -1 }, { pricePaise: -5 }, { status: 'HACK' }])
-      await expect(db.insert(products).values({ id: 'x1', sellerId, ...valid, ...bad })).rejects.toThrow();
+      await expect(db.insert(products).values({ id: 'x1', sellerId, ...valid, cityId: await jaipurId(), ...bad })).rejects.toThrow();
     expect((await snapshot()).products).toHaveLength(4);
   });
   it('rejects overbooked or malformed workshops', async () => {
     const db = await getTestDb();
-    const w = { id: 'wx', title: 'T', type: 'PAID', pricePaise: 1, city: 'Jaipur', venue: 'V', startsAt: new Date('2026-12-01T10:00:00+05:30'), seats: 5, booked: 0, hostName: 'H', description: 'D', status: 'APPROVED' };
+    const w = { id: 'wx', title: 'T', type: 'PAID', pricePaise: 1, cityId: await jaipurId(), venue: 'V', startsAt: new Date('2026-12-01T10:00:00+05:30'), seats: 5, booked: 0, hostName: 'H', description: 'D', status: 'APPROVED' };
     for (const bad of [{ booked: 6 }, { booked: -1 }, { seats: 0 }, { type: 'MAYBE' }])
       await expect(db.insert(workshops).values({ ...w, ...bad })).rejects.toThrow();
   });
@@ -234,7 +235,7 @@ describe('users, roles and profiles (new tables)', () => {
     const db = await getTestDb();
     await expect(db.delete(users).where(eq(users.id, sellerId))).resolves.toBeDefined(); // owns nothing yet
     const owner = (await giveRole('o@x.co', 'seller')).id;
-    await db.insert(products).values({ id: 'px', sellerId: owner, ...valid, workshopId: 'w1' });
+    await db.insert(products).values({ id: 'px', sellerId: owner, ...valid, cityId: await jaipurId(), workshopId: 'w1' });
     await expect(db.delete(users).where(eq(users.id, owner))).rejects.toThrow();
     await db.delete(workshops).where(eq(workshops.id, 'w1'));
     const [row] = await db.select().from(products).where(eq(products.id, 'px'));

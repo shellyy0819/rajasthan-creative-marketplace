@@ -51,7 +51,7 @@ export function workshopJsonLd(w: Workshop) {
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
     location: {
       '@type': 'Place', name: w.venue,
-      address: { '@type': 'PostalAddress', addressLocality: w.city, addressRegion: 'Rajasthan', addressCountry: 'IN' },
+      address: { '@type': 'PostalAddress', addressLocality: w.city, ...(w.cityState ? { addressRegion: w.cityState } : {}), addressCountry: 'IN' },
     },
     organizer: { '@type': 'Organization', name: w.host },
     maximumAttendeeCapacity: w.seats,
