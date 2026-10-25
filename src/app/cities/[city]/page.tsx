@@ -4,37 +4,43 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { ProductGrid } from '@/components/ProductGrid';
 import { WorkshopList } from '@/components/WorkshopList';
-import { CITIES, citySlug, cityFromSlug, listProducts, listWorkshops } from '@/lib/catalog';
+import { listProducts, listWorkshops } from '@/lib/catalog';
+import { listActiveCities } from '@/lib/cities';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
 
 export const dynamic = 'force-dynamic';
-export const dynamicParams = false;
 type Props = { params: Promise<{ city: string }> };
 
-export const generateStaticParams = () => CITIES.map(c => ({ city: citySlug(c) }));
+/** Only active cities (an APPROVED product or workshop) have a page; any other slug is a 404. */
+async function activeCity(slug: string) {
+  return (await listActiveCities()).find(c => c.slug === slug);
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const city = cityFromSlug((await params).city);
-  if (!city) return { title: 'City not found', robots: { index: false } };
+  const c = await activeCity((await params).city);
+  if (!c) return { title: 'City not found', robots: { index: false } };
+  const city = c.name;
   return pageMetadata({
     title: `Handmade finds & creative workshops in ${city}`,
     description: `Shop handmade crafts by ${city} makers and book creative workshops and meetups in ${city}, India.`,
-    path: `/cities/${citySlug(city)}`,
+    path: `/cities/${c.slug}`,
   });
 }
 
 export default async function CityPage({ params }: Props) {
-  const city = cityFromSlug((await params).city);
-  if (!city) notFound();
-  const [products, workshops] = await Promise.all([listProducts({ city }), listWorkshops({ city })]);
-  const crumbs = [{ name: 'Home', path: '/' }, { name: city, path: `/cities/${citySlug(city)}` }];
+  const c = await activeCity((await params).city);
+  if (!c) notFound();
+  const city = c.name;
+  // Filter by slug: two cities can share a name (Udaipur, Rajasthan vs Udaipur, Tripura).
+  const [products, workshops] = await Promise.all([listProducts({ city: c.slug }), listWorkshops({ city: c.slug })]);
+  const crumbs = [{ name: 'Home', path: '/' }, { name: city, path: `/cities/${c.slug}` }];
   return (
     <>
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
       <Breadcrumbs items={crumbs} />
       <div className="page-head">
-        <span className="eyebrow">{city.toUpperCase()}, INDIA</span>
+        <span className="eyebrow">{[city, c.state, 'India'].filter(Boolean).join(', ').toUpperCase()}</span>
         <h1>Handmade finds &amp; workshops in {city}</h1>
         <p>Independent makers and creative gatherings in {city}.</p>
       </div>

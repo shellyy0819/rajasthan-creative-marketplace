@@ -1,15 +1,17 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import type { Product, Workshop } from '@/lib/types';
-import { CITIES, DEFAULT_CATEGORIES } from '@/lib/catalog-shared';
+import { DEFAULT_CATEGORIES } from '@/lib/catalog-shared';
 import { ProductGrid } from './ProductGrid';
 import { PageLoader } from './PageLoader';
 import { WorkshopList } from './WorkshopList';
 
 type Values = { city?: string; category?: string; type?: string; q?: string };
+type CityOption = { name: string; slug: string };
+/** `cities` are the active cities (from the server), offered in the city filter by name. */
 type Props =
-  | { kind: 'products'; initialItems: Product[]; initialValues: Values; categories?: readonly string[] }
-  | { kind: 'workshops'; initialItems: Workshop[]; initialValues: Values };
+  | { kind: 'products'; initialItems: Product[]; initialValues: Values; cities: readonly CityOption[]; categories?: readonly string[] }
+  | { kind: 'workshops'; initialItems: Workshop[]; initialValues: Values; cities: readonly CityOption[] };
 
 const SEARCH_DELAY_MS = 300;
 const CONFIG = {
@@ -61,12 +63,16 @@ export function LiveCatalog(props: Props) {
     return () => { clearTimeout(timer); ctrl.abort(); setLoading(false); };
   }, [values, delay, endpoint, path, selectKey]);
 
-  const set = (patch: Values, wait: number) => { setDelay(wait); setValues(v => ({ ...v, ...patch })); };
+  // The filter accepts a name or a slug (?city=udaipur): show the matching city, or keep an unknown value visible.
+  const cityValue = values.city ?? '';
+  const cityMatch = props.cities.find(c => c.name === cityValue || c.slug === cityValue.toLowerCase());
+  const cityLabel = cityMatch?.name ?? cityValue;
   const dirty = Object.values(values).some(Boolean);
   const n = items.length;
   const summary = kind === 'products'
-    ? `${n} ${n === 1 ? 'find' : 'finds'} to love${values.city ? ` in ${values.city}` : ''}.`
-    : `${n} ${n === 1 ? 'experience' : 'experiences'}${values.city ? ` in ${values.city}` : ' around India'}.`;
+    ? `${n} ${n === 1 ? 'find' : 'finds'} to love${cityLabel ? ` in ${cityLabel}` : ''}.`
+    : `${n} ${n === 1 ? 'experience' : 'experiences'}${cityLabel ? ` in ${cityLabel}` : ' around India'}.`;
+  const set = (patch: Values, wait: number) => { setDelay(wait); setValues(v => ({ ...v, ...patch })); };
 
   const form = (
     <form className="filters" action={path} method="get" role="search" onSubmit={e => { e.preventDefault(); setDelay(0); setValues(v => ({ ...v })); }}>
@@ -76,9 +82,10 @@ export function LiveCatalog(props: Props) {
         placeholder={kind === 'products' ? 'Search crafts, makers…' : 'Search workshops…'}
         aria-label={kind === 'products' ? 'Search products' : 'Search workshops'}
       />
-      <select name="city" value={values.city ?? ''} onChange={e => set({ city: e.target.value }, 0)} aria-label="Filter by city">
+      <select name="city" value={cityLabel} onChange={e => set({ city: e.target.value }, 0)} aria-label="Filter by city">
         <option value="">All India</option>
-        {CITIES.map(c => <option key={c}>{c}</option>)}
+        {props.cities.map(c => <option key={c.slug} value={c.name}>{c.name}</option>)}
+        {cityValue && !cityMatch && <option value={cityValue}>{cityValue}</option>}
       </select>
       {kind === 'products' ? (
         <select name="category" value={values.category ?? ''} onChange={e => set({ category: e.target.value }, 0)} aria-label="Filter by category">

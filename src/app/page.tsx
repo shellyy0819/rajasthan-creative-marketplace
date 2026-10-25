@@ -4,7 +4,8 @@ import { Hero } from '@/components/Hero';
 import { HomeCraftExplorer } from '@/components/HomeCraftExplorer';
 import { WorkshopList } from '@/components/WorkshopList';
 import { TrendingSection } from '@/components/TrendingSection';
-import { listProducts, listWorkshops, CITIES, citySlug } from '@/lib/catalog';
+import { listProducts, listWorkshops } from '@/lib/catalog';
+import { listActiveCities } from '@/lib/cities';
 import { pageMetadata } from '@/lib/meta';
 import { SITE } from '@/lib/site';
 
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [products, workshops] = await Promise.all([listProducts(), listWorkshops()]);
+  const [products, workshops, cities] = await Promise.all([listProducts(), listWorkshops(), listActiveCities()]);
   return (
     <>
       <Hero />
@@ -51,9 +52,11 @@ export default async function Home() {
         </div>
         <a className="button light" href={`mailto:${SITE.email}?subject=Marketplace%20seller%20interest`}>I’m a maker <span>↗</span></a>
       </section>
-      <nav className="link-row" aria-label="Explore by city">
-        {CITIES.map(c => <Link key={c} href={`/cities/${citySlug(c)}`}>Handmade &amp; workshops in {c}</Link>)}
-      </nav>
+      {cities.length > 0 && (
+        <nav className="link-row" aria-label="Explore by city">
+          {cities.map(c => <Link key={c.slug} href={`/cities/${c.slug}`}>Handmade &amp; workshops in {c.name}</Link>)}
+        </nav>
+      )}
     </>
   );
 }

@@ -5,6 +5,8 @@ import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
 
 const nav = vi.hoisted(() => ({ path: '/', search: '' }));
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+// The footer calls connection() to stay per-request; outside Next there is no request scope.
+vi.mock('next/server', async orig => ({ ...(await orig<typeof import('next/server')>()), connection: async () => undefined }));
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 vi.mock('next/navigation', () => ({ usePathname: () => nav.path, useSearchParams: () => new URLSearchParams(nav.search) }));
 import { Analytics, OPEN_SETTINGS_EVENT } from '@/components/Analytics';
@@ -158,8 +160,9 @@ describe('CookieSettings link', () => {
     window.removeEventListener(OPEN_SETTINGS_EVENT, seen);
   });
   it('the footer has it', async () => {
+    vi.doMock('@/lib/cities', () => ({ listActiveCities: async () => [] }));
     const { Footer } = await import('@/components/Footer');
-    render(<Footer />);
+    render(await Footer());
     expect(screen.getByRole('button', { name: 'Cookie settings' })).toBeTruthy();
   });
 });

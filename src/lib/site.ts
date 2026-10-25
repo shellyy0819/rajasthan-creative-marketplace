@@ -2,7 +2,7 @@ export const SITE = {
   name: 'Craftology',
   tagline: 'Handmade finds & creative workshops across India',
   description:
-    'Shop thoughtfully curated handmade products from independent artisans and book hands-on workshops in Udaipur, Jaipur and Jodhpur.',
+    'Shop thoughtfully curated handmade products from independent artisans and book hands-on workshops in cities across India.',
   locale: 'en_IN',
   email: 'hello@craftology.example',
 };

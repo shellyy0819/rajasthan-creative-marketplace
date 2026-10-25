@@ -4,6 +4,7 @@ import { LiveCatalog } from '@/components/LiveCatalog';
 import { JsonLd } from '@/components/JsonLd';
 import { listProducts } from '@/lib/catalog';
 import { listCategories } from '@/lib/categories';
+import { listActiveCities } from '@/lib/cities';
 import { hasFilters, parseFilters } from '@/lib/filters';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
@@ -14,7 +15,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const f = parseFilters(await searchParams);
   return pageMetadata({
     title: 'Shop handmade crafts from India',
-    description: 'Crochet, resin art, pottery and accessories from independent makers in Udaipur, Jaipur and Jodhpur. Search by city and category.',
+    description: 'Crochet, resin art, pottery and accessories from independent makers across India. Search by city and category.',
     path: '/shop',
     noindex: hasFilters(f),
   });
@@ -22,7 +23,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 export default async function ShopPage({ searchParams }: Props) {
   const f = parseFilters(await searchParams);
-  const [products, categories] = await Promise.all([listProducts(f), listCategories()]);
+  const [products, categories, cities] = await Promise.all([listProducts(f), listCategories(), listActiveCities()]);
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Shop', path: '/shop' }];
   return (
     <>
@@ -31,9 +32,9 @@ export default async function ShopPage({ searchParams }: Props) {
       <div className="page-head">
         <span className="eyebrow">THE MAKERS&apos; SHELF</span>
         <h1>Handmade finds from India</h1>
-        <p>Crochet, resin art, pottery and accessories from independent makers in Udaipur, Jaipur and Jodhpur.</p>
+        <p>Crochet, resin art, pottery and accessories from independent makers across India.</p>
       </div>
-      <LiveCatalog kind="products" initialItems={products} initialValues={f} categories={categories} />
+      <LiveCatalog kind="products" initialItems={products} initialValues={f} categories={categories} cities={cities.map(c => ({ name: c.name, slug: c.slug }))} />
     </>
   );
 }

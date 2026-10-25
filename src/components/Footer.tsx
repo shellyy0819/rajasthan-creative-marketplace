@@ -1,15 +1,22 @@
 import Link from 'next/link';
+import { connection } from 'next/server';
 import { Brand } from './Header';
 import { CookieSettings } from './CookieSettings';
-import { CITIES, citySlug } from '@/lib/catalog';
+import { listActiveCities, type City } from '@/lib/cities';
 
-export function Footer() {
+/** Links to every active city (one with an approved product or workshop); rendered per request. */
+export async function Footer() {
+  await connection(); // the city list changes with the catalogue: never freeze it into a prerendered page
+  let cities: City[] = [];
+  try { cities = await listActiveCities(); } catch { /* the footer must never take a page down; links come back next request */ }
   return (
     <footer>
       <Brand />
-      <nav aria-label="Cities" style={{ display: 'flex', gap: 14, fontSize: 11 }}>
-        {CITIES.map(c => <Link key={c} href={`/cities/${citySlug(c)}`}>{c}</Link>)}
-      </nav>
+      {cities.length > 0 && (
+        <nav aria-label="Cities" className="footer-cities">
+          {cities.map(c => <Link key={c.slug} href={`/cities/${c.slug}`}>{c.name}</Link>)}
+        </nav>
+      )}
       <p>A demo marketplace concept for India. Payments are not enabled.</p>
       <span>Made with care ✳</span>
       <CookieSettings />

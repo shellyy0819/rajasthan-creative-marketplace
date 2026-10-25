@@ -13,6 +13,7 @@ import { LiveCatalog } from '@/components/LiveCatalog';
 const prod = (id: string, name: string, city = 'Jaipur') => ({ id, name, category: 'Pottery', city, cityId: 1, citySlug: city.toLowerCase(), pricePaise: 10000, seller: 'S', description: 'd', stock: 3, status: 'APPROVED' });
 const ws = (id: string, title: string) => ({ id, title, type: 'FREE', pricePaise: 0, city: 'Jodhpur', cityId: 1, citySlug: 'jodhpur', venue: 'V', date: '2026-11-22', time: '10:30', seats: 20, booked: 6, host: 'H', description: 'd', status: 'APPROVED' });
 
+const CITIES = [{ name: 'Jaipur', slug: 'jaipur' }, { name: 'Jodhpur', slug: 'jodhpur' }, { name: 'Udaipur', slug: 'udaipur' }];
 let fetchMock: ReturnType<typeof vi.fn>;
 const reply = (data: unknown, ok = true) => Promise.resolve({ ok, json: () => Promise.resolve(data) } as Response);
 
@@ -28,7 +29,7 @@ const flush = async (ms = 0) => { await act(async () => { await vi.advanceTimers
 
 describe('LiveCatalog (products)', () => {
   const initial = [prod('p1', 'Initial Bowl'), prod('p2', 'Second Dish')];
-  const mount = () => render(<LiveCatalog kind="products" initialItems={initial as any} initialValues={{}} />);
+  const mount = () => render(<LiveCatalog cities={CITIES} kind="products" initialItems={initial as any} initialValues={{}} />);
 
   it('renders server-provided items and does not fetch on mount', async () => {
     mount();
@@ -135,17 +136,38 @@ describe('LiveCatalog (products)', () => {
 
   it('Clear resets all filters and refetches', async () => {
     fetchMock.mockReturnValue(reply(initial));
-    render(<LiveCatalog kind="products" initialItems={initial as any} initialValues={{ city: 'Jaipur', q: 'x' }} />);
+    render(<LiveCatalog cities={CITIES} kind="products" initialItems={initial as any} initialValues={{ city: 'Jaipur', q: 'x' }} />);
     fireEvent.click(screen.getByText('Clear'));
     await flush(0);
     expect(fetchMock.mock.calls[0][0]).toBe('/api/products');
   });
 });
 
+describe('LiveCatalog city filter', () => {
+  it('LiveCatalog lists the cities it is given', () => {
+    render(<LiveCatalog cities={[{ name: 'Kota', slug: 'kota' }, { name: 'Pune', slug: 'pune' }]} kind="products" initialItems={[]} initialValues={{}} />);
+    const sel = screen.getByLabelText('Filter by city') as HTMLSelectElement;
+    expect(Array.from(sel.options).map(o => [o.value, o.textContent])).toEqual([['', 'All India'], ['Kota', 'Kota'], ['Pune', 'Pune']]);
+    cleanup();
+    render(<LiveCatalog cities={[{ name: 'Kota', slug: 'kota' }]} kind="workshops" initialItems={[]} initialValues={{}} />);
+    expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All India', 'Kota']);
+  });
+  it('a filter value given by slug selects the matching city instead of falling back to All India', () => {
+    render(<LiveCatalog cities={[{ name: 'Kota', slug: 'kota' }]} kind="products" initialItems={[]} initialValues={{ city: 'kota' }} />);
+    const sel = screen.getByLabelText('Filter by city') as HTMLSelectElement;
+    expect(sel.options[sel.selectedIndex].textContent).toBe('Kota');
+  });
+  it('an unknown filter value stays visible as its own option', () => {
+    render(<LiveCatalog cities={[{ name: 'Kota', slug: 'kota' }]} kind="products" initialItems={[]} initialValues={{ city: 'Atlantis' }} />);
+    const sel = screen.getByLabelText('Filter by city') as HTMLSelectElement;
+    expect(sel.value).toBe('Atlantis');
+  });
+});
+
 describe('LiveCatalog (workshops)', () => {
   it('uses /api/workshops and the type param', async () => {
     fetchMock.mockReturnValue(reply([ws('w3', 'Sunday Meetup')]));
-    render(<LiveCatalog kind="workshops" initialItems={[ws('w1', 'Old') as any]} initialValues={{}} />);
+    render(<LiveCatalog cities={CITIES} kind="workshops" initialItems={[ws('w1', 'Old') as any]} initialValues={{}} />);
     fireEvent.change(screen.getByLabelText('Filter by price'), { target: { value: 'FREE' } });
     await flush(0);
     expect(fetchMock.mock.calls[0][0]).toBe('/api/workshops?type=FREE');
@@ -157,7 +179,7 @@ describe('loader', () => {
   it('shows a non-blocking centred loader while results are being fetched and removes it afterwards', async () => {
     let release!: (v: Response) => void;
     fetchMock.mockImplementation(() => new Promise<Response>(r => { release = r; }));
-    render(<LiveCatalog kind="products" initialItems={[prod('p1', 'Alpha')]} initialValues={{}} />);
+    render(<LiveCatalog cities={CITIES} kind="products" initialItems={[prod('p1', 'Alpha')]} initialValues={{}} />);
     fireEvent.change(screen.getByLabelText('Filter by city'), { target: { value: 'Jaipur' } });
     await act(async () => { await vi.advanceTimersByTimeAsync(10); });
     const l = document.querySelector('.rr-page-loader')!;
