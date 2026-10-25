@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 import type { SellerProfile } from '@/lib/types';
+import { CityInput } from './CityInput';
 
 type Props = {
   title: string;
@@ -15,6 +16,13 @@ type Props = {
 };
 
 const field = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
+/** A chosen suggestion (signed cityRef) or the untouched current city (cityId); neither clears the artist city. */
+function cityOf(f: FormData): { cityRef: string } | { cityId: number } | Record<string, never> {
+  const ref = field(f, 'cityRef'), id = Number(field(f, 'cityId'));
+  if (ref) return { cityRef: ref };
+  if (field(f, 'cityId') && Number.isInteger(id)) return { cityId: id };
+  return {};
+}
 
 /** Public name and contact shown on a seller's product pages. */
 export function ProfileDialog({ title, initial, url, accountEmail, onSaved, onCancel }: Props) {
@@ -44,7 +52,7 @@ export function ProfileDialog({ title, initial, url, accountEmail, onSaved, onCa
           try {
             const r = await fetch(url, {
               method: 'PUT', headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ displayName: field(f, 'displayName'), publicPhone: field(f, 'publicPhone'), publicEmail: field(f, 'publicEmail'), instagram: field(f, 'instagram'), youtube: field(f, 'youtube'), bio: field(f, 'bio'), city: field(f, 'city') }),
+              body: JSON.stringify({ displayName: field(f, 'displayName'), publicPhone: field(f, 'publicPhone'), publicEmail: field(f, 'publicEmail'), instagram: field(f, 'instagram'), youtube: field(f, 'youtube'), bio: field(f, 'bio'), ...cityOf(f) }),
             });
             const body = await r.json().catch(() => null);
             if (!r.ok) { setError(body?.error ?? 'Something went wrong. Please try again.'); setSaving(false); return; }
@@ -66,7 +74,7 @@ export function ProfileDialog({ title, initial, url, accountEmail, onSaved, onCa
             <label>YouTube<input name="youtube" maxLength={200} defaultValue={initial.youtube ?? ''} /></label>
           </div>
           <div className="admin-form-row">
-            <label>City<input name="city" maxLength={100} placeholder="Jaipur" defaultValue={initial.city ?? ''} /></label>
+            <label>City<CityInput defaultCity={initial.cityId && initial.city ? { id: initial.cityId, label: initial.city } : undefined} /></label>
           </div>
           <label>About the artist<textarea name="bio" rows={4} maxLength={500} placeholder="A few lines about you and your craft." defaultValue={initial.bio ?? ''} />
             <small>Shown on your Contact artist sheet and artist page. Up to 500 characters.</small>

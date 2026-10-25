@@ -98,6 +98,11 @@ select:disabled{cursor:not-allowed}
 .place-list li[role=option]{padding:9px 12px;font:500 12px var(--font-sans),sans-serif;cursor:pointer}
 .place-list li[role=option].active,.place-list li[role=option]:hover{background:var(--cream)}
 .place-credit{padding:6px 12px;font-size:10px;color:var(--muted);border-top:1px solid var(--line);margin-top:4px}
+/* Footer city links: any number of active cities, wrapping instead of scrolling */
+.footer-cities{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px}
+/* CityInput: the control sits inside .place-field, so the required asterisk needs its own selector */
+label:has(> .place-field > :required)>.lbl::after{content:' *';color:#d0312d;font-weight:700}
+.admin-form label small.field-error,.field-error{display:block;margin-top:5px;font-size:11px;font-weight:500;color:#a74d35}
 
 .admin-row.clickable{cursor:pointer}.admin-row.clickable:hover{border-color:var(--control-border)}
 .admin-row-open{border:0;background:transparent;padding:0;margin:0;font:inherit;color:inherit;text-align:left;cursor:pointer}.admin-row-open:hover{color:var(--green)}
