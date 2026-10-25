@@ -160,3 +160,4 @@ button[aria-busy=true]::after{content:'';position:absolute;right:12px;top:50%;wi
 @media(max-width:480px){.contact-row{grid-template-columns:20px minmax(0,1fr)}.contact-row .button{grid-column:2;justify-self:start}.contact-row .contact-copy{grid-column:2}}
 .contact-btn{position:relative;z-index:1}
 .artist-city{margin:0 0 10px;color:var(--muted);font-size:12px}
+.nearby-cities .link-row{justify-content:center;padding:16px 0 0}
