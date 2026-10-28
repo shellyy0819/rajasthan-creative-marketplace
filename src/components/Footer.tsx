@@ -32,7 +32,6 @@ export async function Footer() {
         </Column>
         <Column title="Connect with Us">
           <li><Link href="/contact">Contact us</Link></li>
-          <li><a href={`mailto:${SITE.email}`}>Email us</a></li>
         </Column>
         <Column title="Let Us Help You">
           <li><Link href="/help">How it works</Link></li>

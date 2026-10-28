@@ -17,7 +17,7 @@ describe('footer', () => {
   it('has Get to Know Us, Connect with Us and Let Us Help You columns with working links', async () => {
     render(await Footer());
     expect(links('Get to Know Us')).toEqual([['About us', '/about'], ['Blogs', '/blogs']]);
-    expect(links('Connect with Us')).toEqual([['Contact us', '/contact'], ['Email us', `mailto:${SITE.email}`]]);
+    expect(links('Connect with Us')).toEqual([['Contact us', '/contact']]);
     expect(links('Let Us Help You')).toEqual([['How it works', '/help'], ['For makers', `mailto:${SITE.email}?subject=Marketplace%20seller%20interest`]]);
   });
   it('keeps the city links and puts Cookie settings under Let Us Help You', async () => {

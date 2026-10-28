@@ -6,7 +6,6 @@ import AboutPage from '@/app/about/page';
 import BlogsPage from '@/app/blogs/page';
 import ContactPage from '@/app/contact/page';
 import HelpPage from '@/app/help/page';
-import { SITE } from '@/lib/site';
 
 afterEach(cleanup);
 
@@ -28,8 +27,9 @@ describe('info pages', () => {
     expect(screen.getByRole('link', { name: /browse handmade/i }).getAttribute('href')).toBe('/shop');
     expect(screen.getByRole('link', { name: /workshop/i }).getAttribute('href')).toBe('/workshops');
   });
-  it('the contact page offers the site email as a mailto link', () => {
-    render(<ContactPage />);
-    expect(screen.getAllByRole('link').some(a => a.getAttribute('href')?.startsWith(`mailto:${SITE.email}`))).toBe(true);
+  it('the contact page shows no placeholder email address', () => {
+    const { container } = render(<ContactPage />);
+    expect(container.querySelector('a[href^="mailto:"]')).toBeNull();
+    expect(container.textContent).not.toContain('example');
   });
 });
