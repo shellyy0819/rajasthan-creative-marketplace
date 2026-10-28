@@ -5,9 +5,10 @@ import { listProducts } from '@/lib/catalog';
 import { getTestDb, makeSeller, resetTestDb } from './helpers/testdb';
 import { admin } from './helpers/actors';
 import { categories } from '@/db/schema';
+import { cityRef } from './helpers/cities';
 
 beforeEach(async () => { await resetTestDb(); });
-const base = { name: 'Thing', city: 'Jaipur', pricePaise: 100, description: 'D', stock: 1 };
+const base = { name: 'Thing', cityRef: cityRef('Jaipur'), pricePaise: 100, description: 'D', stock: 1 };
 
 describe('categories', () => {
   it('starts with the four original categories in order', async () => {
@@ -64,6 +65,6 @@ describe('products use categories from the table', () => {
     const { products } = await import('@/db/schema');
     const db = await getTestDb();
     const s = await makeSeller('fk@x.co', 'FK');
-    await expect(db.insert(products).values({ id: 'px', sellerId: s.id, name: 'N', category: 'Ghost', city: 'Jaipur', pricePaise: 1, description: 'D', stock: 1, status: 'DRAFT' })).rejects.toThrow();
+    await expect(db.insert(products).values({ id: 'px', sellerId: s.id, name: 'N', category: 'Ghost', cityId: (await db.select().from((await import('@/db/schema')).cities).limit(1))[0].id, pricePaise: 1, description: 'D', stock: 1, status: 'DRAFT' })).rejects.toThrow();
   });
 });

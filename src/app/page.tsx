@@ -3,7 +3,10 @@ import type { Metadata } from 'next';
 import { Hero } from '@/components/Hero';
 import { HomeCraftExplorer } from '@/components/HomeCraftExplorer';
 import { WorkshopList } from '@/components/WorkshopList';
-import { listProducts, listWorkshops, CITIES, citySlug } from '@/lib/catalog';
+import { TrendingSection } from '@/components/TrendingSection';
+import { listProducts, listWorkshops } from '@/lib/catalog';
+import { listActiveCities } from '@/lib/cities';
+import { cityLabeller } from '@/lib/city-label';
 import { pageMetadata } from '@/lib/meta';
 import { SITE } from '@/lib/site';
 
@@ -20,10 +23,12 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [products, workshops] = await Promise.all([listProducts(), listWorkshops()]);
+  const [products, workshops, cities] = await Promise.all([listProducts(), listWorkshops(), listActiveCities()]);
+  const cityLabel = cityLabeller(cities);
   return (
     <>
       <Hero />
+      <TrendingSection />
       <section className="section" id="shop" aria-labelledby="shop-h">
         <div className="section-heading">
           <div><span className="eyebrow">THE MAKERS&apos; SHELF</span><h2 id="shop-h">Handmade finds</h2></div>
@@ -49,9 +54,11 @@ export default async function Home() {
         </div>
         <a className="button light" href={`mailto:${SITE.email}?subject=Marketplace%20seller%20interest`}>I’m a maker <span>↗</span></a>
       </section>
-      <nav className="link-row" aria-label="Explore by city">
-        {CITIES.map(c => <Link key={c} href={`/cities/${citySlug(c)}`}>Handmade &amp; workshops in {c}</Link>)}
-      </nav>
+      {cities.length > 0 && (
+        <nav className="link-row" aria-label="Explore by city">
+          {cities.map(c => <Link key={c.slug} href={`/cities/${c.slug}`}>Handmade &amp; workshops in {cityLabel(c)}</Link>)}
+        </nav>
+      )}
     </>
   );
 }

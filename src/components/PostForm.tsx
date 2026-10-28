@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AdminProduct } from '@/lib/types';
 import { PlaceInput } from './PlaceInput';
-import { CITIES } from '@/lib/catalog-shared';
+import { CityInput } from './CityInput';
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 // Blank or non-numeric → null so the server rejects it with a field-named 400 (Number('') would be a silent 0).
@@ -15,11 +15,15 @@ const num = (f: FormData, k: string, scale = 1) => {
 export function buildPayload(f: FormData): Record<string, unknown> {
   const payload: Record<string, unknown> = {
     name: text(f, 'name'), description: text(f, 'description'),
-    category: text(f, 'category'), city: text(f, 'city'),
+    category: text(f, 'category'),
     pricePaise: num(f, 'price', 100),
     stock: num(f, 'stock'),
     imageUrl: text(f, 'imageUrl'), workshopId: text(f, 'workshopId'), pickupLocation: text(f, 'pickupLocation'),
   };
+  // The city is chosen from the place search (signed cityRef) or kept as is (cityId); typed text is never sent.
+  const cityRef = text(f, 'cityRef'), cityId = num(f, 'cityId');
+  if (cityRef) payload.cityRef = cityRef;
+  else if (cityId != null) payload.cityId = cityId;
   // Only sent when the form shows the control: a seller editing a published post must not send a status,
   // and only admins get a seller picker.
   if (f.has('status')) payload.status = text(f, 'status');
@@ -149,7 +153,7 @@ export function PostForm({ initial, role, categories, workshops, sellers, me, on
               )}
               {catError && <p role="alert" className="admin-error" style={{ margin: '6px 0 0' }}>{catError}</p>}
             </div>
-            <label><span className="lbl">City</span><select name="city" required defaultValue={v('city') || CITIES[0]}>{CITIES.map(c => <option key={c}>{c}</option>)}</select></label>
+            <label><span className="lbl">City</span><CityInput required defaultCity={initial ? { id: initial.cityId, label: initial.city } : undefined} /></label>
           </div>
           <div className="admin-form-row">
             <label><span className="lbl">Price (₹)</span><input name="price" type="number" min="0" step="0.01" required defaultValue={initial ? initial.pricePaise / 100 : ''} /></label>

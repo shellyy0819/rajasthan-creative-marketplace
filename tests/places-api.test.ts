@@ -32,6 +32,11 @@ describe('GET /api/places', () => {
     }
     expect(searchMock).toHaveBeenCalledWith('udai');
   });
+  it('type=city asks for city-only results', async () => {
+    as('seller');
+    await GET(new Request('http://x/api/places?q=udai&type=city'));
+    expect(searchMock).toHaveBeenCalledWith('udai', undefined, { cityOnly: true });
+  });
   it('missing or one-character q returns [] without calling the service', async () => {
     as('seller');
     for (const q of [undefined, '', ' ', 'u']) expect(await (await get(q)).json()).toEqual([]);

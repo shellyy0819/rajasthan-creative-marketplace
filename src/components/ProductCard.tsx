@@ -2,7 +2,8 @@ import Link from 'next/link';
 import type { Product } from '@/lib/types';
 import { money } from '@/lib/money';
 import { productSlug } from '@/lib/catalog-shared';
-import { AddToCartButton } from './AddToCartButton';
+import { ContactArtistButton } from './ContactArtistButton';
+import { LikeButton } from './LikeButton';
 import { ProductImage } from './ProductImage';
 
 export const SYMBOLS = ['🌷', '⛵', '🌼', '🏺', '🧶', '🌸'];
@@ -18,8 +19,8 @@ export function ProductCard({ p }: { p: Product }) {
         <h3><Link href={`/products/${productSlug(p)}`}>{p.name}</Link></h3>
         <p>{p.description}<br />By {p.seller}</p>
         <div className="product-bottom">
-          <span className="price">{money(p.pricePaise)}</span>
-          <AddToCartButton product={p} />
+          <span className="price-like"><span className="price">{money(p.pricePaise)}</span><LikeButton productId={p.id} initialCount={p.likeCount ?? 0} productName={p.name} /></span>
+          <ContactArtistButton product={p} />
         </div>
       </div>
     </article>

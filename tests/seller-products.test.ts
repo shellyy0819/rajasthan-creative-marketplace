@@ -6,8 +6,9 @@ import { getProductBySlug, listProducts } from '@/lib/catalog';
 import { products } from '@/db/schema';
 import { admin } from './helpers/actors';
 import { getTestDb, giveRole, makeSeller, resetTestDb, snapshot } from './helpers/testdb';
+import { cityRef } from './helpers/cities';
 
-const base = { name: 'Lac Bangle', category: 'Accessories', city: 'Jodhpur', pricePaise: 12000, description: 'Hand-set.', stock: 3 };
+const base = { name: 'Lac Bangle', category: 'Accessories', cityRef: cityRef('Jodhpur'), pricePaise: 12000, description: 'Hand-set.', stock: 3 };
 let A: Awaited<ReturnType<typeof makeSeller>>;
 let B: Awaited<ReturnType<typeof makeSeller>>;
 beforeEach(async () => {
@@ -159,7 +160,7 @@ describe('workshop host ids stay out of the public API', () => {
   it('public workshop lists and pages omit hostId; the admin create/update responses include it', async () => {
     const { createWorkshop, updateWorkshop } = await import('@/lib/admin');
     const { listWorkshops, getWorkshopBySlug } = await import('@/lib/catalog');
-    const w = await createWorkshop({ title: 'Hosted', type: 'FREE', pricePaise: 0, city: 'Jaipur', venue: 'V', date: '2026-12-01', time: '10:00', seats: 5, host: 'H', hostId: A.id, description: 'D' });
+    const w = await createWorkshop({ title: 'Hosted', type: 'FREE', pricePaise: 0, cityRef: cityRef('Jaipur'), venue: 'V', date: '2026-12-01', time: '10:00', seats: 5, host: 'H', hostId: A.id, description: 'D' });
     expect(w.hostId).toBe(A.id);
     expect((await updateWorkshop(w.id, { seats: 6 })).hostId).toBe(A.id);
     expect(JSON.stringify(await listWorkshops())).not.toContain(A.id);

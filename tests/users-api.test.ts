@@ -21,6 +21,7 @@ import { POST as postOrder } from '@/app/api/orders/route';
 import { createProduct } from '@/lib/admin';
 import { admin } from './helpers/actors';
 import { giveRole, makeSeller, resetTestDb, snapshot } from './helpers/testdb';
+import { cityRef } from './helpers/cities';
 
 const as = (email: string | null, role: string, extra: Record<string, unknown> = {}) =>
   authMock.mockResolvedValue(email ? { user: { email, role, ...extra } } : null);
@@ -29,8 +30,8 @@ const asSeller = (email = 'alpha@x.co') => as(email, 'seller');
 const asCustomer = () => as('buyer@x.co', 'customer');
 const req = (method: string, body?: unknown) => new Request('http://x/api/x', { method, body: body === undefined ? undefined : JSON.stringify(body), headers: { 'content-type': 'application/json' } });
 const idCtx = (id: string) => ({ params: Promise.resolve({ id }) });
-const product = { name: 'Lac Bangle', category: 'Accessories', city: 'Jodhpur', pricePaise: 12000, description: 'Hand-set.', stock: 3 };
-const workshop = { title: 'Lac Craft', type: 'PAID', pricePaise: 30000, city: 'Jodhpur', venue: 'Studio 9', date: '2026-12-01', time: '16:30', seats: 8, host: 'Marwar Lac', description: 'Learn.' };
+const product = { name: 'Lac Bangle', category: 'Accessories', cityRef: cityRef('Jodhpur'), pricePaise: 12000, description: 'Hand-set.', stock: 3 };
+const workshop = { title: 'Lac Craft', type: 'PAID', pricePaise: 30000, cityRef: cityRef('Jodhpur'), venue: 'Studio 9', date: '2026-12-01', time: '16:30', seats: 8, host: 'Marwar Lac', description: 'Learn.' };
 let A: Awaited<ReturnType<typeof makeSeller>>;
 let rootId: string;
 

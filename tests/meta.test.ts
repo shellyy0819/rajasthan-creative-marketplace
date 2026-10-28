@@ -23,3 +23,11 @@ describe('pageMetadata og image', () => {
     expect((pageMetadata({ title: 'a', description: 'b', path: '/x', image: false }).openGraph as { images?: unknown }).images).toBeUndefined();
   });
 });
+
+describe('SITE copy', () => {
+  it('the site description no longer names the three launch cities (any Indian city can list)', async () => {
+    const { SITE } = await import('@/lib/site');
+    expect(SITE.description).not.toMatch(/Udaipur|Jaipur|Jodhpur/);
+    expect(SITE.description).toMatch(/India/);
+  });
+});

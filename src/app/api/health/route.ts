@@ -9,5 +9,5 @@ export async function GET() {
     console.error('health check: database unavailable', err);
     return json({ ok: false, db: false, error: 'Database unavailable.' }, 503);
   }
-  return json({ ok: true, db: true, service: 'Rajasthan Creative Marketplace', timestamp: new Date().toISOString() });
+  return json({ ok: true, db: true, service: 'Craftology', timestamp: new Date().toISOString() });
 }

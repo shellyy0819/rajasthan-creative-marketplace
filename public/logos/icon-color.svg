@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="22 28 84 84" width="128" height="128"><g transform="translate(16 16)"><g>
+<path d="M8 14H24V40A8 8 0 0 1 8 40Z" fill="#c8553d"></path><path d="M24 14H40V40A8 8 0 0 1 24 40Z" fill="#e0a33a" fill-opacity="1"></path><path d="M40 14H56V40A8 8 0 0 1 40 40Z" fill="#c8553d"></path><path d="M56 14H72V40A8 8 0 0 1 56 40Z" fill="#e0a33a" fill-opacity="1"></path><path d="M72 14H88V40A8 8 0 0 1 72 40Z" fill="#c8553d"></path>
+<path d="M14 46V90M82 46V90" stroke="#2b2118" stroke-width="6" stroke-linecap="round"></path><circle cx="34" cy="60" r="7" fill="#c8553d"></circle><rect x="46" y="54" width="12" height="14" rx="2" fill="#e0a33a" fill-opacity="1"></rect><path d="M64 68L70 56L76 68Z" fill="#2b2118"></path>
+<rect x="8" y="68" width="80" height="20" rx="3" fill="#2f6f6a"></rect><path d="M54 74A6 6 0 1 0 54 82" fill="none" stroke="#f6efe4" stroke-width="4" stroke-linecap="round"></path></g></g></svg>

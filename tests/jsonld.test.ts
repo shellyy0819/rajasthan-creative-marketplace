@@ -4,8 +4,8 @@ import type { Product, Workshop } from '@/lib/types';
 
 beforeEach(() => { process.env.NEXT_PUBLIC_SITE_URL = 'https://rr.test'; });
 
-const product: Product = { id: 'p1', name: 'Crochet Lily Bouquet', category: 'Crochet & Textiles', city: 'Udaipur', pricePaise: 85000, seller: 'Shauk and Stuff', description: 'Handmade.', stock: 8, status: 'APPROVED' };
-const workshop: Workshop = { id: 'w1', title: 'Beginner Crochet', type: 'PAID', pricePaise: 49900, city: 'Udaipur', venue: 'The Courtyard Café', date: '2026-11-08', time: '11:00', seats: 12, booked: 3, host: 'Shauk and Stuff', description: 'Fun.', status: 'APPROVED' };
+const product: Product = { id: 'p1', name: 'Crochet Lily Bouquet', category: 'Crochet & Textiles', city: 'Udaipur', cityId: 1, citySlug: 'udaipur', pricePaise: 85000, seller: 'Shauk and Stuff', description: 'Handmade.', stock: 8, status: 'APPROVED' };
+const workshop: Workshop = { id: 'w1', title: 'Beginner Crochet', type: 'PAID', pricePaise: 49900, city: 'Udaipur', cityId: 1, citySlug: 'udaipur', cityState: 'Rajasthan', venue: 'The Courtyard Café', date: '2026-11-08', time: '11:00', seats: 12, booked: 3, host: 'Shauk and Stuff', description: 'Fun.', status: 'APPROVED' };
 
 describe('serializeJsonLd', () => {
   it('escapes < so </script> cannot break out', () => {
@@ -39,6 +39,16 @@ describe('workshopJsonLd', () => {
     expect(j.remainingAttendeeCapacity).toBe(9);
     expect(j.offers).toMatchObject({ price: '499.00', availability: 'https://schema.org/InStock' });
   });
+  it('omits addressRegion when the city has no state', () => {
+    const { cityState: _s, ...noState } = workshop;
+    const j = workshopJsonLd(noState) as any;
+    expect(j.location.address).not.toHaveProperty('addressRegion');
+    expect(j.location.address).toMatchObject({ addressLocality: 'Udaipur', addressCountry: 'IN' });
+  });
+  it('uses the city state for addressRegion', () => {
+    const j = workshopJsonLd({ ...workshop, city: 'Indore', cityState: 'Madhya Pradesh' }) as any;
+    expect(j.location.address.addressRegion).toBe('Madhya Pradesh');
+  });
   it('SoldOut when full; free price is 0.00', () => {
     const j = workshopJsonLd({ ...workshop, booked: 12, type: 'FREE', pricePaise: 0 }) as any;
     expect(j.offers.availability).toBe('https://schema.org/SoldOut');
@@ -52,7 +62,7 @@ describe('breadcrumb + org', () => {
     expect(j.itemListElement[1]).toMatchObject({ position: 2, name: 'Shop', item: 'https://rr.test/shop' });
   });
   it('organization has name and url', () => {
-    expect(organizationJsonLd()).toMatchObject({ '@type': 'Organization', name: 'Rang Rajasthan', url: 'https://rr.test' });
+    expect(organizationJsonLd()).toMatchObject({ '@type': 'Organization', name: 'Craftology', url: 'https://rr.test' });
   });
 });
 

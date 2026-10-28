@@ -1,10 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { verifyCityRef } from '@/lib/city-ref';
 import { searchPlaces, placeLabel, clearPlacesCache, PLACES_URL } from '@/lib/places';
 
 const f = (props: Record<string, unknown>) => ({ properties: { countrycode: 'IN', ...props } });
 const photon = (...features: ReturnType<typeof f>[]) => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ features }) } as Response);
 
-beforeEach(() => clearPlacesCache());
+beforeEach(() => { clearPlacesCache(); vi.stubEnv('NEXTAUTH_SECRET', 'test-secret'); });
+afterEach(() => vi.unstubAllEnvs());
 
 describe('placeLabel', () => {
   it('builds "name, area, state" and drops repeated parts', () => {
@@ -32,7 +34,7 @@ describe('searchPlaces', () => {
     expect(u.searchParams.get('bbox')).toBe('68.1,6.7,97.4,35.7');
     expect(u.searchParams.get('limit')).toBe('20');
     expect(u.searchParams.has('lat')).toBe(false); // a location bias buries big cities under nearby villages
-    expect((init.headers as Record<string, string>)['user-agent']).toMatch(/RangRajasthan/);
+    expect((init.headers as Record<string, string>)['user-agent']).toMatch(/Craftology/);
   });
   it('keeps only India, puts Rajasthan first, removes duplicates and returns at most 6 labelled suggestions', async () => {
     const fetchImpl = vi.fn(() => photon(
@@ -110,5 +112,48 @@ describe('searchPlaces', () => {
   it('ignores features with no usable name and unexpected shapes', async () => {
     const fetchImpl = vi.fn(() => photon(f({}), { properties: null } as never, f({ name: '   ' }), f({ name: 'Real', state: 'Rajasthan' })));
     expect((await searchPlaces('real', fetchImpl as never)).map(p => p.label)).toEqual(['Real, Rajasthan']);
+  });
+});
+
+describe('searchPlaces cityOnly', () => {
+  const g = (props: Record<string, unknown>, coords: unknown = [73.68, 24.58]) => ({ ...f(props), ...(coords ? { geometry: { type: 'Point', coordinates: coords } } : {}) });
+  it('drops localities and results without coordinates, keeps villages, and attaches a verifiable ref', async () => {
+    const fetchImpl = vi.fn(() => photon(
+      g({ name: 'Udaipur', osm_value: 'city', osm_type: 'R', osm_id: 1, state: 'Rajasthan' }),
+      g({ name: 'Udaipurwati', osm_value: 'town', osm_type: 'N', osm_id: 2, state: 'Rajasthan' }),
+      g({ name: 'Udaipura', osm_value: 'village', osm_type: 'N', osm_id: 3, state: 'Rajasthan' }),
+      g({ name: 'Udaipur Colony', osm_value: 'suburb', osm_type: 'N', osm_id: 4, state: 'Rajasthan' }),
+      g({ name: 'Udai Fort', osm_value: 'cafe', osm_type: 'N', osm_id: 5, state: 'Rajasthan' }),
+      g({ name: 'Udai Nocoords', osm_value: 'city', osm_type: 'N', osm_id: 6, state: 'Rajasthan' }, null),
+    ));
+    const out = await searchPlaces('udai', fetchImpl as never, { cityOnly: true });
+    expect(out.map(p => p.name)).toEqual(['Udaipur', 'Udaipurwati', 'Udaipura']);
+    expect(verifyCityRef(out[0].ref)).toEqual({ osmType: 'R', osmId: 1, name: 'Udaipur', state: 'Rajasthan', lat: 24.58, lng: 73.68 });
+  });
+  it('caches cityOnly and plain searches separately', async () => {
+    const fetchImpl = vi.fn(() => photon(g({ name: 'Udaipur', osm_value: 'city', osm_type: 'R', osm_id: 1, state: 'Rajasthan' })));
+    const plain = await searchPlaces('udai', fetchImpl as never);
+    const city = await searchPlaces('udai', fetchImpl as never, { cityOnly: true });
+    expect(plain[0]).not.toHaveProperty('ref');
+    expect(city[0].ref).toBeTruthy();
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+  it('plain and cityOnly caches never serve each other, even for a query that looks like a prefix', async () => {
+    const mk = () => vi.fn(() => photon(g({ name: 'Udaipur', osm_value: 'city', osm_type: 'R', osm_id: 1, state: 'Rajasthan' })));
+    const a = mk();
+    await searchPlaces('city:udai', a as never);
+    const cityHit = await searchPlaces('udai', a as never, { cityOnly: true });
+    expect(a).toHaveBeenCalledTimes(2);
+    expect(cityHit[0].ref).toBeTruthy();
+    clearPlacesCache();
+    const b = mk();
+    await searchPlaces('udai', b as never, { cityOnly: true });
+    const plain = await searchPlaces('city:udai', b as never);
+    expect(b).toHaveBeenCalledTimes(2);
+    expect(plain[0]).not.toHaveProperty('ref');
+  });
+  it('without cityOnly is unchanged (no ref)', async () => {
+    const fetchImpl = vi.fn(() => photon(g({ name: 'Udaipur', osm_value: 'city', osm_type: 'R', osm_id: 1, state: 'Rajasthan' })));
+    expect(await searchPlaces('udai', fetchImpl as never)).toEqual([{ label: 'Udaipur, Rajasthan', name: 'Udaipur', state: 'Rajasthan' }]);
   });
 });

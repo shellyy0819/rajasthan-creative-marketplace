@@ -50,6 +50,27 @@
       "when": 1792138114295,
       "tag": "0006_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792599826753,
+      "tag": "0007_trending",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792772864625,
+      "tag": "0008_artist_bio_city",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792776817808,
+      "tag": "0009_cities",
+      "breakpoints": true
     }
   ]
 }

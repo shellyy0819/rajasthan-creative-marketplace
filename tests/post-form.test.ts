@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildPayload } from '@/components/PostForm';
 
 const form = (o: Record<string, string>) => { const f = new FormData(); for (const [k, v] of Object.entries(o)) f.set(k, v); return f; };
-const base = { name: ' Lac Bangle ', description: 'Hand-set.', category: 'Accessories', city: 'Jodhpur', price: '19.99', stock: '3', status: 'DRAFT', imageUrl: '', workshopId: '', pickupLocation: '' };
+const base = { name: ' Lac Bangle ', description: 'Hand-set.', category: 'Accessories', cityId: '3', price: '19.99', stock: '3', status: 'DRAFT', imageUrl: '', workshopId: '', pickupLocation: '' };
 
 describe('buildPayload', () => {
   it('converts rupees to exact paise and trims text', () => {
@@ -41,5 +41,23 @@ describe('buildPayload', () => {
     expect(buildPayload(form(base))).not.toHaveProperty('sellerId');
     expect(buildPayload(form({ ...base, sellerId: ' abc ' })).sellerId).toBe('abc');
     expect(buildPayload(form({ ...base, sellerId: '' })).sellerId).toBe('');
+  });
+  it('sends the untouched default city as a numeric cityId and never a free-text city', () => {
+    const p = buildPayload(form({ ...base, city: 'Jodhpur' }));
+    expect(p.cityId).toBe(3);
+    expect(p).not.toHaveProperty('city');
+    expect(p).not.toHaveProperty('cityRef');
+  });
+  it('sends a chosen suggestion as cityRef (and no cityId)', () => {
+    const { cityId: _c, ...noId } = base;
+    const p = buildPayload(form({ ...noId, city: 'Kota, Rajasthan', cityRef: 'REF-KOTA' }));
+    expect(p.cityRef).toBe('REF-KOTA');
+    expect(p).not.toHaveProperty('cityId');
+    expect(p).not.toHaveProperty('city');
+  });
+  it('sends no city fields when none was chosen (the server answers "city is required.")', () => {
+    const { cityId: _c, ...noId } = base;
+    const p = buildPayload(form({ ...noId, city: 'typed only' }));
+    for (const k of ['city', 'cityId', 'cityRef']) expect(p).not.toHaveProperty(k);
   });
 });

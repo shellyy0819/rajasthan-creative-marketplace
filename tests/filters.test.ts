@@ -10,8 +10,13 @@ describe('parseFilters', () => {
     expect(parseFilters({ city: 'Jaipur', category: 'Pottery', type: 'FREE' }))
       .toEqual({ city: 'Jaipur', category: 'Pottery', type: 'FREE' });
   });
-  it('drops unknown city/type; categories are user-created so any sane name is kept (an unknown one just finds nothing)', () => {
-    expect(parseFilters({ city: 'Mars', category: 'x', type: 'weird' })).toEqual({ category: 'x' });
+  it('accepts any non-empty city up to 100 chars (cities are data, not a whitelist)', () => {
+    expect(parseFilters({ city: 'Kota' })).toEqual({ city: 'Kota' });
+    expect(parseFilters({ city: '  ' })).toEqual({});
+    expect(parseFilters({ city: 'y'.repeat(101) })).toEqual({});
+  });
+  it('drops unknown type; categories are user-created so any sane name is kept (an unknown one just finds nothing)', () => {
+    expect(parseFilters({ category: 'x', type: 'weird' })).toEqual({ category: 'x' });
     expect(parseFilters({ category: 'Wooden Toys' })).toEqual({ category: 'Wooden Toys' });
     expect(parseFilters({ category: ' ' })).toEqual({});
     expect(parseFilters({ category: 'y'.repeat(61) })).toEqual({});
@@ -19,8 +24,8 @@ describe('parseFilters', () => {
   it('uses first value of repeated params', () => {
     expect(parseFilters({ city: ['Jaipur', 'Udaipur'] })).toEqual({ city: 'Jaipur' });
   });
-  it('treats "All Rajasthan" as no filter', () => {
-    expect(parseFilters({ city: 'All Rajasthan' })).toEqual({});
+  it('treats "All India" as no filter', () => {
+    expect(parseFilters({ city: 'All India' })).toEqual({});
   });
   it('trims q and caps length at 100', () => {
     expect(parseFilters({ q: '  hi  ' })).toEqual({ q: 'hi' });

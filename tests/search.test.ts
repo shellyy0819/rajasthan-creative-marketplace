@@ -5,10 +5,11 @@ import { createProduct } from '@/lib/admin';
 import { admin } from './helpers/actors';
 import { getTestDb, makeSeller, resetTestDb } from './helpers/testdb';
 import { products } from '@/db/schema';
+import { cityRef } from './helpers/cities';
 
 beforeEach(async () => { await resetTestDb(); });
 const ids = async (q: string) => (await listProducts({ q })).map(p => p.id);
-const base = { category: 'Resin Art', city: 'Jaipur', pricePaise: 100, description: 'plain', stock: 1 };
+const base = { category: 'Resin Art', cityRef: cityRef('Jaipur'), pricePaise: 100, description: 'plain', stock: 1 };
 
 describe('fuzzy product search (typos still find the product)', () => {
   it('missing, extra, wrong and swapped letters', async () => {

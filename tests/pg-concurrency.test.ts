@@ -111,4 +111,22 @@ describe.skipIf(!adminUrl)('real Postgres: concurrency and locking', () => {
     expect(await listProducts({ q: 'xylophone' })).toEqual([]);
     expect((await listProducts({ q: 'resin' }))[0].id).toBe('p3');
   });
+
+  it('likes: 30 parallel likes by one actor leave one row; 40 parallel likes by different actors count exactly 40; events dedupe under parallel writes', async () => {
+    const { likeProduct, likeState, recordEvent } = await import('@/lib/engagement');
+    await Promise.all(Array.from({ length: 30 }, () => likeProduct('p1', 'v:same')));
+    expect((await likeState(['p1'])).counts.p1).toBe(1);
+    await Promise.all(Array.from({ length: 40 }, (_, i) => likeProduct('p2', `v:${i}`)));
+    expect((await likeState(['p2'])).counts.p2).toBe(40);
+    const rs = await Promise.all(Array.from({ length: 30 }, () => recordEvent({ productId: 'p3', type: 'view', actor: 'h:same' }, new Date('2026-10-20T10:00:00Z'))));
+    expect(rs.filter(r => r === 'recorded')).toHaveLength(1);
+  });
+
+  it('trending works on real Postgres: weighted order, window and one product per artist', async () => {
+    const { trending } = await import('@/lib/trending');
+    const { likeProduct, recordEvent } = await import('@/lib/engagement');
+    await recordEvent({ productId: 'p1', type: 'view', actor: 'h:a' }); await likeProduct('p3', 'v:a');
+    await recordEvent({ productId: 'p3', type: 'view', actor: 'h:a' });
+    expect((await trending()).map(p => p.id)).toEqual(['p3', 'p1']);
+  });
 });

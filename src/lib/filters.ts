@@ -1,5 +1,3 @@
-import { CITIES } from './catalog';
-
 type SP = Record<string, string | string[] | undefined>;
 export type Filters = { city?: string; category?: string; q?: string; type?: 'FREE' | 'PAID' };
 
@@ -8,7 +6,8 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 export function parseFilters(sp: SP): Filters {
   const out: Filters = {};
   const city = first(sp.city);
-  if (city && (CITIES as readonly string[]).includes(city)) out.city = city;
+  // Cities are data now: any sane name or slug is accepted; an unknown one simply finds nothing.
+  if (city && city.trim() && city !== 'All India' && city.length <= 100) out.city = city.trim();
   const category = first(sp.category);
   // Categories are user-created now, so any sane name is accepted; an unknown one simply finds nothing.
   if (category && category.trim() && category.length <= 60) out.category = category.trim();

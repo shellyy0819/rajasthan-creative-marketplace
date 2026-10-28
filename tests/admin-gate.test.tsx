@@ -24,10 +24,27 @@ describe('adminGate', () => {
   });
 });
 
+const hdrs = vi.hoisted(() => ({ host: 'www.example.com' as string | null }));
+vi.mock('next/headers', () => ({ headers: async () => ({ get: (k: string) => (k === 'host' ? hdrs.host : null) }) }));
+
 describe('robots', () => {
-  it('disallows /admin/ and /api/', () => {
-    const rules = robots().rules as { disallow: string[] }[];
-    expect(rules[0].disallow).toEqual(expect.arrayContaining(['/api/', '/admin/']));
+  const env = { DASHBOARD_URL: process.env.DASHBOARD_URL, NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL };
+  afterEach(() => { for (const [k, v] of Object.entries(env)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } });
+  it('public site: disallows /dashboard/, /admin/ and /api/ and lists the sitemap', async () => {
+    delete process.env.DASHBOARD_URL; hdrs.host = 'localhost:3000';
+    const r = await robots();
+    const rules = r.rules as { disallow: string[] }[];
+    expect(rules[0].disallow).toEqual(expect.arrayContaining(['/api/', '/dashboard/', '/admin/']));
+    expect(r.sitemap).toBeTruthy();
+  });
+  it('dashboard host: disallows everything and has no sitemap', async () => {
+    process.env.DASHBOARD_URL = 'https://dashboard.example.com'; process.env.NEXT_PUBLIC_SITE_URL = 'https://www.example.com';
+    hdrs.host = 'dashboard.example.com';
+    const r = await robots();
+    expect((r.rules as { disallow: string }[])[0].disallow).toBe('/');
+    expect(r.sitemap).toBeUndefined();
+    hdrs.host = 'www.example.com';
+    expect(((await robots()).rules as { disallow: string[] }[])[0].disallow).toEqual(expect.arrayContaining(['/dashboard/']));
   });
 });
 
@@ -35,9 +52,17 @@ describe('AuthButton seller link', () => {
   it('shows My products (not Admin) for sellers and labels the sign-out button', () => {
     session.value = { data: { user: { email: 's@x.co', role: 'seller' } }, status: 'authenticated' };
     render(<AuthButton />);
-    expect(screen.getByRole('link', { name: 'My products' }).getAttribute('href')).toBe('/admin/posts');
+    expect(screen.getByRole('link', { name: 'My products' }).getAttribute('href')).toBe('/dashboard/posts');
     expect(screen.queryByRole('link', { name: 'Admin' })).toBeNull();
     expect(screen.getByRole('button', { name: /Sign out \(seller\)/ })).toBeTruthy();
+  });
+});
+
+describe('AuthButton with a separate dashboard host', () => {
+  it('links to the dashboard host (the dashboard does not exist on the public host)', () => {
+    session.value = { data: { user: { email: 'a@x.co', role: 'admin' } }, status: 'authenticated' };
+    render(<AuthButton dashboardUrl="https://dashboard.example.com" />);
+    expect(screen.getByRole('link', { name: 'Admin' }).getAttribute('href')).toBe('https://dashboard.example.com/dashboard/posts');
   });
 });
 
@@ -45,7 +70,7 @@ describe('AuthButton admin link', () => {
   it('shows an Admin link only for admins', () => {
     session.value = { data: { user: { email: 'a@x.co', role: 'admin' } }, status: 'authenticated' };
     const { unmount } = render(<AuthButton />);
-    expect(screen.getByRole('link', { name: 'Admin' }).getAttribute('href')).toBe('/admin/posts');
+    expect(screen.getByRole('link', { name: 'Admin' }).getAttribute('href')).toBe('/dashboard/posts');
     unmount();
     session.value = { data: { user: { email: 'c@x.co', role: 'customer' } }, status: 'authenticated' };
     render(<AuthButton />);

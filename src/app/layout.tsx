@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Playfair_Display } from 'next/font/google';
 import './globals.css';
@@ -8,6 +9,8 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { StoreProvider } from '@/components/StoreProvider';
 import { AuthProvider } from '@/components/AuthProvider';
+import { Analytics } from '@/components/Analytics';
+import { hostConfig } from '@/lib/hosts';
 
 const sans = DM_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-sans', display: 'swap' });
 const serif = Playfair_Display({ subsets: ['latin'], weight: ['500', '600', '700'], style: ['normal', 'italic'], variable: '--font-serif', display: 'swap' });
@@ -19,10 +22,14 @@ export const metadata: Metadata = {
   applicationName: SITE.name,
   openGraph: { siteName: SITE.name, locale: SITE.locale, type: 'website' },
   twitter: { card: 'summary_large_image' },
+  icons: {
+    icon: [{ url: '/icons/favicon.svg', type: 'image/svg+xml' }, { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' }, { url: '/icons/favicon-16.png', sizes: '16x16', type: 'image/png' }],
+    apple: [{ url: '/icons/apple-touch-icon-180.png', sizes: '180x180', type: 'image/png' }],
+  },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } },
 };
 
-export const viewport: Viewport = { themeColor: '#f8f4ee', width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { themeColor: '#c8553d', width: 'device-width', initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -37,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </StoreProvider>
         </AuthProvider>
         <Footer />
+        <Suspense fallback={null}><Analytics measurementId={process.env.GA_MEASUREMENT_ID} dashboardHost={hostConfig().dashboardHost} /></Suspense>
       </body>
     </html>
   );

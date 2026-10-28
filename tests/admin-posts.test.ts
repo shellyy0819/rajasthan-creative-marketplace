@@ -6,11 +6,12 @@ import { listProducts } from '@/lib/catalog';
 import { saveProfile } from '@/lib/users';
 import { admin } from './helpers/actors';
 import { makeSeller, resetTestDb } from './helpers/testdb';
+import { cityRef } from './helpers/cities';
 
 beforeEach(async () => {
   await resetTestDb();
 });
-const base = { name: 'Lac Bangle', category: 'Accessories', city: 'Jodhpur', pricePaise: 12000, description: 'Hand-set.', stock: 3 };
+const base = { name: 'Lac Bangle', category: 'Accessories', cityRef: cityRef('Jodhpur'), pricePaise: 12000, description: 'Hand-set.', stock: 3 };
 
 describe('artistKey', () => {
   it('treats case and spacing variants as one artist', () => {

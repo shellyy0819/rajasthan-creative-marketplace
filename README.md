@@ -1,6 +1,6 @@
-# Rang Rajasthan — Creative Marketplace (Runnable Starter)
+# Craftology — Creative Marketplace (Runnable Starter)
 
-A small, runnable full-stack MVP for a Rajasthan handmade-products marketplace and local workshop discovery experience. Built with Next.js (App Router), Drizzle ORM and PostgreSQL (local Docker for development, [Neon](https://neon.tech) or any hosted Postgres for production). Sign-in is Google OAuth with buyer, seller and admin roles.
+A small, runnable full-stack MVP for an India-wide handmade-products marketplace and local workshop discovery experience across India. Built with Next.js (App Router), Drizzle ORM and PostgreSQL (local Docker for development, [Neon](https://neon.tech) or any hosted Postgres for production). Sign-in is Google OAuth with buyer, seller and admin roles.
 
 ## Run it
 
@@ -95,15 +95,35 @@ All data lives in PostgreSQL (schema in `src/db/schema.ts`, SQL migrations in `d
 
 `docker-compose.yml` has no hardcoded credentials: user, password, database and port come from `.env.local` (`POSTGRES_USER`, `POSTGRES_PASSWORD` (required), `POSTGRES_DB`, `DB_PORT`), and the `db:*` and `test:pg` scripts load that file. In production use a managed Postgres (Neon) and a secret `DATABASE_URL`. Use the pooled Neon string for the running app and the direct string for migrations and seeding. The container publishes `127.0.0.1:5434` (not 5432) so it never collides with a locally installed Postgres. Stock and workshop seats are changed inside transactions with row locks, and role/admin changes take an advisory lock; `npm run test:pg` proves both against the real database. `data/db.json` is only the seed source and is never written by the app.
 
+## Dashboard on its own subdomain
+
+The seller/admin dashboard lives at `/dashboard/*`. With `DASHBOARD_URL` set, one deployment serves the shop on the public host and the dashboard on a second host (`dashboard.example.com`); see [docs/subdomains.md](docs/subdomains.md) for the settings, DNS, Caddy HTTPS config and Google sign-in steps. Old `/admin/*` links redirect to `/dashboard/*`. The hostname only separates the two sites: the API and every dashboard page still check the user's role.
+
 ## Roles
 
 | Role | Can do |
 |---|---|
 | Buyer (any signed-in user) | read the catalog; demo orders and bookings |
 | Seller | create, read, edit and archive **their own** products (always Draft or Archived, never published); edit their public profile (`My profile`). Editing a published product returns it to Draft for admin review. Cannot delete products or touch workshops |
-| Admin | everything: publish products, delete products/workshops, manage users and roles at `/admin/users`, edit any seller's profile, assign a product's seller |
+| Admin | everything: publish products, delete products/workshops, manage users and roles at `/dashboard/users`, edit any seller's profile, assign a product's seller |
 
 Admins come from `ADMIN_EMAILS` (bootstrap, never locked out) or an `admin` row in `user_roles`. Roles are looked up on every request, so granting, revoking or deactivating takes effect immediately. A user who owns products, workshops, orders or bookings cannot be deleted; deactivate them instead. The last active admin cannot be removed. Deleting a workshop keeps its products (they just lose the link).
+
+## Analytics (GA4)
+
+Set `GA_MEASUREMENT_ID` to load Google Analytics 4 on the public shop after the visitor accepts the cookie banner. The dashboard is never tracked. Setup and how to read unique visitors: [docs/analytics.md](docs/analytics.md).
+
+## Trending and likes
+
+Anyone can like a published product. The home page and `/trending` show what is trending this week: a weighted mix of unique views, contact clicks, artist-profile visits and likes, with at most one product per artist. How it is computed and what is stored: [docs/trending.md](docs/trending.md).
+
+New endpoints: `POST|DELETE /api/products/:id/like`, `GET /api/likes?ids=`, `POST /api/events`, `GET /api/trending`. New pages: `/trending`, `/artists/:slug`.
+
+## Cities
+
+Cities live in the `cities` table (Udaipur, Jaipur and Jodhpur are seeded; others are added on demand). Forms pick a city through `/api/places?type=city`, which returns signed refs; the write APIs accept only a valid signed ref, never free text. City pages (`/cities/<slug>`) exist only for cities with approved products or workshops. `NearbyCities` is the empty state that links to the nearest such cities with their distance.
+
+Write payloads: `POST|PATCH /api/products`, `POST|PATCH /api/workshops` and `PUT /api/profile` accept `cityId` (an existing city's id) or `cityRef` (the signed ref from `/api/places?type=city`, which creates the city on first use; it wins if both are sent). The old free-text `city` field is rejected with a 400. Reads return `city` (display name), `cityId` and `citySlug`. Filters `?city=` accept a city slug or name.
 
 ## Pickup-location suggestions
 
@@ -155,15 +175,15 @@ Sign-in is Google OAuth through NextAuth v4 (`/api/auth/*`). Copy `.env.example`
 | `GET /api/admin/products` (`?artist=&status=APPROVED\|DRAFT\|ARCHIVED&q=`) | admin or seller (sellers: own products only), includes drafts, `no-store` |
 | `GET /api/admin/products/:id` | admin or seller (own) |
 | `GET\|PUT /api/profile` | seller or admin: own public profile |
-| `GET /api/admin/users`, `POST /api/admin/users` | admin only |
-| `PATCH\|DELETE /api/admin/users/:id` | admin only (roles, active; delete blocked when the user owns data) |
-| `GET\|PUT /api/admin/users/:id/profile` | admin only |
+| `GET /api/dashboard/users`, `POST /api/dashboard/users` | admin only |
+| `PATCH\|DELETE /api/dashboard/users/:id` | admin only (roles, active; delete blocked when the user owns data) |
+| `GET\|PUT /api/dashboard/users/:id/profile` | admin only |
 
 Errors: `401 {"error":"Authentication required."}`, `403 {"error":"Admin access required."}`. The API is same-origin only (no CORS); cookies are SameSite=Lax.
 
 ## Admin: artists' posts
 
-Signed in as an admin (email in `ADMIN_EMAILS`) or a seller, open **/admin/posts** (the header shows an **Admin** link; sellers see **My products**). Anonymous visitors are redirected to sign-in; other users get a 404. `/admin/users` (user and role management) is admin only.
+Signed in as an admin (email in `ADMIN_EMAILS`) or a seller, open **/dashboard/posts** (the header shows an **Admin** link; sellers see **My products**). Anonymous visitors are redirected to sign-in; other users get a 404. `/dashboard/users` (user and role management) is admin only.
 
 - A *post* is a product listing; an *artist* is the product's seller name (case-insensitive, so `Shauk and Stuff` and `shauk  and stuff` are one artist). Renaming the seller on a post moves it to another artist.
 - New posts default to **Draft**. **Published** posts are public; **Draft** and **Archived** posts are visible only in the admin view and the admin APIs. Only admins can publish.
@@ -184,7 +204,7 @@ Planned, not started unless marked otherwise. Each item is tracked here so the s
 | 2 | **GTAG** (Google tag / gtag.js analytics) | Planned | Page and event tracking through a Google tag, loaded only with a configured measurement ID. Needs an env variable, a consent decision and a privacy note before launch. |
 | 3 | **Chatbot** | Planned | Help assistant for buyers and sellers (finding products, workshops, order and seller questions). Scope and provider still to be decided. |
 | 4 | **Willing to put a stall** | Planned | Sellers and artisans express interest in taking a stall at a workshop or exhibition. Captures the seller, the event and their availability for admin follow-up. Builds on the seller profile and the workshop/exhibition items below. |
-| 5 | **Blogs** | Planned | Editorial posts (stories about artisans, crafts and Rajasthan) with their own list and detail pages, SEO metadata and admin-only publishing. |
+| 5 | **Blogs** | Planned | Editorial posts (stories about artisans, crafts and India) with their own list and detail pages, SEO metadata and admin-only publishing. |
 | 6 | **Workshops / Exhibition** | Planned | Extend workshops to cover exhibitions (multi-day, venue and stall listings) alongside single-session workshops. Depends on the stall interest flow (item 4). |
 | 7 | **Language support (Hindi / English)** | Planned | Switch the UI between Hindi and English, with translated static text, localized dates and numbers, and a language choice remembered per user. Product and workshop content entry stays in the language it was written in unless translated by the seller or admin. |
 | 8 | **Voluntary workshops arranged for NGO people** | Planned | Free, volunteer-led workshops for NGO members, arranged with partner NGOs and open to their staff and beneficiaries. Needs an NGO (organization) profile, a way for NGOs to request or host a workshop, and a free-seat option that skips payment. Builds on the existing workshop and booking flow. |

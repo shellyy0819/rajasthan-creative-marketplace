@@ -66,11 +66,24 @@ for (const [m, p] of [['POST', '/api/products'], ['PATCH', '/api/products/p1'], 
 }
 
 for (const p of ['/api/admin/artists', '/api/admin/products', '/api/admin/products/p1', '/api/admin/users', '/api/profile']) ok((await get(p)).status === 401, `${p} → 401 without session`);
-const adminAnon = await fetch(BASE + '/admin/posts', { redirect: 'manual' });
-ok([302, 303, 307, 308].includes(adminAnon.status) && (adminAnon.headers.get('location') || '').includes('/api/auth/signin'), '/admin/posts redirects anonymous users to sign-in');
-ok(!(await adminAnon.text()).includes('Draft'), 'redirect body leaks no admin content');
-ok((await get('/robots.txt')).text.includes('Disallow: /admin/'), 'robots.txt disallows /admin/');
-ok(!(await get('/sitemap.xml')).text.includes('/admin'), 'sitemap has no admin urls');
+const dashAnon = await fetch(BASE + '/dashboard/posts', { redirect: 'manual' });
+// single host: sign-in redirect; split hosts: the public host answers 404 for /dashboard (it lives on the dashboard host)
+ok(([302, 303, 307, 308].includes(dashAnon.status) && (dashAnon.headers.get('location') || '').includes('/api/auth/signin')) || dashAnon.status === 404, '/dashboard/posts redirects anonymous users to sign-in (or is a 404 on the public host)');
+ok(!(await dashAnon.text()).includes('Draft'), 'dashboard response leaks no content');
+const legacy = await fetch(BASE + '/admin/posts', { redirect: 'manual' });
+ok(legacy.status === 308 && (legacy.headers.get('location') || '').includes('/dashboard/posts'), '/admin/posts permanently redirects to /dashboard/posts');
+ok((await get('/robots.txt')).text.includes('Disallow: /dashboard/'), 'robots.txt disallows /dashboard/');
+ok(!(await get('/sitemap.xml')).text.includes('/dashboard'), 'sitemap has no dashboard urls');
+
+// Trending and likes: JSON-only writes, public cacheable trending list, trending page
+{
+  const t = await get('/trending');
+  ok(t.status === 200 && (t.text.match(/<h1[\s>]/g) || []).length === 1, '/trending → 200 with exactly one <h1>');
+  ok((await fetch(BASE + '/api/events', { method: 'POST', body: 'type=view' })).status === 415, 'POST /api/events without a JSON content type → 415');
+  ok((await fetch(BASE + '/api/products/p1/like', { method: 'POST' })).status === 415, 'POST /api/products/p1/like without a JSON content type → 415');
+  const tr = await fetch(BASE + '/api/trending');
+  ok(tr.status === 200 && (tr.headers.get('cache-control') || '').includes('s-maxage=300'), 'GET /api/trending → 200 with the public cache header');
+}
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll SEO checks passed');
 process.exit(failed ? 1 : 0);

@@ -7,11 +7,12 @@ import { resolveRole } from '@/lib/roles';
 import { sellerProfiles, userRoles, users } from '@/db/schema';
 import { admin } from './helpers/actors';
 import { getTestDb, giveRole, makeSeller, resetTestDb } from './helpers/testdb';
+import { cityRef } from './helpers/cities';
 
 const origAdmins = process.env.ADMIN_EMAILS;
 beforeEach(async () => { process.env.ADMIN_EMAILS = ''; await resetTestDb(); await giveRole(admin.email, 'admin'); });
 afterEach(() => { process.env.ADMIN_EMAILS = origAdmins; });
-const base = { name: 'N', category: 'Pottery', city: 'Jaipur', pricePaise: 1, description: 'D', stock: 1 };
+const base = { name: 'N', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 1, description: 'D', stock: 1 };
 const byEmail = async (email: string) => (await listUsers()).find(u => u.email === email)!;
 
 describe('createUser', () => {
@@ -93,7 +94,7 @@ describe('deleteUser (admin only; blocked when the user owns anything)', () => {
     await createProduct(base, s.actor);
     await expect(deleteUser(s.id, admin.email)).rejects.toMatchObject({ status: 409, message: expect.stringContaining('Deactivate them instead') });
     const host = await createUser({ email: 'host@x.co', roles: ['seller'] }, admin.email);
-    const w = await createWorkshop({ title: 'T', type: 'FREE', pricePaise: 0, city: 'Jaipur', venue: 'V', date: '2026-12-01', time: '10:00', seats: 5, host: 'H', hostId: host.id, description: 'D' });
+    const w = await createWorkshop({ title: 'T', type: 'FREE', pricePaise: 0, cityRef: cityRef('Jaipur'), venue: 'V', date: '2026-12-01', time: '10:00', seats: 5, host: 'H', hostId: host.id, description: 'D' });
     expect(w.hostId).toBe(host.id);
     await expect(deleteUser(host.id, admin.email)).rejects.toMatchObject({ status: 409 });
     const buyer = await createUser({ email: 'buyer@x.co' }, admin.email);

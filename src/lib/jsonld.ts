@@ -10,7 +10,7 @@ export const serializeJsonLd = (data: unknown) => JSON.stringify(data).replace(/
 export const organizationJsonLd = () => ({
   '@context': CTX, '@type': 'Organization',
   name: SITE.name, url: siteUrl(), description: SITE.description,
-  areaServed: { '@type': 'AdministrativeArea', name: 'Rajasthan, India' },
+  areaServed: { '@type': 'AdministrativeArea', name: 'India' },
 });
 
 export const websiteJsonLd = () => ({
@@ -51,7 +51,7 @@ export function workshopJsonLd(w: Workshop) {
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
     location: {
       '@type': 'Place', name: w.venue,
-      address: { '@type': 'PostalAddress', addressLocality: w.city, addressRegion: 'Rajasthan', addressCountry: 'IN' },
+      address: { '@type': 'PostalAddress', addressLocality: w.city, ...(w.cityState ? { addressRegion: w.cityState } : {}), addressCountry: 'IN' },
     },
     organizer: { '@type': 'Organization', name: w.host },
     maximumAttendeeCapacity: w.seats,

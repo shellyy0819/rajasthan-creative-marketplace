@@ -4,9 +4,9 @@ import { AuthButton } from './AuthButton';
 
 export function Brand() {
   return (
-    <Link className="brand" href="/" aria-label="Rang Rajasthan home">
-      <span className="brand-mark" aria-hidden="true">✿</span>
-      <span><b>Craftology</b><small>MADE BY HAND, SHARED WITH HEART</small></span>
+    <Link className="brand" href="/" aria-label="Craftology home">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="brand-logo" src="/logos/horizontal-color.png" alt="Craftology" width={1600} height={415} />
     </Link>
   );
 }
@@ -18,8 +18,8 @@ export function Header() {
       <nav aria-label="Primary">
         <Link href="/shop">Shop handmade</Link>
         <Link href="/workshops">Workshops &amp; pop-ups</Link>
-        <AuthButton />
-        <CartButton />
+        {/* <AuthButton /> */}
+        {/* <CartButton /> */}
       </nav>
     </header>
   );

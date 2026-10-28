@@ -9,13 +9,14 @@ import { PATCH as patchProduct, DELETE as deleteProductRoute } from '@/app/api/p
 import { POST as postWorkshop } from '@/app/api/workshops/route';
 import { PATCH as patchWorkshop, DELETE as deleteWorkshopRoute } from '@/app/api/workshops/[id]/route';
 import { resetTestDb, snapshot as readDb } from './helpers/testdb';
+import { cityRef } from './helpers/cities';
 
 const asCustomer = () => authMock.mockResolvedValue({ user: { email: 'c@x.co', role: 'customer' } });
 const asAdmin = () => authMock.mockResolvedValue({ user: { email: 'root@x.co', role: 'admin' } });
 const req = (method: string, body: unknown) => new Request('http://x/api/x', { method, body: JSON.stringify(body), headers: { 'content-type': 'application/json' } });
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
-const product = { name: 'Lac Bangle', category: 'Accessories', city: 'Jodhpur', pricePaise: 12000, seller: 'Marwar Lac', description: 'Hand-set.', stock: 3 };
-const workshop = { title: 'Lac Craft', type: 'PAID', pricePaise: 30000, city: 'Jodhpur', venue: 'Studio 9', date: '2026-12-01', time: '16:30', seats: 8, host: 'Marwar Lac', description: 'Learn.' };
+const product = { name: 'Lac Bangle', category: 'Accessories', cityRef: cityRef('Jodhpur'), pricePaise: 12000, seller: 'Marwar Lac', description: 'Hand-set.', stock: 3 };
+const workshop = { title: 'Lac Craft', type: 'PAID', pricePaise: 30000, cityRef: cityRef('Jodhpur'), venue: 'Studio 9', date: '2026-12-01', time: '16:30', seats: 8, host: 'Marwar Lac', description: 'Learn.' };
 
 beforeEach(async () => {
   authMock.mockReset();

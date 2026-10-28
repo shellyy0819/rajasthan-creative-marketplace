@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { ReserveButton } from '@/components/ReserveButton';
-import { citySlug, getWorkshopBySlug, workshopSlug } from '@/lib/catalog';
+import { getWorkshopBySlug, workshopSlug } from '@/lib/catalog';
 import { formatDay } from '@/lib/format';
 import { breadcrumbJsonLd, workshopJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
@@ -44,7 +44,7 @@ export default async function WorkshopPage({ params }: Props) {
           <p className="lead">{w.description}</p>
           <dl>
             <dt>When</dt><dd><time dateTime={`${w.date}T${w.time}+05:30`}>{day} {month} {year}, {w.time}</time></dd>
-            <dt>Where</dt><dd>{w.venue}, <Link href={`/cities/${citySlug(w.city)}`}>{w.city}</Link></dd>
+            <dt>Where</dt><dd>{w.venue}, <Link href={`/cities/${w.citySlug}`}>{w.city}</Link></dd>
             <dt>Host</dt><dd>{w.host}</dd>
             <dt>Seats left</dt><dd>{left > 0 ? `${left} of ${w.seats}` : 'Full'}</dd>
             <dt>Price</dt><dd>{w.type === 'FREE' ? 'Free' : money(w.pricePaise)}</dd>

@@ -4,11 +4,11 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
-vi.mock('@/components/AddToCartButton', () => ({ AddToCartButton: () => <button>add</button> }));
+vi.mock('@/components/ContactArtistButton', () => ({ ContactArtistButton: () => <button>add</button> }));
 import { HomeCraftExplorer } from '@/components/HomeCraftExplorer';
 
 afterEach(cleanup);
-const p = (id: string, name: string, category: string) => ({ id, name, category, city: 'Jaipur', pricePaise: 10000, seller: 'S', description: 'd', stock: 3, status: 'APPROVED' });
+const p = (id: string, name: string, category: string) => ({ id, name, category, city: 'Jaipur', cityId: 1, citySlug: 'jaipur', pricePaise: 10000, seller: 'S', description: 'd', stock: 3, status: 'APPROVED' });
 const PRODUCTS = [p('p1', 'Lily Bouquet', 'Crochet & Textiles'), p('p2', 'Frock', 'Crochet & Textiles'), p('p3', 'Coaster Set', 'Resin Art'), p('p4', 'Wood Horse', 'Wooden Toys')];
 
 describe('HomeCraftExplorer uses only real data', () => {

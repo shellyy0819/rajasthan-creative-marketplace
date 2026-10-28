@@ -10,9 +10,10 @@ import { artistKey } from '@/lib/artist';
 import type { AdminProduct as Product } from '@/lib/types';
 
 const mk = (id: string, name: string, seller: string, status = 'APPROVED', extra: Partial<Product> = {}): Product => ({
-  id, name, category: 'Accessories', city: 'Jaipur', pricePaise: 85000, seller, description: 'd', stock: 3, status,
+  id, name, category: 'Accessories', city: 'Jaipur', cityId: 1, citySlug: 'jaipur', pricePaise: 85000, seller, description: 'd', stock: 3, status,
   sellerId: `u-${seller}`, sellerEmail: `${seller.split(' ')[0].toLowerCase()}@x.co`, ...extra,
 });
+const PLACES = [{ label: 'Kota, Rajasthan', name: 'Kota', state: 'Rajasthan', ref: 'REF-KOTA' }];
 let db: Product[];
 let fetchMock: ReturnType<typeof vi.fn>;
 let postDelay: Promise<void> | null;
@@ -33,6 +34,7 @@ beforeEach(() => {
   postDelay = null;
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
+    if (url.startsWith('/api/places?')) return res(200, PLACES);
     if (url === '/api/admin/products') return res(200, db);
     if (url === '/api/admin/artists') return res(200, artistsOf(db));
     if (method === 'POST' && url === '/api/products') {
@@ -69,6 +71,11 @@ const rows = () => screen.queryAllByTestId('post-row');
 const rowFor = (name: string) => rows().find(r => within(r).queryByText(name))!;
 const badgeOf = (row: HTMLElement) => row.querySelector('.badge')!.textContent;
 const fill = (label: RegExp, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+/** Cities can only be chosen from the place search: type, then click the suggestion. */
+const pickCity = async () => {
+  fill(/^City/, 'kota');
+  fireEvent.mouseDown(await screen.findByRole('option', { name: 'Kota, Rajasthan' }));
+};
 
 describe('PostsAdmin read', () => {
   it('lists every post including drafts, with status badges and an artist sidebar with counts', () => {
@@ -118,13 +125,16 @@ describe('PostsAdmin create', () => {
   });
   it('creates a draft: sends rupees as paise, closes, refetches and shows the new row', async () => {
     open();
+    await pickCity();
     fill(/^Title/, 'Lac Bangle'); fill(/^Description/, 'Hand-set.');
     fill(/^Price/, '19.99'); fill(/^Stock/, '3'); fill(/^Status/, 'DRAFT');
     fireEvent.click(screen.getByRole('button', { name: 'Save post' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     const call = fetchMock.mock.calls.find(c => c[0] === '/api/products')!;
-    expect(JSON.parse(call[1].body)).toMatchObject({ name: 'Lac Bangle', pricePaise: 1999, stock: 3, status: 'DRAFT', workshopId: '', pickupLocation: '', sellerId: '' });
+    expect(JSON.parse(call[1].body)).toMatchObject({ name: 'Lac Bangle', pricePaise: 1999, stock: 3, status: 'DRAFT', workshopId: '', pickupLocation: '', sellerId: '', cityRef: 'REF-KOTA' });
     expect(JSON.parse(call[1].body)).not.toHaveProperty('seller');
+    expect(JSON.parse(call[1].body)).not.toHaveProperty('city');
+    expect(JSON.parse(call[1].body)).not.toHaveProperty('cityId');
     expect(call[1].headers['content-type']).toBe('application/json');
     await waitFor(() => expect(rows()).toHaveLength(4));
     expect(screen.getByRole('status').textContent).toMatch(/created/i);
@@ -132,6 +142,7 @@ describe('PostsAdmin create', () => {
   });
   it('keeps the dialog and the user’s typing when the server rejects the input', async () => {
     open();
+    await pickCity();
     fill(/^Title/, 'Lac Bangle'); fill(/^Description/, 'x'); fill(/^Price/, '10'); fill(/^Stock/, '3');
     fill(/^Cover image/, 'http://cdn.example.com/a.jpg'); // valid for the browser's type=url, rejected by the server (https only)
     fireEvent.click(screen.getByRole('button', { name: 'Save post' }));
@@ -143,6 +154,7 @@ describe('PostsAdmin create', () => {
   it('double-clicking Save sends exactly one request', async () => {
     let release!: () => void; postDelay = new Promise(r => { release = r; });
     open();
+    await pickCity();
     fill(/^Title/, 'Lac Bangle'); fill(/^Description/, 'x'); fill(/^Price/, '10'); fill(/^Stock/, '1');
     const save = screen.getByRole('button', { name: 'Save post' });
     fireEvent.click(save); fireEvent.click(save);
@@ -150,6 +162,15 @@ describe('PostsAdmin create', () => {
     release();
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(fetchMock.mock.calls.filter(c => c[0] === '/api/products' && c[1]?.method === 'POST')).toHaveLength(1);
+  });
+  it('a typed city that was not chosen from the suggestions blocks the save (no request)', async () => {
+    open();
+    fill(/^Title/, 'Lac Bangle'); fill(/^Description/, 'x'); fill(/^Price/, '10'); fill(/^Stock/, '1');
+    fill(/^City/, 'Kota');
+    fireEvent.click(screen.getByRole('button', { name: 'Save post' }));
+    await new Promise(r => setTimeout(r, 400));
+    expect(fetchMock.mock.calls.filter(c => c[0] === '/api/products')).toHaveLength(0);
+    expect(screen.getByRole('dialog')).toBeTruthy();
   });
   it('Escape and Cancel close the form without saving', () => {
     open();
@@ -173,7 +194,8 @@ describe('PostsAdmin edit', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     const call = fetchMock.mock.calls.find(c => c[0] === '/api/products/p3')!;
     expect(call[1].method).toBe('PATCH');
-    expect(JSON.parse(call[1].body)).toMatchObject({ name: 'Published Dish', status: 'APPROVED' });
+    expect(JSON.parse(call[1].body)).toMatchObject({ name: 'Published Dish', status: 'APPROVED', cityId: 1 });
+    expect(JSON.parse(call[1].body)).not.toHaveProperty('city');
     await waitFor(() => expect(badgeOf(rowFor('Published Dish'))).toBe('Published'));
   });
   it('editing a post that was deleted elsewhere shows the 404 message without re-fetching lists', async () => {
@@ -298,7 +320,7 @@ describe('PostForm field rules', () => {
     for (const name of ['name', 'description', 'price', 'stock', 'category', 'city', 'status']) {
       const el = document.querySelector(`[name="${name}"]`) as HTMLInputElement;
       expect(el.required).toBe(true);
-      expect(el.parentElement!.querySelector(':scope > .lbl')).toBeTruthy();
+      expect(el.closest('label')!.querySelector(':scope > .lbl')).toBeTruthy();
     }
     for (const name of ['imageUrl', 'workshopId', 'pickupLocation', 'sellerId']) expect((document.querySelector(`[name="${name}"]`) as HTMLInputElement).required).toBe(false);
   });
@@ -315,6 +337,23 @@ describe('PostForm field rules', () => {
 });
 
 describe('Profile dialog (public name and contact)', () => {
+  it('an untouched city sends its cityId; clearing it sends no city fields (the server clears it)', async () => {
+    const { ProfileDialog } = await import('@/components/ProfileDialog');
+    const onSaved = vi.fn();
+    fetchMock.mockImplementation(() => res(200, { userId: 'me', displayName: 'D' }));
+    const body = () => JSON.parse(fetchMock.mock.calls.at(-1)![1].body);
+    render(<ProfileDialog title="My profile" initial={{ userId: 'me', displayName: 'D', city: 'Jaipur', cityId: 2 }} url="/api/profile" onSaved={onSaved} onCancel={() => undefined} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Save profile' }));
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+    expect(body()).toMatchObject({ cityId: 2 });
+    for (const k of ['city', 'cityRef']) expect(body()).not.toHaveProperty(k);
+    cleanup();
+    render(<ProfileDialog title="My profile" initial={{ userId: 'me', displayName: 'D', city: 'Jaipur', cityId: 2 }} url="/api/profile" onSaved={onSaved} onCancel={() => undefined} />);
+    fill(/^City/, '');
+    fireEvent.click(screen.getByRole('button', { name: 'Save profile' }));
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(2));
+    for (const k of ['city', 'cityId', 'cityRef']) expect(body()).not.toHaveProperty(k);
+  });
   it('"Use my sign-in email" fills the public email (explicit opt-in); the field starts empty so nothing is published by accident', () => {
     mount('seller');
     fireEvent.click(screen.getByRole('button', { name: 'My profile' }));
@@ -331,12 +370,12 @@ describe('Profile dialog (public name and contact)', () => {
     for (const bad of ['12345', '5989898999', 'abcdefghij']) { fireEvent.change(phone, { target: { value: bad } }); expect(phone.validity.patternMismatch).toBe(true); }
     for (const good of ['9989898999', '+91 99898 98999', '']) { fireEvent.change(phone, { target: { value: good } }); expect(phone.validity.patternMismatch).toBe(false); }
     expect((document.querySelector('[name="displayName"]') as HTMLInputElement).required).toBe(true);
-    fetchMock.mockImplementation((url: string, init?: RequestInit) => url === '/api/profile' && init?.method === 'PUT' ? res(200, { userId: 'me', displayName: 'New Studio' }) : url === '/api/admin/products' ? res(200, db) : url === '/api/admin/artists' ? res(200, artistsOf(db)) : res(500, {}));
-    fill(/^Display name/, 'New Studio'); fill(/^Public phone/, '99898 98999'); fill(/^Instagram/, 'newstudio');
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => url === '/api/profile' && init?.method === 'PUT' ? res(200, { userId: 'me', displayName: 'New Studio' }) : url.startsWith('/api/places?') ? res(200, PLACES) : url === '/api/admin/products' ? res(200, db) : url === '/api/admin/artists' ? res(200, artistsOf(db)) : res(500, {}));
+    fill(/^Display name/, 'New Studio'); fill(/^Public phone/, '99898 98999'); fill(/^Instagram/, 'newstudio'); await pickCity(); fill(/^About the artist/, 'Potter.\nBlue pottery.');
     fireEvent.click(screen.getByRole('button', { name: 'Save profile' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     const call = fetchMock.mock.calls.find(c => c[0] === '/api/profile')!;
-    expect(JSON.parse(call[1].body)).toEqual({ displayName: 'New Studio', publicPhone: '99898 98999', publicEmail: '', instagram: 'newstudio', youtube: '' });
+    expect(JSON.parse(call[1].body)).toEqual({ displayName: 'New Studio', publicPhone: '99898 98999', publicEmail: '', instagram: 'newstudio', youtube: '', bio: 'Potter.\nBlue pottery.', cityRef: 'REF-KOTA' });
     expect(screen.getByRole('status').textContent).toMatch(/Profile saved/);
   });
   it('a server error keeps the dialog open with the message', async () => {
@@ -501,6 +540,7 @@ describe('creating a category from the product form', () => {
   });
   it('choosing "Add a new category" shows a name box; Add POSTs /api/categories, selects the new one and the product save sends it', async () => {
     open();
+    await pickCity();
     fireEvent.change(screen.getByLabelText(/^Category/), { target: { value: '__new__' } });
     const name = screen.getByLabelText(/^New category name/) as HTMLInputElement;
     expect(screen.getByRole('button', { name: 'Add category' }).hasAttribute('disabled')).toBe(true); // empty name
@@ -670,6 +710,7 @@ describe('loaders', () => {
   });
   it('the Save post button shows a busy ring on its right while the request is pending, and the form cannot be double-submitted', async () => {
     mount(); fireEvent.click(screen.getByRole('button', { name: 'New post' }));
+    await pickCity();
     const post = deferred<Response>();
     fetchMock.mockImplementation((url: string, init?: RequestInit) => init?.method === 'POST' ? post.promise : res(200, db));
     fill(/^Title/, 'T'); fill(/^Description/, 'x'); fill(/^Price/, '10'); fill(/^Stock/, '1');

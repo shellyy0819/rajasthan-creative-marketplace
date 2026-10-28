@@ -3,7 +3,7 @@ import { getProductBySlug } from '@/lib/catalog';
 import { money } from '@/lib/money';
 import { renderOg, ogSize } from '@/lib/og';
 
-export const alt = 'Handmade product from Rajasthan';
+export const alt = 'Handmade product from India';
 export const size = ogSize;
 export const contentType = 'image/png';
 
