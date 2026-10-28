@@ -1,4 +1,4 @@
-import { and, eq, exists, or, sql } from 'drizzle-orm';
+import { and, eq, exists, isNull, or, sql } from 'drizzle-orm';
 import { getDb, type Q } from '../db/client';
 import { cities, products, workshops, type CityRow } from '../db/schema';
 import { slugify } from './slug';
@@ -50,24 +50,30 @@ export async function upsertCity(
   const [existing] = await byOsm();
   if (existing) return toCity(existing);
 
-  // Adopt a launch/legacy row with the same name that has no OSM identity yet.
+  // Adopt a launch/legacy row with the same name that has no OSM identity yet. The `osm_id is null` guard on the
+  // UPDATE keeps a concurrent adopter from being overwritten: if it loses the race, 0 rows update and we insert.
   const [legacy] = await tx.select().from(cities).where(and(
-    sql`${cities.osmId} is null`, sql`lower(${cities.name}) = lower(${p.name})`,
-    p.state ? or(sql`${cities.state} is null`, sql`lower(${cities.state}) = lower(${p.state})`) : sql`true`,
-  )).limit(1);
+    isNull(cities.osmId), sql`lower(${cities.name}) = lower(${p.name})`,
+    p.state ? or(isNull(cities.state), sql`lower(${cities.state}) = lower(${p.state})`) : sql`true`,
+  )).orderBy(cities.id).limit(1);
   if (legacy) {
     const [r] = await tx.update(cities).set({
       osmType: p.osmType, osmId: p.osmId, state: legacy.state ?? p.state ?? null,
       lat: legacy.lat ?? p.lat, lng: legacy.lng ?? p.lng,
-    }).where(eq(cities.id, legacy.id)).returning();
-    return toCity(r);
+    }).where(and(eq(cities.id, legacy.id), isNull(cities.osmId))).returning();
+    if (r) return toCity(r);
   }
 
-  const slug = await freeSlug(tx, p.name, p.state, p.osmId);
-  await tx.insert(cities).values({
-    osmType: p.osmType, osmId: p.osmId, name: p.name.trim(), state: p.state ?? null, slug, lat: p.lat, lng: p.lng,
-  }).onConflictDoNothing();
-  const [row] = await byOsm();
+  const insert = async () => {
+    const slug = await freeSlug(tx, p.name, p.state, p.osmId);
+    await tx.insert(cities).values({
+      osmType: p.osmType, osmId: p.osmId, name: p.name.trim(), state: p.state ?? null, slug, lat: p.lat, lng: p.lng,
+    }).onConflictDoNothing();
+    return (await byOsm())[0];
+  };
+  // A concurrent writer may take the slug between freeSlug and the insert: retry once with a fresh slug.
+  const row = (await insert()) ?? (await insert());
+  if (!row) throw new ApiError(409, 'Could not save this city right now. Please try again.');
   return toCity(row);
 }
 

@@ -33,7 +33,7 @@ export default async function WorkshopsPage({ searchParams }: Props) {
         <h1>Creative workshops &amp; pop-ups</h1>
         <p>Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.</p>
       </div>
-      <LiveCatalog kind="workshops" initialItems={workshops} initialValues={f} cities={cities.map(c => ({ name: c.name, slug: c.slug }))} />
+      <LiveCatalog kind="workshops" initialItems={workshops} initialValues={f} cities={cities.map(c => ({ name: c.name, slug: c.slug, state: c.state }))} />
     </>
   );
 }

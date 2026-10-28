@@ -34,7 +34,7 @@ export default async function ShopPage({ searchParams }: Props) {
         <h1>Handmade finds from India</h1>
         <p>Crochet, resin art, pottery and accessories from independent makers across India.</p>
       </div>
-      <LiveCatalog kind="products" initialItems={products} initialValues={f} categories={categories} cities={cities.map(c => ({ name: c.name, slug: c.slug }))} />
+      <LiveCatalog kind="products" initialItems={products} initialValues={f} categories={categories} cities={cities.map(c => ({ name: c.name, slug: c.slug, state: c.state }))} />
     </>
   );
 }

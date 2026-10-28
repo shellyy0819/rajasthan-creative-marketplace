@@ -6,6 +6,7 @@ import { WorkshopList } from '@/components/WorkshopList';
 import { TrendingSection } from '@/components/TrendingSection';
 import { listProducts, listWorkshops } from '@/lib/catalog';
 import { listActiveCities } from '@/lib/cities';
+import { cityLabeller } from '@/lib/city-label';
 import { pageMetadata } from '@/lib/meta';
 import { SITE } from '@/lib/site';
 
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   const [products, workshops, cities] = await Promise.all([listProducts(), listWorkshops(), listActiveCities()]);
+  const cityLabel = cityLabeller(cities);
   return (
     <>
       <Hero />
@@ -54,7 +56,7 @@ export default async function Home() {
       </section>
       {cities.length > 0 && (
         <nav className="link-row" aria-label="Explore by city">
-          {cities.map(c => <Link key={c.slug} href={`/cities/${c.slug}`}>Handmade &amp; workshops in {c.name}</Link>)}
+          {cities.map(c => <Link key={c.slug} href={`/cities/${c.slug}`}>Handmade &amp; workshops in {cityLabel(c)}</Link>)}
         </nav>
       )}
     </>

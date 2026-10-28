@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import { getTestDb, giveRole, resetTestDb, snapshot } from './helpers/testdb';
 import { seedFromJson, truncateAll, type LegacyDb } from '@/db/seed';
@@ -15,7 +15,11 @@ let buyerId: string;
 const jaipurId = async () => (await (await getTestDb()).select().from(cities).where(eq(cities.slug, 'jaipur')))[0].id;
 const fixture = (): LegacyDb => JSON.parse(fs.readFileSync('tests/fixtures/db.json', 'utf8'));
 
-// Bare migrated database (no seed): these run before any seeded test truncates the launch cities.
+// PGlite plus every migration takes several seconds on a busy machine: build it once, outside any test's 5 s budget.
+beforeAll(async () => { await getTestDb(); }, 30_000);
+
+// Bare migrated database (no seed). Order matters: tests run in file order, and the seeded describe below truncates
+// the launch cities in its beforeEach, so this describe must stay above it.
 describe('cities table (fresh migration)', () => {
   it('creates Udaipur, Jaipur and Jodhpur in Rajasthan with their old slugs and coordinates', async () => {
     const db = await getTestDb();
@@ -54,7 +58,7 @@ describe('cities table (fresh migration)', () => {
 });
 
 // Run 0009 by hand against a database migrated only through 0008, with legacy city text.
-describe('migration 0009 on legacy data', () => {
+describe('migration 0009 on legacy data', { timeout: 30_000 }, () => {
   const root = path.resolve('drizzle');
   const statements = (f: string) => fs.readFileSync(path.join(root, f), 'utf8').split('--> statement-breakpoint');
   async function legacyDb() {
@@ -68,31 +72,38 @@ describe('migration 0009 on legacy data', () => {
   }
   const addProduct = (c: PGlite, id: string, city: string) =>
     c.query(`insert into products(id,name,category,city,price_paise,description,stock,seller_id) select $1,'n','Pottery',$2,1,'d',1,id from users limit 1`, [id, city]);
+  const withLegacyDb = async (fn: (c: PGlite) => Promise<void>) => {
+    const c = await legacyDb();
+    try { await fn(c); } finally { await c.close(); }
+  };
   const run0009 = async (c: PGlite) => { for (const st of statements('0009_cities.sql')) await c.exec(st); };
 
   it('fails loudly when a product has a blank city', async () => {
-    const c = await legacyDb();
-    await addProduct(c, 'p1', '   ');
-    await expect(run0009(c)).rejects.toThrow('cities migration: 1 products have a blank city; fix them first');
+    await withLegacyDb(async c => {
+      await addProduct(c, 'p1', '   ');
+      await expect(run0009(c)).rejects.toThrow('cities migration: 1 products have a blank city; fix them first');
+    });
   });
   it('fails loudly when a workshop has a blank city', async () => {
-    const c = await legacyDb();
-    await addProduct(c, 'p1', 'Jaipur');
-    await c.exec(`insert into workshops(id,title,type,price_paise,city,venue,seats,description,host_name,starts_at) values ('w1','t','FREE',0,'','v',5,'d','h',now())`);
-    await expect(run0009(c)).rejects.toThrow('cities migration: 1 workshops have a blank city; fix them first');
+    await withLegacyDb(async c => {
+      await addProduct(c, 'p1', 'Jaipur');
+      await c.exec(`insert into workshops(id,title,type,price_paise,city,venue,seats,description,host_name,starts_at) values ('w1','t','FREE',0,'','v',5,'d','h',now())`);
+      await expect(run0009(c)).rejects.toThrow('cities migration: 1 workshops have a blank city; fix them first');
+    });
   });
   it('links mixed-case and padded legacy names to one Jaipur row and one new Kota row', async () => {
-    const c = await legacyDb();
-    for (const [id, city] of [['p1', 'jaipur'], ['p2', ' JAIPUR '], ['p3', 'Kota'], ['p4', 'kota ']]) await addProduct(c, id, city);
-    await run0009(c);
-    const jaipur = (await c.query<{ id: number }>(`select id from cities where slug = 'jaipur'`)).rows;
-    expect(jaipur).toHaveLength(1);
-    const kota = (await c.query<{ id: number; lat: number | null; lng: number | null; state: string | null }>(`select id, lat, lng, state from cities where name = 'Kota'`)).rows;
-    expect(kota).toHaveLength(1);
-    expect(kota[0]).toMatchObject({ lat: null, lng: null, state: null });
-    const linked = (await c.query<{ id: string; city_id: number }>(`select id, city_id from products order by id`)).rows;
-    expect(linked.map(r => r.city_id)).toEqual([jaipur[0].id, jaipur[0].id, kota[0].id, kota[0].id]);
-    expect((await c.query(`select 1 from cities`)).rows).toHaveLength(4);
+    await withLegacyDb(async c => {
+      for (const [id, city] of [['p1', 'jaipur'], ['p2', ' JAIPUR '], ['p3', 'Kota'], ['p4', 'kota ']]) await addProduct(c, id, city);
+      await run0009(c);
+      const jaipur = (await c.query<{ id: number }>(`select id from cities where slug = 'jaipur'`)).rows;
+      expect(jaipur).toHaveLength(1);
+      const kota = (await c.query<{ id: number; lat: number | null; lng: number | null; state: string | null }>(`select id, lat, lng, state from cities where name = 'Kota'`)).rows;
+      expect(kota).toHaveLength(1);
+      expect(kota[0]).toMatchObject({ lat: null, lng: null, state: null });
+      const linked = (await c.query<{ id: string; city_id: number }>(`select id, city_id from products order by id`)).rows;
+      expect(linked.map(r => r.city_id)).toEqual([jaipur[0].id, jaipur[0].id, kota[0].id, kota[0].id]);
+      expect((await c.query(`select 1 from cities`)).rows).toHaveLength(4);
+    });
   });
 });
 

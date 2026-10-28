@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   listProducts, listWorkshops, getProductBySlug, getWorkshopBySlug,
-  productSlug, workshopSlug, citySlug,
+  productSlug, workshopSlug,
 } from '@/lib/catalog';
 import { resetTestDb, getTestDb, giveRole } from './helpers/testdb';
 import { products as productsTable } from '@/db/schema';
@@ -60,7 +60,6 @@ describe('catalog', () => {
     expect(await getWorkshopBySlug('x-w1')).toBeUndefined();
   });
   it('city slug round trip (cities come from the cities table, not a hard-coded list)', async () => {
-    expect(citySlug('Udaipur')).toBe('udaipur');
     expect((await getCityBySlug('jodhpur'))?.name).toBe('Jodhpur');
     expect(await getCityBySlug('delhi')).toBeUndefined();
     const catalog: Record<string, unknown> = await import('@/lib/catalog');

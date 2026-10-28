@@ -7,7 +7,7 @@ import { textSearch } from './search';
 import { productSlug, workshopSlug } from './catalog-shared';
 import type { Product, Workshop } from './types';
 
-export { DEFAULT_CATEGORIES, citySlug, productSlug, workshopSlug } from './catalog-shared';
+export { DEFAULT_CATEGORIES, productSlug, workshopSlug } from './catalog-shared';
 
 export type ProductFilter = { city?: string; category?: string; q?: string };
 export type WorkshopFilter = { city?: string; type?: string; q?: string };

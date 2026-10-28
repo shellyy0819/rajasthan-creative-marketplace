@@ -123,6 +123,8 @@ New endpoints: `POST|DELETE /api/products/:id/like`, `GET /api/likes?ids=`, `POS
 
 Cities live in the `cities` table (Udaipur, Jaipur and Jodhpur are seeded; others are added on demand). Forms pick a city through `/api/places?type=city`, which returns signed refs; the write APIs accept only a valid signed ref, never free text. City pages (`/cities/<slug>`) exist only for cities with approved products or workshops. `NearbyCities` is the empty state that links to the nearest such cities with their distance.
 
+Write payloads: `POST|PATCH /api/products`, `POST|PATCH /api/workshops` and `PUT /api/profile` accept `cityId` (an existing city's id) or `cityRef` (the signed ref from `/api/places?type=city`, which creates the city on first use; it wins if both are sent). The old free-text `city` field is rejected with a 400. Reads return `city` (display name), `cityId` and `citySlug`. Filters `?city=` accept a city slug or name.
+
 ## Pickup-location suggestions
 
 The product form's **Pickup location** field suggests places as you type (areas, cities, landmarks across India, Rajasthan first), like a map search box: `udai` offers *Udaipur, Rajasthan*, `ambra` offers *Ambrai Ghat, Udaipur*. Any text is still accepted. Suggestions come from [Photon](https://photon.komoot.io) (free, no API key, OpenStreetMap data © OpenStreetMap contributors) through `GET /api/places?q=`, which is limited to signed-in sellers and admins, capped at 60 lookups a minute per user, and cached for 10 minutes. Photon is fair-use with no uptime promise: if it is down the field simply works as plain text. For heavy traffic, self-host Photon or swap the one function in `src/lib/places.ts`.

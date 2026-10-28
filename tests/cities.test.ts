@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { getDb } from '../src/db/client';
-import { products, workshops } from '../src/db/schema';
+import { cities, products, workshops } from '../src/db/schema';
 import { ensureCityByName, getCityByNameOrSlug, getCityBySlug, haversineKm, listActiveCities, nearestActiveCities, upsertCity } from '../src/lib/cities';
 import { resetTestDb } from './helpers/testdb';
 
@@ -86,5 +86,39 @@ describe('cities library', () => {
   it('haversineKm(Udaipur, Jaipur) is about 330', () => {
     expect(haversineKm(UDAIPUR, JAIPUR)).toBeGreaterThan(300);
     expect(haversineKm(UDAIPUR, JAIPUR)).toBeLessThan(360);
+  });
+});
+
+describe('launch cities survive an empty seed and are adopted by OSM picks', () => {
+  const launch = async () => (await getDb().select().from(cities).orderBy(cities.id)).filter(c => c.osmId === null);
+  const udaipur = async () => (await getCityBySlug('udaipur'))!;
+
+  it('seeding with an empty legacy db leaves Udaipur, Jaipur and Jodhpur with their bare slugs', async () => {
+    const rows = await getDb().select().from(cities);
+    expect(rows.map(r => r.slug).sort()).toEqual(['jaipur', 'jodhpur', 'udaipur']);
+    for (const r of rows) expect(r).toMatchObject({ state: 'Rajasthan', osmId: null });
+  });
+
+  it('Tripura first leaves the launch row alone; Rajasthan then adopts it and keeps slug udaipur; repeats are idempotent', async () => {
+    const before = await udaipur();
+    const tri = await upsertCity(getDb(), { osmType: 'relation', osmId: 7001, name: 'Udaipur', state: 'Tripura', lat: 23.5, lng: 91.5 });
+    expect(tri.slug).toBe('udaipur-tripura');
+    expect(tri.id).not.toBe(before.id);
+    expect((await launch()).map(r => r.slug)).toContain('udaipur'); // still un-adopted
+
+    const raj = await upsertCity(getDb(), { osmType: 'relation', osmId: 7002, name: 'Udaipur', state: 'Rajasthan', lat: 24.58, lng: 73.71 });
+    expect(raj.id).toBe(before.id);
+    expect(raj.slug).toBe('udaipur');
+    const again = await upsertCity(getDb(), { osmType: 'relation', osmId: 7002, name: 'Udaipur', state: 'Rajasthan', lat: 24.58, lng: 73.71 });
+    expect(again.id).toBe(before.id);
+  });
+
+  it('a launch row that already has an OSM id is not adopted by a different OSM id of the same name and state', async () => {
+    const first = await upsertCity(getDb(), { osmType: 'relation', osmId: 7101, name: 'Udaipur', state: 'Rajasthan', lat: 24.58, lng: 73.71 });
+    expect(first.slug).toBe('udaipur');
+    const other = await upsertCity(getDb(), { osmType: 'relation', osmId: 7102, name: 'Udaipur', state: 'Rajasthan', lat: 24.6, lng: 73.7 });
+    expect(other.id).not.toBe(first.id);
+    expect(other.slug).toBe('udaipur-rajasthan');
+    expect((await udaipur()).id).toBe(first.id);
   });
 });

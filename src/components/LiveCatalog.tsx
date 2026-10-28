@@ -2,13 +2,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Product, Workshop } from '@/lib/types';
 import { DEFAULT_CATEGORIES } from '@/lib/catalog-shared';
+import { cityLabeller } from '@/lib/city-label';
 import { ProductGrid } from './ProductGrid';
 import { PageLoader } from './PageLoader';
 import { WorkshopList } from './WorkshopList';
 
 type Values = { city?: string; category?: string; type?: string; q?: string };
-type CityOption = { name: string; slug: string };
-/** `cities` are the active cities (from the server), offered in the city filter by name. */
+type CityOption = { name: string; slug: string; state?: string };
+/** `cities` are the active cities (from the server), offered in the city filter by slug (labelled with the state when a name repeats). */
 type Props =
   | { kind: 'products'; initialItems: Product[]; initialValues: Values; cities: readonly CityOption[]; categories?: readonly string[] }
   | { kind: 'workshops'; initialItems: Workshop[]; initialValues: Values; cities: readonly CityOption[] };
@@ -65,8 +66,9 @@ export function LiveCatalog(props: Props) {
 
   // The filter accepts a name or a slug (?city=udaipur): show the matching city, or keep an unknown value visible.
   const cityValue = values.city ?? '';
-  const cityMatch = props.cities.find(c => c.name === cityValue || c.slug === cityValue.toLowerCase());
-  const cityLabel = cityMatch?.name ?? cityValue;
+  const cityMatch = props.cities.find(c => c.slug === cityValue.toLowerCase()) ?? props.cities.find(c => c.name.toLowerCase() === cityValue.trim().toLowerCase());
+  const labelOf = cityLabeller(props.cities);
+  const cityLabel = cityMatch ? labelOf(cityMatch) : cityValue;
   const dirty = Object.values(values).some(Boolean);
   const n = items.length;
   const summary = kind === 'products'
@@ -82,9 +84,9 @@ export function LiveCatalog(props: Props) {
         placeholder={kind === 'products' ? 'Search crafts, makers…' : 'Search workshops…'}
         aria-label={kind === 'products' ? 'Search products' : 'Search workshops'}
       />
-      <select name="city" value={cityLabel} onChange={e => set({ city: e.target.value }, 0)} aria-label="Filter by city">
+      <select name="city" value={cityMatch?.slug ?? cityValue} onChange={e => set({ city: e.target.value }, 0)} aria-label="Filter by city">
         <option value="">All India</option>
-        {props.cities.map(c => <option key={c.slug} value={c.name}>{c.name}</option>)}
+        {props.cities.map(c => <option key={c.slug} value={c.slug}>{labelOf(c)}</option>)}
         {cityValue && !cityMatch && <option value={cityValue}>{cityValue}</option>}
       </select>
       {kind === 'products' ? (
