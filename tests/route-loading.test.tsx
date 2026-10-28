@@ -23,4 +23,7 @@ describe('loader never covers the navbar', () => {
     expect(css).toMatch(/:root\{--topbar-h:78px\}/);
     expect(css).toMatch(/@media\(max-width:600px\)\{:root\{--topbar-h:67px\}\}/);
   });
+  it('main keeps at least the visible height under the navbar, so the footer does not jump while a page loads', () => {
+    expect(css).toMatch(/(^|\n)main\{[^}]*min-height:calc\(100svh - var\(--topbar-h\)\)/);
+  });
 });

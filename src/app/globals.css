@@ -118,6 +118,7 @@ button[aria-busy=true]{position:relative;padding-right:38px!important;pointer-ev
 button[aria-busy=true]::after{content:'';position:absolute;right:12px;top:50%;width:14px;height:14px;margin-top:-7px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:rr-spin .7s linear infinite}
 .rr-spinner{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--green);border-radius:50%;animation:rr-spin .8s linear infinite;display:inline-block;flex:none}
 :root{--topbar-h:78px}@media(max-width:600px){:root{--topbar-h:67px}}
+main{min-height:calc(100vh - var(--topbar-h));min-height:calc(100svh - var(--topbar-h))}
 .rr-page-loader{position:fixed;inset:var(--topbar-h) 0 0 0;top:var(--topbar-h);z-index:70;display:grid;place-items:center;pointer-events:none}
 .rr-page-loader.blocking{background:#f8f4eecc;pointer-events:auto;cursor:progress}
 .rr-page-loader-box{display:flex;align-items:center;gap:12px;background:var(--white);border:1px solid var(--line);border-radius:6px;padding:14px 20px;font:600 12px var(--font-sans),sans-serif;box-shadow:0 10px 30px #252a2426}
@@ -176,3 +177,4 @@ button[aria-busy=true]::after{content:'';position:absolute;right:12px;top:50%;wi
 .info-body h2{font:500 22px var(--font-serif),serif;margin:28px 0 10px}
 .info-body ul,.info-body ol{padding-left:20px;display:grid;gap:8px}
 @media(max-width:600px){.footer-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding:32px 5% 24px}.footer-base{padding:20px 5%}}
+.like-btn .rr-spinner{width:12px;height:12px;border-width:2px;vertical-align:-1px}
