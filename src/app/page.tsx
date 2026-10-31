@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Hero } from '@/components/Hero';
 import { HomeCraftExplorer } from '@/components/HomeCraftExplorer';
 import { WorkshopList } from '@/components/WorkshopList';
+import { ListingRequestButton } from '@/components/ListingRequestButton';
 import { TrendingSection } from '@/components/TrendingSection';
 import { listProducts, listWorkshops } from '@/lib/catalog';
 import { listActiveCities } from '@/lib/cities';
@@ -50,9 +51,9 @@ export default async function Home() {
         <div>
           <span className="eyebrow">YOUR HANDS MAKE SOMETHING SPECIAL?</span>
           <h2>There’s room for your craft here.</h2>
-          <p>This demo shows the customer experience. Seller onboarding and listing approval will be added in the next build.</p>
+          <p>Tell us about your craft and we will call you to talk about getting it listed.</p>
         </div>
-        <a className="button light" href={`mailto:${SITE.email}?subject=Marketplace%20seller%20interest`}>I’m a maker <span>↗</span></a>
+        <ListingRequestButton />
       </section>
       {cities.length > 0 && (
         <nav className="link-row" aria-label="Explore by city">
