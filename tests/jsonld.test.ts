@@ -23,6 +23,12 @@ describe('productJsonLd', () => {
     expect(j.image[0]).toBe('https://rr.test/products/crochet-lily-bouquet-p1/opengraph-image');
     expect(j.brand).toMatchObject({ '@type': 'Brand', name: 'Shauk and Stuff' });
   });
+  it('lists every photo, then the generated share image', () => {
+    const og = 'https://rr.test/products/crochet-lily-bouquet-p1/opengraph-image';
+    expect((productJsonLd({ ...product, images: ['https://c.example/a.jpg', 'https://c.example/b.jpg'], imageUrl: 'https://c.example/a.jpg' }) as any).image).toEqual(['https://c.example/a.jpg', 'https://c.example/b.jpg', og]);
+    expect((productJsonLd({ ...product, imageUrl: 'https://c.example/only.jpg' }) as any).image).toEqual(['https://c.example/only.jpg', og]);
+    expect((productJsonLd({ ...product, images: undefined, imageUrl: undefined }) as any).image).toEqual([og]);
+  });
   it('OutOfStock when stock is 0', () => {
     expect((productJsonLd({ ...product, stock: 0 }) as any).offers.availability).toBe('https://schema.org/OutOfStock');
   });

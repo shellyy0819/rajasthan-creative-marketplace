@@ -149,28 +149,6 @@ describe('workshops admin', () => {
   });
 });
 
-describe('product imageUrl', () => {
-  it('accepts https URLs and normalises them', async () => {
-    const p = await createProduct({ ...validProduct, imageUrl: 'https://cdn.example.com/a b.jpg' }, admin);
-    expect(p.imageUrl).toBe('https://cdn.example.com/a%20b.jpg');
-  });
-  it('rejects non-https, scripts, data URLs, junk, non-strings and >500 chars', async () => {
-    for (const imageUrl of [
-      'http://cdn.example.com/a.jpg', 'javascript:alert(1)', 'data:image/png;base64,AAAA', '//cdn.example.com/a.jpg',
-      '/relative.jpg', 'not a url', 42, 'https://x.example.com/' + 'a'.repeat(500),
-    ]) {
-      await expect(createProduct({ ...validProduct, imageUrl }, admin)).rejects.toMatchObject({ status: 400, message: expect.stringContaining('imageUrl') });
-    }
-    expect((await readDb()).products).toHaveLength(4);
-  });
-  it('can be cleared with an empty string on update', async () => {
-    await updateProduct('p1', { imageUrl: 'https://cdn.example.com/a.jpg' }, admin);
-    expect((await readDb()).products[0].imageUrl).toBe('https://cdn.example.com/a.jpg');
-    await updateProduct('p1', { imageUrl: '' }, admin);
-    expect((await readDb()).products[0].imageUrl).toBeUndefined();
-  });
-});
-
 describe('ids are never reused', () => {
   it('a deleted highest product id is not handed out again', async () => {
     const a = await createProduct(validProduct, admin);
@@ -190,25 +168,15 @@ describe('ids are never reused', () => {
   });
 });
 
-describe('imageUrl credentials', () => {
-  it('rejects URLs with embedded user/password (they would be published to every visitor)', async () => {
-    for (const imageUrl of ['https://user:pass@cdn.example.com/a.jpg', 'https://user@cdn.example.com/a.jpg', 'https://:pw@cdn.example.com/a.jpg']) {
-      await expect(createProduct({ ...validProduct, imageUrl }, admin)).rejects.toMatchObject({ status: 400, message: expect.stringContaining('imageUrl') });
-    }
-  });
-});
-
 describe('clearing optional product fields writes NULL and never leaks null into JSON', () => {
   it('PATCH with empty/blank strings clears the columns', async () => {
-    await updateProduct('p1', { pickupLocation: 'Studio shelf 2', imageUrl: 'https://cdn.example.com/a.jpg' }, admin);
-    const p = await updateProduct('p1', { pickupLocation: '   ', imageUrl: '' }, admin);
+    await updateProduct('p1', { pickupLocation: 'Studio shelf 2' }, admin);
+    const p = await updateProduct('p1', { pickupLocation: '   ' }, admin);
     expect('pickupLocation' in p).toBe(false);
-    expect('imageUrl' in p).toBe(false);
     expect(JSON.stringify(p)).not.toContain('null');
     const db = await getTestDb();
     const [row] = await db.select().from(productsTable).where(eq(productsTable.id, 'p1'));
     expect(row.pickupLocation).toBeNull();
-    expect(row.imageUrl).toBeNull();
   });
   it('failed validation leaves the row untouched', async () => {
     await expect(updateProduct('p1', { stock: -3 }, admin)).rejects.toMatchObject({ status: 400 });

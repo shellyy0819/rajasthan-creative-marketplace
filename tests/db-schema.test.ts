@@ -209,7 +209,7 @@ describe('mappers', () => {
     const p = toProduct(row);
     expect('instagram' in p).toBe(false);
     expect(JSON.stringify(p)).not.toContain('null');
-    expect(toProductRow(p).imageUrl).toBeNull();
+    expect('imageUrl' in toProductRow(p)).toBe(false); // photos live in product_images now
     expect(toProductRow(p).workshopId).toBeNull();
   });
 });

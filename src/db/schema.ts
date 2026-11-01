@@ -178,3 +178,34 @@ export const productEvents = pgTable('product_events', {
   uniqueIndex('product_events_unique_idx').on(t.productId, t.type, t.actor, t.day),
   index('product_events_day_idx').on(t.day),
 ]);
+
+/** People who want to sell on the marketplace (public form). Phone is format-checked, not verified: an admin calls, then confirms. */
+export const listingRequests = pgTable('listing_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ownerName: text('owner_name').notNull(),
+  phone: text('phone').notNull(),
+  email: text('email').notNull(),
+  instagram: text('instagram'),
+  website: text('website'),
+  businessName: text('business_name').notNull(),
+  size: text('size').notNull(),
+  status: text('status').notNull().default('received'),
+  confirmedAt: timestamp('confirmed_at', { withTimezone: true, mode: 'date' }),
+  confirmedBy: uuid('confirmed_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [
+  check('listing_requests_size_valid', sql`${t.size} in ('small', 'medium', 'large')`),
+  check('listing_requests_status_valid', sql`${t.status} in ('received', 'confirmed')`),
+  index('listing_requests_created_idx').on(t.createdAt),
+  index('listing_requests_status_idx').on(t.status),
+]);
+
+/** Ordered photos of a product; position 0 is the cover. `s3Key` is null for legacy links that live on other hosts. */
+export const productImages = pgTable('product_images', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: text('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  url: text('url').notNull(),
+  s3Key: text('s3_key'),
+  position: smallint('position').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [uniqueIndex('product_images_product_position_idx').on(t.productId, t.position)]);
