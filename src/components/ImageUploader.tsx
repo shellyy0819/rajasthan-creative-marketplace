@@ -14,24 +14,32 @@ const canPreview = () => typeof URL !== 'undefined' && typeof URL.createObjectUR
  * Photos of a product: thumbnails with a Cover badge, "Make cover" and "Remove", and an "Add photos" picker that sends
  * each file straight to S3 with a signed form. The kept photos travel with the form as hidden `images` inputs, in order.
  */
-export function ImageUploader({ initial, onBusyChange }: { initial: string[]; onBusyChange?: (busy: boolean) => void }) {
+export function ImageUploader({ initial, onBusyChange, uploadTimeoutMs = 60_000 }: { initial: string[]; onBusyChange?: (busy: boolean) => void; uploadTimeoutMs?: number }) {
   const next = useRef(0);
   const [items, setItems] = useState<Item[]>(() => initial.map(url => ({ id: next.current++, name: url, url, status: 'done' as const })));
   const [messages, setMessages] = useState<string[]>([]);
   const [notSetUp, setNotSetUp] = useState(false);
   const seen = useRef(new Set<string>());
   const previews = useRef(new Map<number, string>());
+  const signatures = useRef(new Map<number, string>()); // file signature per tile, forgotten when the tile fails or is removed
+  const controllers = useRef(new Map<number, AbortController>());
+  const removed = useRef(new Set<number>());
 
   const busy = items.some(i => i.status === 'uploading');
   useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
   useEffect(() => () => { previews.current.forEach(u => URL.revokeObjectURL(u)); }, []);
 
   const patch = (id: number, p: Partial<Item>) => setItems(list => list.map(i => (i.id === id ? { ...i, ...p } : i)));
+  const forget = (id: number) => { const sig = signatures.current.get(id); if (sig) { seen.current.delete(sig); signatures.current.delete(id); } };
   const dropPreview = (id: number) => { const u = previews.current.get(id); if (u) { URL.revokeObjectURL(u); previews.current.delete(id); } };
 
   async function upload(id: number, file: File) {
+    const ctrl = new AbortController();
+    controllers.current.set(id, ctrl);
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, uploadTimeoutMs);
     try {
-      const perm = await fetch('/api/uploads/product-image', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contentType: file.type, size: file.size }) });
+      const perm = await fetch('/api/uploads/product-image', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contentType: file.type, size: file.size }), signal: ctrl.signal });
       const body = await perm.json().catch(() => null) as { url?: string; fields?: Record<string, string>; publicUrl?: string; error?: string } | null;
       if (!perm.ok || !body?.url || !body.fields || !body.publicUrl) {
         if (perm.status === 503) setNotSetUp(true);
@@ -40,14 +48,19 @@ export function ImageUploader({ initial, onBusyChange }: { initial: string[]; on
       const form = new FormData();
       for (const [k, v] of Object.entries(body.fields)) form.append(k, v);
       form.append('file', file); // S3 requires the file to be the last field
-      const sent = await fetch(body.url, { method: 'POST', body: form });
+      const sent = await fetch(body.url, { method: 'POST', body: form, signal: ctrl.signal });
       if (!sent.ok) throw new UploadError('The photo could not be uploaded.');
       dropPreview(id);
       patch(id, { status: 'done', url: body.publicUrl, preview: undefined });
     } catch (e) {
-      const message = e instanceof UploadError ? e.message : 'Network error. Please try again.';
+      if (removed.current.has(id)) return; // the seller removed the tile: nothing to report
+      const message = timedOut ? 'The upload took too long. Please try again.' : e instanceof UploadError ? e.message : 'Network error. Please try again.';
+      forget(id);
       patch(id, { status: 'error', error: message });
       setMessages(m => [...m, `${file.name}: ${message}`]);
+    } finally {
+      clearTimeout(timer);
+      controllers.current.delete(id);
     }
   }
 
@@ -64,7 +77,9 @@ export function ImageUploader({ initial, onBusyChange }: { initial: string[]; on
       if (seen.current.has(signature(file))) { problems.push(`${file.name}: already added.`); continue; }
       if (room < 1) continue;
       room--; seen.current.add(signature(file));
-      accepted.push({ id: next.current++, file });
+      const id = next.current++;
+      signatures.current.set(id, signature(file));
+      accepted.push({ id, file });
     }
     const skipped = picked.filter(f => Object.hasOwn(IMAGE_TYPES, f.type) && f.size >= 1 && f.size <= MAX_IMAGE_BYTES && !seen.current.has(signature(f))).length;
     if (skipped > 0) problems.push(`Only ${MAX_IMAGES - items.length} more photo${MAX_IMAGES - items.length === 1 ? '' : 's'} fit (limit ${MAX_IMAGES}).`);
@@ -76,7 +91,12 @@ export function ImageUploader({ initial, onBusyChange }: { initial: string[]; on
     for (const { id, file } of accepted) void upload(id, file);
   }
 
-  const remove = (id: number) => { dropPreview(id); setItems(list => list.filter(i => i.id !== id)); };
+  const remove = (id: number) => {
+    removed.current.add(id);
+    controllers.current.get(id)?.abort(); // cancels a photo that is still uploading
+    forget(id); dropPreview(id);
+    setItems(list => list.filter(i => i.id !== id));
+  };
   const makeCover = (id: number) => setItems(list => { const it = list.find(i => i.id === id); return it ? [it, ...list.filter(i => i.id !== id)] : list; });
   const kept = items.filter(i => i.status === 'done' && i.url);
   const full = items.length >= MAX_IMAGES;
@@ -99,7 +119,7 @@ export function ImageUploader({ initial, onBusyChange }: { initial: string[]; on
             {i.status === 'error' && <p className="uploader-error">{i.error}</p>}
             <div className="uploader-actions">
               {index > 0 && i.status === 'done' && <button type="button" className="button" aria-label={`Make photo ${index + 1} the cover`} onClick={() => makeCover(i.id)}>Make cover</button>}
-              <button type="button" className="button" aria-label={`Remove photo ${index + 1}`} disabled={i.status === 'uploading'} onClick={() => remove(i.id)}>Remove</button>
+              <button type="button" className="button" aria-label={`Remove photo ${index + 1}`} onClick={() => remove(i.id)}>Remove</button>
             </div>
           </li>
         ))}

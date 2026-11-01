@@ -133,6 +133,63 @@ describe('ImageUploader: uploading', () => {
   });
 });
 
+describe('ImageUploader: recovering from failures', () => {
+  it('a failed or removed file can be picked again (it is not remembered as "already added")', async () => {
+    let failFirst = true;
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/uploads/product-image') { const n = ++counter; return reply(200, { url: S3, fields: { key: `k${n}` }, publicUrl: `${S3}products/u/${n}.jpg` }); }
+      if (url === S3) { if (failFirst) { failFirst = false; return reply(403); } return reply(204); }
+      return reply(500);
+    });
+    render(<ImageUploader initial={[]} />);
+    const same = () => file('pot.jpg', 'image/jpeg', 700, 9);
+    pick([same()]);
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('pot.jpg'));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove photo 1' }));
+    pick([same()]);                                                          // same name, size and date again
+    await waitFor(() => expect(hidden()).toHaveLength(1));
+    expect(permissionCalls()).toHaveLength(2);
+    expect(screen.queryByText(/already added/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove photo 1' })); // a successful photo removed, then re-picked
+    pick([same()]);
+    await waitFor(() => expect(hidden()).toHaveLength(1));
+    expect(permissionCalls()).toHaveLength(3);
+  });
+  it('an upload that hangs turns into an error after the timeout, so Save is available again', async () => {
+    const busy = vi.fn();
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/uploads/product-image') return reply(200, { url: S3, fields: { key: 'k' }, publicUrl: `${S3}products/u/x.jpg` });
+      return new Promise<Response>((_res, rej) => init?.signal?.addEventListener('abort', () => rej(new DOMException('aborted', 'AbortError'))));
+    });
+    render(<ImageUploader initial={[]} onBusyChange={busy} uploadTimeoutMs={50} />);
+    pick([file('slow.jpg', 'image/jpeg')]);
+    await waitFor(() => expect(busy).toHaveBeenCalledWith(true));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/slow\.jpg.*too long/), { timeout: 2000 });
+    await waitFor(() => expect(busy).toHaveBeenLastCalledWith(false));
+    expect(hidden()).toEqual([]);
+  });
+  it('Remove works on a tile that is still uploading: it cancels the request and leaves no error behind', async () => {
+    let signal: AbortSignal | undefined;
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/uploads/product-image') return reply(200, { url: S3, fields: { key: 'k' }, publicUrl: `${S3}products/u/x.jpg` });
+      signal = init?.signal ?? undefined;
+      return new Promise<Response>((_res, rej) => init?.signal?.addEventListener('abort', () => rej(new DOMException('aborted', 'AbortError'))));
+    });
+    const busy = vi.fn();
+    render(<ImageUploader initial={[]} onBusyChange={busy} />);
+    pick([file('x.jpg', 'image/jpeg')]);
+    await waitFor(() => expect(signal).toBeDefined());
+    const remove = screen.getByRole('button', { name: 'Remove photo 1' }) as HTMLButtonElement;
+    expect(remove.disabled).toBe(false);
+    fireEvent.click(remove);
+    expect(signal!.aborted).toBe(true);
+    await waitFor(() => expect(busy).toHaveBeenLastCalledWith(false));
+    expect(screen.queryAllByRole('listitem')).toHaveLength(0);
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(hidden()).toEqual([]);
+  });
+});
+
 describe('PostForm integration', () => {
   const props = { role: 'seller' as const, categories: ['Pottery'], workshops: [], sellers: [], onSubmit: vi.fn(async () => null), onCancel: () => undefined };
   it('the old Cover image URL box is gone and the uploader is there', () => {
