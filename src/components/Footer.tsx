@@ -46,8 +46,8 @@ export async function Footer() {
       </div>
       <div className="footer-base">
         <Brand />
-        <p>A demo marketplace concept for India. Payments are not enabled.</p>
-        <span>Made with care ✳</span>
+        {/* <p>A demo marketplace concept for India. Payments are not enabled.</p>
+        <span>Made with care ✳</span> */}
       </div>
     </footer>
   );
