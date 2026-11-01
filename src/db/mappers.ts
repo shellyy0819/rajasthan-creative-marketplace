@@ -32,7 +32,7 @@ export const productSelect = {
   youtube: sellerProfiles.youtube,
   artistBio: sellerProfiles.bio,
   artistCityName: artistCities.name,
-  images: sql<string[] | string>`coalesce((select json_agg(pim.url order by pim.position) from product_images pim where pim.product_id = products.id), '[]'::json)`,
+  images: sql<string[] | string>`coalesce((select json_agg(pim.url order by pim.position) from product_images pim where pim.product_id = ${products.id}), '[]'::json)`,
   likeCount: sql<number>`(select count(*) from product_likes pl where pl.product_id = ${products.id})`.mapWith(Number),
   publishedByEmail: sql<string | null>`(select pu.email from users pu where pu.id = ${products.publishedBy})`,
   workshopTitle: sql<string | null>`(select pw.title from workshops pw where pw.id = ${products.workshopId})`,

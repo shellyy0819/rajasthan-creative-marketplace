@@ -149,9 +149,11 @@ export async function updateProduct(id: string, input: unknown, actor: Actor): P
 
 export async function deleteProduct(id: string): Promise<void> {
   const keys = await getDb().transaction(async tx => {
+    // Lock the product first: an edit in flight finishes (and its photos are visible) before we read the list.
+    const [locked] = await tx.select({ id: productsT.id }).from(productsT).where(eq(productsT.id, id)).for('update');
+    if (!locked) throw new ApiError(404, 'Product not found.');
     const own = (await loadImages(tx, id)).flatMap(r => (r.key ? [r.key] : []));
-    const rows = await tx.delete(productsT).where(eq(productsT.id, id)).returning({ id: productsT.id });
-    if (!rows.length) throw new ApiError(404, 'Product not found.');
+    await tx.delete(productsT).where(eq(productsT.id, id));
     return unreferencedKeys(tx, own); // a file another product still shows stays
   });
   await dropStoredPhotos(keys);
