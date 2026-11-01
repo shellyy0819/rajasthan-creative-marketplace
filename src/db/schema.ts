@@ -199,3 +199,13 @@ export const listingRequests = pgTable('listing_requests', {
   index('listing_requests_created_idx').on(t.createdAt),
   index('listing_requests_status_idx').on(t.status),
 ]);
+
+/** Ordered photos of a product; position 0 is the cover. `s3Key` is null for legacy links that live on other hosts. */
+export const productImages = pgTable('product_images', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: text('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  url: text('url').notNull(),
+  s3Key: text('s3_key'),
+  position: smallint('position').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [uniqueIndex('product_images_product_position_idx').on(t.productId, t.position)]);

@@ -32,6 +32,7 @@ export const productSelect = {
   youtube: sellerProfiles.youtube,
   artistBio: sellerProfiles.bio,
   artistCityName: artistCities.name,
+  images: sql<string[] | string>`coalesce((select json_agg(pim.url order by pim.position) from product_images pim where pim.product_id = products.id), '[]'::json)`,
   likeCount: sql<number>`(select count(*) from product_likes pl where pl.product_id = ${products.id})`.mapWith(Number),
   publishedByEmail: sql<string | null>`(select pu.email from users pu where pu.id = ${products.publishedBy})`,
   workshopTitle: sql<string | null>`(select pw.title from workshops pw where pw.id = ${products.workshopId})`,
@@ -39,7 +40,7 @@ export const productSelect = {
 export type ProductJoinRow = {
   p: ProductRow; cityName: string; citySlug: string; cityState: string | null; sellerName: string; sellerEmail: string;
   publicPhone: string | null; publicEmail: string | null; instagram: string | null; youtube: string | null; artistBio: string | null; artistCityName: string | null;
-  publishedByEmail: string | null; workshopTitle: string | null; likeCount: number;
+  publishedByEmail: string | null; workshopTitle: string | null; likeCount: number; images: string[] | string;
 };
 /** SELECT products + seller + profile. Add .where(...) / .orderBy(...) / .for('update', { of: products }) as needed. */
 export const productsQuery = (q: Q) =>
@@ -49,12 +50,15 @@ export const productsQuery = (q: Q) =>
     .leftJoin(sellerProfiles, eq(sellerProfiles.userId, users.id))
     .leftJoin(artistCities, eq(artistCities.id, sellerProfiles.cityId));
 
+const imagesOf = (v: string[] | string): string[] => (typeof v === 'string' ? (JSON.parse(v) as string[]) : v);
+
 export const toProduct = (r: ProductJoinRow): Product => ({
   id: r.p.id, name: r.p.name, category: r.p.category, city: r.cityName, cityId: r.p.cityId, citySlug: r.citySlug, pricePaise: r.p.pricePaise,
   ...opt('cityState', r.cityState),
   seller: r.sellerName, description: r.p.description, stock: r.p.stock, status: r.p.status,
   ...opt('instagram', r.instagram), ...opt('youtube', r.youtube), ...opt('phone', r.publicPhone),
-  ...opt('email', r.publicEmail), ...opt('imageUrl', r.p.imageUrl), ...opt('workshopId', r.p.workshopId),
+  ...opt('email', r.publicEmail), ...opt('workshopId', r.p.workshopId),
+  ...(imagesOf(r.images).length ? { images: imagesOf(r.images), imageUrl: imagesOf(r.images)[0] } : {}),
   likeCount: r.likeCount, sellerSlug: artistSlug(r.sellerName, r.p.sellerId),
   ...opt('artistBio', r.artistBio), ...opt('artistCity', r.artistCityName),
 });
@@ -70,7 +74,7 @@ export type ProductInput = Omit<Product, 'id' | 'seller' | 'instagram' | 'youtub
 /** undefined → null so that UPDATE really clears a field (Drizzle ignores undefined keys). */
 export const toProductRow = (p: ProductInput) => ({
   name: p.name, category: p.category, cityId: p.cityId, pricePaise: p.pricePaise, description: p.description,
-  stock: p.stock, status: p.status, imageUrl: p.imageUrl ?? null, workshopId: p.workshopId ?? null,
+  stock: p.stock, status: p.status, workshopId: p.workshopId ?? null,
   pickupLocation: p.pickupLocation ?? null,
 });
 
