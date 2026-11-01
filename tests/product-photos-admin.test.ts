@@ -131,3 +131,32 @@ describe('deleting a product', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 });
+
+describe('a stored photo used by two products is only deleted when the last one lets go', () => {
+  it('removing it from one product, or deleting one product, keeps the file while another product still shows it', async () => {
+    const s = await makeSeller('s@x.co', 'S');
+    const shared = img(s.id, 'shared.jpg');
+    const a = await createProduct({ ...valid, images: [shared, img(s.id, 'only-a.jpg')] }, s.actor);
+    const b = await createProduct({ ...valid, name: 'Second', images: [shared] }, s.actor);
+    await updateProduct(a.id, { images: [img(s.id, 'only-a.jpg')] }, s.actor);              // a lets go, b still uses it
+    expect(spy).not.toHaveBeenCalled();
+    await deleteProduct(a.id);                                                              // only-a.jpg is unique to a
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][1]).toEqual([`products/${s.id}/only-a.jpg`]);
+    spy.mockClear();
+    const c = await createProduct({ ...valid, name: 'Third', images: [shared] }, s.actor);
+    await deleteProduct(b.id);                                                              // c still uses shared.jpg
+    expect(spy).not.toHaveBeenCalled();
+    await updateProduct(c.id, { images: [] }, s.actor);                                     // the last user lets go
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][1]).toEqual([`products/${s.id}/shared.jpg`]);
+  });
+  it('an admin attaching a seller’s file to another product does not let a later removal delete the original', async () => {
+    const s = await makeSeller('s@x.co', 'S'); const t = await makeSeller('t@x.co', 'T');
+    const file = img(s.id, 'orig.jpg');
+    await createProduct({ ...valid, images: [file] }, s.actor);
+    const copy = await createProduct({ ...valid, name: 'Other', sellerId: t.id, images: [file] }, admin);
+    await updateProduct(copy.id, { images: [] }, admin);
+    expect(spy).not.toHaveBeenCalled();
+  });
+});

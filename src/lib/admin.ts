@@ -10,7 +10,7 @@ import { canonicalCategory } from './categories';
 import type { Actor } from './authz';
 import { ApiError } from './errors';
 import { bad, int, obj, oneOf, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
-import { loadImages, parseImages, resolveImages, saveImages } from './product-images';
+import { loadImages, parseImages, resolveImages, saveImages, unreferencedKeys } from './product-images';
 import { deleteObjects, storageConfig } from './storage';
 import type { AdminProduct, Workshop } from './types';
 
@@ -148,9 +148,12 @@ export async function updateProduct(id: string, input: unknown, actor: Actor): P
 }
 
 export async function deleteProduct(id: string): Promise<void> {
-  const keys = (await loadImages(getDb(), id)).flatMap(r => (r.key ? [r.key] : []));
-  const rows = await getDb().delete(productsT).where(eq(productsT.id, id)).returning({ id: productsT.id });
-  if (!rows.length) throw new ApiError(404, 'Product not found.');
+  const keys = await getDb().transaction(async tx => {
+    const own = (await loadImages(tx, id)).flatMap(r => (r.key ? [r.key] : []));
+    const rows = await tx.delete(productsT).where(eq(productsT.id, id)).returning({ id: productsT.id });
+    if (!rows.length) throw new ApiError(404, 'Product not found.');
+    return unreferencedKeys(tx, own); // a file another product still shows stays
+  });
   await dropStoredPhotos(keys);
 }
 

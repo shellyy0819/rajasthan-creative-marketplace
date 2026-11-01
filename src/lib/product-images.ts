@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm';
+import { asc, eq, inArray } from 'drizzle-orm';
 import type { Q, Tx } from '../db/client';
 import { productImages } from '../db/schema';
 import { bad } from './validate';
@@ -45,7 +45,15 @@ export async function resolveImages(
   });
 }
 
-/** Replaces the product's photos with `next` (positions 0..n-1). Returns the object keys that are no longer used. */
+/** The keys no photo row points at any more. A stored file may be shared by several products, and may only be deleted when none is left. */
+export async function unreferencedKeys(q: Q, keys: string[]): Promise<string[]> {
+  const unique = [...new Set(keys)];
+  if (!unique.length) return [];
+  const still = new Set((await q.select({ key: productImages.s3Key }).from(productImages).where(inArray(productImages.s3Key, unique))).map(r => r.key));
+  return unique.filter(k => !still.has(k));
+}
+
+/** Replaces the product's photos with `next` (positions 0..n-1). Returns the object keys that no product uses any more. */
 export async function saveImages(tx: Tx, productId: string, next: ImageRef[]): Promise<{ removedKeys: string[] }> {
   const before = await loadImages(tx, productId);
   const kept = new Set(next.map(r => r.url));
@@ -55,5 +63,5 @@ export async function saveImages(tx: Tx, productId: string, next: ImageRef[]): P
     await tx.delete(productImages).where(eq(productImages.productId, productId));
     if (next.length) await tx.insert(productImages).values(next.map((r, position) => ({ productId, url: r.url, s3Key: r.key, position })));
   }
-  return { removedKeys };
+  return { removedKeys: await unreferencedKeys(tx, removedKeys) };
 }
