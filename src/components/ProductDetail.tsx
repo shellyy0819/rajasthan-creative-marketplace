@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { AdminProduct } from '@/lib/types';
 import { productSlug } from '@/lib/catalog-shared';
 import { money } from '@/lib/money';
+import { instagramHandle, instagramUrl } from '@/lib/social';
 import { ProductImage } from './ProductImage';
 
 const STATUS_LABEL: Record<string, string> = { APPROVED: 'Published', DRAFT: 'Draft', ARCHIVED: 'Archived' };
@@ -73,7 +74,7 @@ export function ProductDetail({ product: p, role, onEdit, onClose }: { product: 
           <Field label="Account email">{p.sellerEmail}</Field>
           <Field label="Public phone">{p.phone}</Field>
           <Field label="Public email">{p.email}</Field>
-          <Field label="Instagram">{p.instagram}</Field>
+          <Field label="Instagram">{p.instagram && <a className="text-link" href={instagramUrl(p.instagram)} target="_blank" rel="noreferrer">{instagramHandle(p.instagram)} ↗</a>}</Field>
           <Field label="YouTube">{p.youtube}</Field>
         </dl>
 
