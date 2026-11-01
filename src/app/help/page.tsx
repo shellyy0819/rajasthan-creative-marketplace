@@ -24,8 +24,8 @@ export default function HelpPage() {
           <li><b>Connect.</b> Contact the artist directly using the details on their page.</li>
           <li><b>Buy or join.</b> Agree the details and pay the artist directly. Craftology does not take payments.</li>
         </ol>
-        <h2>Cookies</h2>
-        <p>We use analytics cookies only if you allow them. You can change your choice any time from “Cookie settings” in the footer.</p>
+        {/* <h2>Cookies</h2>
+        <p>We use analytics cookies only if you allow them. You can change your choice any time from “Cookie settings” in the footer.</p> */}
       </InfoPage>
     </>
   );

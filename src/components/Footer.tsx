@@ -36,13 +36,13 @@ export async function Footer() {
         <Column title="Let Us Help You">
           <li><Link href="/help">How it works</Link></li>
           <li><a href={MAKER_MAIL}>For makers</a></li>
-          <li><CookieSettings /></li>
+          {/* <li><CookieSettings /></li> */}
         </Column>
-        {cities.length > 0 && (
+        {/* {cities.length > 0 && (
           <Column title="Cities">
             {cities.map(c => <li key={c.slug}><Link href={`/cities/${c.slug}`}>{label(c)}</Link></li>)}
           </Column>
-        )}
+        )} */}
       </div>
       <div className="footer-base">
         <Brand />

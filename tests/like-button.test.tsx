@@ -28,6 +28,24 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const btn = (name: RegExp) => screen.getByRole('button', { name });
 
 describe('LikeButton', () => {
+  it('shows a loader in place of the heart while the like request is pending, then the heart again', async () => {
+    let finish!: (r: Response) => void;
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (url.startsWith('/api/likes')) return res(200, { counts: { p1: 3 }, liked: [] });
+      return new Promise<Response>(resolve => { finish = resolve; });
+    });
+    render(<LikeButton productId="p1" initialCount={3} productName="Bag" />);
+    await waitFor(() => expect(btn(/Like Bag/)).toBeTruthy());
+    fireEvent.click(btn(/Like Bag/));
+    const pending = btn(/Unlike Bag/);
+    expect(pending.getAttribute('aria-busy')).toBe('true');
+    expect(pending.querySelector('.rr-spinner')).not.toBeNull();
+    expect(pending.textContent).not.toContain('♡');
+    await act(async () => { finish({ ok: true, status: 200, json: () => Promise.resolve({ liked: true, count: 4 }) } as Response); });
+    await waitFor(() => expect(btn(/Unlike Bag/).getAttribute('aria-busy')).toBe('false'));
+    expect(btn(/Unlike Bag/).querySelector('.rr-spinner')).toBeNull();
+    expect(btn(/Unlike Bag/).textContent).toContain('♥');
+  });
   it('shows the server-rendered count at once and learns whether you liked it with one batched request for all cards on the page', async () => {
     render(<><LikeButton productId="p1" initialCount={3} productName="Bag" /><LikeButton productId="p2" initialCount={0} productName="Dish" /></>);
     expect(btn(/Like Bag/).textContent).toContain('3');

@@ -10,16 +10,17 @@ import { Hero } from '@/components/Hero';
 afterEach(cleanup);
 
 describe('homepage hero', () => {
-  it('second section: "Shop unique. Support Craftpreneurs." with products and workshops buttons', () => {
+  it('second section: "Shop unique. Support Craftpreneurs." is a statement with no buttons of its own', () => {
     const { container } = render(<Hero />);
     const intro = container.querySelector('section.intro') as HTMLElement;
     expect(intro.querySelector('h2')?.textContent).toBe('Shop unique. Support Craftpreneurs.');
     expect(intro.textContent).toContain('independent Craftpreneurs');
-    const products = screen.getByRole('link', { name: /Explore products/ });
-    const workshops = screen.getByRole('link', { name: 'Discover workshops' });
-    expect(products.getAttribute('href')).toBe('/shop');
-    expect(workshops.getAttribute('href')).toBe('/workshops');
-    expect(intro.contains(products) && intro.contains(workshops)).toBe(true);
+    expect(intro.querySelector('a, button')).toBeNull(); // the hero buttons above already lead to the shop and workshops
+  });
+  it('each destination is offered once: one link to the shop and one to workshops in the whole hero block', () => {
+    const { container } = render(<Hero />);
+    expect(container.querySelectorAll('a[href="/shop"]')).toHaveLength(1);
+    expect(container.querySelectorAll('a[href="/workshops"]')).toHaveLength(1);
   });
   it('has exactly one h1 with the three-part headline', () => {
     render(<Hero />);

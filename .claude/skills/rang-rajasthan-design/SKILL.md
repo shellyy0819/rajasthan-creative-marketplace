@@ -5,7 +5,7 @@ description: Use when creating or changing any UI component, page, form, button,
 
 # Rang Rajasthan design guidelines
 
-Single stylesheet: `src/app/globals.css` (plain CSS, no Tailwind/CSS-in-JS). Fonts come from `src/app/layout.tsx`: `--font-sans` (DM Sans) for UI, `--font-serif` (Playfair Display) for headings and card titles. **Reuse existing classes before writing new CSS; extend globals.css, do not add inline styles or a second stylesheet.**
+Single stylesheet: `src/app/globals.css` (plain CSS, no Tailwind/CSS-in-JS). **One font family, DM Sans, everywhere** (loaded in `src/app/layout.tsx` as `--font-sans`). Headings and card titles use `--font-display`, which currently resolves to DM Sans; use `var(--font-sans)` for text and controls and `var(--font-display)` for headings, never a font name. Form controls inherit the page font. Do not add a second family, inline `fontFamily`, or a literal font name; `tests/typography.test.ts` fails if you do. A second family needs the owner's approval first: change the `--font-display` token and the layout import in one place. **Reuse existing classes before writing new CSS; extend globals.css, do not add inline styles or a second stylesheet.**
 
 ## Tokens (use the variables, never new hex values)
 
