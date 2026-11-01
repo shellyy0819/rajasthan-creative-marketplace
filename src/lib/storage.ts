@@ -3,9 +3,8 @@ import { DeleteObjectsCommand, S3Client } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { ApiError } from './errors';
 
-export const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as const;
-export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-export const MAX_IMAGES = 6;
+import { IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_IMAGES } from './image-limits';
+export { IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_IMAGES };
 
 export type StorageConfig = { bucket: string; region: string; publicBase: string; keyPrefix: string };
 export type PresignFn = typeof createPresignedPost;
