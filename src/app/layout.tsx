@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import type { Metadata, Viewport } from 'next';
-import { DM_Sans, Playfair_Display } from 'next/font/google';
+import { DM_Sans } from 'next/font/google';
 import './globals.css';
 import { SITE, siteUrl } from '@/lib/site';
 import { JsonLd } from '@/components/JsonLd';
@@ -11,9 +11,9 @@ import { StoreProvider } from '@/components/StoreProvider';
 import { AuthProvider } from '@/components/AuthProvider';
 import { Analytics } from '@/components/Analytics';
 import { hostConfig } from '@/lib/hosts';
+import { themeInitScript } from '@/components/ThemeToggle';
 
-const sans = DM_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-sans', display: 'swap' });
-const serif = Playfair_Display({ subsets: ['latin'], weight: ['500', '600', '700'], style: ['normal', 'italic'], variable: '--font-serif', display: 'swap' });
+const sans = DM_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'], style: ['normal', 'italic'], variable: '--font-sans', display: 'swap' });
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
@@ -29,11 +29,12 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } },
 };
 
-export const viewport: Viewport = { themeColor: '#c8553d', width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { themeColor: '#c8553d', colorScheme: 'light dark', width: 'device-width', initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-IN" className={`${sans.variable} ${serif.variable}`}>
+    <html lang="en-IN" className={sans.variable} suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: themeInitScript }} /></head>
       <body>
         <a className="skip-link" href="#main">Skip to content</a>
         <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />

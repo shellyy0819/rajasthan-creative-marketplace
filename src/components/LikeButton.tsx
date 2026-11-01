@@ -58,7 +58,7 @@ export function LikeButton({ productId, initialCount = 0, productName = 'this pr
   return (
     <button type="button" className={`like-btn${liked ? ' liked' : ''}`} aria-pressed={liked} aria-busy={busy}
       aria-label={`${liked ? 'Unlike' : 'Like'} ${productName} (${count} ${count === 1 ? 'like' : 'likes'})`} onClick={toggle}>
-      <span aria-hidden="true">{liked ? '♥' : '♡'}</span> <span aria-hidden="true">{count}</span>
+      {busy ? <span className="rr-spinner" aria-hidden="true" /> : <span aria-hidden="true">{liked ? '♥' : '♡'}</span>} <span aria-hidden="true">{count}</span>
     </button>
   );
 }

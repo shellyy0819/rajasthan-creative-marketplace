@@ -4,9 +4,10 @@ import React from 'react';
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import Loading from '@/app/loading';
+import { readCss } from './helpers/css';
 
 afterEach(cleanup);
-const css = fs.readFileSync('src/app/globals.css', 'utf8');
+const css = readCss();
 
 describe('route loading state', () => {
   it('shows a status spinner while a page streams in, without blocking clicks', () => {
@@ -22,5 +23,8 @@ describe('loader never covers the navbar', () => {
     expect(css).toMatch(/\.rr-page-loader\{[^}]*top:var\(--topbar-h\)/);
     expect(css).toMatch(/:root\{--topbar-h:78px\}/);
     expect(css).toMatch(/@media\(max-width:600px\)\{:root\{--topbar-h:67px\}\}/);
+  });
+  it('main keeps at least the visible height under the navbar, so the footer does not jump while a page loads', () => {
+    expect(css).toMatch(/(^|[\s}])main\{[^}]*min-height:calc\(100svh - var\(--topbar-h\)\)/);
   });
 });

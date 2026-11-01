@@ -16,13 +16,14 @@ describe('required marker contract', () => {
     for (const l of required) expect(l).toContain('className="lbl"');
   });
   it('the stylesheet draws a red asterisk for required labels', () => {
-    const css = fs.readFileSync('src/app/globals.css', 'utf8');
-    expect(css).toMatch(/label:has\(> :required\)>\.lbl::after\{content:' \*';color:#d0312d/);
+    const css = readCss();
+    expect(css).toMatch(/label:has\(> :required\)>\.lbl::after\{content:["']\s?\*["'];color:(#d0312d|var\(--required\))/);
+    expect(css).toMatch(/--required:#d0312d/); // the red the token stands for
   });
 });
 
 describe('select styling contract', () => {
-  const css = fs.readFileSync('src/app/globals.css', 'utf8');
+  const css = readCss();
   it('every select gets the chevron with selector specificity above component select rules', () => {
     expect(css).toMatch(/select:not\(\[multiple\]\),\.select\{appearance:none[^}]*background-image:var\(--chevron\)/);
   });
@@ -39,6 +40,7 @@ describe('select styling contract', () => {
 import { render, screen } from '@testing-library/react';
 import { PostForm } from '@/components/PostForm';
 import { ProfileDialog } from '@/components/ProfileDialog';
+import { readCss } from './helpers/css';
 
 describe('PostForm and ProfileDialog use CityInput', () => {
   const noop = () => undefined;
@@ -74,7 +76,7 @@ describe('PostForm and ProfileDialog use CityInput', () => {
     expect(hidden('cityId')).toBeNull();
   });
   it('the stylesheet draws the red asterisk for a required control nested in a place field', () => {
-    const css = fs.readFileSync('src/app/globals.css', 'utf8');
-    expect(css).toMatch(/label:has\(> \.place-field > :required\)>\.lbl::after\{content:' \*';color:#d0312d/);
+    const css = readCss();
+    expect(css).toMatch(/label:has\(> \.place-field > :required\)>\.lbl::after\{content:["']\s?\*["'];color:(#d0312d|var\(--required\))/);
   });
 });
