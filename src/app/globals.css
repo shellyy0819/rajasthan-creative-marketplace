@@ -186,3 +186,22 @@ main{min-height:calc(100vh - var(--topbar-h));min-height:calc(100svh - var(--top
 .status-pill{display:inline-block;border-radius:30px;padding:2px 10px;font:700 10px var(--font-sans),sans-serif;letter-spacing:.5px;text-transform:uppercase}
 .status-pill.received{background:#f3e6c9;color:#7a5a12}.status-pill.confirmed{background:#dbe8dc;color:var(--green)}
 .admin-table td .button{min-height:30px;padding:0 12px;margin-left:6px}
+.uploader{border:0;margin:0 0 14px;padding:0;min-width:0}.uploader legend{font-size:11px;font-weight:700;padding:0;margin-bottom:8px}
+.uploader-grid{list-style:none;margin:0 0 10px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.uploader-tile{display:flex;flex-direction:column;gap:6px;min-width:0}
+.uploader-thumb{position:relative;aspect-ratio:1;background:var(--cream);border:1px solid var(--line);border-radius:4px;overflow:hidden;display:grid;place-items:center}
+.uploader-thumb img{width:100%;height:100%;object-fit:cover;display:block}.uploader-tile.uploading img{opacity:.5}
+.uploader-thumb .rr-spinner{position:absolute}
+.uploader-badge{position:absolute;left:6px;top:6px;background:var(--green);color:#fff;font:700 10px var(--font-sans),sans-serif;padding:2px 8px;border-radius:30px}
+.uploader-error{margin:0;color:#a74d35;font-size:11px;line-height:1.4}
+.uploader-actions{display:flex;gap:6px;flex-wrap:wrap}.uploader-actions .button{min-height:30px;padding:0 10px;font-size:10px;border:1px solid var(--control-border);background:transparent;color:var(--ink)}
+.uploader-add{position:relative;border:1px solid var(--control-border);background:transparent;color:var(--ink);min-height:var(--control-h);cursor:pointer;overflow:hidden}
+.uploader-add input{position:absolute;inset:0;opacity:0;cursor:pointer}.uploader-add.disabled{opacity:.5;cursor:not-allowed}.uploader-add.disabled input{cursor:not-allowed}
+.uploader-add:focus-within{outline:2px solid var(--orange);outline-offset:2px}
+.uploader-count{margin:8px 0 0;font-size:11px;color:var(--muted)}
+
+.gallery{min-width:0}
+.gallery-thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.gallery-thumb{width:64px;height:64px;padding:0;border:2px solid var(--line);border-radius:4px;overflow:hidden;background:var(--cream);cursor:pointer}
+.gallery-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.gallery-thumb[aria-current=true]{border-color:var(--green)}.gallery-thumb:hover{border-color:var(--orange)}

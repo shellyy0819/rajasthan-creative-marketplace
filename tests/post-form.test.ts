@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildPayload } from '@/components/PostForm';
 
 const form = (o: Record<string, string>) => { const f = new FormData(); for (const [k, v] of Object.entries(o)) f.set(k, v); return f; };
-const base = { name: ' Lac Bangle ', description: 'Hand-set.', category: 'Accessories', cityId: '3', price: '19.99', stock: '3', status: 'DRAFT', imageUrl: '', workshopId: '', pickupLocation: '' };
+const base = { name: ' Lac Bangle ', description: 'Hand-set.', category: 'Accessories', cityId: '3', price: '19.99', stock: '3', status: 'DRAFT', workshopId: '', pickupLocation: '' };
 
 describe('buildPayload', () => {
   it('converts rupees to exact paise and trims text', () => {
@@ -27,7 +27,7 @@ describe('buildPayload', () => {
   });
   it('sends empty optional fields as empty strings (so PATCH clears them)', () => {
     const p = buildPayload(form(base));
-    expect(p.imageUrl).toBe('');
+    expect('imageUrl' in p).toBe(false);
     expect(p.workshopId).toBe('');
     expect(p.pickupLocation).toBe('');
   });
@@ -59,5 +59,12 @@ describe('buildPayload', () => {
     const { cityId: _c, ...noId } = base;
     const p = buildPayload(form({ ...noId, city: 'typed only' }));
     for (const k of ['city', 'cityId', 'cityRef']) expect(p).not.toHaveProperty(k);
+  });
+  it('sends the photos in order from the uploader\'s hidden inputs, an empty list when there are none, and no imageUrl', () => {
+    const f = form(base);
+    f.append('images', 'https://b.example/products/u/a.jpg'); f.append('images', 'https://b.example/products/u/b.png');
+    expect(buildPayload(f).images).toEqual(['https://b.example/products/u/a.jpg', 'https://b.example/products/u/b.png']);
+    expect(buildPayload(form(base)).images).toEqual([]);
+    expect(buildPayload(f)).not.toHaveProperty('imageUrl');
   });
 });

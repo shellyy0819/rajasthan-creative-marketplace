@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { AdminProduct } from '@/lib/types';
 import { PlaceInput } from './PlaceInput';
 import { CityInput } from './CityInput';
+import { ImageUploader } from './ImageUploader';
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 // Blank or non-numeric → null so the server rejects it with a field-named 400 (Number('') would be a silent 0).
@@ -18,7 +19,7 @@ export function buildPayload(f: FormData): Record<string, unknown> {
     category: text(f, 'category'),
     pricePaise: num(f, 'price', 100),
     stock: num(f, 'stock'),
-    imageUrl: text(f, 'imageUrl'), workshopId: text(f, 'workshopId'), pickupLocation: text(f, 'pickupLocation'),
+    images: f.getAll('images').map(v => String(v).trim()).filter(Boolean), workshopId: text(f, 'workshopId'), pickupLocation: text(f, 'pickupLocation'),
   };
   // The city is chosen from the place search (signed cityRef) or kept as is (cityId); typed text is never sent.
   const cityRef = text(f, 'cityRef'), cityId = num(f, 'cityId');
@@ -81,6 +82,7 @@ export function PostForm({ initial, role, categories, workshops, sellers, me, on
     : [{ value: 'APPROVED', label: 'Published' }, { value: 'DRAFT', label: 'Draft (admin only)' }, { value: 'ARCHIVED', label: 'Archived' }];
   const statusDefault = initial?.status && statusOptions.some(o => o.value === initial.status) ? initial.status : 'DRAFT';
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const cardRef = useRef<HTMLDivElement>(null);
   // Remember what had focus when the dialog opened (captured during first render, before autoFocus moves it).
@@ -165,7 +167,7 @@ export function PostForm({ initial, role, categories, workshops, sellers, me, on
             )}
           </div>
           {lockedStatus && <p className="form-note">This post is published. Saving changes sends it back to Draft until an admin publishes it again.</p>}
-          <label>Cover image URL (https)<input name="imageUrl" type="url" maxLength={500} placeholder="https://…" defaultValue={v('imageUrl')} /></label>
+          <ImageUploader initial={initial?.images ?? (initial?.imageUrl ? [initial.imageUrl] : [])} onBusyChange={setUploading} />
           <div className="admin-form-row">
             <label>Workshop
               <select name="workshopId" defaultValue={initial?.workshopId ?? ''}>
@@ -188,7 +190,7 @@ export function PostForm({ initial, role, categories, workshops, sellers, me, on
           {seller && <p className="form-note">Your public name and contact details come from <b>My profile</b>.</p>}
           <div className="admin-actions">
             <button type="button" className="button" onClick={onCancel} disabled={saving}>Cancel</button>
-            <button type="submit" className="button primary" disabled={saving} aria-busy={saving}>{saving ? 'Saving…' : 'Save post'}</button>
+            <button type="submit" className="button primary" disabled={saving || uploading} aria-busy={saving || uploading}>{saving ? 'Saving…' : uploading ? 'Uploading photos…' : 'Save post'}</button>
           </div>
         </form>
       </div>

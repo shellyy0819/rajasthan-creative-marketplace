@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
@@ -9,13 +9,16 @@ import { setDb, type Database } from '@/db/client';
 import * as schema from '@/db/schema';
 import { seedFromJson, truncateAll, type LegacyDb } from '@/db/seed';
 import { createBooking, createOrder } from '@/lib/orders';
-import { createProduct, createWorkshop } from '@/lib/admin';
+vi.mock('@/lib/storage', async importActual => ({ ...(await importActual<typeof import('@/lib/storage')>()), deleteObjects: vi.fn(async () => undefined) }));
+import { deleteObjects } from '@/lib/storage';
+import { createProduct, createWorkshop, deleteProduct, updateProduct } from '@/lib/admin';
+import { cityRef } from './helpers/cities';
 import { admin as adminActor, seller as sellerActor } from './helpers/actors';
 
 const adminUrl = process.env.PG_TEST_URL;
 const fixture: LegacyDb = JSON.parse(fs.readFileSync(path.resolve('tests/fixtures/db.json'), 'utf8'));
 const ok = <T,>(rs: PromiseSettledResult<T>[]) => rs.filter(r => r.status === 'fulfilled').length;
-const product = { name: 'Lac Bangle', category: 'Accessories', city: 'Jodhpur', pricePaise: 12000, description: 'Hand-set.', stock: 3 };
+const product = { name: 'Lac Bangle', category: 'Accessories', cityRef: cityRef('Jodhpur'), pricePaise: 12000, description: 'Hand-set.', stock: 3 };
 
 describe.skipIf(!adminUrl)('real Postgres: concurrency and locking', () => {
   const dbName = `rr_test_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -72,7 +75,7 @@ describe.skipIf(!adminUrl)('real Postgres: concurrency and locking', () => {
   it('50 parallel product creates and 20 workshop creates get unique ids', async () => {
     const ps = await Promise.all(Array.from({ length: 50 }, () => createProduct(product, adminActor)));
     expect(new Set(ps.map(p => p.id)).size).toBe(50);
-    const ws = await Promise.all(Array.from({ length: 20 }, () => createWorkshop({ title: 'T', type: 'FREE', pricePaise: 0, city: 'Jaipur', venue: 'V', date: '2026-12-01', time: '10:00', seats: 5, host: 'H', description: 'D' })));
+    const ws = await Promise.all(Array.from({ length: 20 }, () => createWorkshop({ title: 'T', type: 'FREE', pricePaise: 0, cityRef: cityRef('Jaipur'), venue: 'V', date: '2026-12-01', time: '10:00', seats: 5, host: 'H', description: 'D' })));
     expect(new Set(ws.map(w => w.id)).size).toBe(20);
   });
 
@@ -128,5 +131,27 @@ describe.skipIf(!adminUrl)('real Postgres: concurrency and locking', () => {
     await recordEvent({ productId: 'p1', type: 'view', actor: 'h:a' }); await likeProduct('p3', 'v:a');
     await recordEvent({ productId: 'p3', type: 'view', actor: 'h:a' });
     expect((await trending()).map(p => p.id)).toEqual(['p3', 'p1']);
+  });
+
+  it('deleting a product while another edit adds a photo leaves no photo behind in S3', async () => {
+    const env = { S3_BUCKET: 'b', S3_REGION: 'ap-south-1', AWS_ACCESS_KEY_ID: 'AKIAFAKE', AWS_SECRET_ACCESS_KEY: 'secret' };
+    const saved = Object.fromEntries(Object.keys(env).map(k => [k, process.env[k]]));
+    Object.assign(process.env, env);
+    try {
+      const base = 'https://b.s3.ap-south-1.amazonaws.com/products/11111111-1111-4111-8111-111111111111';
+      const spy = vi.mocked(deleteObjects);
+      for (let round = 0; round < 60; round++) {
+        spy.mockClear();
+        const a = `${base}/a${round}.jpg`, b = `${base}/b${round}.jpg`;
+        const p = await createProduct({ ...product, images: [a] }, adminActor);
+        const edit = updateProduct(p.id, { images: [a, b] }, adminActor);
+        await new Promise(r => setTimeout(r, (round % 10) * 3)); // sweep the delete across the edit's lifetime
+        const [upd] = await Promise.allSettled([edit, deleteProduct(p.id)]);
+        const deleted = new Set(spy.mock.calls.flatMap(c => c[1]));
+        const expected = upd.status === 'fulfilled' ? [a, b] : [a]; // the edit lost the race to the delete: only the first photo ever existed
+        for (const url of expected) expect(deleted.has(url.replace('https://b.s3.ap-south-1.amazonaws.com/', '')), `round ${round}: ${url}`).toBe(true);
+        expect(await db.select().from(schema.productImages).where(eq(schema.productImages.productId, p.id))).toHaveLength(0);
+      }
+    } finally { for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } }
   });
 });
