@@ -199,3 +199,9 @@ main{min-height:calc(100vh - var(--topbar-h));min-height:calc(100svh - var(--top
 .uploader-add input{position:absolute;inset:0;opacity:0;cursor:pointer}.uploader-add.disabled{opacity:.5;cursor:not-allowed}.uploader-add.disabled input{cursor:not-allowed}
 .uploader-add:focus-within{outline:2px solid var(--orange);outline-offset:2px}
 .uploader-count{margin:8px 0 0;font-size:11px;color:var(--muted)}
+
+.gallery{min-width:0}
+.gallery-thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.gallery-thumb{width:64px;height:64px;padding:0;border:2px solid var(--line);border-radius:4px;overflow:hidden;background:var(--cream);cursor:pointer}
+.gallery-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.gallery-thumb[aria-current=true]{border-color:var(--green)}.gallery-thumb:hover{border-color:var(--orange)}
