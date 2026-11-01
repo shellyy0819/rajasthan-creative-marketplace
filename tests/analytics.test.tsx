@@ -159,7 +159,8 @@ describe('CookieSettings link', () => {
     expect(seen).toHaveBeenCalledTimes(1);
     window.removeEventListener(OPEN_SETTINGS_EVENT, seen);
   });
-  it('the footer has it', async () => {
+  // SKIPPED on purpose: Footer.tsx has the Cookie settings link commented out (the owner's choice in PR #7). Remove the skip when it comes back.
+  it.skip('the footer has it', async () => {
     vi.doMock('@/lib/cities', () => ({ listActiveCities: async () => [] }));
     const { Footer } = await import('@/components/Footer');
     render(await Footer());
@@ -169,7 +170,7 @@ describe('CookieSettings link', () => {
 
 describe('banner styles', () => {
   it('is fixed to the bottom, above content, full width on phones, and keeps the shared control height', async () => {
-    const css = (await import('node:fs')).readFileSync('src/app/globals.css', 'utf8');
+    const css = (await import('./helpers/css')).readCss();
     expect(css).toMatch(/\.cookie-banner\{[^}]*position:fixed[^}]*bottom/);
     expect(css).toMatch(/\.cookie-banner\{[^}]*z-index:\d+/);
     expect(css).toMatch(/@media\(max-width:\d+px\)\{[^}]*\.cookie-banner/);

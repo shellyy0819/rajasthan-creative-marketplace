@@ -41,7 +41,7 @@ beforeEach(() => {
       if (postDelay) await postDelay;
       const body = JSON.parse(String(init!.body));
       if (body.pricePaise == null) return res(400, { error: 'pricePaise must be an integer between 0 and 10000000.' });
-      if (body.imageUrl && !String(body.imageUrl).startsWith('https://')) return res(400, { error: 'imageUrl must be an https URL up to 500 characters.' });
+      if (body.description === 'REJECT') return res(400, { error: 'description is not allowed.' });
       const p = mk('p9', body.name, 'Me Studio', body.status, { pricePaise: body.pricePaise });
       db = [p, ...db]; return res(201, p);
     }
@@ -143,10 +143,9 @@ describe('PostsAdmin create', () => {
   it('keeps the dialog and the user’s typing when the server rejects the input', async () => {
     open();
     await pickCity();
-    fill(/^Title/, 'Lac Bangle'); fill(/^Description/, 'x'); fill(/^Price/, '10'); fill(/^Stock/, '3');
-    fill(/^Cover image/, 'http://cdn.example.com/a.jpg'); // valid for the browser's type=url, rejected by the server (https only)
+    fill(/^Title/, 'Lac Bangle'); fill(/^Description/, 'REJECT'); fill(/^Price/, '10'); fill(/^Stock/, '3'); // the mocked server refuses this description
     fireEvent.click(screen.getByRole('button', { name: 'Save post' }));
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/imageUrl/));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/description is not allowed/));
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect((screen.getByLabelText(/^Title/) as HTMLInputElement).value).toBe('Lac Bangle');
     expect((screen.getByRole('button', { name: 'Save post' }) as HTMLButtonElement).disabled).toBe(false);
@@ -322,7 +321,7 @@ describe('PostForm field rules', () => {
       expect(el.required).toBe(true);
       expect(el.closest('label')!.querySelector(':scope > .lbl')).toBeTruthy();
     }
-    for (const name of ['imageUrl', 'workshopId', 'pickupLocation', 'sellerId']) expect((document.querySelector(`[name="${name}"]`) as HTMLInputElement).required).toBe(false);
+    for (const name of ['workshopId', 'pickupLocation', 'sellerId']) expect((document.querySelector(`[name="${name}"]`) as HTMLInputElement).required).toBe(false);
   });
   it('the form has no seller-name or contact inputs any more', () => {
     open();

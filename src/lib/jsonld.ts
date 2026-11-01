@@ -28,7 +28,7 @@ export function productJsonLd(p: Product) {
   return {
     '@context': CTX, '@type': 'Product',
     name: p.name, description: p.description, sku: p.id, category: p.category,
-    image: [...(p.imageUrl ? [p.imageUrl] : []), abs(`${path}/opengraph-image`)],
+    image: [...(p.images?.length ? p.images : p.imageUrl ? [p.imageUrl] : []), abs(`${path}/opengraph-image`)],
     brand: { '@type': 'Brand', name: p.seller },
     offers: {
       '@type': 'Offer', url: abs(path), priceCurrency: 'INR', price: price(p.pricePaise),

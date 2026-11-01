@@ -4,9 +4,10 @@ import React from 'react';
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import { PageLoader } from '@/components/PageLoader';
+import { readCss } from './helpers/css';
 
 afterEach(cleanup);
-const css = fs.readFileSync('src/app/globals.css', 'utf8');
+const css = readCss();
 
 describe('PageLoader', () => {
   it('renders nothing when idle', () => {

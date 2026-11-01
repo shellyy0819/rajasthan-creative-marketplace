@@ -7,7 +7,7 @@ import { ContactArtistButton } from '@/components/ContactArtistButton';
 import { LikeButton } from '@/components/LikeButton';
 import { TrackOnMount } from '@/components/TrackOnMount';
 import { TrackedLink } from '@/components/TrackedLink';
-import { ProductImage } from '@/components/ProductImage';
+import { ProductGallery } from '@/components/ProductGallery';
 import { SYMBOLS, visualIndex } from '@/components/ProductCard';
 import { getProductBySlug, productSlug } from '@/lib/catalog';
 import { breadcrumbJsonLd, productJsonLd } from '@/lib/jsonld';
@@ -39,7 +39,7 @@ export default async function ProductPage({ params }: Props) {
       <JsonLd data={[productJsonLd(p), breadcrumbJsonLd(crumbs)]} />
       <Breadcrumbs items={crumbs} />
       <article className="detail">
-        <div className={`product-visual detail-art visual-${i % 4}`}><ProductImage src={p.imageUrl} alt={p.name} fallback={<span className="symbol" aria-hidden="true">{SYMBOLS[i % SYMBOLS.length]}</span>} /></div>
+        <ProductGallery images={p.images ?? (p.imageUrl ? [p.imageUrl] : [])} alt={p.name} variant={i} fallback={<span className="symbol" aria-hidden="true">{SYMBOLS[i % SYMBOLS.length]}</span>} />
         <div>
           <span className="product-meta">{p.category}</span>
           <h1>{p.name}</h1>

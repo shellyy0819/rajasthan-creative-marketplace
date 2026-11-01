@@ -125,7 +125,8 @@ describe('city listings come from active cities', () => {
     await archiveJaipur();
     expect(await cityUrls()).toEqual(['jodhpur', 'udaipur']);
   });
-  it('the footer links every active city and drops one whose last listing is archived', async () => {
+  // SKIPPED on purpose: Footer.tsx has the Cities column commented out (the owner's choice in PR #7). Remove the skip when it comes back.
+  it.skip('the footer links every active city and drops one whose last listing is archived', async () => {
     const { Footer } = await import('@/components/Footer');
     render(await Footer());
     const links = () => Array.from(screen.getByRole('navigation', { name: 'Cities' }).querySelectorAll('a')).map(a => [a.textContent, a.getAttribute('href')]);
