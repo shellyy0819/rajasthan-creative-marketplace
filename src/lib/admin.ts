@@ -9,10 +9,12 @@ import { resolveCityInput } from './cities';
 import { canonicalCategory } from './categories';
 import type { Actor } from './authz';
 import { ApiError } from './errors';
-import { bad, int, obj, oneOf, optionalImageUrl, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
+import { bad, int, obj, oneOf, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
+import { loadImages, parseImages, resolveImages, saveImages } from './product-images';
+import { deleteObjects, storageConfig } from './storage';
 import type { AdminProduct, Workshop } from './types';
 
-const PRODUCT_KEYS = ['name', 'category', 'cityId', 'cityRef', 'pricePaise', 'description', 'stock', 'status', 'imageUrl', 'workshopId', 'pickupLocation'] as const;
+const PRODUCT_KEYS = ['name', 'category', 'cityId', 'cityRef', 'pricePaise', 'description', 'stock', 'status', 'images', 'workshopId', 'pickupLocation'] as const;
 const WORKSHOP_KEYS = ['title', 'type', 'pricePaise', 'cityId', 'cityRef', 'venue', 'date', 'time', 'seats', 'host', 'hostId', 'description', 'status'] as const;
 const PRODUCT_STATUSES = ['APPROVED', 'DRAFT', 'ARCHIVED'] as const;
 const WORKSHOP_STATUSES = ['APPROVED', 'DRAFT', 'ARCHIVED'] as const;
@@ -38,7 +40,6 @@ function validateProduct(v: Raw): ProductFields {
     description: text(v.description, 'description', 2000),
     stock: int(v.stock, 'stock', 0, 100_000),
     status: oneOf(v.status ?? 'DRAFT', 'status', PRODUCT_STATUSES), // new posts start as drafts; only an explicit admin choice publishes
-    imageUrl: optionalImageUrl(v.imageUrl),
     workshopId: optionalWorkshopId(v.workshopId),
     pickupLocation: optionalText(v.pickupLocation, 'pickupLocation', 200),
   };
@@ -46,7 +47,7 @@ function validateProduct(v: Raw): ProductFields {
 
 const inputOf = (p: typeof productsT.$inferSelect): ProductInput => ({
   name: p.name, category: p.category, cityId: p.cityId, pricePaise: p.pricePaise, description: p.description,
-  stock: p.stock, status: p.status, imageUrl: p.imageUrl ?? undefined, workshopId: p.workshopId ?? undefined,
+  stock: p.stock, status: p.status, workshopId: p.workshopId ?? undefined,
   pickupLocation: p.pickupLocation ?? undefined,
 });
 const contentOf = (p: ProductInput) => { const { status: _s, ...rest } = toProductRow(p); return JSON.stringify(rest); };
@@ -69,6 +70,13 @@ async function loadAdminProduct(tx: Tx, id: string): Promise<AdminProduct> {
   return toAdminProduct(row);
 }
 
+/** Removes photos from S3 after the database change is committed. Best effort: a failure never fails the request. */
+async function dropStoredPhotos(keys: string[]) {
+  const cfg = storageConfig();
+  if (!cfg || !keys.length) return;
+  try { await deleteObjects(cfg, keys); } catch (e) { console.error('could not delete stored photos', (e as Error)?.name ?? 'error'); }
+}
+
 export async function createProduct(input: unknown, actor: Actor): Promise<AdminProduct> {
   rejectFreeTextCity(obj(input));
   const raw = pick(obj(input), [...PRODUCT_KEYS, 'sellerId']);
@@ -76,6 +84,7 @@ export async function createProduct(input: unknown, actor: Actor): Promise<Admin
   delete raw.sellerId;
   const seller = actor.role === 'seller';
   const data = validateProduct(raw);
+  const imageUrls = parseImages(raw.images) ?? [];
   if (seller && data.status === 'APPROVED') throw PUBLISH_DENIED();
   return getDb().transaction(async tx => {
     const me = await ensureUser(tx, actor.email);
@@ -92,6 +101,7 @@ export async function createProduct(input: unknown, actor: Actor): Promise<Admin
     const id = await allocateId(tx, 'p');
     const published = data.status === 'APPROVED' ? { publishedBy: me.id, publishedAt: new Date() } : {};
     await tx.insert(productsT).values({ id, sellerId, ...toProductRow({ ...data, cityId }), ...published });
+    await saveImages(tx, id, await resolveImages(tx, { urls: imageUrls, userId: me.id, isAdmin: !seller, cfg: storageConfig() }));
     return loadAdminProduct(tx, id);
   });
 }
@@ -102,7 +112,8 @@ export async function updateProduct(id: string, input: unknown, actor: Actor): P
   const assigned = optionalUuid(raw.sellerId, 'sellerId');
   delete raw.sellerId;
   const seller = actor.role === 'seller';
-  return getDb().transaction(async tx => {
+  const imageUrls = parseImages(raw.images);
+  const { product, removedKeys } = await getDb().transaction(async tx => {
     const me = await ensureUser(tx, actor.email);
     const [row] = await tx.select().from(productsT).where(eq(productsT.id, id)).for('update');
     // A seller must not learn that someone else's product exists.
@@ -112,10 +123,13 @@ export async function updateProduct(id: string, input: unknown, actor: Actor): P
     // An edit that sends neither cityId nor cityRef keeps the product's city; a cityRef wins over a cityId.
     const cityId = (await resolveCityInput(tx, { cityId: current.cityId, ...raw }, { required: true }))!;
     let next: ProductInput = { ...validateProduct({ ...current, ...raw }), cityId };
+    const currentImages = await loadImages(tx, id);
+    const nextImages = imageUrls === undefined ? currentImages : await resolveImages(tx, { urls: imageUrls, productId: id, userId: me.id, isAdmin: !seller, cfg: storageConfig() });
+    const photosChanged = JSON.stringify(currentImages.map(r => r.url)) !== JSON.stringify(nextImages.map(r => r.url));
     if (seller) {
       if (row.status !== 'APPROVED' && next.status === 'APPROVED') throw PUBLISH_DENIED();
       // A live listing whose content changed goes back to review.
-      if (row.status === 'APPROVED' && next.status === 'APPROVED' && contentOf(next) !== contentOf(current)) next = { ...next, status: 'DRAFT' };
+      if (row.status === 'APPROVED' && next.status === 'APPROVED' && (photosChanged || contentOf(next) !== contentOf(current))) next = { ...next, status: 'DRAFT' };
     }
     let sellerId = row.sellerId;
     if (!seller && assigned && assigned !== row.sellerId) { await requireSellerUser(tx, assigned); sellerId = assigned; }
@@ -126,13 +140,18 @@ export async function updateProduct(id: string, input: unknown, actor: Actor): P
       ...toProductRow(next), sellerId, updatedAt: new Date(),
       ...(publishing ? { publishedBy: me.id, publishedAt: new Date() } : {}),
     }).where(eq(productsT.id, id));
-    return loadAdminProduct(tx, id);
+    const { removedKeys } = await saveImages(tx, id, nextImages);
+    return { product: await loadAdminProduct(tx, id), removedKeys };
   });
+  await dropStoredPhotos(removedKeys);
+  return product;
 }
 
 export async function deleteProduct(id: string): Promise<void> {
+  const keys = (await loadImages(getDb(), id)).flatMap(r => (r.key ? [r.key] : []));
   const rows = await getDb().delete(productsT).where(eq(productsT.id, id)).returning({ id: productsT.id });
   if (!rows.length) throw new ApiError(404, 'Product not found.');
+  await dropStoredPhotos(keys);
 }
 
 function validateWorkshop(v: Raw): Omit<WorkshopInput, 'cityId'> {
