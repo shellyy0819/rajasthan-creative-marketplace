@@ -4,6 +4,7 @@ import { Hero } from '@/components/Hero';
 import { HomeCraftExplorer } from '@/components/HomeCraftExplorer';
 import { WorkshopList } from '@/components/WorkshopList';
 import { TrendingSection } from '@/components/TrendingSection';
+import { ValueProps } from '@/components/ValueProps';
 import { listProducts, listWorkshops } from '@/lib/catalog';
 import { listActiveCities } from '@/lib/cities';
 import { cityLabeller } from '@/lib/city-label';
@@ -28,6 +29,7 @@ export default async function Home() {
   return (
     <>
       <Hero />
+      <ValueProps />
       <TrendingSection />
       <section className="section" id="shop" aria-labelledby="shop-h">
         <div className="section-heading">
@@ -48,9 +50,9 @@ export default async function Home() {
       <section className="maker-cta">
         <div className="cta-flower" aria-hidden="true">✿</div>
         <div>
-          <span className="eyebrow">YOUR HANDS MAKE SOMETHING SPECIAL?</span>
-          <h2>There’s room for your craft here.</h2>
-          <p>This demo shows the customer experience. Seller onboarding and listing approval will be added in the next build.</p>
+          <span className="eyebrow">YOUR CRAFT. YOUR BUSINESS. YOUR SPACE.</span>
+          <h2>You create. We connect. You sell.</h2>
+          <p>We bring independent artists and customers together. Showcase your creations, reach more people, and grow your craft business while keeping control of your products, pricing, and earnings.</p>
         </div>
         <a className="button light" href={`mailto:${SITE.email}?subject=Marketplace%20seller%20interest`}>I’m a maker <span>↗</span></a>
       </section>
