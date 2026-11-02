@@ -2,9 +2,9 @@ import { auth } from '@/auth';
 import { handle, json, readJson } from '@/lib/api';
 import { requireAdmin } from '@/lib/authz';
 import { bad, obj } from '@/lib/validate';
+import { PREVIEW_COOKIE } from '@/lib/themes/preview-cookie';
 import { getTheme } from '@/lib/themes/store';
 export const dynamic = 'force-dynamic';
-export const PREVIEW_COOKIE = 'rr_theme_preview';
 const secure = (req: Request) => new URL(req.url).protocol === 'https:' || req.headers.get('x-forwarded-proto') === 'https';
 const cookie = (req: Request, value: string, extra = '') =>
   `${PREVIEW_COOKIE}=${value}; Path=/; HttpOnly; SameSite=lax${secure(req) ? '; Secure' : ''}${extra}`;

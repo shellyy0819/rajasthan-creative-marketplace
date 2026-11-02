@@ -2,14 +2,13 @@ import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { auth } from '@/auth';
 import { themeCss } from './css';
+import { PREVIEW_COOKIE } from './preview-cookie';
 import { EVERYDAY, isPresetKey, type PresetKey } from './presets';
 import { getActiveTheme, getTheme } from './store';
 import type { ThemeConfig } from './types';
 import { validateConfig } from './validate';
 
 export type RenderTheme = { preset: PresetKey; config: ThemeConfig; css: string; previewing: boolean };
-
-export const PREVIEW_COOKIE = 'rr_theme_preview';
 
 const everyday = (): RenderTheme => ({ preset: 'everyday', config: EVERYDAY.config, css: themeCss('everyday', EVERYDAY.config), previewing: false });
 

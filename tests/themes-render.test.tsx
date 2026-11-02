@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import { PRESETS } from '@/lib/themes/presets';
 import { STICKERS } from '@/lib/themes/stickers';
 import { placementTransform } from '@/lib/themes/transform';
+import { contrastRatio } from '@/lib/themes/contrast';
 import { fitText } from '@/components/theme/fit';
 import { ThemeHead } from '@/components/theme/ThemeHead';
 import { ThemeBanner } from '@/components/theme/ThemeBanner';
@@ -146,5 +147,13 @@ describe('theme css wiring', () => {
     expect(css).toMatch(/--banner-h: 38px/);
     expect(css).toMatch(/--on-green: #fff/);
     expect(css).toMatch(/\.festive-banner \{[^}]*height: var\(--banner-h\)[^}]*var\(--on-green\)/);
+  });
+  it('the Everyday banner keeps 4.5:1 in dark mode (both dark blocks) and in light mode', () => {
+    const raw = fs.readFileSync('src/app/globals.css', 'utf8');
+    const dark = [...raw.matchAll(/--banner-bg: (#[0-9a-f]{6});/gi)].map((m) => m[1]);
+    expect(dark).toHaveLength(2);
+    for (const bg of dark) expect(contrastRatio(bg, '#ffffff')).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio('#405746', '#ffffff')).toBeGreaterThanOrEqual(4.5);
+    expect(raw).toMatch(/background: var\(--banner-bg, var\(--green\)\)/);
   });
 });

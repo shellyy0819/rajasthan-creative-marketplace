@@ -70,6 +70,7 @@
     --paper: #161b17;
     --cream: #232b25;
     --green: #5f8167;
+    --banner-bg: #4d6b54;
     --orange: #e0865c;
     --line: #2d362f;
     --white: #1d241e;
@@ -134,6 +135,7 @@
   --paper: #161b17;
   --cream: #232b25;
   --green: #5f8167;
+  --banner-bg: #4d6b54;
   --orange: #e0865c;
   --line: #2d362f;
   --white: #1d241e;
@@ -1984,10 +1986,12 @@ button[aria-busy="true"]::after {
 }
 :root {
   --banner-h: 38px;
+  --header-h: 78px;
   --topbar-h: 116px; /* banner 38 + header 78 */
 }
 @media (max-width: 600px) {
   :root {
+    --header-h: 67px;
     --topbar-h: 105px; /* banner 38 + header 67 */
   }
 }
@@ -1996,7 +2000,7 @@ button[aria-busy="true"]::after {
   height: var(--banner-h);
   line-height: var(--banner-h);
   padding: 0 12px;
-  background: var(--green);
+  background: var(--banner-bg, var(--green));
   color: var(--on-green);
   font-size: 13px;
   font-weight: 600;
@@ -2005,6 +2009,10 @@ button[aria-busy="true"]::after {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* a themed preset sets --green itself, so the banner follows it; only Everyday uses the dark-mode banner colour */
+html:root[data-festival]:not([data-festival="everyday"]) .festive-banner {
+  --banner-bg: var(--green);
 }
 .festive-preview {
   position: fixed;
@@ -2039,8 +2047,8 @@ main {
 }
 .rr-page-loader {
   position: fixed;
-  inset: var(--topbar-h) 0 0 0;
-  top: var(--topbar-h);
+  inset: var(--header-h) 0 0 0;
+  top: var(--header-h);
   z-index: 70;
   display: grid;
   place-items: center;
