@@ -1,4 +1,20 @@
-export function HeroStall() {
+import { StickerLayer } from './theme/StickerLayer';
+import { fitText } from './theme/fit';
+import { EVERYDAY } from '@/lib/themes/presets';
+import type { Placement } from '@/lib/themes/types';
+
+export type StallProps = { sign: string; chalkLabel: string; chalkTitle: string; chalkSub: string; bunting: boolean; stickers: Placement[] };
+
+const D = EVERYDAY.config;
+export const DEFAULT_STALL: StallProps = { sign: D.sign, chalkLabel: D.chalkLabel, chalkTitle: D.chalkTitle, chalkSub: D.chalkSub, bunting: true, stickers: [] };
+
+/** Wording that fits its slot is left exactly as drawn; only different wording is measured and, if it overflows, squeezed to fit. */
+function Fitted({ value, original, x, y, size, width, ...rest }: { value: string; original: string; x: number; y: number; size: number; width: number } & React.SVGProps<SVGTextElement>) {
+  const f = value === original ? { text: value } : fitText(value, size, width);
+  return <text x={x} y={y} fontSize={size} {...(f.textLength ? { textLength: f.textLength, lengthAdjust: 'spacingAndGlyphs' as const } : {})} {...rest}>{f.text}</text>;
+}
+
+export function HeroStall({ sign = D.sign, chalkLabel = D.chalkLabel, chalkTitle = D.chalkTitle, chalkSub = D.chalkSub, bunting = true, stickers = [] }: Partial<StallProps>) {
   return (
     <svg className="hero-stall" viewBox="0 0 600 720" focusable="false" aria-hidden="true">
       <defs>
@@ -19,13 +35,13 @@ export function HeroStall() {
 
       {/* bunting */}
       <path d="M0 18Q300 64 600 18" fill="none" strokeWidth="1.5" className="st-s-woodd"/>
-      <g>
+      {bunting && <g>
       <path d="M27 23h18l-9 20z" className="st-f-terra"/><path d="M87 30h18l-9 20z" className="st-f-mustard"/>
       <path d="M147 35h18l-9 20z" className="st-f-sage"/><path d="M207 38h18l-9 20z" className="st-f-indigo"/>
       <path d="M267 41h18l-9 20z" className="st-f-terra"/><path d="M327 41h18l-9 20z" className="st-f-mustard"/>
       <path d="M387 39h18l-9 20z" className="st-f-sage"/><path d="M447 35h18l-9 20z" className="st-f-indigo"/>
       <path d="M507 29h18l-9 20z" className="st-f-terra"/><path d="M555 23h18l-9 20z" className="st-f-mustard"/>
-      </g>
+      </g>}
 
       {/* ground */}
       <rect x="0" y="596" width="600" height="124" className="st-f-ground"/>
@@ -156,7 +172,7 @@ export function HeroStall() {
       <line x1="374" y1="104" x2="374" y2="113" strokeWidth="2" className="st-s-woodd"/>
       <rect x="194" y="66" width="200" height="38" rx="5" className="st-f-board"/>
       <rect x="199" y="71" width="190" height="28" rx="3" fill="none" strokeWidth="1" className="st-s-mustard" opacity=".7"/>
-      <text x="294" y="90" textAnchor="middle" fontStyle="italic" fontSize="13" className="st-t-chalk">Maker&apos;s Row · Stall 12</text>
+      <Fitted value={sign} original={D.sign} x={294} y={90} size={13} width={176} textAnchor="middle" fontStyle="italic" className="st-t-chalk"/>
 
       {/* sellers */}
       <path d="M166 478C164 424 172 398 188 398C204 398 212 424 210 478Z" className="st-f-indigo"/>
@@ -283,9 +299,9 @@ export function HeroStall() {
       <line x1="500" y1="586" x2="490" y2="660" strokeWidth="3" className="st-s-woodd"/><line x1="524" y1="586" x2="534" y2="660" strokeWidth="3" className="st-s-woodd"/>
       <rect x="480" y="548" width="64" height="44" rx="3" className="st-f-board"/>
       <rect x="480" y="548" width="64" height="44" rx="3" fill="none" strokeWidth="2" className="st-s-woodd"/>
-      <text x="512" y="562" textAnchor="middle" fontSize="6" fontWeight="600" letterSpacing="1.5" className="st-t-mustard">LIVE TODAY</text>
-      <text x="512" y="575" textAnchor="middle" fontSize="8" fontWeight="600" className="st-t-chalk">Block printing</text>
-      <text x="512" y="585" textAnchor="middle" fontSize="6.5" className="st-t-chalk" opacity=".85">4 pm · free to try</text>
+      <Fitted value={chalkLabel.toUpperCase()} original={D.chalkLabel.toUpperCase()} x={512} y={562} size={6} width={54} textAnchor="middle" fontWeight="600" letterSpacing="1.5" className="st-t-mustard"/>
+      <Fitted value={chalkTitle} original={D.chalkTitle} x={512} y={575} size={8} width={54} textAnchor="middle" fontWeight="600" className="st-t-chalk"/>
+      <Fitted value={chalkSub} original={D.chalkSub} x={512} y={585} size={6.5} width={54} textAnchor="middle" className="st-t-chalk" opacity=".85"/>
       {/* badge */}
       <g transform="translate(550 92)">
       <circle r="38" className="st-f-chalk"/>
@@ -304,6 +320,8 @@ export function HeroStall() {
 
       {/* caption */}
       <text x="300" y="706" textAnchor="middle" className="st-t-ink" fontSize="17" fontStyle="italic">A little more handmade goes a long way.</text>
+
+      <StickerLayer placements={stickers} />
     </svg>
   );
 }

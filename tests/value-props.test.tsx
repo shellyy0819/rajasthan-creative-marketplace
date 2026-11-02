@@ -28,8 +28,8 @@ describe('ValueProps (home page promise strip)', () => {
   });
   it('sits on the home page between the hero and the trending row', () => {
     const src = fs.readFileSync('src/app/page.tsx', 'utf8');
-    expect(src.indexOf('<Hero />')).toBeGreaterThan(-1);
-    expect(src.indexOf('<ValueProps />')).toBeGreaterThan(src.indexOf('<Hero />'));
+    expect(src.indexOf('<Hero ')).toBeGreaterThan(-1);
+    expect(src.indexOf('<ValueProps />')).toBeGreaterThan(src.indexOf('<Hero '));
     expect(src.indexOf('<TrendingSection />')).toBeGreaterThan(src.indexOf('<ValueProps />'));
   });
 });

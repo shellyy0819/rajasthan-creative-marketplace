@@ -12,6 +12,10 @@ import { AuthProvider } from '@/components/AuthProvider';
 import { Analytics } from '@/components/Analytics';
 import { hostConfig } from '@/lib/hosts';
 import { themeInitScript } from '@/components/ThemeToggle';
+import { ThemeBanner } from '@/components/theme/ThemeBanner';
+import { ThemeHead } from '@/components/theme/ThemeHead';
+import { ThemePreviewBar } from '@/components/theme/ThemePreviewBar';
+import { getRenderTheme } from '@/lib/themes/render';
 
 const sans = DM_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'], style: ['normal', 'italic'], variable: '--font-sans', display: 'swap' });
 
@@ -31,20 +35,23 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: '#c8553d', colorScheme: 'light dark', width: 'device-width', initialScale: 1 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const theme = await getRenderTheme();
   return (
-    <html lang="en-IN" className={sans.variable} suppressHydrationWarning>
-      <head><script dangerouslySetInnerHTML={{ __html: themeInitScript }} /></head>
+    <html lang="en-IN" className={sans.variable} data-festival={theme.preset} suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: themeInitScript }} /><ThemeHead preset={theme.preset} css={theme.css} /></head>
       <body>
         <a className="skip-link" href="#main">Skip to content</a>
         <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
         <AuthProvider>
         <StoreProvider>
+        <ThemeBanner text={theme.config.banner} />
         <Header />
         <main id="main">{children}</main>
         </StoreProvider>
         </AuthProvider>
         <Footer />
+        {theme.previewing && <ThemePreviewBar />}
         <Suspense fallback={null}><Analytics measurementId={process.env.GA_MEASUREMENT_ID} dashboardHost={hostConfig().dashboardHost} /></Suspense>
       </body>
     </html>

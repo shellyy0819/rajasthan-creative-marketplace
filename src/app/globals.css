@@ -5,6 +5,7 @@
   --paper: #f8f4ee;
   --cream: #eee5d8;
   --green: #405746;
+  --on-green: #fff;
   --orange: #c66b43;
   --line: #e5ddd1;
   --white: #fffdf9;
@@ -1982,12 +1983,55 @@ button[aria-busy="true"]::after {
   flex: none;
 }
 :root {
-  --topbar-h: 78px;
+  --banner-h: 38px;
+  --topbar-h: 116px; /* banner 38 + header 78 */
 }
 @media (max-width: 600px) {
   :root {
-    --topbar-h: 67px;
+    --topbar-h: 105px; /* banner 38 + header 67 */
   }
+}
+.festive-banner {
+  display: block;
+  height: var(--banner-h);
+  line-height: var(--banner-h);
+  padding: 0 12px;
+  background: var(--green);
+  color: var(--on-green);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.festive-preview {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 16px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 14px;
+  box-shadow: 0 6px 24px #0004;
+}
+.festive-preview button {
+  min-height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--orange);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 main {
   min-height: calc(100vh - var(--topbar-h));

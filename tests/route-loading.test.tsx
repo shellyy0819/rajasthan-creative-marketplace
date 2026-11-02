@@ -21,8 +21,8 @@ describe('route loading state', () => {
 describe('loader never covers the navbar', () => {
   it('the overlay starts below the navbar height, on desktop and mobile', () => {
     expect(css).toMatch(/\.rr-page-loader\{[^}]*top:var\(--topbar-h\)/);
-    expect(css).toMatch(/:root\{--topbar-h:78px\}/);
-    expect(css).toMatch(/@media\(max-width:600px\)\{:root\{--topbar-h:67px\}\}/);
+    expect(css).toMatch(/:root\{--banner-h:38px;--topbar-h:116px\}/);
+    expect(css).toMatch(/@media\(max-width:600px\)\{:root\{--topbar-h:105px\}\}/);
   });
   it('main keeps at least the visible height under the navbar, so the footer does not jump while a page loads', () => {
     expect(css).toMatch(/(^|[\s}])main\{[^}]*min-height:calc\(100svh - var\(--topbar-h\)\)/);

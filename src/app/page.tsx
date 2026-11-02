@@ -11,6 +11,7 @@ import { listActiveCities } from '@/lib/cities';
 import { cityLabeller } from '@/lib/city-label';
 import { pageMetadata } from '@/lib/meta';
 import { SITE } from '@/lib/site';
+import { getRenderTheme } from '@/lib/themes/render';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,11 +26,12 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [products, workshops, cities] = await Promise.all([listProducts(), listWorkshops(), listActiveCities()]);
+  const [products, workshops, cities, theme] = await Promise.all([listProducts(), listWorkshops(), listActiveCities(), getRenderTheme()]);
+  const { sign, chalkLabel, chalkTitle, chalkSub, bunting, stickers } = theme.config;
   const cityLabel = cityLabeller(cities);
   return (
     <>
-      <Hero />
+      <Hero stall={{ sign, chalkLabel, chalkTitle, chalkSub, bunting, stickers }} />
       <ValueProps />
       <TrendingSection />
       <section className="section" id="shop" aria-labelledby="shop-h">
