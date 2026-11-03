@@ -61,6 +61,10 @@
   --stall-skin: #c98b62;
   --stall-skin-2: #8e5b3c;
   --stall-hair: #2a211c;
+  /* festive sticker colours: fixed, the same in light and dark */
+  --stk-clay: #B5532A; --stk-flame: #FFC94A; --stk-flame2: #FF8A2A; --stk-marigold: #F29A1F; --stk-marigold2: #FFC436;
+  --stk-leaf: #3F6B3A; --stk-gold: #E8B02E; --stk-red: #B3262E; --stk-pine: #1F5A3A; --stk-pine2: #2E7D50;
+  --stk-snow: #FFFFFF; --stk-ice: #8FB3C9;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -2716,3 +2720,10 @@ main {
 .gallery-thumb:hover {
   border-color: var(--orange);
 }
+
+/* sticker motion (inside the fixed hero SVG only) */
+.flame { transform-box: fill-box; transform-origin: 50% 100%; animation: stk-flick 1.1s ease-in-out infinite alternate; }
+.wave2 { transform-box: fill-box; transform-origin: 0% 100%; animation: stk-wave2 1s ease-in-out infinite alternate; }
+@keyframes stk-flick { from { transform: scale(1, .92); } to { transform: scale(1.06, 1.08); } }
+@keyframes stk-wave2 { from { transform: rotate(-12deg); } to { transform: rotate(14deg); } }
+@media (prefers-reduced-motion: reduce) { .flame, .wave2 { animation: none; } }
