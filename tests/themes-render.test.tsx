@@ -7,6 +7,7 @@ import { PRESETS } from '@/lib/themes/presets';
 import { STICKERS } from '@/lib/themes/stickers';
 import { placementTransform } from '@/lib/themes/transform';
 import { contrastRatio } from '@/lib/themes/contrast';
+import { themeCss } from '@/lib/themes/css';
 import { fitText } from '@/components/theme/fit';
 import { ThemeHead } from '@/components/theme/ThemeHead';
 import { ThemeBanner } from '@/components/theme/ThemeBanner';
@@ -155,5 +156,14 @@ describe('theme css wiring', () => {
     for (const bg of dark) expect(contrastRatio(bg, '#ffffff')).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio('#405746', '#ffffff')).toBeGreaterThanOrEqual(4.5);
     expect(raw).toMatch(/background: var\(--banner-bg, var\(--green\)\)/);
+  });
+  it('a custom primary also sets the banner colour at the same selector as --on-green; no override sets none', () => {
+    const css = themeCss('everyday', { ...E, primary: '#F5C542' });
+    const rule = css.split('\n')[0];
+    expect(rule).toMatch(/^html:root\[data-festival="everyday"\]\{/);
+    expect(rule).toContain('--banner-bg:#F5C542');
+    expect(rule).toContain('--on-green:#1B1B1B');
+    expect(themeCss('everyday', E)).toBe('');
+    expect(themeCss('diwali', PRESETS.diwali.config)).not.toContain('--banner-bg');
   });
 });

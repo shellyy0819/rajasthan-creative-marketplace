@@ -19,6 +19,7 @@ export function themeCss(preset: PresetKey, config: ThemeConfig): string {
   const map = new Map(brand);
   if (override) {
     map.set('--green', override);
+    map.set('--banner-bg', override); // beats the dark-mode banner colour in globals.css
     map.set('--on-green', onColor(override));
     map.set('--green-d', darken(override));
   }

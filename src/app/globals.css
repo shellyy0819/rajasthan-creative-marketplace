@@ -1986,12 +1986,10 @@ button[aria-busy="true"]::after {
 }
 :root {
   --banner-h: 38px;
-  --header-h: 78px;
   --topbar-h: 116px; /* banner 38 + header 78 */
 }
 @media (max-width: 600px) {
   :root {
-    --header-h: 67px;
     --topbar-h: 105px; /* banner 38 + header 67 */
   }
 }
@@ -2047,8 +2045,9 @@ main {
 }
 .rr-page-loader {
   position: fixed;
-  inset: var(--header-h) 0 0 0;
-  top: var(--header-h);
+  /* trade-off: below the banner height so the navbar is never veiled; after scrolling past the banner a 38px strip stays uncovered */
+  inset: var(--topbar-h) 0 0 0;
+  top: var(--topbar-h);
   z-index: 70;
   display: grid;
   place-items: center;
