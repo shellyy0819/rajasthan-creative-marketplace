@@ -82,7 +82,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ...f, items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
       });
       setItems([]); setCartOpen(false);
-      notify(`Demo order created! Total ${money(order.totalPaise)}. No payment collected.`);
+      notify(`Order created! Total ${money(order.totalPaise)}. No payment collected.`);
     } catch (e) { notify((e as Error).message); }
     router.refresh();
   }, [items, notify, router]);
@@ -91,7 +91,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     try {
       const b = await api<{ status: string; title: string }>('/api/bookings', f);
       setBooking(null);
-      notify(`${b.status.includes('FREE') ? 'Free spot confirmed' : 'Demo booking created'} — ${b.title}. No payment collected.`);
+      notify(`${b.status.includes('FREE') ? 'Free spot confirmed' : 'Booking created'} — ${b.title}. No payment collected.`);
     } catch (e) { notify((e as Error).message); }
     router.refresh();
   }, [notify, router]);

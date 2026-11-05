@@ -4,9 +4,6 @@ import { Brand } from './Header';
 import { CookieSettings } from './CookieSettings';
 import { listActiveCities, type City } from '@/lib/cities';
 import { cityLabeller } from '@/lib/city-label';
-import { SITE } from '@/lib/site';
-
-const MAKER_MAIL = `mailto:${SITE.email}?subject=Marketplace%20seller%20interest`;
 
 function Column({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -35,7 +32,7 @@ export async function Footer() {
         </Column>
         <Column title="Let Us Help You">
           <li><Link href="/help">How it works</Link></li>
-          <li><a href={MAKER_MAIL}>For makers</a></li>
+          <li><Link href="/#makers">For makers</Link></li>
           {/* <li><CookieSettings /></li> */}
         </Column>
         {/* {cities.length > 0 && (
@@ -46,8 +43,6 @@ export async function Footer() {
       </div>
       <div className="footer-base">
         <Brand />
-        {/* <p>A demo marketplace concept for India. Payments are not enabled.</p>
-        <span>Made with care ✳</span> */}
       </div>
     </footer>
   );

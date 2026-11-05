@@ -15,13 +15,13 @@ HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', 
 HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); };
 
 describe('checkout and booking buttons', () => {
-  it('"Place demo order" shows a busy ring and cannot be clicked twice while the order is pending', async () => {
+  it('"Place order" shows a busy ring and cannot be clicked twice while the order is pending', async () => {
     let release!: () => void;
     const checkout = vi.fn(() => new Promise<void>(r => { release = r; }));
     store.value = { items: [{ productId: 'p1', name: 'Bag', pricePaise: 100, quantity: 1 }], total: 100, removeFromCart: vi.fn(), cartOpen: true, setCartOpen: vi.fn(), checkout };
     render(<CartDialog />);
     fireEvent.change(screen.getByPlaceholderText('Name'), { target: { value: 'Bee' } });
-    const btn = screen.getByRole('button', { name: 'Place demo order', hidden: true });
+    const btn = screen.getByRole('button', { name: 'Place order', hidden: true });
     fireEvent.click(btn);
     await waitFor(() => expect(btn.getAttribute('aria-busy')).toBe('true'));
     expect((btn as HTMLButtonElement).disabled).toBe(true);
@@ -31,13 +31,13 @@ describe('checkout and booking buttons', () => {
     await waitFor(() => expect(btn.getAttribute('aria-busy')).not.toBe('true'));
     expect((btn as HTMLButtonElement).disabled).toBe(false);
   });
-  it('"Reserve demo spot" shows a busy ring while the booking is pending', async () => {
+  it('"Reserve spot" shows a busy ring while the booking is pending', async () => {
     let release!: () => void;
     const reserve = vi.fn(() => new Promise<void>(r => { release = r; }));
     store.value = { booking: { id: 'w1', type: 'FREE', seats: 10, booked: 1 }, closeBooking: vi.fn(), reserve };
     render(<BookingDialog />);
     fireEvent.change(screen.getByPlaceholderText('Name'), { target: { value: 'Bee' } });
-    const btn = screen.getByRole('button', { name: 'Reserve demo spot', hidden: true });
+    const btn = screen.getByRole('button', { name: 'Reserve spot', hidden: true });
     fireEvent.click(btn);
     await waitFor(() => expect(btn.getAttribute('aria-busy')).toBe('true'));
     release();
@@ -48,7 +48,7 @@ describe('checkout and booking buttons', () => {
     store.value = { items: [], total: 0, removeFromCart: vi.fn(), cartOpen: true, setCartOpen: vi.fn(), checkout };
     render(<CartDialog />);
     fireEvent.change(screen.getByPlaceholderText('Name'), { target: { value: 'Bee' } });
-    const btn = screen.getByRole('button', { name: 'Place demo order', hidden: true });
+    const btn = screen.getByRole('button', { name: 'Place order', hidden: true });
     fireEvent.click(btn);
     await waitFor(() => expect(checkout).toHaveBeenCalled());
     await waitFor(() => expect(btn.getAttribute('aria-busy')).not.toBe('true'));

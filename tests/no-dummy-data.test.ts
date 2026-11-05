@@ -29,4 +29,19 @@ describe('no dummy data ships with the app', () => {
     expect(t).toContain('data/db.json');
     expect(t).not.toContain('fixtures');
   });
+  const shipped = () => [...walk('src')].filter(f => /\.(ts|tsx|css)$/.test(f));
+  it('no placeholder email address (.example / .invalid) is written into the app code', () => {
+    const hits = shipped().flatMap(f => (fs.readFileSync(f, 'utf8').match(/[\w.+-]+@[\w-]+\.(example|invalid)\b/g) ?? []).map(m => `${f}: ${m}`))
+      .filter(h => !/src\/db\/seed\.ts/.test(h)); // the seed's internal placeholder owners are not shown anywhere
+    expect(hits).toEqual([]);
+  });
+  it('visitors never read the word "demo" in the app (internal status codes like DEMO_ORDER_CREATED are not shown)', () => {
+    const hits = shipped().flatMap(f => fs.readFileSync(f, 'utf8').split('\n').map((l, i) => [f, i + 1, l] as const)
+      .filter(([, , l]) => /\bdemo\b/i.test(l)).map(([f2, n, l]) => `${f2}:${n}: ${l.trim().slice(0, 90)}`));
+    expect(hits).toEqual([]);
+  });
+  it('the hero illustration carries no made-up event or stall details', () => {
+    const t = fs.readFileSync('src/components/HeroStall.tsx', 'utf8');
+    for (const s of ['Stall 12', 'LIVE TODAY', 'Block printing', 'free to try', '4 pm']) expect(t, s).not.toContain(s);
+  });
 });

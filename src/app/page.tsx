@@ -48,7 +48,7 @@ export default async function Home() {
         </div>
         <WorkshopList workshops={workshops} emptyMessage="No workshops are scheduled yet. Check back soon." />
       </section>
-      <section className="maker-cta">
+      <section className="maker-cta" id="makers">
         <div className="cta-flower" aria-hidden="true">✿</div>
         <div>
           <span className="eyebrow">YOUR CRAFT. YOUR BUSINESS. YOUR SPACE.</span>

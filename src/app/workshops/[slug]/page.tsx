@@ -50,7 +50,7 @@ export default async function WorkshopPage({ params }: Props) {
             <dt>Price</dt><dd>{w.type === 'FREE' ? 'Free' : money(w.pricePaise)}</dd>
           </dl>
           <div className="workshop-price" style={{ textAlign: 'left' }}><ReserveButton workshop={w} /></div>
-          <p className="fine-print" style={{ textAlign: 'left' }}>Demo booking only. Paid workshops do not collect payment.</p>
+          <p className="fine-print" style={{ textAlign: 'left' }}>No payment is collected on Craftofy.</p>
         </div>
       </article>
     </>
