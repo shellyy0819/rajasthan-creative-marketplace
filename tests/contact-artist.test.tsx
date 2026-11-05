@@ -8,7 +8,7 @@ const track = vi.hoisted(() => ({ sendEvent: vi.fn(), gaEvent: vi.fn() }));
 vi.mock('@/lib/track', () => ({ sendEvent: track.sendEvent }));
 vi.mock('@/lib/analytics', () => ({ gaEvent: track.gaEvent }));
 import { ContactArtistButton } from '@/components/ContactArtistButton';
-import { instagramUrl, youtubeUrl } from '@/lib/social';
+import { instagramHandle, instagramUrl, youtubeUrl } from '@/lib/social';
 import type { Product } from '@/lib/types';
 
 const P: Product = {
@@ -25,6 +25,12 @@ describe('social helpers', () => {
     expect(instagramUrl('@shaukandstuff')).toBe('https://www.instagram.com/shaukandstuff/');
     expect(instagramUrl('https://www.instagram.com/shauk/')).toBe('https://www.instagram.com/shauk/');
     expect(instagramUrl('a b/../c')).toBe('https://www.instagram.com/a%20b%2F..%2Fc/');
+    expect(instagramUrl('instagram.com/shauk')).toBe('https://www.instagram.com/shauk/');
+    expect(instagramUrl('www.instagram.com/shauk/?igsh=abc#x')).toBe('https://www.instagram.com/shauk/');
+    expect(instagramUrl(' https://instagram.com/shauk/reels/ ')).toBe('https://www.instagram.com/shauk/');
+    expect(instagramHandle('https://www.instagram.com/shauk/?hl=en')).toBe('@shauk');
+    expect(instagramHandle('@shauk')).toBe('@shauk');
+    expect(instagramHandle('shauk')).toBe('@shauk');
     expect(youtubeUrl('@shauk')).toBe('https://www.youtube.com/@shauk');
     expect(youtubeUrl('https://youtu.be/xyz')).toBe('https://youtu.be/xyz');
     expect(youtubeUrl('javascript:alert(1)')).toBe('https://www.youtube.com/@javascript%3Aalert(1)');
@@ -129,5 +135,20 @@ describe('Add to bag is gone from the whole storefront (source contract)', () =>
       expect(src).not.toMatch(/AddToCart|Add to bag|Demo checkout/);
     }
     expect(fs.existsSync('src/components/AddToCartButton.tsx')).toBe(false);
+  });
+});
+
+describe('Instagram handle opens in a new tab', () => {
+  it('the handle shown in the contact dialog is itself a link to the profile, in a new tab, next to the Open Instagram button', () => {
+    const d = open();
+    const handle = within(d).getByRole('link', { name: '@shaukandstuff' });
+    expect(handle.getAttribute('href')).toBe('https://www.instagram.com/shaukandstuff/');
+    expect(handle.getAttribute('target')).toBe('_blank');
+    expect(handle.getAttribute('rel')).toContain('noreferrer');
+    expect(within(d).getByRole('link', { name: /Open Instagram/ }).getAttribute('target')).toBe('_blank');
+  });
+  it('a full profile url typed by the artist is shown as a clean @handle', () => {
+    const d = open({ ...P, instagram: 'https://www.instagram.com/shauk/?igsh=1' });
+    expect(within(d).getByRole('link', { name: '@shauk' }).getAttribute('href')).toBe('https://www.instagram.com/shauk/');
   });
 });

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { gaEvent } from '@/lib/analytics';
-import { instagramUrl, youtubeUrl } from '@/lib/social';
+import { instagramHandle, instagramUrl, youtubeUrl } from '@/lib/social';
 import { sendEvent } from '@/lib/track';
 import type { Product } from '@/lib/types';
 
@@ -80,7 +80,7 @@ export function ContactArtistButton({ product: p }: { product: Product }) {
                     <a className="button" href={`mailto:${p.email}`}>Email</a><CopyButton value={p.email} label="email" /></div>
                 )}
                 {p.instagram && (
-                  <div className="contact-row"><Icon name="ig" /><div><span className="contact-label">Instagram</span><span className="contact-value">{p.instagram}</span></div>
+                  <div className="contact-row"><Icon name="ig" /><div><span className="contact-label">Instagram</span><a className="contact-value" href={instagramUrl(p.instagram)} target="_blank" rel="noreferrer">{instagramHandle(p.instagram)}</a></div>
                     <a className="button" href={instagramUrl(p.instagram)} target="_blank" rel="noreferrer">Open Instagram ↗</a></div>
                 )}
                 {p.youtube && (

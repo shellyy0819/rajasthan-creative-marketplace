@@ -26,9 +26,9 @@ describe('footer', () => {
     expect(links('Cities')).toEqual([['Udaipur', '/cities/udaipur']]);
     expect(within(screen.getByRole('navigation', { name: 'Let Us Help You' })).getByRole('button', { name: 'Cookie settings' })).toBeTruthy();
   });
-  it('keeps the demo note and the brand in the bottom strip', async () => {
+  it('keeps the brand in the bottom strip (the demo note and the "Made with care" line are commented out)', async () => {
     render(await Footer());
-    expect(screen.getByText(/Payments are not enabled/)).toBeTruthy();
+    expect(screen.queryByText(/Payments are not enabled/)).toBeNull();
     expect(screen.getByRole('link', { name: 'Craftology home' })).toBeTruthy();
   });
 });

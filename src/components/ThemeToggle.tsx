@@ -1,9 +1,6 @@
 'use client';
 
-export const THEME_KEY = 'theme';
-
-/** Runs in <head> before paint: applies the saved choice, otherwise CSS follows the OS setting. */
-export const themeInitScript = `(function(){try{var t=localStorage.getItem("${THEME_KEY}");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}})()`;
+import { THEME_KEY } from '@/lib/init-scripts';
 
 function resolvedTheme(): 'light' | 'dark' {
   const set = document.documentElement.getAttribute('data-theme');
