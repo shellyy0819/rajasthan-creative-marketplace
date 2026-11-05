@@ -13,8 +13,8 @@ const pages = (dir: string): string[] =>
     e.isDirectory() ? pages(path.join(dir, e.name)) : e.name === 'page.tsx' ? [path.join(dir, e.name)] : []);
 
 describe('breadcrumbs on every inner page', () => {
-  // The home page is the root and /dashboard only redirects to /dashboard/posts.
-  const exempt = new Set(['src/app/page.tsx', 'src/app/dashboard/page.tsx']);
+  // The home page is the root, /dashboard only redirects to /dashboard/posts, and /coming-soon is a single-screen landing page.
+  const exempt = new Set(['src/app/page.tsx', 'src/app/dashboard/page.tsx', 'src/app/coming-soon/page.tsx']); // coming-soon is a standalone landing page
   it('every page except the exempt ones renders <Breadcrumbs>', () => {
     const missing = pages('src/app').filter(f => !exempt.has(f) && !fs.readFileSync(f, 'utf8').includes('<Breadcrumbs'));
     expect(missing).toEqual([]);

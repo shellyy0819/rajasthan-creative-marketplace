@@ -438,6 +438,12 @@ h2 em {
 @keyframes st-inspect { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
 @keyframes st-blink { 50% { opacity: .2; } }
 .st-hand { font-weight: 600; }
+.st-twinkle { animation: st-twinkle 2.4s ease-in-out infinite; }
+.st-twinkle.d1 { animation-delay: -0.8s; }
+.st-twinkle.d2 { animation-delay: -1.6s; }
+@keyframes st-twinkle { 50% { opacity: 0.25; } }
+.coming-soon-note { max-width: 420px; margin: 22px 0 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
+.coming-soon-note a { color: var(--green); font-weight: 700; text-decoration: underline; }
 .st-sway {
   transform-box: fill-box;
   transform-origin: 50% 0;
@@ -453,7 +459,7 @@ h2 em {
 @keyframes st-sway { from { transform: rotate(-1.6deg); } to { transform: rotate(1.6deg); } }
 @keyframes st-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .st-sway, .st-spin, .st-bob, .st-wave, .st-nod, .st-inspect, .st-blink { animation: none; }
+  .st-sway, .st-spin, .st-bob, .st-wave, .st-nod, .st-inspect, .st-blink, .st-twinkle { animation: none; }
 }
 .intro {
   text-align: center;
@@ -2664,4 +2670,55 @@ main {
 }
 .gallery-thumb:hover {
   border-color: var(--orange);
+}
+
+/* phone splash: shown once per session, fades out by itself */
+.splash {
+  display: none;
+}
+@media (max-width: 600px) {
+  html:not([data-splash="seen"]) .splash {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: var(--paper);
+    animation: splash-out 0.45s ease 1.2s forwards;
+  }
+}
+.splash img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.splash-dark {
+  display: none;
+}
+:root[data-theme="dark"] .splash-light {
+  display: none;
+}
+:root[data-theme="dark"] .splash-dark {
+  display: block;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .splash-light {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .splash-dark {
+    display: block;
+  }
+}
+@keyframes splash-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-splash="seen"]) .splash {
+    animation-duration: 0.01s;
+  }
 }
