@@ -14,7 +14,7 @@ describe('info pages', () => {
     ['About us', 'Your city’s makers, within reach.', AboutPage, '/about'],
     ['Blogs', 'Stories from the makers.', BlogsPage, '/blogs'],
     ['Contact us', 'Say hello.', ContactPage, '/contact'],
-    ['How it works', 'How Craftology works.', HelpPage, '/help'],
+    ['How it works', 'How Craftofy works.', HelpPage, '/help'],
   ])('%s has its heading and a breadcrumb ending on the page', (crumb, h1, Page, path) => {
     const { container } = render(<Page />);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(h1);

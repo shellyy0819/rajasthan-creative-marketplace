@@ -10,7 +10,7 @@ afterEach(cleanup);
 describe('ValueProps (home page promise strip)', () => {
   it('is a labelled region with a list of the three promises, each with a heading and a supporting line', () => {
     render(<ValueProps />);
-    const region = screen.getByRole('region', { name: 'Why Craftology' });
+    const region = screen.getByRole('region', { name: 'Why Craftofy' });
     const items = within(region).getAllByRole('listitem');
     expect(items).toHaveLength(3);
     for (const li of items) {

@@ -8,7 +8,7 @@ import { pageMetadata } from '@/lib/meta';
 
 export const metadata: Metadata = pageMetadata({
   title: 'Contact us',
-  description: 'Get in touch with the Craftology team. Contact details coming soon.',
+  description: 'Get in touch with the Craftofy team. Contact details coming soon.',
   path: '/contact',
 });
 

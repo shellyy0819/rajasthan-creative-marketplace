@@ -7,7 +7,7 @@ import { pageMetadata } from '@/lib/meta';
 
 export const metadata: Metadata = pageMetadata({
   title: 'About us',
-  description: 'Craftology helps you find independent makers in your own city and deal with them directly. No middleman, no commission.',
+  description: 'Craftofy helps you find independent makers in your own city and deal with them directly. No middleman, no commission.',
   path: '/about',
 });
 
@@ -18,7 +18,7 @@ export default function AboutPage() {
     <>
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
       <Breadcrumbs items={crumbs} />
-      <InfoPage eyebrow="ABOUT US" title="Your city’s makers, within reach." intro="Craftology is a place to find independent makers and creative workshops near you, and to deal with them directly.">
+      <InfoPage eyebrow="ABOUT US" title="Your city’s makers, within reach." intro="Craftofy is a place to find independent makers and creative workshops near you, and to deal with them directly.">
         <h2>Why we exist</h2>
         <p>Great handmade work is often made a few streets away, yet hard to find. We put makers and the people who love their work in the same place, so buying and learning feels personal again.</p>
         <h2>How we are different</h2>

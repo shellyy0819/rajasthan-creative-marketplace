@@ -1,4 +1,4 @@
-# Craftology — Creative Marketplace (Runnable Starter)
+# Craftofy — Creative Marketplace (Runnable Starter)
 
 A small, runnable full-stack MVP for an India-wide handmade-products marketplace and local workshop discovery experience across India. Built with Next.js (App Router), Drizzle ORM and PostgreSQL (local Docker for development, [Neon](https://neon.tech) or any hosted Postgres for production). Sign-in is Google OAuth with buyer, seller and admin roles.
 

@@ -48,7 +48,7 @@ export async function searchPlaces(q: string, fetchImpl: typeof fetch = fetch, o
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   let features: unknown;
   try {
-    const res = await fetchImpl(url.toString(), { signal: ctrl.signal, headers: { 'user-agent': 'Craftology/1.0 (marketplace place suggestions)', accept: 'application/json' } });
+    const res = await fetchImpl(url.toString(), { signal: ctrl.signal, headers: { 'user-agent': 'Craftofy/1.0 (marketplace place suggestions)', accept: 'application/json' } });
     if (!res.ok) throw UNAVAILABLE();
     features = ((await res.json()) as { features?: unknown })?.features;
   } catch (e) {

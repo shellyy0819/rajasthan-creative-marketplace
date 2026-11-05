@@ -29,6 +29,6 @@ describe('footer', () => {
   it('keeps the brand in the bottom strip (the demo note and the "Made with care" line are commented out)', async () => {
     render(await Footer());
     expect(screen.queryByText(/Payments are not enabled/)).toBeNull();
-    expect(screen.getByRole('link', { name: 'Craftology home' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Craftofy home' })).toBeTruthy();
   });
 });
