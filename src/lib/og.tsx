@@ -13,7 +13,7 @@ export function renderOg(title: string, subtitle: string) {
   return new ImageResponse(
     (
       <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#f6efe4', padding: 72, color: '#252a24' }}>
-        {logo ? <img src={logo} alt="Craftology" width={277} height={72} style={{ display: 'flex' }} /> : <div style={{ display: 'flex', fontSize: 30, color: '#c66b43', letterSpacing: 4 }}>CRAFTOLOGY</div>}
+        {logo ? <img src={logo} alt="Craftofy" width={277} height={83} style={{ display: 'flex' }} /> : <div style={{ display: 'flex', fontSize: 30, color: '#c66b43', letterSpacing: 4 }}>CRAFTOFY</div>}
         <div style={{ display: 'flex', fontSize: 76, lineHeight: 1.1, fontWeight: 600 }}>{title}</div>
         <div style={{ display: 'flex', fontSize: 34, color: '#405746' }}>{subtitle}</div>
       </div>

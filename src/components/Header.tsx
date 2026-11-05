@@ -5,11 +5,11 @@ import { ThemeToggle } from './ThemeToggle';
 
 export function Brand() {
   return (
-    <Link className="brand" href="/" aria-label="Craftology home">
+    <Link className="brand" href="/" aria-label="Craftofy home">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="brand-logo logo-light" src="/logos/horizontal-color.png" alt="Craftology" width={1600} height={415} />
+      <img className="brand-logo logo-light" src="/logos/horizontal-color.png" alt="Craftofy" width={1600} height={482} />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="brand-logo logo-dark" src="/logos/horizontal-dark.png" alt="" width={1600} height={415} />
+      <img className="brand-logo logo-dark" src="/logos/horizontal-dark.png" alt="" width={1600} height={482} />
     </Link>
   );
 }
