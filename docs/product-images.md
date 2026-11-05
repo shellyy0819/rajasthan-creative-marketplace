@@ -17,9 +17,13 @@ Bucket, **Permissions**, **Bucket policy**:
     "Effect": "Allow",
     "Principal": "*",
     "Action": "s3:GetObject",
-    "Resource": ["arn:aws:s3:::YOUR-BUCKET/products/*", "arn:aws:s3:::YOUR-BUCKET/dev/products/*"]
+    "Resource": [
+      "arn:aws:s3:::craftology-photos-dev/products/*",
+      "arn:aws:s3:::craftology-photos-dev/dev/products/*"
+    ]
   }]
 }
+
 ```
 Replace `YOUR-BUCKET`. Only the `products/` folders are readable; listing the bucket stays private.
 
@@ -28,7 +32,7 @@ Bucket, **Permissions**, **Cross-origin resource sharing (CORS)**:
 ```json
 [{
   "AllowedMethods": ["POST"],
-  "AllowedOrigins": ["http://localhost:3000", "http://localhost:3001", "https://www.your-domain.com"],
+  "AllowedOrigins": ["http://localhost:3000", "http://localhost:3001"],
   "AllowedHeaders": ["*"],
   "MaxAgeSeconds": 3000
 }]
@@ -43,9 +47,13 @@ IAM, **Users**, **Create user** (no console access), then attach an inline polic
   "Statement": [{
     "Effect": "Allow",
     "Action": ["s3:PutObject", "s3:DeleteObject"],
-    "Resource": ["arn:aws:s3:::YOUR-BUCKET/products/*", "arn:aws:s3:::YOUR-BUCKET/dev/products/*"]
+    "Resource": [
+      "arn:aws:s3:::craftology-photos-dev/products/*",
+      "arn:aws:s3:::craftology-photos-dev/dev/products/*"
+    ]
   }]
 }
+
 ```
 Then **Security credentials**, **Create access key**, use case "Application running outside AWS". Copy the key id and secret once. They go into `.env.local` (development) or `.env.backend` (production) and **never into git**.
 
