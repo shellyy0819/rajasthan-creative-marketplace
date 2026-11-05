@@ -8,7 +8,7 @@ import { pageMetadata } from '@/lib/meta';
 
 export const metadata: Metadata = pageMetadata({
   title: 'Blogs',
-  description: 'Stories from Craftology makers and the crafts of India. Coming soon.',
+  description: 'Stories from Craftofy makers and the crafts of India. Coming soon.',
   path: '/blogs',
 });
 

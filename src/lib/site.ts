@@ -1,10 +1,10 @@
 export const SITE = {
-  name: 'Craftology',
+  name: 'Craftofy',
   tagline: 'Handmade finds & creative workshops across India',
   description:
     'Shop thoughtfully curated handmade products from independent artisans and book hands-on workshops in cities across India.',
   locale: 'en_IN',
-  email: 'hello@craftology.example',
+  email: 'hello@craftofy.example',
 };
 export function siteUrl(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');

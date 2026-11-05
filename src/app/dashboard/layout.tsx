@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireStaffPage } from '@/lib/admin-page';
 
-export const metadata: Metadata = { title: { absolute: 'Dashboard | Craftology' }, robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: { absolute: 'Dashboard | Craftofy' }, robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

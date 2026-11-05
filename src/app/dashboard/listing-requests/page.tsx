@@ -13,7 +13,7 @@ export default async function ListingRequestsPage() {
     <>
       <Breadcrumbs items={crumbs} />
       <h1>Listing requests</h1>
-      <p className="muted">People who asked to sell on Craftology. Phone numbers are not verified: call the owner, then press Confirm. Confirming lets them sign in with Google using their email and list products.</p>
+      <p className="muted">People who asked to sell on Craftofy. Phone numbers are not verified: call the owner, then press Confirm. Confirming lets them sign in with Google using their email and list products.</p>
       <ListingRequestsAdmin initial={await listListingRequests()} />
     </>
   );

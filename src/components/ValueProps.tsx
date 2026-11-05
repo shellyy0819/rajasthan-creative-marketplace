@@ -21,7 +21,7 @@ const PROMISES = [
 /** Three promises to buyers and makers, shown on the home page right after the hero. */
 export function ValueProps() {
   return (
-    <section className="value-props" aria-label="Why Craftology">
+    <section className="value-props" aria-label="Why Craftofy">
       <ul>
         {PROMISES.map(p => (
           <li key={p.title}>
