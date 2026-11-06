@@ -25,12 +25,13 @@ describe('coming soon page', () => {
     expect(screen.getByText('hello@craftofy.in')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'See how it works' }).getAttribute('href')).toBe('/help');
   });
-  it('without CONTACT_EMAIL no email link or address is shown, and the page still works', () => {
+  it('without CONTACT_EMAIL it uses craftofy.online@gmail.com', () => {
     delete process.env.CONTACT_EMAIL;
     const { container } = render(<ComingSoonPage />);
-    expect(container.querySelector('a[href^="mailto:"]')).toBeNull();
-    expect(container.textContent).not.toMatch(/@|Write to/);
-    expect(screen.getByRole('link', { name: 'See how it works' }).getAttribute('href')).toBe('/help');
+    expect(screen.getByRole('link', { name: /Tell us you.re interested/ }).getAttribute('href')).toContain('mailto:craftofy.online@gmail.com');
+    expect(container.textContent).toContain('craftofy.online@gmail.com');
+    expect(screen.getByRole('link', { name: 'Say hello' }).getAttribute('href')).toContain('mailto:craftofy.online@gmail.com');
+    expect(container.textContent).not.toMatch(/example/);
   });
   it('keeps the illustration decorative and the page out of search results', () => {
     const { container } = render(<ComingSoonPage />);

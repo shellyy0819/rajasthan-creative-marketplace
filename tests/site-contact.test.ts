@@ -1,17 +1,21 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { SITE, contactEmail } from '@/lib/site';
+import { DEFAULT_CONTACT_EMAIL, SITE, contactEmail } from '@/lib/site';
 
 const saved = process.env.CONTACT_EMAIL;
 afterEach(() => { if (saved === undefined) delete process.env.CONTACT_EMAIL; else process.env.CONTACT_EMAIL = saved; });
 
-describe('contactEmail (the public contact address comes from CONTACT_EMAIL, never from code)', () => {
-  it('is undefined when the variable is unset, blank or not an email, so no email link or text can show', () => {
-    delete process.env.CONTACT_EMAIL; expect(contactEmail()).toBeUndefined();
+describe('contactEmail (the one public address used for all communication)', () => {
+  it('defaults to craftofy.online@gmail.com when CONTACT_EMAIL is unset', () => {
+    expect(DEFAULT_CONTACT_EMAIL).toBe('craftofy.online@gmail.com');
+    delete process.env.CONTACT_EMAIL;
+    expect(contactEmail()).toBe('craftofy.online@gmail.com');
+  });
+  it('falls back to the default when CONTACT_EMAIL is blank or not a usable email', () => {
     for (const bad of ['', '   ', 'hello', 'hello@', '@x.in', 'a b@c.in', 'a@b', 'javascript:alert(1)', 'a@b.in?subject=x', 'a@b.in,c@d.in']) {
-      process.env.CONTACT_EMAIL = bad; expect(contactEmail(), bad).toBeUndefined();
+      process.env.CONTACT_EMAIL = bad; expect(contactEmail(), bad).toBe('craftofy.online@gmail.com');
     }
   });
-  it('returns a valid address trimmed', () => {
+  it('CONTACT_EMAIL overrides the default when it is valid (trimmed), so a domain address can replace it later', () => {
     process.env.CONTACT_EMAIL = '  hello@craftofy.in ';
     expect(contactEmail()).toBe('hello@craftofy.in');
   });

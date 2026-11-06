@@ -27,9 +27,10 @@ describe('info pages', () => {
     expect(screen.getByRole('link', { name: /browse handmade/i }).getAttribute('href')).toBe('/shop');
     expect(screen.getByRole('link', { name: /workshop/i }).getAttribute('href')).toBe('/workshops');
   });
-  it('the contact page shows no placeholder email address', () => {
+  it('the contact page gives craftofy.online@gmail.com as a mailto link, and no longer says details are coming soon', () => {
     const { container } = render(<ContactPage />);
-    expect(container.querySelector('a[href^="mailto:"]')).toBeNull();
-    expect(container.textContent).not.toContain('example');
+    const mail = screen.getByRole('link', { name: 'craftofy.online@gmail.com' });
+    expect(mail.getAttribute('href')).toBe('mailto:craftofy.online@gmail.com');
+    expect(container.textContent).not.toMatch(/coming soon|example/i);
   });
 });

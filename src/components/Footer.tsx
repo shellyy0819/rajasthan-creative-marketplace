@@ -3,6 +3,7 @@ import { connection } from 'next/server';
 import { Brand } from './Header';
 import { CookieSettings } from './CookieSettings';
 import { listActiveCities, type City } from '@/lib/cities';
+import { contactEmail } from '@/lib/site';
 import { cityLabeller } from '@/lib/city-label';
 
 function Column({ title, children }: { title: string; children: React.ReactNode }) {
@@ -20,6 +21,7 @@ export async function Footer() {
   let cities: City[] = [];
   try { cities = await listActiveCities(); } catch (e) { console.error('Footer: could not load the active cities; rendering without city links', e); /* the footer must never take a page down */ }
   const label = cityLabeller(cities);
+  const makerMail = `mailto:${contactEmail()}?subject=Marketplace%20seller%20interest`;
   return (
     <footer className="site-footer">
       <div className="footer-grid">
@@ -32,7 +34,7 @@ export async function Footer() {
         </Column>
         <Column title="Let Us Help You">
           <li><Link href="/help">How it works</Link></li>
-          <li><Link href="/#makers">For makers</Link></li>
+          <li><a href={makerMail}>For makers</a></li>
           {/* <li><CookieSettings /></li> */}
         </Column>
         {/* {cities.length > 0 && (

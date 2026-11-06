@@ -17,7 +17,7 @@ describe('footer', () => {
     render(await Footer());
     expect(links('Get to Know Us')).toEqual([['About us', '/about'], ['Blogs', '/blogs']]);
     expect(links('Connect with Us')).toEqual([['Contact us', '/contact']]);
-    expect(links('Let Us Help You')).toEqual([['How it works', '/help'], ['For makers', '/#makers']]);
+    expect(links('Let Us Help You')).toEqual([['How it works', '/help'], ['For makers', 'mailto:craftofy.online@gmail.com?subject=Marketplace%20seller%20interest']]);
   });
   // SKIPPED on purpose: Footer.tsx has the Cities column and the Cookie settings link commented out (the owner's choice in PR #7). Remove the skip when it comes back.
   it.skip('keeps the city links and puts Cookie settings under Let Us Help You', async () => {
