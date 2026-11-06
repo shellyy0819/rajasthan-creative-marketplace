@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { type AnyPgColumn, bigint, bigserial, boolean, check, date, doublePrecision, index, integer, pgTable, primaryKey, serial, smallint, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { type AnyPgColumn, bigint, bigserial, boolean, check, date, doublePrecision, index, integer, jsonb, pgTable, primaryKey, serial, smallint, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 export const roles = pgTable('roles', {
   id: smallint('id').primaryKey(),
@@ -209,3 +209,23 @@ export const productImages = pgTable('product_images', {
   position: smallint('position').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }, t => [uniqueIndex('product_images_product_position_idx').on(t.productId, t.position)]);
+
+/** Admin-scheduled festive themes. At most one row has status 'base' (the editable Everyday wording). */
+export const siteThemes = pgTable('site_themes', {
+  id: serial('id').primaryKey(),
+  preset: text('preset').notNull(),
+  status: text('status').notNull().default('draft'),
+  startsAt: timestamp('starts_at', { withTimezone: true, mode: 'date' }),
+  endsAt: timestamp('ends_at', { withTimezone: true, mode: 'date' }),
+  config: jsonb('config').notNull(),
+  updatedBy: text('updated_by'),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [
+  check('site_themes_status_valid', sql`${t.status} in ('draft', 'scheduled', 'base')`),
+  check('site_themes_window_order', sql`${t.endsAt} is null or ${t.startsAt} is null or ${t.endsAt} > ${t.startsAt}`),
+  check('site_themes_scheduled_dates', sql`${t.status} <> 'scheduled' or (${t.startsAt} is not null and ${t.endsAt} is not null)`),
+  uniqueIndex('site_themes_one_base_idx').on(t.status).where(sql`${t.status} = 'base'`),
+  index('site_themes_window_idx').on(t.startsAt),
+]);
+export type SiteThemeRow = typeof siteThemes.$inferSelect;
