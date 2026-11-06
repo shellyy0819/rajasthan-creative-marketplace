@@ -11,7 +11,19 @@ export const metadata: Metadata = pageMetadata({
   noindex: true,
 });
 
-const INTEREST = `mailto:${SITE.email}?subject=Craftofy%20launch%20interest`;
+const INTEREST_BODY = `Hi Craftofy team,
+
+I'm interested in Craftofy and would love to hear when you open.
+
+Name:
+City:
+I am a (maker / shopper):
+What I make or would like to find on Craftofy:
+Instagram / website (optional):
+
+Please keep me posted on your launch. Thank you!
+`;
+const INTEREST = `mailto:${SITE.email}?subject=${encodeURIComponent('Craftofy launch interest')}&body=${encodeURIComponent(INTEREST_BODY)}`;
 const MAKER = `mailto:${SITE.email}?subject=Marketplace%20seller%20interest`;
 
 export default function ComingSoonPage() {
