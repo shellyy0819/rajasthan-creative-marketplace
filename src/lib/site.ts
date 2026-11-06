@@ -8,7 +8,7 @@ export const SITE = {
 
 const EMAIL = /^[^\s@,?]+@[^\s@,?]+\.[^\s@,?]+$/;
 /** The address used for all communication until a domain address replaces it (set CONTACT_EMAIL to override). */
-export const DEFAULT_CONTACT_EMAIL = 'craftofy.online@gmail.com';
+export const DEFAULT_CONTACT_EMAIL = 'hello.craftofy@gmail.com';
 /** The public contact address: CONTACT_EMAIL when it is a usable email, otherwise the default. */
 export function contactEmail(): string {
   const v = (process.env.CONTACT_EMAIL ?? '').trim();

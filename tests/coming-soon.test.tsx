@@ -25,12 +25,12 @@ describe('coming soon page', () => {
     expect(screen.getByText('hello@craftofy.in')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'See how it works' }).getAttribute('href')).toBe('/help');
   });
-  it('without CONTACT_EMAIL it uses craftofy.online@gmail.com', () => {
+  it('without CONTACT_EMAIL it uses hello.craftofy@gmail.com', () => {
     delete process.env.CONTACT_EMAIL;
     const { container } = render(<ComingSoonPage />);
-    expect(screen.getByRole('link', { name: /Tell us you.re interested/ }).getAttribute('href')).toContain('mailto:craftofy.online@gmail.com');
-    expect(container.textContent).toContain('craftofy.online@gmail.com');
-    expect(screen.getByRole('link', { name: 'Say hello' }).getAttribute('href')).toContain('mailto:craftofy.online@gmail.com');
+    expect(screen.getByRole('link', { name: /Tell us you.re interested/ }).getAttribute('href')).toContain('mailto:hello.craftofy@gmail.com');
+    expect(container.textContent).toContain('hello.craftofy@gmail.com');
+    expect(screen.getByRole('link', { name: 'Say hello' }).getAttribute('href')).toContain('mailto:hello.craftofy@gmail.com');
     expect(container.textContent).not.toMatch(/example/);
   });
   it('keeps the illustration decorative and the page out of search results', () => {

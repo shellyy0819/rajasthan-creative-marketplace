@@ -82,6 +82,6 @@ describe('productJsonLd imageUrl', () => {
 
 describe('organizationJsonLd', () => {
   it('lists the public contact address', () => {
-    expect((organizationJsonLd() as any).email).toBe('craftofy.online@gmail.com');
+    expect((organizationJsonLd() as any).email).toBe('hello.craftofy@gmail.com');
   });
 });
