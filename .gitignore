@@ -11,3 +11,10 @@ client_secret_*.json
 # private keys must never be committed
 *.pem
 *.key
+
+# AWS billing console export
+Billing and Cost Management _ Global.html
+Billing and Cost Management _ Global_files/
+
+# brag video output
+brag-output/

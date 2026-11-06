@@ -21,7 +21,7 @@ export function Header() {
       <nav aria-label="Primary">
         <Link href="/shop">Shop handmade</Link>
         <Link href="/workshops">Workshops &amp; pop-ups</Link>
-        <AuthButton />
+        {/* <AuthButton /> */}
         {/* <CartButton /> */}
         <ThemeToggle />
       </nav>

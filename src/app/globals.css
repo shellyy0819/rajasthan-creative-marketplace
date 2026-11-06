@@ -5,6 +5,7 @@
   --paper: #f8f4ee;
   --cream: #eee5d8;
   --green: #405746;
+  --on-green: #fff;
   --orange: #c66b43;
   --line: #e5ddd1;
   --white: #fffdf9;
@@ -60,6 +61,10 @@
   --stall-skin: #c98b62;
   --stall-skin-2: #8e5b3c;
   --stall-hair: #2a211c;
+  /* festive sticker colours: fixed, the same in light and dark */
+  --stk-clay: #B5532A; --stk-flame: #FFC94A; --stk-flame2: #FF8A2A; --stk-marigold: #F29A1F; --stk-marigold2: #FFC436;
+  --stk-leaf: #3F6B3A; --stk-gold: #E8B02E; --stk-red: #B3262E; --stk-pine: #1F5A3A; --stk-pine2: #2E7D50;
+  --stk-snow: #FFFFFF; --stk-ice: #8FB3C9;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -69,6 +74,7 @@
     --paper: #161b17;
     --cream: #232b25;
     --green: #5f8167;
+    --banner-bg: #4d6b54;
     --orange: #e0865c;
     --line: #2d362f;
     --white: #1d241e;
@@ -133,6 +139,7 @@
   --paper: #161b17;
   --cream: #232b25;
   --green: #5f8167;
+  --banner-bg: #4d6b54;
   --orange: #e0865c;
   --line: #2d362f;
   --white: #1d241e;
@@ -625,7 +632,7 @@ h2 em {
   display: grid;
   grid-template-columns: 0.8fr 1.2fr;
   gap: 7%;
-  align-items: start;
+  align-items: center;
 }
 .workshop-intro h2 {
   font-size: 44px;
@@ -1988,12 +1995,59 @@ button[aria-busy="true"]::after {
   flex: none;
 }
 :root {
-  --topbar-h: 78px;
+  --banner-h: 38px;
+  --topbar-h: 116px; /* banner 38 + header 78 */
 }
 @media (max-width: 600px) {
   :root {
-    --topbar-h: 67px;
+    --topbar-h: 105px; /* banner 38 + header 67 */
   }
+}
+.festive-banner {
+  display: block;
+  height: var(--banner-h);
+  line-height: var(--banner-h);
+  padding: 0 12px;
+  background: var(--banner-bg, var(--green));
+  color: var(--on-green);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* a themed preset sets --green itself, so the banner follows it; only Everyday uses the dark-mode banner colour */
+html:root[data-festival]:not([data-festival="everyday"]) .festive-banner {
+  --banner-bg: var(--green);
+}
+.festive-preview {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 16px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 14px;
+  box-shadow: 0 6px 24px #0004;
+}
+.festive-preview button {
+  min-height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--orange);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 main {
   min-height: calc(100vh - var(--topbar-h));
@@ -2001,6 +2055,7 @@ main {
 }
 .rr-page-loader {
   position: fixed;
+  /* trade-off: below the banner height so the navbar is never veiled; after scrolling past the banner a 38px strip stays uncovered */
   inset: var(--topbar-h) 0 0 0;
   top: var(--topbar-h);
   z-index: 70;
@@ -2722,3 +2777,10 @@ main {
     animation-duration: 0.01s;
   }
 }
+
+/* sticker motion (inside the fixed hero SVG only) */
+.flame { transform-box: fill-box; transform-origin: 50% 100%; animation: stk-flick 1.1s ease-in-out infinite alternate; }
+.wave2 { transform-box: fill-box; transform-origin: 0% 100%; animation: stk-wave2 1s ease-in-out infinite alternate; }
+@keyframes stk-flick { from { transform: scale(1, .92); } to { transform: scale(1.06, 1.08); } }
+@keyframes stk-wave2 { from { transform: rotate(-12deg); } to { transform: rotate(14deg); } }
+@media (prefers-reduced-motion: reduce) { .flame, .wave2 { animation: none; } }
