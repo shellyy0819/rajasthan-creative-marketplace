@@ -632,7 +632,7 @@ h2 em {
   display: grid;
   grid-template-columns: 0.8fr 1.2fr;
   gap: 7%;
-  align-items: start;
+  align-items: center;
 }
 .workshop-intro h2 {
   font-size: 44px;
