@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { ComingSoonStall } from '@/components/ComingSoonStall';
 import { pageMetadata } from '@/lib/meta';
-import { SITE } from '@/lib/site';
+import { contactEmail } from '@/lib/site';
 
 export const metadata: Metadata = pageMetadata({
   title: 'Coming soon',
@@ -10,6 +10,8 @@ export const metadata: Metadata = pageMetadata({
   path: '/coming-soon',
   noindex: true,
 });
+
+export const dynamic = 'force-dynamic'; // read CONTACT_EMAIL when the page is served, not when the image is built
 
 const INTEREST_BODY = `Hi Craftofy team,
 
@@ -23,10 +25,11 @@ Instagram / website (optional):
 
 Please keep me posted on your launch. Thank you!
 `;
-const INTEREST = `mailto:${SITE.email}?subject=${encodeURIComponent('Craftofy launch interest')}&body=${encodeURIComponent(INTEREST_BODY)}`;
-const MAKER = `mailto:${SITE.email}?subject=Marketplace%20seller%20interest`;
 
 export default function ComingSoonPage() {
+  const email = contactEmail();
+  const INTEREST = `mailto:${email}?subject=${encodeURIComponent('Craftofy launch interest')}&body=${encodeURIComponent(INTEREST_BODY)}`;
+  const MAKER = `mailto:${email}?subject=Marketplace%20seller%20interest`;
   return (
     <section className="hero coming-soon">
       <div className="hero-copy">
@@ -37,7 +40,7 @@ export default function ComingSoonPage() {
           <a className="button primary" href={INTEREST}>Tell us you&apos;re interested <span>↗</span></a>
           <Link className="button outline" href="/help">See how it works</Link>
         </div>
-        <p className="coming-soon-note">Write to <b>{SITE.email}</b> and we will let you know the day we open. Are you a maker? <a href={MAKER}>Say hello</a>.</p>
+        <p className="coming-soon-note">Write to <b>{email}</b> and we will let you know the day we open. Are you a maker? <a href={MAKER}>Say hello</a>.</p>
         <div className="hero-proof"><span>✦ Independent makers</span><span>✦ Local experiences</span><span>✦ Made across India</span></div>
       </div>
       <div className="hero-art" aria-hidden="true">

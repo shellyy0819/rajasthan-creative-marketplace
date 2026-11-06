@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { HeroStall } from './HeroStall';
+import { DEFAULT_STALL, HeroStall, type StallProps } from './HeroStall';
 
-export function Hero() {
+export function Hero({ stall = DEFAULT_STALL }: { stall?: StallProps }) {
   return (
     <>
       <section className="hero">
@@ -16,7 +16,7 @@ export function Hero() {
           <div className="hero-proof"><span>✦ Independent makers</span><span>✦ Local experiences</span><span>✦ Made across India</span></div>
         </div>
         <div className="hero-art" aria-hidden="true">
-          <HeroStall />
+          <HeroStall {...stall} />
         </div>
       </section>
       <section className="intro">

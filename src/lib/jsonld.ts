@@ -1,4 +1,4 @@
-import { abs, siteUrl, SITE } from './site';
+import { abs, contactEmail, siteUrl, SITE } from './site';
 import { productSlug, workshopSlug } from './catalog';
 import type { Product, Workshop } from './types';
 
@@ -9,7 +9,7 @@ export const serializeJsonLd = (data: unknown) => JSON.stringify(data).replace(/
 
 export const organizationJsonLd = () => ({
   '@context': CTX, '@type': 'Organization',
-  name: SITE.name, url: siteUrl(), description: SITE.description,
+  name: SITE.name, url: siteUrl(), description: SITE.description, email: contactEmail(),
   areaServed: { '@type': 'AdministrativeArea', name: 'India' },
 });
 

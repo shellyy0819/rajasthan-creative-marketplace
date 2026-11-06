@@ -43,11 +43,11 @@ export async function createOrder(input: unknown, userEmail: string): Promise<Or
     const [orderRow] = await tx.insert(ordersT).values({
       id: crypto.randomUUID(),
       userId: buyer.id,
-      customerName: str(b.customerName, 'Demo Customer', 100),
+      customerName: str(b.customerName, 'Customer', 100),
       email: String(b.email ?? '').slice(0, 200),
       totalPaise: items.reduce((s, i) => s + i.lineTotalPaise, 0),
       status: 'DEMO_ORDER_CREATED',
-      note: 'Demo only: no payment has been collected.',
+      note: 'No payment has been collected.',
     }).returning();
     const itemRows = await tx.insert(orderItemsT).values(items.map(i => ({ orderId: orderRow.id, ...i }))).returning();
     for (const [id, qty] of totals)
@@ -73,12 +73,12 @@ export async function createBooking(input: unknown, userEmail: string): Promise<
       userId: guest.id,
       workshopId: w.id,
       title: w.title,
-      attendeeName: str(b.attendeeName, 'Demo Guest', 100),
+      attendeeName: str(b.attendeeName, 'Guest', 100),
       email: String(b.email ?? '').slice(0, 200),
       quantity: qty,
       totalPaise: w.pricePaise * qty,
       status: free ? 'CONFIRMED_FREE_DEMO' : 'DEMO_BOOKING_CREATED',
-      note: free ? 'Free demo booking confirmed; no payment required.' : 'Demo only: no payment has been collected.',
+      note: free ? 'Free booking confirmed; no payment required.' : 'No payment has been collected.',
     }).returning();
     await tx.update(workshopsT).set({ booked: sql`${workshopsT.booked} + ${qty}`, updatedAt: new Date() }).where(eq(workshopsT.id, w.id));
     return toBooking(row, guest.email);
