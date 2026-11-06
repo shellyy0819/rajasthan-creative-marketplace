@@ -40,9 +40,9 @@ export function BookingDialog() {
             </select>
           </label>
           {session?.user
-            ? <button className="button primary full" type="submit" disabled={reserving} aria-busy={reserving}>Reserve demo spot</button>
+            ? <button className="button primary full" type="submit" disabled={reserving} aria-busy={reserving}>Reserve spot</button>
             : <button className="button primary full" type="button" onClick={() => signIn('google')}>Sign in with Google to reserve</button>}
-          <p className="fine-print">Demo booking only. Paid workshops do not collect payment.</p>
+          <p className="fine-print">No payment is collected on Craftofy.</p>
         </form>
       )}
     </dialog>

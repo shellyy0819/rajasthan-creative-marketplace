@@ -156,7 +156,7 @@ export function HeroStall() {
       <line x1="374" y1="104" x2="374" y2="113" strokeWidth="2" className="st-s-woodd"/>
       <rect x="194" y="66" width="200" height="38" rx="5" className="st-f-board"/>
       <rect x="199" y="71" width="190" height="28" rx="3" fill="none" strokeWidth="1" className="st-s-mustard" opacity=".7"/>
-      <text x="294" y="90" textAnchor="middle" fontStyle="italic" fontSize="13" className="st-t-chalk">Maker&apos;s Row · Stall 12</text>
+      <text x="294" y="90" textAnchor="middle" fontStyle="italic" fontSize="13" className="st-t-chalk">Craftofy · Handmade</text>
 
       {/* sellers */}
       <path d="M166 478C164 424 172 398 188 398C204 398 212 424 210 478Z" className="st-f-indigo"/>
@@ -283,9 +283,9 @@ export function HeroStall() {
       <line x1="500" y1="586" x2="490" y2="660" strokeWidth="3" className="st-s-woodd"/><line x1="524" y1="586" x2="534" y2="660" strokeWidth="3" className="st-s-woodd"/>
       <rect x="480" y="548" width="64" height="44" rx="3" className="st-f-board"/>
       <rect x="480" y="548" width="64" height="44" rx="3" fill="none" strokeWidth="2" className="st-s-woodd"/>
-      <text x="512" y="562" textAnchor="middle" fontSize="6" fontWeight="600" letterSpacing="1.5" className="st-t-mustard">LIVE TODAY</text>
-      <text x="512" y="575" textAnchor="middle" fontSize="8" fontWeight="600" className="st-t-chalk">Block printing</text>
-      <text x="512" y="585" textAnchor="middle" fontSize="6.5" className="st-t-chalk" opacity=".85">4 pm · free to try</text>
+      <text x="512" y="562" textAnchor="middle" fontSize="6" fontWeight="600" letterSpacing="1.5" className="st-t-mustard">HANDMADE</text>
+      <text x="512" y="575" textAnchor="middle" fontSize="8" fontWeight="600" className="st-t-chalk">Meet the maker</text>
+      <text x="512" y="585" textAnchor="middle" fontSize="6.5" className="st-t-chalk" opacity=".85">Made across India</text>
       {/* badge */}
       <g transform="translate(550 92)">
       <circle r="38" className="st-f-chalk"/>

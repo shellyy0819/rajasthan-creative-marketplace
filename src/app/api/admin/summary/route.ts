@@ -12,5 +12,5 @@ export const GET = () => handle(async () => {
     db.select({ n: count() }).from(products), db.select({ n: count() }).from(workshops),
     db.select({ n: count() }).from(orders), db.select({ n: count() }).from(bookings), db.select({ n: count() }).from(users),
   ]);
-  return json({ products: p.n, workshops: w.n, orders: o.n, bookings: b.n, users: u.n, note: 'Demo summary; admin-only.' });
+  return json({ products: p.n, workshops: w.n, orders: o.n, bookings: b.n, users: u.n });
 });

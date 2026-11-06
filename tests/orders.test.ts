@@ -135,4 +135,11 @@ describe('large totals', () => {
     const b = await createBooking({ workshopId: 'w1', quantity: 215 }, 'a@b.co');
     expect(b.totalPaise).toBe(2_150_000_000);
   });
+
+  it('stored orders and bookings never say "Demo": fallback names and notes are plain', async () => {
+    const o = await createOrder({ items: [{ productId: 'p3', quantity: 1 }] }, 'buyer@x.co');
+    expect(o.customerName).toBe('Customer'); expect(o.note).not.toMatch(/demo/i);
+    const b = await createBooking({ workshopId: 'w1', quantity: 1 }, 'guest@x.co');
+    expect(b.attendeeName).toBe('Guest'); expect(b.note).not.toMatch(/demo/i);
+  });
 });

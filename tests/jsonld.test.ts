@@ -79,3 +79,9 @@ describe('productJsonLd imageUrl', () => {
     expect(j.image[1]).toBe('https://rr.test/products/crochet-lily-bouquet-p1/opengraph-image');
   });
 });
+
+describe('organizationJsonLd', () => {
+  it('lists the public contact address', () => {
+    expect((organizationJsonLd() as any).email).toBe('hello.craftofy@gmail.com');
+  });
+});
