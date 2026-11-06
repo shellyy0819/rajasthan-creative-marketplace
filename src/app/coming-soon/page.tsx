@@ -13,9 +13,22 @@ export const metadata: Metadata = pageMetadata({
 
 export const dynamic = 'force-dynamic'; // read CONTACT_EMAIL when the page is served, not when the image is built
 
+const INTEREST_BODY = `Hi Craftofy team,
+
+I'm interested in Craftofy and would love to hear when you open.
+
+Name:
+City:
+I am a (maker / shopper):
+What I make or would like to find on Craftofy:
+Instagram / website (optional):
+
+Please keep me posted on your launch. Thank you!
+`;
+
 export default function ComingSoonPage() {
   const email = contactEmail();
-  const INTEREST = `mailto:${email}?subject=Craftofy%20launch%20interest`;
+  const INTEREST = `mailto:${email}?subject=${encodeURIComponent('Craftofy launch interest')}&body=${encodeURIComponent(INTEREST_BODY)}`;
   const MAKER = `mailto:${email}?subject=Marketplace%20seller%20interest`;
   return (
     <section className="hero coming-soon">
