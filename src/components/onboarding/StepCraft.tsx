@@ -60,7 +60,7 @@ export function buildPayload(c: Craft, fullName: string, mobile: string) {
   return res.ok ? { ok: true as const, value: res.value } : { ok: false as const, errors: res.errors as FieldErrors };
 }
 
-export function StepCraft({ value, onChange, fullName, mobile, onBack, onSubmit, submitting = false }: {
+export function StepCraft({ value, onChange, fullName, mobile, onBack, onSubmit, submitting = false, serverErrors = {} }: {
   value: Craft;
   onChange: (patch: Partial<Craft>) => void;
   fullName: string;
@@ -68,6 +68,8 @@ export function StepCraft({ value, onChange, fullName, mobile, onBack, onSubmit,
   onBack: () => void;
   onSubmit: (payload: OnboardingInput) => void;
   submitting?: boolean;
+  /** Field errors the server returned (422); they clear as soon as the seller edits anything. */
+  serverErrors?: FieldErrors;
 }) {
   const [categories, setCategories] = useState<string[]>([]);
   const [categoriesDown, setCategoriesDown] = useState(false);
@@ -86,7 +88,7 @@ export function StepCraft({ value, onChange, fullName, mobile, onBack, onSubmit,
 
   // After the first Finish attempt the errors follow the fields live, so each one clears as soon as it is fixed.
   const result = buildPayload(value, fullName, mobile);
-  const errors: FieldErrors = submitted && !result.ok ? result.errors : {};
+  const errors: FieldErrors = { ...serverErrors, ...(submitted && !result.ok ? result.errors : {}) };
   const err = (k: keyof FieldErrors) => errors[k];
   const bad = (k: keyof FieldErrors) => (errors[k] ? true : undefined);
   const desc = (k: keyof FieldErrors, ...extra: string[]) => [errors[k] ? `err-${k}` : '', ...extra].filter(Boolean).join(' ') || undefined;
@@ -96,6 +98,15 @@ export function StepCraft({ value, onChange, fullName, mobile, onBack, onSubmit,
     contactMethods: value.contactMethods.includes(m) ? value.contactMethods.filter(x => x !== m) : [...value.contactMethods, m],
   });
   const categoryOptions = value.category && !categories.includes(value.category) ? [value.category, ...categories] : categories;
+
+  // A new set of server errors: bring the first one into view.
+  useEffect(() => {
+    const first = ORDER.find(k => serverErrors[k]);
+    if (!first) return;
+    const el = formRef.current?.querySelector<HTMLElement>(FOCUS[first]);
+    el?.scrollIntoView?.({ block: 'center' });
+    el?.focus();
+  }, [serverErrors]);
 
   function finish(e: React.FormEvent) {
     e.preventDefault();

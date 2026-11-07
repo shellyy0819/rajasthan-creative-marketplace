@@ -3048,3 +3048,73 @@ main {
     padding: 36px 40px;
   }
 }
+
+/* Onboarding submit feedback and done screen */
+.onboard-banner {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid #e0b9ad;
+  border-radius: 6px;
+  background: var(--white);
+  color: #a74d35;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.onboard-done h1:focus {
+  outline: none;
+}
+.onboard-done-mark {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--green);
+  color: var(--white);
+  display: grid;
+  place-items: center;
+}
+.onboard-next {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.onboard-next li {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.onboard-next-n {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--cream);
+  color: var(--green);
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.onboard-done-actions {
+  display: grid;
+  gap: 10px;
+}
+.onboard-done-actions .onboard-cta {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0;
+  text-decoration: none;
+}
+.onboard-done-link {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--green);
+}

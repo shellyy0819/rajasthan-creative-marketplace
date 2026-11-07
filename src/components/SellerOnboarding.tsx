@@ -1,12 +1,14 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { signIn } from 'next-auth/react';
 import { FieldError } from '@/components/onboarding/FieldError';
 import { EMPTY_CRAFT, StepCraft, sanitizeCraft, type Craft } from '@/components/onboarding/StepCraft';
-import { validateFullName, validateMobile, type OnboardingInput } from '@/lib/onboarding-validate';
+import { OnboardingDone } from '@/components/onboarding/OnboardingDone';
+import { validateFullName, validateMobile, type FieldErrors, type OnboardingInput } from '@/lib/onboarding-validate';
 
 export type SellerOnboardingProps = {
   initialName: string; initialEmail: string; postsUrl: string; postsUrlNew: string;
-  /** Called with the validated payload when the seller finishes (the API call is wired by the caller). */
+  /** Test seam: when given, Finish hands the validated payload to it instead of calling the API. */
   onSubmit?: (payload: OnboardingInput) => void;
 };
 
@@ -25,7 +27,11 @@ export function saveDraft(d: Draft) {
 
 type Errors = { fullName?: string; mobile?: string; craft?: Craft };
 
-export function SellerOnboarding({ initialName, initialEmail, onSubmit }: SellerOnboardingProps) {
+const STEP1_KEYS = ['fullName', 'mobile'];
+const STEP2_KEYS = ['brandName', 'category', 'description', 'cityRef', 'instagram', 'website', 'logoUrl', 'contactMethods', 'whatsapp'];
+const RETRY = 'Something went wrong. Please try again.';
+
+export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrlNew, onSubmit }: SellerOnboardingProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [fullName, setFullName] = useState(initialName);
   const [mobile, setMobile] = useState('');
@@ -36,6 +42,11 @@ export function SellerOnboarding({ initialName, initialEmail, onSubmit }: Seller
   const nameRef = useRef<HTMLInputElement>(null);
   const mobileRef = useRef<HTMLInputElement>(null);
   const touched = useRef(false);
+  const [serverErrors, setServerErrors] = useState<FieldErrors>({});
+  const [notice, setNotice] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const inFlight = useRef(false);
+  const [done, setDone] = useState<{ name: string; brand: string } | null>(null);
 
   // Restore once on mount. Idempotent (safe under StrictMode double-effects): it only reads, never writes, and
   // skips a draft from another account or anything the user has already typed.
@@ -52,6 +63,8 @@ export function SellerOnboarding({ initialName, initialEmail, onSubmit }: Seller
   // Drafts are written from event handlers only, never from an effect.
   function persist(patch: Partial<Draft>) {
     touched.current = true;
+    setServerErrors(e => (Object.keys(e).length ? {} : e));
+    setNotice('');
     saveDraft({ email: initialEmail, step, fullName, mobile, craft: craftRef.current, ...patch });
   }
 
@@ -73,6 +86,57 @@ export function SellerOnboarding({ initialName, initialEmail, onSubmit }: Seller
     setCraft(merged);
     persist({ craft: merged });
   }
+  async function submit(payload: OnboardingInput) {
+    if (onSubmit) { onSubmit(payload); return; }
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setSubmitting(true);
+    setNotice('');
+    try {
+      let res: Response;
+      try {
+        res = await fetch('/api/onboarding', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+      } catch { setNotice('We could not reach Craftofy. Check your connection and try again.'); return; }
+      let body: { errors?: unknown; error?: unknown } | null = null;
+      try { body = await res.json(); } catch { /* not JSON */ }
+      if (res.status === 200 && body) {
+        try { sessionStorage.removeItem(DRAFT_KEY); } catch { /* storage blocked */ }
+        setDone({ name: payload.fullName.trim().split(/\s+/)[0] || payload.fullName, brand: payload.brandName });
+        return;
+      }
+      if (res.status === 422 && body && body.errors && typeof body.errors === 'object') {
+        applyServerErrors(body.errors as FieldErrors);
+      } else if (res.status === 401) {
+        void signIn('google', { callbackUrl: '/sell' }); // the draft stays in sessionStorage
+        setNotice('Your session ended. Taking you to sign in again.');
+      } else if (res.status === 403) {
+        setNotice(typeof body?.error === 'string' && body.error ? body.error : 'This account cannot sell on Craftofy.');
+      } else if (res.status === 429) {
+        setNotice('Too many attempts. Please wait a minute and try again.');
+      } else {
+        setNotice(RETRY);
+      }
+    } finally {
+      inFlight.current = false;
+      setSubmitting(false);
+    }
+  }
+  function applyServerErrors(errs: FieldErrors) {
+    const clean: FieldErrors = {};
+    const loose: string[] = [];
+    for (const [k, v] of Object.entries(errs)) {
+      if (typeof v !== 'string' || !v) continue;
+      if (STEP1_KEYS.includes(k) || STEP2_KEYS.includes(k)) clean[k as keyof FieldErrors] = v;
+      else loose.push(v); // e.g. `form` or an unknown key: no field to hang it on, so say it at the top
+    }
+    setServerErrors(clean);
+    setNotice(loose.join(' '));
+    if (clean.fullName || clean.mobile) {
+      setErrors({ fullName: clean.fullName, mobile: clean.mobile });
+      setStep(1);
+      saveDraft({ email: initialEmail, step: 1, fullName, mobile, craft: craftRef.current }); // not persist(): that would clear the errors just set
+    } else if (!Object.keys(clean).length && !loose.length) setNotice(RETRY);
+  }
   function next(e: React.FormEvent) {
     e.preventDefault();
     const errs: Errors = { fullName: nameError(fullName), mobile: mobileError(mobile) };
@@ -83,10 +147,13 @@ export function SellerOnboarding({ initialName, initialEmail, onSubmit }: Seller
     persist({ step: 2 });
   }
 
+  if (done) return <section className="onboard-wrap"><div className="onboard-card"><OnboardingDone name={done.name} brand={done.brand} postsUrl={postsUrl} postsUrlNew={postsUrlNew} /></div></section>;
+
   return (
     <section className="onboard-wrap">
       <div className="onboard-card">
         <p className="onboard-step" aria-live="polite">Step {step} of 2: {step === 1 ? 'You' : 'Your craft'}</p>
+        {notice && <p className="onboard-banner" role="alert">{notice}</p>}
         {step === 1 ? (
           <form className="admin-form onboard-form" onSubmit={next} noValidate>
             <h1>Tell us about you</h1>
@@ -116,7 +183,7 @@ export function SellerOnboarding({ initialName, initialEmail, onSubmit }: Seller
           </form>
         ) : (
           <StepCraft value={craft} onChange={onCraft} fullName={fullName} mobile={mobile}
-            onBack={() => { setStep(1); persist({ step: 1 }); }} onSubmit={p => onSubmit?.(p)} />
+            onBack={() => { setStep(1); persist({ step: 1 }); }} onSubmit={p => void submit(p)} submitting={submitting} serverErrors={serverErrors} />
         )}
       </div>
     </section>
