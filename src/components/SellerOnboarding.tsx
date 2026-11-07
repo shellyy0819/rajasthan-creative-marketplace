@@ -6,7 +6,7 @@ import { validateFullName, validateMobile } from '@/lib/onboarding-validate';
 export type SellerOnboardingProps = { initialName: string; initialEmail: string; postsUrl: string; postsUrlNew: string };
 
 export const DRAFT_KEY = 'craftofy.onboarding';
-export type Draft = { step: 1 | 2; fullName?: string; mobile?: string };
+export type Draft = { email?: string; step: 1 | 2; fullName?: string; mobile?: string };
 
 export function loadDraft(): Draft | null {
   try {
@@ -27,30 +27,36 @@ export function SellerOnboarding({ initialName, initialEmail }: SellerOnboarding
   const [errors, setErrors] = useState<Errors>({});
   const nameRef = useRef<HTMLInputElement>(null);
   const mobileRef = useRef<HTMLInputElement>(null);
-  const loaded = useRef(false);
+  const touched = useRef(false);
 
+  // Restore once on mount. Idempotent (safe under StrictMode double-effects): it only reads, never writes, and
+  // skips a draft from another account or anything the user has already typed.
   useEffect(() => {
+    if (touched.current) return;
     const d = loadDraft();
-    if (d) {
-      if (typeof d.fullName === 'string') setFullName(d.fullName);
-      if (typeof d.mobile === 'string') setMobile(d.mobile);
-      if (d.step === 2) setStep(2);
-    }
-    loaded.current = true;
-  }, []);
-  useEffect(() => {
-    if (loaded.current) saveDraft({ step, fullName, mobile });
-  }, [step, fullName, mobile]);
+    if (!d || d.email !== initialEmail) return;
+    if (typeof d.fullName === 'string') setFullName(d.fullName);
+    if (typeof d.mobile === 'string') setMobile(d.mobile);
+    if (d.step === 2) setStep(2);
+  }, [initialEmail]);
+
+  // Drafts are written from event handlers only, never from an effect.
+  function persist(patch: Partial<Draft>) {
+    touched.current = true;
+    saveDraft({ email: initialEmail, step, fullName, mobile, ...patch });
+  }
 
   const nameError = (v: string) => { const r = validateFullName(v); return r.ok ? undefined : r.error; };
   const mobileError = (v: string) => { const r = validateMobile(v); return r.ok ? undefined : r.error; };
 
   function onName(v: string) {
     setFullName(v);
+    persist({ fullName: v });
     if (errors.fullName && !nameError(v)) setErrors(e => ({ ...e, fullName: undefined }));
   }
   function onMobile(v: string) {
     setMobile(v);
+    persist({ mobile: v });
     if (errors.mobile && !mobileError(v)) setErrors(e => ({ ...e, mobile: undefined }));
   }
   function next(e: React.FormEvent) {
@@ -60,6 +66,7 @@ export function SellerOnboarding({ initialName, initialEmail }: SellerOnboarding
     if (errs.fullName) { nameRef.current?.scrollIntoView?.({ block: 'center' }); nameRef.current?.focus(); return; }
     if (errs.mobile) { mobileRef.current?.scrollIntoView?.({ block: 'center' }); mobileRef.current?.focus(); return; }
     setStep(2);
+    persist({ step: 2 });
   }
 
   return (
@@ -97,7 +104,7 @@ export function SellerOnboarding({ initialName, initialEmail }: SellerOnboarding
           <div>
             <h1>Tell us about your craft</h1>
             <p className="onboard-lead">Step 2 coming in Task 7</p>
-            <button type="button" className="button" onClick={() => setStep(1)}>Back</button>
+            <button type="button" className="button" onClick={() => { setStep(1); persist({ step: 1 }); }}>Back</button>
           </div>
         )}
       </div>

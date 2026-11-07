@@ -2867,21 +2867,19 @@ main {
   background: var(--paper);
   font-size: 12px;
 }
-.field-error {
+.onboard-form .field-error {
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  margin: -6px 0 8px;
-  font-size: 11px;
+  margin: 0 0 8px;
   font-weight: 600;
-  color: #a74d35;
 }
-.field-error svg {
+.onboard-form .field-error svg {
   flex: none;
   margin-top: 1px;
 }
 .onboard-form input[aria-invalid='true'] {
-  border-color: #a74d35;
+  border-color: var(--danger);
 }
 @media (min-width: 900px) {
   .onboard-card {

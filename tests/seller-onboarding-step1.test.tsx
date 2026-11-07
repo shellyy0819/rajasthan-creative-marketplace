@@ -65,6 +65,33 @@ describe('onboarding step 1', () => {
     await waitFor(() => expect((screen.getByLabelText('Full name') as HTMLInputElement).value).toBe('Edited Name'));
     expect((screen.getByLabelText(/Mobile number/) as HTMLInputElement).value).toBe('9876543210');
   });
+  it('draft survives a remount inside StrictMode', async () => {
+    const first = render(<React.StrictMode><SellerOnboarding {...props} /></React.StrictMode>);
+    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Strict Name' } });
+    first.unmount();
+    render(<React.StrictMode><SellerOnboarding {...props} /></React.StrictMode>);
+    await waitFor(() => expect((screen.getByLabelText('Full name') as HTMLInputElement).value).toBe('Strict Name'));
+  });
+  it('a draft is not applied over what the user already typed', async () => {
+    sessionStorage.setItem('craftofy.onboarding', JSON.stringify({ email: 'c@x.co', step: 1, fullName: 'Old', mobile: '9999999999' }));
+    const getItem = Storage.prototype.getItem;
+    // The user types at the moment the restore effect reads storage.
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function (this: Storage, k: string) {
+      fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Typed' } });
+      return getItem.call(this, k);
+    });
+    render(<SellerOnboarding {...props} />);
+    await new Promise(r => setTimeout(r, 20));
+    expect((screen.getByLabelText('Full name') as HTMLInputElement).value).toBe('Typed');
+    expect((screen.getByLabelText(/Mobile number/) as HTMLInputElement).value).toBe('');
+  });
+  it('ignores a draft saved for a different email', async () => {
+    sessionStorage.setItem('craftofy.onboarding', JSON.stringify({ email: 'other@x.co', step: 2, fullName: 'Someone Else', mobile: '9876543210' }));
+    render(<SellerOnboarding {...props} />);
+    await new Promise(r => setTimeout(r, 20));
+    expect((screen.getByLabelText('Full name') as HTMLInputElement).value).toBe('Chai Maker');
+    expect(screen.getByText('Step 1 of 2: You')).toBeTruthy();
+  });
   it('works when sessionStorage throws', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
