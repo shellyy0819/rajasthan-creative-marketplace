@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
+import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm';
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import { getTestDb, giveRole, resetTestDb, snapshot } from './helpers/testdb';
@@ -260,4 +261,36 @@ describe('users, roles and profiles (new tables)', () => {
     expect(row.startsAt.toISOString()).toBe('2026-11-08T05:30:00.000Z');
   });
 });
+});
+
+describe('seller_profiles onboarding columns', () => {
+  const COLUMNS = ['website', 'category', 'logo_url', 'whatsapp', 'contact_methods', 'onboarded_at'];
+  const journal: { entries: { tag: string }[] } = JSON.parse(fs.readFileSync(path.resolve('drizzle/meta/_journal.json'), 'utf8'));
+  const applyMigration = async (client: PGlite, tag: string) => {
+    const text = fs.readFileSync(path.resolve('drizzle', `${tag}.sql`), 'utf8');
+    for (const stmt of text.split('--> statement-breakpoint')) if (stmt.trim()) await client.exec(stmt);
+  };
+
+  it('seller_profiles has onboarding columns', async () => {
+    const db = await getTestDb();
+    const res = await db.execute(`select column_name from information_schema.columns where table_name = 'seller_profiles'` as never) as unknown as { rows: { column_name: string }[] };
+    const names = res.rows.map(r => r.column_name);
+    for (const c of COLUMNS) expect(names).toContain(c);
+  });
+
+  it('existing profiles are backfilled as onboarded', async () => {
+    const idx = journal.entries.findIndex(e => e.tag.startsWith('0013_'));
+    expect(idx).toBeGreaterThan(0);
+    const client = new PGlite({ extensions: { pg_trgm } });
+    try {
+      for (const e of journal.entries.slice(0, idx)) await applyMigration(client, e.tag);
+      await client.exec(`insert into users (id, email, name) values ('00000000-0000-0000-0000-000000000001', 'old@x.co', 'Old')`);
+      await client.exec(`insert into seller_profiles (user_id, display_name) values ('00000000-0000-0000-0000-000000000001', 'Old Seller')`);
+      await applyMigration(client, journal.entries[idx].tag);
+      const r = await client.query<{ onboarded_at: Date | null; contact_methods: string[] }>('select onboarded_at, contact_methods from seller_profiles');
+      expect(r.rows).toHaveLength(1);
+      expect(r.rows[0].onboarded_at).not.toBeNull();
+      expect(r.rows[0].contact_methods).toEqual([]);
+    } finally { await client.close(); }
+  }, 30_000);
 });

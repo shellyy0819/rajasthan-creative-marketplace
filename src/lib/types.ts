@@ -26,8 +26,10 @@ export type Booking = {
   id: string; createdAt: string; userEmail: string; workshopId: string; title: string; attendeeName: string;
   email: string; quantity: number; totalPaise: number; status: string; note: string;
 };
+export type ContactMethod = 'whatsapp' | 'instagram' | 'website' | 'phone';
 export type SellerProfile = {
   userId: string; displayName: string; publicPhone?: string; publicEmail?: string; instagram?: string; youtube?: string; bio?: string; city?: string; cityId?: number;
+  website?: string; category?: string; logoUrl?: string; whatsapp?: string; contactMethods?: ContactMethod[]; onboardedAt?: string;
 };
 export type AdminUser = {
   id: string; email: string; name: string; active: boolean; roles: ('seller' | 'admin')[]; createdAt: string;
