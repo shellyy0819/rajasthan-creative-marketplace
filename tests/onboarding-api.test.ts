@@ -8,7 +8,7 @@ import { POST } from '@/app/api/onboarding/route';
 import { resetLimitersForTests } from '@/lib/engagement-limits';
 import { resolveRole } from '@/lib/roles';
 import { cityRef } from './helpers/cities';
-import { makeSeller, resetTestDb } from './helpers/testdb';
+import { giveRole, makeSeller, resetTestDb } from './helpers/testdb';
 import { getTestDb } from './helpers/testdb';
 import { sellerProfiles, userRoles, users } from '@/db/schema';
 import { ensureUser } from '@/db/people';
@@ -46,12 +46,22 @@ describe('POST /api/onboarding', () => {
     expect((await post(body())).status).toBe(403);
     expect(await resolveRole('off@x.co')).toBe('customer');
   });
-  it('403 when the account is deactivated in the database, and no role is granted', async () => {
-    const s = await makeSeller('off@x.co', 'Off');
-    await (await getTestDb()).update(users).set({ active: false }).where(eq(users.id, s.id));
+  it('403 when a roleless account is deactivated in the database: zero role rows, no profile', async () => {
+    const u = await giveRole('off@x.co', 'customer');
+    await (await getTestDb()).update(users).set({ active: false }).where(eq(users.id, u.id));
     as('off@x.co');
     expect((await post(body())).status).toBe(403);
-    expect(await resolveRole('off@x.co')).toBe('customer');
+    expect(await (await getTestDb()).select().from(userRoles).where(eq(userRoles.userId, u.id))).toHaveLength(0);
+    expect(await (await getTestDb()).select().from(sellerProfiles).where(eq(sellerProfiles.userId, u.id))).toHaveLength(0);
+  });
+  it('403 when an existing seller is deactivated: its role row and onboarded_at are unchanged', async () => {
+    const s = await makeSeller('offs@x.co', 'Off');
+    await (await getTestDb()).update(users).set({ active: false }).where(eq(users.id, s.id));
+    const before = await (await getTestDb()).select().from(userRoles).where(eq(userRoles.userId, s.id));
+    as('offs@x.co');
+    expect((await post(body())).status).toBe(403);
+    expect(await (await getTestDb()).select().from(userRoles).where(eq(userRoles.userId, s.id))).toEqual(before);
+    expect((await (await getTestDb()).select().from(sellerProfiles).where(eq(sellerProfiles.userId, s.id)))[0].onboardedAt).toBeNull();
   });
   it('an unknown category, an expired city pick and a non-http logo are 422s keyed to their field', async () => {
     as('new@x.co');
