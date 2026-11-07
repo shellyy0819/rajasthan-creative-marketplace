@@ -14,7 +14,7 @@ const pages = (dir: string): string[] =>
 
 describe('breadcrumbs on every inner page', () => {
   // The home page is the root, /dashboard only redirects to /dashboard/posts, and /coming-soon is a single-screen landing page.
-  const exempt = new Set(['src/app/page.tsx', 'src/app/dashboard/page.tsx', 'src/app/coming-soon/page.tsx', 'src/app/sell/page.tsx', 'src/app/seller-access/page.tsx']); // coming-soon and /sell are standalone landing/wizard screens; seller-access only redirects to /sell
+  const exempt = new Set(['src/app/page.tsx', 'src/app/dashboard/page.tsx', 'src/app/coming-soon/page.tsx', 'src/app/seller-access/page.tsx']); // coming-soon is a standalone landing screen; seller-access only redirects to /sell
   it('every page except the exempt ones renders <Breadcrumbs>', () => {
     const missing = pages('src/app').filter(f => !exempt.has(f) && !fs.readFileSync(f, 'utf8').includes('<Breadcrumbs'));
     expect(missing).toEqual([]);

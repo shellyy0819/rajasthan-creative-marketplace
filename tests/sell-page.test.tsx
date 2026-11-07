@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { isValidElement, type ReactElement } from 'react';
+import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
 
 const authMock = vi.hoisted(() => vi.fn());
 vi.mock('@/auth', () => ({ auth: authMock }));
@@ -10,12 +11,19 @@ import SellerAccessPage from '@/app/seller-access/page';
 import { SellerWelcome } from '@/components/SellerWelcome';
 import { SellerOnboarding } from '@/components/SellerOnboarding';
 
+/** The page wraps its content in a fragment with breadcrumbs; return the non-breadcrumb child. */
+function body(el: ReactElement): ReactElement {
+  const kids = Children.toArray((el.props as { children?: ReactNode }).children) as ReactElement[];
+  expect(kids[0].type).toBe(Breadcrumbs);
+  return kids[1];
+}
+
 beforeEach(() => { authMock.mockReset(); delete process.env.DASHBOARD_URL; });
 
 describe('/sell', () => {
   it('signed out renders the welcome page', async () => {
     authMock.mockResolvedValue(null);
-    const el = (await SellPage()) as ReactElement;
+    const el = body((await SellPage()) as ReactElement);
     expect(el.type).toBe(SellerWelcome);
   });
   it('sellers and admins go to the dashboard posts', async () => {
@@ -32,7 +40,7 @@ describe('/sell', () => {
   });
   it('roleless active account gets the onboarding form with session details', async () => {
     authMock.mockResolvedValue({ user: { email: 'c@x.co', name: 'Chai', role: 'customer', active: true } });
-    const el = (await SellPage()) as ReactElement<Record<string, string>>;
+    const el = body((await SellPage()) as ReactElement) as ReactElement<Record<string, string>>;
     expect(el.type).toBe(SellerOnboarding);
     expect(el.props).toMatchObject({ initialName: 'Chai', initialEmail: 'c@x.co', postsUrl: '/dashboard/posts', postsUrlNew: '/dashboard/posts?new=1' });
   });
@@ -40,8 +48,10 @@ describe('/sell', () => {
     authMock.mockResolvedValue({ user: { email: 'c@x.co', role: 'customer', active: false } });
     const el = (await SellPage()) as ReactElement;
     expect(isValidElement(el)).toBe(true);
-    expect(el.type).not.toBe(SellerOnboarding);
+    expect(JSON.stringify(el)).not.toContain('SellerOnboarding');
+    expect(body(el).type).not.toBe(SellerOnboarding);
     expect(JSON.stringify(el)).toContain('deactivated');
+    expect(JSON.stringify(el)).not.toContain('"main"');
   });
 });
 
