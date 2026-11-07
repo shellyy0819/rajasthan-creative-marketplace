@@ -34,7 +34,12 @@ async function openStep2(over: Partial<Craft> = {}) {
   await waitFor(() => expect(screen.getByRole('option', { name: 'Textiles' })).toBeTruthy());
   return onSubmit;
 }
-const finish = () => fireEvent.click(screen.getByRole('button', { name: 'Finish and add my first product' }));
+// Finish opens the draft-review notice when Step 2 is valid (see seller-onboarding-notice.test.tsx); confirm it to reach the submit.
+const finish = () => {
+  fireEvent.click(screen.getByRole('button', { name: 'Finish and add my first product' }));
+  const ok = screen.queryByRole('button', { name: 'Got it, finish' });
+  if (ok) fireEvent.click(ok);
+};
 /** The error text linked to a control through aria-describedby, and that the control is flagged invalid. */
 function errorOf(control: HTMLElement) {
   expect(control.getAttribute('aria-invalid')).toBe('true');

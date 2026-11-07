@@ -38,7 +38,7 @@ async function openStep2() {
   await waitFor(() => expect(screen.getByRole('option', { name: 'Textiles' })).toBeTruthy());
 }
 const btn = () => screen.getByRole('button', { name: 'Finish and add my first product' }) as HTMLButtonElement;
-const finish = () => fireEvent.click(btn());
+const finish = () => { fireEvent.click(btn()); fireEvent.click(screen.getByRole('button', { name: 'Got it, finish' })); };
 
 describe('onboarding submit', () => {
   const pending = () => { onboarding = () => new Promise(() => {}); };
@@ -47,7 +47,9 @@ describe('onboarding submit', () => {
   it('two submits in the same tick send one request (the in-flight ref guard)', async () => {
     pending();
     await openStep2();
-    act(() => { fireEvent.submit(form()); fireEvent.submit(form()); }); // one batch: no re-render between them, so only the ref can stop the second
+    fireEvent.click(btn());
+    const ok = screen.getByRole('button', { name: 'Got it, finish' });
+    act(() => { fireEvent.click(ok); fireEvent.click(ok); }); // one batch: no re-render between them, so only the guards can stop the second
     expect(posts).toBe(1);
   });
   it('a submit while pending is ignored and the button is disabled and busy (state guards)', async () => {

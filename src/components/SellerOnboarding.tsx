@@ -1,9 +1,10 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { FieldError } from '@/components/onboarding/FieldError';
 import { EMPTY_CRAFT, StepCraft, sanitizeCraft, type Craft } from '@/components/onboarding/StepCraft';
 import { OnboardingDone } from '@/components/onboarding/OnboardingDone';
+import { DraftNoticeDialog } from '@/components/onboarding/DraftNoticeDialog';
 import { validateFullName, validateMobile, type FieldErrors, type OnboardingInput } from '@/lib/onboarding-validate';
 
 export type SellerOnboardingProps = {
@@ -45,6 +46,9 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
   const [submitting, setSubmitting] = useState(false);
   const inFlight = useRef(false);
   const pendingFocus = useRef<'fullName' | 'mobile' | null>(null);
+  const [noticeOpen, setNoticeOpen] = useState(false);
+  const pendingPayload = useRef<OnboardingInput | null>(null); // validated payload waiting for the maker to confirm the draft notice
+  const cardRef = useRef<HTMLDivElement>(null);
   const [done, setDone] = useState<{ name: string; brand: string } | null>(null);
 
   // Restore once on mount. Idempotent (safe under StrictMode double-effects): it only reads, never writes, and
@@ -133,6 +137,18 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
       if (!keepLocked) { inFlight.current = false; setSubmitting(false); }
     }
   }
+  function askConfirm(p: OnboardingInput) { pendingPayload.current = p; setNoticeOpen(true); }
+  function confirmNotice() {
+    const p = pendingPayload.current; // taken once: a second click in the same tick finds nothing
+    pendingPayload.current = null;
+    setNoticeOpen(false);
+    if (p) void submit(p);
+  }
+  const cancelNotice = useCallback(() => {
+    pendingPayload.current = null;
+    setNoticeOpen(false);
+    cardRef.current?.querySelector<HTMLElement>('.onboard-finish')?.focus();
+  }, []);
   function applyServerErrors(errs: FieldErrors) {
     const clean: FieldErrors = {};
     const loose: string[] = [];
@@ -166,7 +182,7 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
 
   return (
     <section className="onboard-wrap">
-      <div className="onboard-card">
+      <div className="onboard-card" ref={cardRef}>
         <p className="onboard-step" aria-live="polite">Step {step} of 2: {step === 1 ? 'You' : 'Your craft'}</p>
         {notice && <p className="onboard-banner" role="alert">{notice}</p>}
         {step === 1 ? (
@@ -198,8 +214,9 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
           </form>
         ) : (
           <StepCraft value={craft} onChange={onCraft} fullName={fullName} mobile={mobile}
-            onBack={() => { setStep(1); persist({ step: 1 }); }} onSubmit={p => void submit(p)} submitting={submitting} serverErrors={serverErrors} />
+            onBack={() => { setStep(1); persist({ step: 1 }); }} onSubmit={askConfirm} submitting={submitting} serverErrors={serverErrors} />
         )}
+        <DraftNoticeDialog open={noticeOpen} onConfirm={confirmNotice} onCancel={cancelNotice} />
       </div>
     </section>
   );
