@@ -55,6 +55,12 @@ describe('keys and urls', () => {
   });
 });
 
+describe('logos area', () => {
+  it('keyFromUrl (the only way a product photo is accepted) rejects a logos/ url', () => {
+    expect(keyFromUrl(cfg, publicUrlFor(cfg, 'logos/U1/abc.png'))).toBeUndefined();
+  });
+});
+
 describe('presignProductUpload', () => {
   const fake = () => vi.fn(async (_c: unknown, opts: any) => ({ url: 'https://b.s3.ap-south-1.amazonaws.com/', fields: { ...opts.Fields, key: opts.Key } }));
 

@@ -11,6 +11,8 @@ import { cityRef } from './helpers/cities';
 import { makeSeller, resetTestDb } from './helpers/testdb';
 import { getTestDb } from './helpers/testdb';
 import { users } from '@/db/schema';
+import { ensureUser } from '@/db/people';
+import { getDb } from '@/db/client';
 import { eq } from 'drizzle-orm';
 
 const J = { 'content-type': 'application/json' };
@@ -91,6 +93,8 @@ describe('POST /api/onboarding', () => {
   });
   describe('with storage configured', () => {
     beforeEach(() => Object.assign(process.env, { S3_BUCKET: 'b', S3_REGION: 'ap-south-1', AWS_ACCESS_KEY_ID: 'k', AWS_SECRET_ACCESS_KEY: 's' }));
+    const BASE = 'https://b.s3.ap-south-1.amazonaws.com';
+    const idOf = async (email: string) => (await ensureUser(getDb(), email)).id;
     it('422 on logoUrl when it is not under the storage public base', async () => {
       as('new@x.co');
       const r = await post(body({ logoUrl: 'https://evil.example/logo.png' }));
@@ -100,11 +104,26 @@ describe('POST /api/onboarding', () => {
     });
     it('rejects a lookalike host prefix', async () => {
       as('new@x.co');
-      expect((await post(body({ logoUrl: 'https://b.s3.ap-south-1.amazonaws.com.evil.example/x.png' }))).status).toBe(422);
+      const id = await idOf('new@x.co');
+      expect((await post(body({ logoUrl: `https://b.s3.ap-south-1.amazonaws.com.evil.example/logos/${id}/x.png` }))).status).toBe(422);
     });
-    it('accepts a logo under the public base', async () => {
+    it('rejects a url under products/, even the caller own folder', async () => {
       as('new@x.co');
-      expect((await post(body({ logoUrl: 'https://b.s3.ap-south-1.amazonaws.com/products/u/x.png' }))).status).toBe(200);
+      const id = await idOf('new@x.co');
+      expect((await post(body({ logoUrl: `${BASE}/products/${id}/x.png` }))).status).toBe(422);
+      expect(await resolveRole('new@x.co')).toBe('customer');
+    });
+    it('rejects a url under another user logos folder, and nested or traversal paths', async () => {
+      as('new@x.co');
+      const id = await idOf('new@x.co');
+      const other = await idOf('other@x.co');
+      for (const logoUrl of [`${BASE}/logos/${other}/x.png`, `${BASE}/logos/${id}/a/x.png`, `${BASE}/logos/${id}/../${other}/x.png`, `${BASE}/logos/${id}/`, `${BASE}/logos/${id}/x.png?y=1`])
+        expect((await post(body({ logoUrl }))).status, logoUrl).toBe(422);
+    });
+    it('accepts the caller own logos/ url', async () => {
+      as('new@x.co');
+      const id = await idOf('new@x.co');
+      expect((await post(body({ logoUrl: `${BASE}/logos/${id}/x.png` }))).status).toBe(200);
     });
   });
 });

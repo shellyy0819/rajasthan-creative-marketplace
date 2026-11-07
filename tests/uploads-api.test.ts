@@ -103,6 +103,22 @@ describe('POST /api/uploads/seller-logo', () => {
       expect(Object.keys(await r.json()).sort()).toEqual(['fields', 'publicUrl', 'url']);
     }
   });
+  it('stores the logo under logos/<userId>/, and product-image still uses products/', async () => {
+    const s = await makeSeller('s@x.co', 'S'); as('s@x.co');
+    const l = await (await logo({ contentType: 'image/png', size: 1000 })).json();
+    expect(l.fields.key).toMatch(new RegExp(`^logos/${s.id}/[0-9a-f-]{36}\\.png$`));
+    expect(l.publicUrl).toBe(`https://b.s3.ap-south-1.amazonaws.com/${l.fields.key}`);
+    const p = await (await post({ contentType: 'image/png', size: 1000 })).json();
+    expect(p.fields.key).toMatch(new RegExp(`^products/${s.id}/`));
+  });
+  it('logo errors say JPG or PNG and never mention WebP', async () => {
+    as('new@x.co', 'customer');
+    const t = await (await logo({ contentType: 'image/webp', size: 10 })).json();
+    const z = await (await logo({ contentType: 'image/png', size: 5242881 })).json();
+    expect(t.error).toBe('Your logo must be a JPG or PNG.');
+    expect(z.error).toMatch(/logo/);
+    expect(JSON.stringify([t, z])).not.toMatch(/webp/i);
+  });
   it('rejects webp and over 5 MiB', async () => {
     as('new@x.co', 'customer');
     expect((await logo({ contentType: 'image/webp', size: 1000 })).status).toBe(400);
