@@ -1,12 +1,17 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { FieldError } from '@/components/onboarding/FieldError';
-import { validateFullName, validateMobile } from '@/lib/onboarding-validate';
+import { EMPTY_CRAFT, StepCraft, type Craft } from '@/components/onboarding/StepCraft';
+import { validateFullName, validateMobile, type OnboardingInput } from '@/lib/onboarding-validate';
 
-export type SellerOnboardingProps = { initialName: string; initialEmail: string; postsUrl: string; postsUrlNew: string };
+export type SellerOnboardingProps = {
+  initialName: string; initialEmail: string; postsUrl: string; postsUrlNew: string;
+  /** Called with the validated payload when the seller finishes (the API call is wired by the caller). */
+  onSubmit?: (payload: OnboardingInput) => void;
+};
 
 export const DRAFT_KEY = 'craftofy.onboarding';
-export type Draft = { email?: string; step: 1 | 2; fullName?: string; mobile?: string };
+export type Draft = { email?: string; step: 1 | 2; fullName?: string; mobile?: string; craft?: Craft };
 
 export function loadDraft(): Draft | null {
   try {
@@ -18,12 +23,15 @@ export function saveDraft(d: Draft) {
   try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch { /* storage blocked: the draft just is not kept */ }
 }
 
-type Errors = { fullName?: string; mobile?: string };
+type Errors = { fullName?: string; mobile?: string; craft?: Craft };
 
-export function SellerOnboarding({ initialName, initialEmail }: SellerOnboardingProps) {
+export function SellerOnboarding({ initialName, initialEmail, onSubmit }: SellerOnboardingProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [fullName, setFullName] = useState(initialName);
   const [mobile, setMobile] = useState('');
+  const [craft, setCraftState] = useState<Craft>(EMPTY_CRAFT);
+  const craftRef = useRef<Craft>(EMPTY_CRAFT); // latest value: an upload finishing later must not overwrite newer typing
+  const setCraft = (c: Craft) => { craftRef.current = c; setCraftState(c); };
   const [errors, setErrors] = useState<Errors>({});
   const nameRef = useRef<HTMLInputElement>(null);
   const mobileRef = useRef<HTMLInputElement>(null);
@@ -37,13 +45,14 @@ export function SellerOnboarding({ initialName, initialEmail }: SellerOnboarding
     if (touched.current || !d || d.email !== initialEmail) return; // re-check: an edit may land while the draft is being read
     if (typeof d.fullName === 'string') setFullName(d.fullName);
     if (typeof d.mobile === 'string') setMobile(d.mobile);
+    if (d.craft && typeof d.craft === 'object') setCraft({ ...EMPTY_CRAFT, ...d.craft });
     if (d.step === 2) setStep(2);
   }, [initialEmail]);
 
   // Drafts are written from event handlers only, never from an effect.
   function persist(patch: Partial<Draft>) {
     touched.current = true;
-    saveDraft({ email: initialEmail, step, fullName, mobile, ...patch });
+    saveDraft({ email: initialEmail, step, fullName, mobile, craft: craftRef.current, ...patch });
   }
 
   const nameError = (v: string) => { const r = validateFullName(v); return r.ok ? undefined : r.error; };
@@ -58,6 +67,11 @@ export function SellerOnboarding({ initialName, initialEmail }: SellerOnboarding
     setMobile(v);
     persist({ mobile: v });
     if (errors.mobile && !mobileError(v)) setErrors(e => ({ ...e, mobile: undefined }));
+  }
+  function onCraft(patch: Partial<Craft>) {
+    const merged = { ...craftRef.current, ...patch };
+    setCraft(merged);
+    persist({ craft: merged });
   }
   function next(e: React.FormEvent) {
     e.preventDefault();
@@ -101,11 +115,8 @@ export function SellerOnboarding({ initialName, initialEmail }: SellerOnboarding
             <button type="submit" className="button primary onboard-cta">Continue</button>
           </form>
         ) : (
-          <div>
-            <h1>Tell us about your craft</h1>
-            <p className="onboard-lead">Step 2 coming in Task 7</p>
-            <button type="button" className="button" onClick={() => { setStep(1); persist({ step: 1 }); }}>Back</button>
-          </div>
+          <StepCraft value={craft} onChange={onCraft} fullName={fullName} mobile={mobile}
+            onBack={() => { setStep(1); persist({ step: 1 }); }} onSubmit={p => onSubmit?.(p)} />
         )}
       </div>
     </section>
