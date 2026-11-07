@@ -3,7 +3,6 @@ import { productSlug, workshopSlug } from './catalog';
 import type { Product, Workshop } from './types';
 
 const CTX = 'https://schema.org';
-const price = (paise: number) => (paise / 100).toFixed(2);
 
 export const serializeJsonLd = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
 
@@ -30,18 +29,11 @@ export function productJsonLd(p: Product) {
     name: p.name, description: p.description, sku: p.id, category: p.category,
     image: [...(p.images?.length ? p.images : p.imageUrl ? [p.imageUrl] : []), abs(`${path}/opengraph-image`)],
     brand: { '@type': 'Brand', name: p.seller },
-    offers: {
-      '@type': 'Offer', url: abs(path), priceCurrency: 'INR', price: price(p.pricePaise),
-      availability: `https://schema.org/${p.stock > 0 ? 'InStock' : 'OutOfStock'}`,
-      itemCondition: 'https://schema.org/NewCondition',
-      seller: { '@type': 'Organization', name: p.seller },
-    },
   };
 }
 
 export function workshopJsonLd(w: Workshop) {
   const path = `/workshops/${workshopSlug(w)}`;
-  const left = Math.max(0, w.seats - w.booked);
   return {
     '@context': CTX, '@type': 'Event',
     name: w.title, description: w.description, url: abs(path),
@@ -54,12 +46,6 @@ export function workshopJsonLd(w: Workshop) {
       address: { '@type': 'PostalAddress', addressLocality: w.city, ...(w.cityState ? { addressRegion: w.cityState } : {}), addressCountry: 'IN' },
     },
     organizer: { '@type': 'Organization', name: w.host },
-    maximumAttendeeCapacity: w.seats,
-    remainingAttendeeCapacity: left,
-    offers: {
-      '@type': 'Offer', url: abs(path), priceCurrency: 'INR', price: price(w.pricePaise),
-      availability: `https://schema.org/${left > 0 ? 'InStock' : 'SoldOut'}`,
-    },
   };
 }
 
