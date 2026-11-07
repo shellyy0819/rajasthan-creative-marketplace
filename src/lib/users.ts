@@ -187,6 +187,8 @@ export async function saveProfile(userId: string, input: unknown): Promise<Selle
     if (logoUrl !== undefined) {
       // With uploads configured, a new logo must sit in this account's own logos/ folder; the stored one may be saved again.
       const cfg = storageConfig();
+      // No uploads configured in production: a new arbitrary link would be rendered as an image for admins.
+      if (logoUrl && logoUrl !== cur?.logoUrl && !cfg && process.env.NODE_ENV === 'production') throw fieldFail('logoUrl', 'Upload your logo.');
       if (logoUrl && logoUrl !== cur?.logoUrl && cfg && !isOwnLogoUrl(cfg, userId, logoUrl)) throw fieldFail('logoUrl', 'Upload your logo.');
       extra.logoUrl = logoUrl;
     }

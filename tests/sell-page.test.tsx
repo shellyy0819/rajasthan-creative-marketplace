@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
+import { Children, type ReactElement, type ReactNode } from 'react';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { InfoPage } from '@/components/InfoPage';
 
 const authMock = vi.hoisted(() => vi.fn());
 vi.mock('@/auth', () => ({ auth: authMock }));
@@ -46,12 +47,10 @@ describe('/sell', () => {
   });
   it('deactivated account sees a refusal and never the form', async () => {
     authMock.mockResolvedValue({ user: { email: 'c@x.co', role: 'customer', active: false } });
-    const el = (await SellPage()) as ReactElement;
-    expect(isValidElement(el)).toBe(true);
-    expect(JSON.stringify(el)).not.toContain('SellerOnboarding');
-    expect(body(el).type).not.toBe(SellerOnboarding);
-    expect(JSON.stringify(el)).toContain('deactivated');
-    expect(JSON.stringify(el)).not.toContain('"main"');
+    const el = body((await SellPage()) as ReactElement) as ReactElement<Record<string, string>>;
+    expect(el.type).toBe(InfoPage);
+    expect(el.props.title).toContain('deactivated');
+    expect(el.type).not.toBe(SellerOnboarding);
   });
 });
 

@@ -35,6 +35,13 @@ const finishBtn = () => screen.getByRole('button', { name: 'Finish and add my fi
 const clickFinish = () => { finishBtn().focus(); fireEvent.click(finishBtn()); };
 
 describe('draft-review notice before submit', () => {
+  it('the dialog is described by its body paragraph', async () => {
+    await openStep2();
+    clickFinish();
+    const dlg = screen.getByRole('dialog');
+    const id = dlg.getAttribute('aria-describedby')!;
+    expect(document.getElementById(id)?.textContent).toMatch(/starts as a draft/);
+  });
   it('does not open when Step 2 is invalid, and shows the inline errors', async () => {
     await openStep2({ brandName: '' });
     clickFinish();

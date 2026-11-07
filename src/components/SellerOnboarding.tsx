@@ -63,6 +63,15 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
     if (d.step === 2) setStep(2);
   }, [initialEmail]);
 
+  // Continue and Back unmount the pressed button, so focus would drop to the page: move it to the new step's heading instead.
+  // Only after the maker moved on their own, never on first mount or draft restore.
+  const moved = useRef(false);
+  useEffect(() => {
+    if (!moved.current) return;
+    moved.current = false;
+    cardRef.current?.querySelector<HTMLElement>('h1')?.focus();
+  }, [step]);
+
   // After a 422 sent the seller back to step 1, focus the first offending field once it is on screen.
   useEffect(() => {
     if (step !== 1 || !pendingFocus.current) return;
@@ -73,9 +82,11 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
   }, [step]);
 
   // Drafts are written from event handlers only, never from an effect.
-  function persist(patch: Partial<Draft>) {
+  // An edit clears the server error of the field(s) it touched only; other fields' errors stay until their own edit.
+  // The top banner goes away on any edit.
+  function persist(patch: Partial<Draft>, edited: string[] = []) {
     touched.current = true;
-    setServerErrors(e => (Object.keys(e).length ? {} : e));
+    if (edited.length) setServerErrors(e => (edited.some(k => k in e) ? Object.fromEntries(Object.entries(e).filter(([k]) => !edited.includes(k))) : e));
     setNotice('');
     saveDraft({ email: initialEmail, step, fullName, mobile, craft: craftRef.current, ...patch });
   }
@@ -85,18 +96,19 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
 
   function onName(v: string) {
     setFullName(v);
-    persist({ fullName: v });
+    persist({ fullName: v }, ['fullName']);
     if (errors.fullName && !nameError(v)) setErrors(e => ({ ...e, fullName: undefined }));
   }
   function onMobile(v: string) {
     setMobile(v);
-    persist({ mobile: v });
+    persist({ mobile: v }, ['mobile']);
     if (errors.mobile && !mobileError(v)) setErrors(e => ({ ...e, mobile: undefined }));
   }
   function onCraft(patch: Partial<Craft>) {
     const merged = { ...craftRef.current, ...patch };
     setCraft(merged);
-    persist({ craft: merged });
+    const keyOf: Record<string, string[]> = { city: ['cityRef'], sameAsMobile: ['whatsapp'], contactMethods: ['contactMethods', 'whatsapp'] };
+    persist({ craft: merged }, Object.keys(patch).flatMap(k => keyOf[k] ?? [k]));
   }
   async function submit(payload: OnboardingInput) {
     if (inFlight.current) return;
@@ -174,6 +186,7 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
     setErrors(errs);
     if (errs.fullName) { nameRef.current?.scrollIntoView?.({ block: 'center' }); nameRef.current?.focus(); return; }
     if (errs.mobile) { mobileRef.current?.scrollIntoView?.({ block: 'center' }); mobileRef.current?.focus(); return; }
+    moved.current = true;
     setStep(2);
     persist({ step: 2 });
   }
@@ -187,7 +200,7 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
         {notice && <p className="onboard-banner" role="alert">{notice}</p>}
         {step === 1 ? (
           <form className="admin-form onboard-form" onSubmit={next} noValidate>
-            <h1>Tell us about you</h1>
+            <h1 tabIndex={-1}>Tell us about you</h1>
             <p className="onboard-lead">We took your name and email from Google. Add a mobile number so Craftofy can reach you.</p>
             <label>
               <span className="lbl">Full name</span>
@@ -214,7 +227,7 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
           </form>
         ) : (
           <StepCraft value={craft} onChange={onCraft} fullName={fullName} mobile={mobile}
-            onBack={() => { setStep(1); persist({ step: 1 }); }} onSubmit={askConfirm} submitting={submitting} serverErrors={serverErrors} />
+            onBack={() => { moved.current = true; setStep(1); persist({ step: 1 }); }} onSubmit={askConfirm} submitting={submitting} serverErrors={serverErrors} />
         )}
         <DraftNoticeDialog open={noticeOpen} onConfirm={confirmNotice} onCancel={cancelNotice} />
       </div>

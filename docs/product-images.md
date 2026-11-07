@@ -19,13 +19,15 @@ Bucket, **Permissions**, **Bucket policy**:
     "Action": "s3:GetObject",
     "Resource": [
       "arn:aws:s3:::craftology-photos-dev/products/*",
-      "arn:aws:s3:::craftology-photos-dev/dev/products/*"
+      "arn:aws:s3:::craftology-photos-dev/dev/products/*",
+      "arn:aws:s3:::craftology-photos-dev/logos/*",
+      "arn:aws:s3:::craftology-photos-dev/dev/logos/*"
     ]
   }]
 }
 
 ```
-Replace `YOUR-BUCKET`. Only the `products/` folders are readable; listing the bucket stays private.
+Replace `craftology-photos-dev` with your bucket name. Only the `products/` and `logos/` folders are readable; listing the bucket stays private.
 
 ## 3. Allow uploads from the website (CORS)
 Bucket, **Permissions**, **Cross-origin resource sharing (CORS)**:
@@ -49,13 +51,18 @@ IAM, **Users**, **Create user** (no console access), then attach an inline polic
     "Action": ["s3:PutObject", "s3:DeleteObject"],
     "Resource": [
       "arn:aws:s3:::craftology-photos-dev/products/*",
-      "arn:aws:s3:::craftology-photos-dev/dev/products/*"
+      "arn:aws:s3:::craftology-photos-dev/dev/products/*",
+      "arn:aws:s3:::craftology-photos-dev/logos/*",
+      "arn:aws:s3:::craftology-photos-dev/dev/logos/*"
     ]
   }]
 }
 
 ```
 Then **Security credentials**, **Create access key**, use case "Application running outside AWS". Copy the key id and secret once. They go into `.env.local` (development) or `.env.backend` (production) and **never into git**.
+
+## Seller logos
+Seller onboarding uploads each brand logo (JPG or PNG, at least 400 by 400, 5 MB) the same way, to `logos/<userId>/` (or `<S3_KEY_PREFIX>logos/<userId>/`) through `POST /api/uploads/seller-logo`. The `logos/*` and `dev/logos/*` entries in the bucket policy (step 2) and the IAM policy (step 4) are required; without them logos upload but are not readable, or the upload is refused. The CORS rule in step 3 is origin-based, so it needs no change.
 
 ## 5. Settings
 | Variable | Meaning |

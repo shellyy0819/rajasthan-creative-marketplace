@@ -21,11 +21,19 @@ export const POST = (req: Request) => handle(async () => {
   if (!checked.ok) return json({ errors: checked.errors }, 422);
   // With uploads configured, the logo must be a file our own logo upload route handed out for this account, not an arbitrary link.
   const cfg = storageConfig();
+  // Without uploads configured, only a non-production build accepts a plain link: in production an arbitrary URL would be rendered as an image for admins.
+  if (!cfg && process.env.NODE_ENV === 'production') return json({ errors: { logoUrl: 'Upload your logo.' } }, 422);
   if (cfg) {
     const me = await ensureUser(getDb(), user.email);
     if (!isOwnLogoUrl(cfg, me.id, checked.value.logoUrl)) return json({ errors: { logoUrl: 'Upload your logo.' } }, 422);
   }
-  const result = await completeOnboarding(user.email, checked.value);
+  let result;
+  try { result = await completeOnboarding(user.email, checked.value); }
+  catch (e) {
+    // A fixable problem tied to one field (unknown category, expired city pick) is a field error like any other.
+    if (e instanceof ApiError && e.status === 400 && e.field) return json({ errors: { [e.field]: e.message } }, 422);
+    throw e;
+  }
   revalidatePath('/', 'layout');
   return json({ status: result.status }, 200, { 'cache-control': 'no-store' });
 });

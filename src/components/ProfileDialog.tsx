@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
+import { PHONE_HINT, PHONE_PATTERN, normalizePhone } from '@/lib/phone';
+import { EMAIL_RE } from '@/lib/validate';
 import { validateContactMethods, validateWebsite, validateWhatsapp } from '@/lib/onboarding-validate';
 import type { ContactMethod, SellerProfile } from '@/lib/types';
 import { CityInput } from './CityInput';
@@ -24,7 +25,7 @@ const METHODS: { id: ContactMethod; label: string }[] = [
   { id: 'whatsapp', label: 'WhatsApp' }, { id: 'instagram', label: 'Instagram' }, { id: 'website', label: 'Website' }, { id: 'phone', label: 'Phone' },
 ];
 /** Server field names that map onto a control in this dialog, in page order (the first one gets focus). */
-const ORDER = ['displayName', 'publicPhone', 'instagram', 'website', 'category', 'logoUrl', 'contactMethods', 'whatsapp'] as const;
+const ORDER = ['displayName', 'publicPhone', 'publicEmail', 'instagram', 'website', 'category', 'logoUrl', 'contactMethods', 'whatsapp'] as const;
 type ErrKey = (typeof ORDER)[number];
 const field = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 /** A chosen suggestion (signed cityRef) or the untouched current city (cityId); neither clears the artist city. */
@@ -97,6 +98,9 @@ export function ProfileDialog({ title, initial, url, accountEmail, canUploadLogo
           if (saving || logoBusy) return;
           const f = new FormData(e.currentTarget);
           const local: Partial<Record<ErrKey, string>> = {};
+          if (!field(f, 'displayName')) local.displayName = 'Enter a display name.';
+          const phone = field(f, 'publicPhone'); if (phone && !normalizePhone(phone)) local.publicPhone = PHONE_HINT;
+          const mail = field(f, 'publicEmail'); if (mail && !EMAIL_RE.test(mail)) local.publicEmail = 'Enter a valid email address.';
           const web = validateWebsite(field(f, 'website')); if (!web.ok) local.website = web.error;
           const wa = validateWhatsapp(field(f, 'whatsapp')); if (!wa.ok) local.whatsapp = wa.error;
           if (methods.length) {
@@ -131,7 +135,8 @@ export function ProfileDialog({ title, initial, url, accountEmail, canUploadLogo
           <div className="admin-form-row">
             <label>Public phone<input name="publicPhone" type="tel" inputMode="tel" maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="9989898999" defaultValue={initial.publicPhone ?? ''} aria-invalid={bad('publicPhone')} aria-describedby={desc('publicPhone')} />
               <FieldError id="err-profile-publicPhone" message={errors.publicPhone} /></label>
-            <label>Public email<input ref={emailRef} name="publicEmail" type="email" maxLength={200} defaultValue={initial.publicEmail ?? ''} />
+            <label>Public email<input ref={emailRef} name="publicEmail" type="email" maxLength={200} defaultValue={initial.publicEmail ?? ''} aria-invalid={bad('publicEmail')} aria-describedby={desc('publicEmail')} />
+              <FieldError id="err-profile-publicEmail" message={errors.publicEmail} />
               <small>Shown publicly on your product pages. Leave empty to hide it.</small>
               {accountEmail && <button type="button" className="button" style={{ marginTop: 6 }} onClick={() => { if (emailRef.current) emailRef.current.value = accountEmail; }}>Use my sign-in email ({accountEmail})</button>}
             </label>

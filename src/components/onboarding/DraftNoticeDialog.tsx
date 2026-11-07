@@ -33,9 +33,9 @@ export function DraftNoticeDialog({ open, onConfirm, onCancel }: { open: boolean
   if (!open) return null;
   return createPortal(
     <div className="contact-backdrop admin-modal" onClick={e => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={cardRef} role="dialog" aria-modal="true" aria-labelledby="draft-notice-title" className="contact-card">
+      <div ref={cardRef} role="dialog" aria-modal="true" aria-labelledby="draft-notice-title" aria-describedby="draft-notice-body" className="contact-card">
         <div className="dialog-head"><h2 id="draft-notice-title">Before you add your products</h2></div>
-        <p>Every product you add starts as a draft. Once an admin reviews it, it is published automatically.</p>
+        <p id="draft-notice-body">Every product you add starts as a draft. Once an admin reviews it, it is published automatically.</p>
         <div className="admin-actions">
           <button type="button" className="button" onClick={onCancel}>Go back</button>
           <button ref={confirmRef} type="button" className="button primary" onClick={onConfirm}>Got it, finish</button>

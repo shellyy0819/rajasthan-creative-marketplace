@@ -93,6 +93,47 @@ describe('ProfileDialog onboarding fields', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('publicEmail must be a valid email address.');
   });
 
+  describe('client-side checks before the PUT', () => {
+    const puts = () => fetchMock.mock.calls.filter(c => c[1]?.method === 'PUT').length;
+    it('a blank display name shows a message next to the field and focuses it, without calling the server', () => {
+      open();
+      fill(/^Display name/, '   '); save();
+      const input = screen.getByLabelText(/^Display name/);
+      expect(screen.getByText('Enter a display name.').closest('#err-profile-displayName')).toBeTruthy();
+      expect(input.getAttribute('aria-invalid')).toBe('true');
+      expect(input.getAttribute('aria-describedby')).toBe('err-profile-displayName');
+      expect(document.activeElement).toBe(input);
+      expect(puts()).toBe(0);
+    });
+    it('a bad public phone shows the phone hint inline', () => {
+      open();
+      fill(/^Public phone/, '12345'); save();
+      expect(screen.getByText('Enter a valid Indian mobile number, e.g. 9989898999 or +91 99898 98999.').closest('#err-profile-publicPhone')).toBeTruthy();
+      expect(screen.getByLabelText(/^Public phone/).getAttribute('aria-invalid')).toBe('true');
+      expect(puts()).toBe(0);
+    });
+    it('a good phone with a separator passes', async () => {
+      open();
+      fill(/^Public phone/, '+91 99898 98999'); save();
+      await waitFor(() => expect(puts()).toBe(1));
+    });
+    it('a bad public email shows a message inline', () => {
+      open();
+      fill(/^Public email/, 'not-an-email'); save();
+      expect(screen.getByText('Enter a valid email address.').closest('#err-profile-publicEmail')).toBeTruthy();
+      expect(screen.getByLabelText(/^Public email/).getAttribute('aria-invalid')).toBe('true');
+      expect(puts()).toBe(0);
+    });
+    it('focus goes to the first invalid field in page order, and editing a field clears its message', () => {
+      open();
+      fill(/^Display name/, ''); fill(/^Public email/, 'x'); save();
+      expect(document.activeElement).toBe(screen.getByLabelText(/^Display name/));
+      fill(/^Display name/, 'Shauk');
+      expect(screen.queryByText('Enter a display name.')).toBeNull();
+      expect(screen.getByText('Enter a valid email address.')).toBeTruthy();
+    });
+  });
+
   it('existing fields still submit as before', async () => {
     open();
     fill(/^Display name/, 'New Name'); fill(/^Instagram/, 'newname'); fill(/^About the artist/, 'Potter.');

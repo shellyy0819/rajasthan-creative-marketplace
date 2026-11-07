@@ -68,6 +68,25 @@ describe('completeOnboarding', () => {
     expect(await profile(first.userId)).toEqual(before);
     expect((await byEmail('new@x.co')).name).toBe('Asha Verma');
   });
+  it('a user whose role was removed after onboarding is refused with 403 and gets no role back', async () => {
+    const first = await completeOnboarding('rm@x.co', input());
+    await (await getTestDb()).delete(userRoles).where(eq(userRoles.userId, first.userId));
+    await expect(completeOnboarding('rm@x.co', input())).rejects.toMatchObject({ status: 403, message: 'Your seller access was removed. Please contact Craftofy.' });
+    expect(await roles(first.userId)).toHaveLength(0);
+    expect(await resolveRole('rm@x.co')).toBe('customer');
+  });
+  it('a roleless account whose profile has no onboarded_at still onboards', async () => {
+    const u = await giveRole('fresh@x.co', 'customer');
+    await (await getTestDb()).insert(sellerProfiles).values({ userId: u.id, displayName: 'X' });
+    expect((await completeOnboarding('fresh@x.co', input())).status).toBe('created');
+    expect(await resolveRole('fresh@x.co')).toBe('seller');
+  });
+  it('unknown category and bad city pick fail with a field', async () => {
+    await expect(completeOnboarding('f@x.co', input({ category: 'Nonexistent' }))).rejects.toMatchObject({ status: 400, field: 'category' });
+    await expect(completeOnboarding('f@x.co', input({ cityRef: 'garbage' }))).rejects.toMatchObject({ status: 400, field: 'cityRef', message: 'Pick your city from the list.' });
+    await expect(completeOnboarding('f@x.co', input({ logoUrl: 'ftp://x/y.png' }))).rejects.toMatchObject({ status: 400, field: 'logoUrl' });
+    expect(await resolveRole('f@x.co')).toBe('customer');
+  });
   it('deactivated user refused and gets no role', async () => {
     const u = await giveRole('off@x.co', 'customer');
     await (await getTestDb()).update(users).set({ active: false }).where(eq(users.id, u.id));

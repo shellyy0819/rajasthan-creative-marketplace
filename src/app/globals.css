@@ -3072,7 +3072,7 @@ main {
   flex: 1;
   border-color: var(--green);
   background: var(--green);
-  color: var(--white);
+  color: #fff;
 }
 @media (min-width: 900px) {
   .onboard-card {
@@ -3099,7 +3099,7 @@ main {
   height: 64px;
   border-radius: 50%;
   background: var(--green);
-  color: var(--white);
+  color: #fff;
   display: grid;
   place-items: center;
 }

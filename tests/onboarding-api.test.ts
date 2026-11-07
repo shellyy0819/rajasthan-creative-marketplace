@@ -10,7 +10,7 @@ import { resolveRole } from '@/lib/roles';
 import { cityRef } from './helpers/cities';
 import { makeSeller, resetTestDb } from './helpers/testdb';
 import { getTestDb } from './helpers/testdb';
-import { users } from '@/db/schema';
+import { sellerProfiles, userRoles, users } from '@/db/schema';
 import { ensureUser } from '@/db/people';
 import { getDb } from '@/db/client';
 import { eq } from 'drizzle-orm';
@@ -51,6 +51,41 @@ describe('POST /api/onboarding', () => {
     await (await getTestDb()).update(users).set({ active: false }).where(eq(users.id, s.id));
     as('off@x.co');
     expect((await post(body())).status).toBe(403);
+    expect(await resolveRole('off@x.co')).toBe('customer');
+  });
+  it('an unknown category, an expired city pick and a non-http logo are 422s keyed to their field', async () => {
+    as('new@x.co');
+    let r = await post(body({ category: 'Deleted Category' }));
+    expect(r.status).toBe(422);
+    expect(typeof (await r.json()).errors.category).toBe('string');
+    r = await post(body({ cityRef: 'expired.garbage' }));
+    expect(r.status).toBe(422);
+    expect((await r.json()).errors).toEqual({ cityRef: 'Pick your city from the list.' });
+    r = await post(body({ logoUrl: 'ftp://x.example/logo.png' }));
+    expect(r.status).toBe(422);
+    expect(typeof (await r.json()).errors.logoUrl).toBe('string');
+    expect(await resolveRole('new@x.co')).toBe('customer');
+  });
+  it('403 with the refusal message when an admin removed the role after onboarding; no role comes back', async () => {
+    as('rm@x.co');
+    expect((await post(body())).status).toBe(200);
+    const me = await ensureUser(getDb(), 'rm@x.co');
+    await (await getTestDb()).delete(userRoles).where(eq(userRoles.userId, me.id));
+    const r = await post(body());
+    expect(r.status).toBe(403);
+    expect((await r.json()).error).toBe('Your seller access was removed. Please contact Craftofy.');
+    expect(await resolveRole('rm@x.co')).toBe('customer');
+  });
+  it('in production without storage configured, a plain logo link is a 422 (nothing granted); outside production it is accepted', async () => {
+    as('new@x.co');
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      const r = await post(body());
+      expect(r.status).toBe(422);
+      expect((await r.json()).errors.logoUrl).toBe('Upload your logo.');
+      expect(await resolveRole('new@x.co')).toBe('customer');
+    } finally { vi.unstubAllEnvs(); }
+    expect((await post(body())).status).toBe(200);
   });
   it('422 returns field-keyed errors', async () => {
     as('new@x.co');

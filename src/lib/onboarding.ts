@@ -5,8 +5,8 @@ import { sellerProfiles, userRoles, users } from '../db/schema';
 import { roleFor } from './authz';
 import { canonicalCategory } from './categories';
 import { resolveCityInput } from './cities';
+import { CITY_ERROR, isHttpUrl, validateOnboarding, type OnboardingInput } from './onboarding-validate';
 import { ApiError } from './errors';
-import { isHttpUrl, validateOnboarding, type OnboardingInput } from './onboarding-validate';
 
 export type OnboardingResult = { status: 'created' | 'completed' | 'unchanged'; userId: string };
 
@@ -19,7 +19,7 @@ export async function completeOnboarding(email: string, input: OnboardingInput):
   const checked = validateOnboarding(input);
   if (!checked.ok) throw new ApiError(400, Object.values(checked.errors)[0] ?? 'Invalid request.');
   const v = checked.value;
-  if (!isHttpUrl(v.logoUrl)) throw new ApiError(400, 'Upload your logo.');
+  if (!isHttpUrl(v.logoUrl)) throw new ApiError(400, 'Upload your logo.', 'logoUrl');
 
   return getDb().transaction(async tx => {
     const found = await ensureUser(tx, email);
@@ -34,11 +34,17 @@ export async function completeOnboarding(email: string, input: OnboardingInput):
     const isStaff = hasSeller || ids.includes(ROLE_ID.admin) || roleFor(u.email) === 'admin';
 
     const [existing] = await tx.select({ onboardedAt: sellerProfiles.onboardedAt }).from(sellerProfiles).where(eq(sellerProfiles.userId, u.id));
-    // Deliberate: a user without a role but with a stale onboarded_at is re-granted the role and returns 'created'.
     if (isStaff && existing?.onboardedAt) return { status: 'unchanged', userId: u.id };
+    // An admin removed this account's role after it onboarded: a seller must not be able to undo that by onboarding again.
+    if (!isStaff && existing?.onboardedAt) throw new ApiError(403, 'Your seller access was removed. Please contact Craftofy.');
 
-    const category = await canonicalCategory(tx, v.category);
-    const cityId = await resolveCityInput(tx, v, { required: true });
+    // Failures the maker can fix are tied to their field so the form shows them there (the route answers 422).
+    let category: string;
+    try { category = await canonicalCategory(tx, v.category); }
+    catch (e) { throw e instanceof ApiError ? new ApiError(400, e.message, 'category') : e; }
+    let cityId: number | null;
+    try { cityId = await resolveCityInput(tx, v, { required: true }); }
+    catch (e) { throw e instanceof ApiError ? new ApiError(400, e.status === 409 ? e.message : CITY_ERROR, 'cityRef') : e; }
 
     const status: OnboardingResult['status'] = isStaff ? 'completed' : 'created';
     if (!isStaff) await grantRole(tx, u.id, 'seller', u.id);

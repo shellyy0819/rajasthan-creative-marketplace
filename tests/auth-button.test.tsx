@@ -66,6 +66,6 @@ describe('entry points (source contract)', () => {
     expect(home).not.toContain('ListingRequestButton');
   });
   it('footer Seller login link still present', () => {
-    expect(fs.readFileSync('src/components/Footer.tsx', 'utf8')).toMatch(/Seller login/);
+    expect(fs.readFileSync('src/components/Footer.tsx', 'utf8')).toMatch(/href="\/sell"[^>]*>Seller login/);
   });
 });

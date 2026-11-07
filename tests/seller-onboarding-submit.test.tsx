@@ -83,6 +83,28 @@ describe('onboarding submit', () => {
     expect(screen.queryByText('Brand taken.')).toBeNull();
   });
 
+  it('editing one field clears only that field server error; the others stay', async () => {
+    onboarding = async () => reply(422, { errors: { brandName: 'Brand taken.', category: 'That category was removed.' } });
+    await openStep2(); finish();
+    const input = await screen.findByLabelText('Business or brand name');
+    await screen.findByText('That category was removed.');
+    fireEvent.change(input, { target: { value: 'Other' } });
+    expect(screen.queryByText('Brand taken.')).toBeNull();
+    expect(screen.getByText('That category was removed.')).toBeTruthy();
+  });
+
+  it('focus moves to the new step heading on Continue and Back, but not on first mount', async () => {
+    render(<SellerOnboarding {...props} />);
+    expect(document.activeElement).toBe(document.body);
+    fireEvent.change(screen.getByLabelText(/Mobile number/), { target: { value: '9876543210' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await screen.findByText('Step 2 of 2: Your craft');
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Tell customers about your craft' }));
+    fireEvent.click(screen.getByRole('button', { name: /Back/ }));
+    await screen.findByText('Step 1 of 2: You');
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Tell us about you' }));
+  });
+
   it('422 returns to step 1 when name or mobile is wrong', async () => {
     onboarding = async () => reply(422, { errors: { mobile: 'Enter a 10-digit mobile number.', brandName: 'Brand taken.' } });
     await openStep2(); finish();

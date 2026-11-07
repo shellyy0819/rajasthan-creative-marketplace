@@ -35,7 +35,7 @@ export async function Footer() {
         <Column title="Let Us Help You">
           <li><Link href="/help">How it works</Link></li>
           <li><a href={makerMail}>For makers</a></li>
-          <li><Link href="/dashboard" prefetch={false}>Seller login</Link></li>
+          <li><Link href="/sell" prefetch={false}>Seller login</Link></li>
           {/* <li><CookieSettings /></li> */}
         </Column>
         {/* {cities.length > 0 && (

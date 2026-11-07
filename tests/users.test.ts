@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { createUser, deleteUser, getProfileByEmail, listUsers, saveProfile, updateUser } from '@/lib/users';
 import { createProduct, createWorkshop } from '@/lib/admin';
@@ -228,5 +228,10 @@ describe('seller profiles: onboarding fields', () => {
     const s = await makeSeller('s@x.co', 'S');
     await expect(saveProfile(s.id, { displayName: 'S', logoUrl: 'javascript:alert(1)' })).rejects.toMatchObject({ status: 400, field: 'logoUrl' });
     expect((await saveProfile(s.id, { displayName: 'S', logoUrl: 'https://cdn.example.com/a.png' })).logoUrl).toBe('https://cdn.example.com/a.png');
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      await expect(saveProfile(s.id, { displayName: 'S', logoUrl: 'https://cdn.example.com/b.png' })).rejects.toMatchObject({ status: 400, field: 'logoUrl', message: 'Upload your logo.' });
+      expect((await saveProfile(s.id, { displayName: 'S', logoUrl: 'https://cdn.example.com/a.png' })).logoUrl).toBe('https://cdn.example.com/a.png'); // the stored one may be saved again
+    } finally { vi.unstubAllEnvs(); }
   });
 });
