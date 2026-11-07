@@ -34,7 +34,7 @@ export function SellerOnboarding({ initialName, initialEmail }: SellerOnboarding
   useEffect(() => {
     if (touched.current) return;
     const d = loadDraft();
-    if (!d || d.email !== initialEmail) return;
+    if (touched.current || !d || d.email !== initialEmail) return; // re-check: an edit may land while the draft is being read
     if (typeof d.fullName === 'string') setFullName(d.fullName);
     if (typeof d.mobile === 'string') setMobile(d.mobile);
     if (d.step === 2) setStep(2);

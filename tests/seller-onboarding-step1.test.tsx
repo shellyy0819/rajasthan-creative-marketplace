@@ -75,20 +75,21 @@ describe('onboarding step 1', () => {
   it('a draft is not applied over what the user already typed', async () => {
     sessionStorage.setItem('craftofy.onboarding', JSON.stringify({ email: 'c@x.co', step: 1, fullName: 'Old', mobile: '9999999999' }));
     const getItem = Storage.prototype.getItem;
-    // The user types at the moment the restore effect reads storage.
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function (this: Storage, k: string) {
+    // The user types at the moment the restore effect reads storage. Read the stored draft first (typing re-saves the draft).
+    const getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function (this: Storage, k: string) {
+      const stored = getItem.call(this, k);
       fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Typed' } });
-      return getItem.call(this, k);
+      return stored;
     });
     render(<SellerOnboarding {...props} />);
-    await new Promise(r => setTimeout(r, 20));
+    await waitFor(() => expect(getItemSpy).toHaveBeenCalled());
     expect((screen.getByLabelText('Full name') as HTMLInputElement).value).toBe('Typed');
     expect((screen.getByLabelText(/Mobile number/) as HTMLInputElement).value).toBe('');
   });
   it('ignores a draft saved for a different email', async () => {
     sessionStorage.setItem('craftofy.onboarding', JSON.stringify({ email: 'other@x.co', step: 2, fullName: 'Someone Else', mobile: '9876543210' }));
     render(<SellerOnboarding {...props} />);
-    await new Promise(r => setTimeout(r, 20));
+    await waitFor(() => expect(sessionStorage.getItem('craftofy.onboarding')).toBeTruthy());
     expect((screen.getByLabelText('Full name') as HTMLInputElement).value).toBe('Chai Maker');
     expect(screen.getByText('Step 1 of 2: You')).toBeTruthy();
   });
