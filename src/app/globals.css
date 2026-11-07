@@ -319,6 +319,31 @@ nav a:hover,
   padding: 2px 6px;
   margin-left: 4px;
 }
+.seller-prompt {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.seller-login-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  color: var(--green);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.seller-login-link:hover {
+  color: var(--orange);
+}
+.seller-login-btn {
+  display: none;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 8px 13px;
+}
 .hero {
   padding: 65px 9% 72px;
   display: grid;
@@ -917,6 +942,12 @@ form label select {
   }
   nav > a {
     display: none;
+  }
+  .seller-prompt {
+    display: none;
+  }
+  .seller-login-btn {
+    display: inline-block;
   }
   .hero {
     grid-template-columns: 1fr;

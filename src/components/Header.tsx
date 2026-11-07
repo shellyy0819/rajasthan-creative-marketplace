@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { CartButton } from './CartButton';
 import { AuthButton } from './AuthButton';
 import { ThemeToggle } from './ThemeToggle';
+import { hostConfig } from '@/lib/hosts';
 
 export function Brand() {
   return (
@@ -21,7 +22,7 @@ export function Header() {
       <nav aria-label="Primary">
         <Link href="/shop">Shop handmade</Link>
         <Link href="/workshops">Workshops &amp; pop-ups</Link>
-        {/* <AuthButton /> */}
+        <AuthButton dashboardUrl={hostConfig().dashboardOrigin ?? ''} />
         {/* <CartButton /> */}
         <ThemeToggle />
       </nav>

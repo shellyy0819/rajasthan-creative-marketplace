@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import { Hero } from '@/components/Hero';
 import { HomeCraftExplorer } from '@/components/HomeCraftExplorer';
 import { WorkshopList } from '@/components/WorkshopList';
-import { ListingRequestButton } from '@/components/ListingRequestButton';
 import { TrendingSection } from '@/components/TrendingSection';
 import { ValueProps } from '@/components/ValueProps';
 import { listProducts, listWorkshops } from '@/lib/catalog';
@@ -57,7 +56,7 @@ export default async function Home() {
           <h2>You create. We connect. You sell.</h2>
           <p>We bring independent artists and customers together. Showcase your creations, reach more people, and grow your craft business while keeping control of your products, pricing, and earnings.</p>
         </div>
-        <ListingRequestButton />
+        <Link className="button light" href="/sell">List your craft <span>↗</span></Link>
       </section>
       {cities.length > 0 && (
         <nav className="link-row" aria-label="Explore by city">
