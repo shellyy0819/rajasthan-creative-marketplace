@@ -1,8 +1,8 @@
 export const SITE = {
   name: 'Craftofy',
-  tagline: 'Handmade finds & creative workshops across India',
+  tagline: 'Handmade products from Indian artisans',
   description:
-    'Shop thoughtfully curated handmade products from independent artisans and book hands-on workshops in cities across India.',
+    'Discover handmade products from independent artisans across India and book creative workshops. Contact makers directly to order.',
   locale: 'en_IN',
 };
 
