@@ -39,6 +39,7 @@ export function PostsAdmin({
   sellers = [],
   me,
   profile,
+  openNew = false,
 }: {
   initialProducts: Product[];
   initialArtists: AdminArtist[];
@@ -48,6 +49,8 @@ export function PostsAdmin({
   sellers?: SellerOption[];
   me?: SellerOption;
   profile?: SellerProfile;
+  /** Open the new-post form on arrival (the page passes it for `?new=1`). Only the initial state; role gates are untouched. */
+  openNew?: boolean;
 }) {
   const seller = role === "seller";
   const [categories, setCategories] = useState(initialCategories);
@@ -60,12 +63,20 @@ export function PostsAdmin({
   const [artist, setArtist] = useState("");
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
-  const [editing, setEditing] = useState<Product | "new" | null>(null);
+  const [editing, setEditing] = useState<Product | "new" | null>(() => (openNew ? "new" : null));
   const [confirming, setConfirming] = useState<Product | null>(null);
   const [changingStatus, setChangingStatus] = useState<string | null>(null);
   const [pageBusy, setPageBusy] = useState(""); // label of the page-wide loader ("" = idle)
   const [deleting, setDeleting] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
+  // Drop `new=1` from the address once honoured, so a refresh does not re-open the form.
+  useEffect(() => {
+    if (!openNew) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("new") !== "1") return;
+    url.searchParams.delete("new");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, [openNew]);
   const notify = (kind: "success" | "error", text: string) =>
     setToast({ id: Date.now() + Math.random(), kind, text });
   const closeToast = useCallback(() => setToast(null), []);

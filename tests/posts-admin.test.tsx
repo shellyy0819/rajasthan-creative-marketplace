@@ -6,6 +6,7 @@ import { render, screen, fireEvent, cleanup, within, waitFor, act } from '@testi
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 
 import { PostsAdmin } from '@/components/PostsAdmin';
+import { wantsNewPost } from '@/lib/new-post-param';
 import { artistKey } from '@/lib/artist';
 import type { AdminProduct as Product } from '@/lib/types';
 
@@ -67,6 +68,7 @@ const SELLERS = [{ id: 'u-Shauk', name: 'Shauk and Stuff', email: 'shauk@x.co', 
 const PROFILE = { userId: 'me', displayName: 'My Studio' };
 const ME = { id: 'me', name: 'Shelly Agarwal', email: 'root@x.co', phone: '9989898999' };
 const mount = (role: 'admin' | 'seller' = 'admin') => render(<PostsAdmin initialProducts={[...db]} initialArtists={artistsOf(db)} role={role} categories={CATEGORIES} workshops={WORKSHOPS} sellers={role === 'admin' ? SELLERS : []} me={ME} profile={PROFILE} />);
+const mountNew = (role: 'admin' | 'seller' = 'admin') => render(<PostsAdmin initialProducts={[...db]} initialArtists={artistsOf(db)} role={role} categories={CATEGORIES} workshops={WORKSHOPS} sellers={role === 'admin' ? SELLERS : []} me={ME} profile={PROFILE} openNew />);
 const rows = () => screen.queryAllByTestId('post-row');
 const rowFor = (name: string) => rows().find(r => within(r).queryByText(name))!;
 const badgeOf = (row: HTMLElement) => row.querySelector('.badge')!.textContent;
@@ -753,5 +755,66 @@ describe('loaders', () => {
     expect((await screen.findByRole('button', { name: /Adding/ })).getAttribute('aria-busy')).toBe('true');
     cat.resolve(later(201, { name: 'Toys' }));
     await waitFor(() => expect(screen.queryByRole('button', { name: /Adding/ })).toBeNull());
+  });
+});
+
+describe('openNew (arrival via ?new=1)', () => {
+  it('openNew opens the new post form immediately', () => {
+    mountNew();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect((screen.getByLabelText(/^Status/) as HTMLSelectElement).value).toBe('DRAFT');
+  });
+  it('without openNew the form stays closed', () => {
+    mount();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+  it('seller view still hides Delete and the seller picker and disables Published', () => {
+    mountNew('seller');
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.queryByLabelText(/^Seller/)).toBeNull();
+    const status = screen.getByLabelText(/^Status/) as HTMLSelectElement;
+    expect(Array.from(status.options).map(o => o.value)).toEqual(['DRAFT', 'ARCHIVED']);
+    expect(status.value).toBe('DRAFT');
+    expect(screen.queryAllByRole('button', { name: /^Delete / })).toHaveLength(0);
+    expect(document.body.textContent).not.toContain('@x.co');
+    const sel = screen.getByLabelText('Change status for Draft Dish') as HTMLSelectElement;
+    expect(Array.from(sel.options).find(o => o.value === 'APPROVED')!.disabled).toBe(true);
+  });
+  it('admin view unchanged', () => {
+    mountNew('admin');
+    expect(screen.getByLabelText(/^Seller/)).toBeTruthy();
+    expect(Array.from((screen.getByLabelText(/^Status/) as HTMLSelectElement).options).map(o => o.value)).toEqual(['APPROVED', 'DRAFT', 'ARCHIVED']);
+    expect(screen.getAllByRole('button', { name: /^Delete / }).length).toBeGreaterThan(0);
+  });
+  it('closing does not re-open the form', () => {
+    mountNew();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'New post' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+  it('saving does not re-open the form', async () => {
+    mountNew();
+    await pickCity();
+    fill(/^Title/, 'Fresh Pot'); fill(/^Description/, 'Hand made'); fill(/^Price/, '120'); fill(/^Stock/, '3');
+    fireEvent.click(screen.getByRole('button', { name: 'Save post' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(rows().length).toBe(4));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+  it('removes new=1 from the address so a refresh does not re-open it, keeping other params', () => {
+    window.history.replaceState(null, '', '/dashboard/posts?new=1&x=2');
+    mountNew();
+    expect(window.location.search).toBe('?x=2');
+    window.history.replaceState(null, '', '/');
+  });
+});
+
+describe('wantsNewPost (page parsing)', () => {
+  it('is true only for new=1', () => {
+    expect(wantsNewPost({ new: '1' })).toBe(true);
+    for (const v of [undefined, '0', '', 'true', ['1', '1']]) expect(wantsNewPost({ new: v })).toBe(false);
+    expect(wantsNewPost({})).toBe(false);
   });
 });
