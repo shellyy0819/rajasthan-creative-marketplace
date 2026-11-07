@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { FieldError } from '@/components/onboarding/FieldError';
 import { EMPTY_CRAFT, StepCraft, sanitizeCraft, type Craft } from '@/components/onboarding/StepCraft';
+import { Stepper } from '@/components/onboarding/Stepper';
 import { OnboardingDone } from '@/components/onboarding/OnboardingDone';
 import { DraftNoticeDialog } from '@/components/onboarding/DraftNoticeDialog';
 import { validateFullName, validateMobile, type FieldErrors, type OnboardingInput } from '@/lib/onboarding-validate';
@@ -191,12 +192,14 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
     persist({ step: 2 });
   }
 
+  function goBack() { moved.current = true; setStep(1); persist({ step: 1 }); }
+
   if (done) return <section className="onboard-wrap"><div className="onboard-card"><OnboardingDone name={done.name} brand={done.brand} postsUrl={postsUrl} postsUrlNew={postsUrlNew} /></div></section>;
 
   return (
     <section className="onboard-wrap">
       <div className="onboard-card" ref={cardRef}>
-        <p className="onboard-step" aria-live="polite">Step {step} of 2: {step === 1 ? 'You' : 'Your craft'}</p>
+        <Stepper step={step} onGoTo={s => { if (s === 1) goBack(); }} />
         {notice && <p className="onboard-banner" role="alert">{notice}</p>}
         {step === 1 ? (
           <form className="admin-form onboard-form" onSubmit={next} noValidate>
@@ -227,7 +230,7 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
           </form>
         ) : (
           <StepCraft value={craft} onChange={onCraft} fullName={fullName} mobile={mobile}
-            onBack={() => { moved.current = true; setStep(1); persist({ step: 1 }); }} onSubmit={askConfirm} submitting={submitting} serverErrors={serverErrors} />
+            onBack={goBack} onSubmit={askConfirm} submitting={submitting} serverErrors={serverErrors} />
         )}
         <DraftNoticeDialog open={noticeOpen} onConfirm={confirmNotice} onCancel={cancelNotice} />
       </div>

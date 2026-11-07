@@ -2841,11 +2841,79 @@ main {
   line-height: 1.6;
   margin: 0 0 18px;
 }
-.onboard-step {
+.onboard-stepper {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 0;
+}
+.onboard-stepper-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+}
+.onboard-stepper-step + .onboard-stepper-step::before {
+  content: '';
+  width: 36px;
+  height: 2px;
+  background: var(--line);
+  flex: none;
+}
+.onboard-stepper-step.done + .onboard-stepper-step::before,
+.onboard-stepper-step.current + .onboard-stepper-step::before {
+  background: var(--green);
+}
+.onboard-stepper-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: 600 12px var(--font-sans);
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+button.onboard-stepper-btn {
+  cursor: pointer;
+  color: var(--green);
+}
+.onboard-stepper-dot {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 11px;
-  font-weight: 700;
-  color: var(--orange);
-  margin: 0 0 8px;
+  border: 1.5px solid var(--control-border);
+  background: var(--white);
+}
+.onboard-stepper-step.current {
+  color: var(--ink);
+}
+.onboard-stepper-step.current .onboard-stepper-dot {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: var(--white);
+}
+.onboard-stepper-step.done .onboard-stepper-dot {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--white);
+}
+@media (max-width: 420px) {
+  .onboard-stepper-step:not(.current) .onboard-stepper-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
 }
 .onboard-points {
   list-style: none;
