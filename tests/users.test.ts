@@ -216,6 +216,14 @@ describe('seller profiles: onboarding fields', () => {
     expect((await saveProfile(s.id, { displayName: 'S', logoUrl: own(s.id) })).logoUrl).toBe(own(s.id));
     expect((await saveProfile(s.id, { displayName: 'S', logoUrl: own(s.id) })).logoUrl).toBe(own(s.id));
   });
+  it('an unchanged stored category still saves after the category was deleted', async () => {
+    await (await getTestDb()).insert(categories).values({ name: 'Temp Craft' });
+    const s = await makeSeller('s@x.co', 'S');
+    await saveProfile(s.id, { displayName: 'S', category: 'Temp Craft' });
+    await (await getTestDb()).delete(categories).where(eq(categories.name, 'Temp Craft'));
+    expect((await saveProfile(s.id, { displayName: 'S', category: 'Temp Craft' })).category).toBe('Temp Craft');
+    await expect(saveProfile(s.id, { displayName: 'S', category: 'Textiles' })).rejects.toMatchObject({ field: 'category' });
+  });
   it('without storage any http(s) logo link is accepted and other schemes are not', async () => {
     const s = await makeSeller('s@x.co', 'S');
     await expect(saveProfile(s.id, { displayName: 'S', logoUrl: 'javascript:alert(1)' })).rejects.toMatchObject({ status: 400, field: 'logoUrl' });

@@ -132,7 +132,7 @@ export function UsersAdmin({ initialUsers, currentEmail }: { initialUsers: Admin
         </div>
       </div>
       {profile && (
-        <ProfileDialog title={`Profile of ${profile.user.email}`} initial={profile.data} url={`/api/admin/users/${profile.user.id}/profile`} accountEmail={profile.user.email}
+        <ProfileDialog title={`Profile of ${profile.user.email}`} initial={profile.data} url={`/api/admin/users/${profile.user.id}/profile`} accountEmail={profile.user.email} canUploadLogo={false}
           onSaved={() => { setProfile(null); notify('success', 'Profile saved.'); }} onCancel={() => setProfile(null)} />
       )}
     </section>

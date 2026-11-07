@@ -14,6 +14,8 @@ type Props = {
   url: string;
   /** The account's sign-in email: offered (never filled automatically) as the public email. */
   accountEmail?: string;
+  /** False when editing someone else's profile: the upload route stores files under the signed-in user, so only the owner can change the logo. */
+  canUploadLogo?: boolean;
   onSaved: (p: SellerProfile) => void;
   onCancel: () => void;
 };
@@ -34,7 +36,7 @@ function cityOf(f: FormData): { cityRef: string } | { cityId: number } | Record<
 }
 
 /** Public name and contact shown on a seller's product pages. */
-export function ProfileDialog({ title, initial, url, accountEmail, onSaved, onCancel }: Props) {
+export function ProfileDialog({ title, initial, url, accountEmail, canUploadLogo = true, onSaved, onCancel }: Props) {
   const emailRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -59,7 +61,7 @@ export function ProfileDialog({ title, initial, url, accountEmail, onSaved, onCa
   const onboardingFields = (f: FormData) => {
     const out: Record<string, unknown> = {};
     for (const k of ['website', 'category', 'whatsapp'] as const) { const v = field(f, k); if (v || initial[k]) out[k] = v; }
-    if (logoUrl || initial.logoUrl) out.logoUrl = logoUrl;
+    if (canUploadLogo && (logoUrl || initial.logoUrl)) out.logoUrl = logoUrl;
     if (methods.length || initial.contactMethods?.length) out.contactMethods = methods;
     return out;
   };
@@ -87,7 +89,7 @@ export function ProfileDialog({ title, initial, url, accountEmail, onSaved, onCa
           <h2 id="profile-title">{title}</h2>
           <button type="button" className="icon-btn" aria-label="Close" onClick={onCancel} disabled={saving}>✕</button>
         </div>
-        <form ref={formRef} className="admin-form" onChange={e => {
+        <form ref={formRef} className="admin-form" noValidate onChange={e => {
           const n = (e.target as unknown as HTMLInputElement).name as ErrKey;
           if (n && errors[n]) setErrors(({ [n]: _, ...rest }) => rest);
         }} onSubmit={async e => {
@@ -156,8 +158,18 @@ export function ProfileDialog({ title, initial, url, accountEmail, onSaved, onCa
           </div>
           <fieldset className="profile-onboarding">
             <legend>Logo and contact options</legend>
-            <LogoUpload value={logoUrl} onChange={u => { setLogoUrl(u); setErrors(({ logoUrl: _, ...rest }) => rest); }} onBusyChange={setLogoBusy}
-              invalid={!!errors.logoUrl} describedBy={desc('logoUrl')} />
+            {canUploadLogo
+              ? <LogoUpload value={logoUrl} onChange={u => { setLogoUrl(u); setErrors(({ logoUrl: _, ...rest }) => rest); }} onBusyChange={setLogoBusy}
+                  invalid={!!errors.logoUrl} describedBy={desc('logoUrl')} />
+              : (
+                <div className="logo-upload">
+                  <div className={`logo-preview${logoUrl ? ' has-photo' : ''}`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {logoUrl ? <img src={logoUrl} alt="Seller logo" /> : <span aria-hidden="true">Logo</span>}
+                  </div>
+                  <div className="logo-actions"><small className="onboard-hint">Only the seller can change their logo.</small></div>
+                </div>
+              )}
             <FieldError id="err-profile-logoUrl" message={errors.logoUrl} />
             <p className="onboard-hint" id="contact-methods-label">How customers can reach you</p>
             <div className="onboard-toggles" role="group" aria-labelledby="contact-methods-label" aria-describedby={desc('contactMethods')}>

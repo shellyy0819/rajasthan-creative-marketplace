@@ -100,4 +100,28 @@ describe('ProfileDialog onboarding fields', () => {
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
     expect(sent()).toMatchObject({ displayName: 'New Name', instagram: 'newname', bio: 'Potter.', publicPhone: '', youtube: '' });
   });
+
+  it('own profile offers the logo upload', () => {
+    open({ logoUrl: 'https://cdn.example.com/l.png' });
+    expect(screen.getByText('Replace photo')).toBeTruthy();
+    expect(screen.queryByText('Only the seller can change their logo.')).toBeNull();
+  });
+  it('editing another seller: logo is read-only with a note and no logoUrl is sent', async () => {
+    render(<ProfileDialog title="Profile of x" initial={{ userId: 'other', displayName: 'O', logoUrl: 'https://cdn.example.com/l.png' }} url="/api/admin/users/other/profile" canUploadLogo={false} onSaved={onSaved} onCancel={() => undefined} />);
+    expect(screen.queryByText('Replace photo')).toBeNull();
+    expect(document.querySelector('input[type="file"]')).toBeNull();
+    expect((screen.getByAltText('Seller logo') as HTMLImageElement).src).toBe('https://cdn.example.com/l.png');
+    expect(screen.getByText('Only the seller can change their logo.')).toBeTruthy();
+    save();
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+    expect(sent()).not.toHaveProperty('logoUrl');
+  });
+  it('a website like example.com shows the inline error, not the browser bubble', async () => {
+    open();
+    expect(document.querySelector('form')!.noValidate).toBe(true);
+    fill(/^Website/, 'example.com');
+    save();
+    expect(await screen.findByText('Enter a website starting with http:// or https://.')).toBeTruthy();
+    expect(fetchMock.mock.calls.some(c => c[1]?.method === 'PUT')).toBe(false);
+  });
 });
