@@ -108,7 +108,7 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
   function onCraft(patch: Partial<Craft>) {
     const merged = { ...craftRef.current, ...patch };
     setCraft(merged);
-    const keyOf: Record<string, string[]> = { city: ['cityRef'], sameAsMobile: ['whatsapp'], contactMethods: ['contactMethods', 'whatsapp'] };
+    const keyOf: Record<string, string[]> = { city: ['cityRef'], sameAsMobile: ['whatsapp'], newCategory: ['category'], contactMethods: ['contactMethods', 'whatsapp'] };
     persist({ craft: merged }, Object.keys(patch).flatMap(k => keyOf[k] ?? [k]));
   }
   async function submit(payload: OnboardingInput) {

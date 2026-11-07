@@ -8,7 +8,7 @@ import type { Craft } from '@/components/onboarding/StepCraft';
 const props = { initialName: 'Chai Maker', initialEmail: 'c@x.co', postsUrl: '/dashboard/posts', postsUrlNew: '/dashboard/posts?new=1' };
 const LOGO = 'https://cdn.example/logos/u1/a.png';
 const valid: Craft = {
-  brandName: 'Meera Pottery', category: 'Pottery', description: 'Hand-thrown mugs.', city: { ref: 'REF-KOTA', label: 'Kota, Rajasthan', state: 'Rajasthan' },
+  brandName: 'Meera Pottery', category: 'Pottery', newCategory: '', description: 'Hand-thrown mugs.', city: { ref: 'REF-KOTA', label: 'Kota, Rajasthan', state: 'Rajasthan' },
   instagram: '@meerapottery', website: '', logoUrl: LOGO, contactMethods: ['instagram'], sameAsMobile: true, whatsapp: '',
 };
 const KOTA = [{ label: 'Kota, Rajasthan', name: 'Kota', state: 'Rajasthan', ref: 'REF-KOTA' }];
@@ -207,5 +207,83 @@ describe('onboarding step 2 accessibility and drafts', () => {
     expect((screen.getByLabelText('Business or brand name') as HTMLInputElement).value).toBe('');
     expect(screen.getByRole('button', { name: 'Phone' }).getAttribute('aria-pressed')).toBe('false');
     expect((screen.getByLabelText('City') as HTMLInputElement).value).toBe('');
+  });
+});
+
+function fetchMock422(msg: string) {
+  const prev = globalThis.fetch as unknown as (u: string, i?: unknown) => Promise<Response>;
+  vi.stubGlobal('fetch', vi.fn(async (u: string, i?: unknown) =>
+    u === '/api/onboarding' ? ({ ok: false, status: 422, json: () => Promise.resolve({ errors: { category: msg } }) } as Response) : prev(u, i)));
+}
+
+describe('onboarding step 2: Other category', () => {
+  const OTHER = 'Other (add a new category)';
+  const pick = (v: string) => fireEvent.change(screen.getByLabelText('Category'), { target: { value: v } });
+  const typed = () => screen.queryByLabelText('Your category') as HTMLInputElement | null;
+
+  it('Other is the last option; choosing it reveals "Your category", focused, with its helper', async () => {
+    await openStep2();
+    const opts = screen.getAllByRole('option').map(o => o.textContent);
+    expect(opts.filter(Boolean).at(-1) === OTHER || opts.includes(OTHER)).toBe(true);
+    const select = screen.getByLabelText('Category') as HTMLSelectElement;
+    expect(select.options[select.options.length - 1].textContent).toBe(OTHER);
+    expect(typed()).toBeNull();
+    pick(select.options[select.options.length - 1].value);
+    const input = typed()!;
+    expect(input.required).toBe(true);
+    expect(document.activeElement).toBe(input);
+    expect(screen.getByText('Tell us what you make')).toBeTruthy();
+  });
+  it('picking a list category hides the input again but keeps the typed text in the draft', async () => {
+    await openStep2({ category: '__other__', newCategory: 'Bamboo Craft' });
+    expect(typed()!.value).toBe('Bamboo Craft');
+    pick('Textiles');
+    expect(typed()).toBeNull();
+    const saved = JSON.parse(sessionStorage.getItem('craftofy.onboarding')!);
+    expect(saved.craft).toMatchObject({ category: 'Textiles', newCategory: 'Bamboo Craft' });
+    pick('__other__');
+    expect(typed()!.value).toBe('Bamboo Craft');
+  });
+  it('a restored draft keeps Other selected and its text; focus is not stolen on restore', async () => {
+    await openStep2({ category: '__other__', newCategory: 'Bamboo Craft' });
+    expect((screen.getByLabelText('Category') as HTMLSelectElement).value).toBe('__other__');
+    expect(typed()!.value).toBe('Bamboo Craft');
+    expect(document.activeElement).not.toBe(typed());
+  });
+  it('empty Other shows the required error at the input, focused and described', async () => {
+    await openStep2({ category: '__other__', newCategory: '  ' });
+    finish();
+    expect(errorOf(typed()!)).toBe('Enter your category.');
+    expect(document.activeElement).toBe(typed());
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+  it('a name over 40 characters, or with a bad character, shows the rule error and does not submit', async () => {
+    await openStep2({ category: '__other__', newCategory: 'a'.repeat(41) });
+    finish();
+    expect(errorOf(typed()!)).toMatch(/2-40 characters/);
+    fireEvent.change(typed()!, { target: { value: '<b>x</b>' } });
+    expect(errorOf(typed()!)).toMatch(/2-40 characters/);
+    fireEvent.change(typed()!, { target: { value: 'Bamboo Craft' } });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+  it('the payload carries the trimmed typed name', async () => {
+    await openStep2({ category: '__other__', newCategory: '  Bamboo   Craft ' });
+    finish();
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0].category).toBe('Bamboo Craft');
+  });
+  it('a name matching an existing category in another case submits the canonical spelling', async () => {
+    await openStep2({ category: '__other__', newCategory: 'pOTTERY ' });
+    finish();
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0].category).toBe('Pottery');
+  });
+  it('a server error on category shows at the typed input', async () => {
+    await openStep2({ category: '__other__', newCategory: 'Bamboo Craft' });
+    fetchMock422('Category limit reached (100).');
+    finish();
+    await screen.findByText('Category limit reached (100).');
+    expect(errorOf(typed()!)).toBe('Category limit reached (100).');
   });
 });

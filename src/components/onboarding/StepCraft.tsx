@@ -3,13 +3,16 @@ import { useEffect, useRef, useState } from 'react';
 import { CityInput, type PickedCity } from '@/components/CityInput';
 import { FieldError } from '@/components/onboarding/FieldError';
 import { LogoUpload } from '@/components/onboarding/LogoUpload';
-import { validateOnboarding, type FieldErrors, type OnboardingInput } from '@/lib/onboarding-validate';
+import { collapseSpaces } from '@/lib/category-name';
+import { validateNewCategory, validateOnboarding, type FieldErrors, type OnboardingInput } from '@/lib/onboarding-validate';
 import type { ContactMethod } from '@/lib/types';
 
 export const DESCRIPTION_MAX = 200;
+/** Select value for "Other (add a new category)"; never a real category name (the name rule rejects underscores). */
+export const OTHER_CATEGORY = '__other__';
 
 export type Craft = {
-  brandName: string; category: string; description: string; city: PickedCity | null;
+  brandName: string; category: string; newCategory: string; description: string; city: PickedCity | null;
   instagram: string; website: string; logoUrl: string;
   contactMethods: ContactMethod[]; sameAsMobile: boolean; whatsapp: string;
 };
@@ -21,14 +24,14 @@ export function sanitizeCraft(raw: unknown): Craft {
   const city = c && typeof c.ref === 'string' && typeof c.label === 'string' ? { ref: c.ref, label: c.label, ...(typeof c.state === 'string' && { state: c.state }) } : null;
   const methods = Array.isArray(r.contactMethods) ? METHOD_IDS.filter(m => (r.contactMethods as unknown[]).includes(m)) : [];
   return {
-    brandName: str(r.brandName, ''), category: str(r.category, ''), description: str(r.description, ''), city,
+    brandName: str(r.brandName, ''), category: str(r.category, ''), newCategory: str(r.newCategory, '').slice(0, 100), description: str(r.description, ''), city,
     instagram: str(r.instagram, ''), website: str(r.website, ''), logoUrl: str(r.logoUrl, ''),
     contactMethods: methods, sameAsMobile: typeof r.sameAsMobile === 'boolean' ? r.sameAsMobile : true, whatsapp: str(r.whatsapp, ''),
   };
 }
 
 export const EMPTY_CRAFT: Craft = {
-  brandName: '', category: '', description: '', city: null, instagram: '', website: '', logoUrl: '',
+  brandName: '', category: '', newCategory: '', description: '', city: null, instagram: '', website: '', logoUrl: '',
   contactMethods: [], sameAsMobile: true, whatsapp: '',
 };
 
@@ -44,20 +47,33 @@ const METHOD_IDS = METHODS.map(m => m.id);
 /** Where each error key is shown, in page order (the first one gets focus). */
 const ORDER = ['brandName', 'category', 'description', 'cityRef', 'instagram', 'website', 'logoUrl', 'contactMethods', 'whatsapp', 'mobile'] as const;
 const FOCUS: Record<string, string> = {
-  brandName: '[name="brandName"]', category: '[name="category"]', description: '[name="description"]', cityRef: 'input[name="city"]',
+  brandName: '[name="brandName"]', category: '[name="category"]',  description: '[name="description"]', cityRef: 'input[name="city"]',
   instagram: '[name="instagram"]', website: '[name="website"]', logoUrl: '[data-field="logoUrl"]',
   contactMethods: '[data-method]', whatsapp: '[name="whatsapp"]', mobile: '[data-method]',
 };
 
-/** Builds the payload the API takes, or the same field errors the server would give. */
-export function buildPayload(c: Craft, fullName: string, mobile: string) {
+/**
+ * Builds the payload the API takes, or the same field errors the server would give. With "Other" chosen the typed name
+ * is the category: a name matching a known one (any case) submits that spelling, otherwise it must follow the name rule.
+ */
+export function buildPayload(c: Craft, fullName: string, mobile: string, known: string[] = []) {
+  let category = c.category;
+  let otherError: string | undefined;
+  if (c.category === OTHER_CATEGORY) {
+    const t = validateNewCategory(c.newCategory);
+    if (t.ok) category = known.find(k => collapseSpaces(k).toLowerCase() === t.value.toLowerCase()) ?? t.value;
+    else { category = ''; otherError = t.error; }
+  }
   const whatsapp = c.contactMethods.includes('whatsapp') ? (c.sameAsMobile ? mobile : c.whatsapp) : undefined;
   const res = validateOnboarding({
-    fullName, mobile, brandName: c.brandName, category: c.category, description: c.description,
+    fullName, mobile, brandName: c.brandName, category, description: c.description,
     cityRef: c.city?.ref, instagram: c.instagram, website: c.website, logoUrl: c.logoUrl,
     contactMethods: c.contactMethods, whatsapp,
   });
-  return res.ok ? { ok: true as const, value: res.value } : { ok: false as const, errors: res.errors as FieldErrors };
+  if (res.ok && !otherError) return { ok: true as const, value: res.value };
+  const errors: FieldErrors = res.ok ? {} : res.errors;
+  if (otherError) errors.category = otherError;
+  return { ok: false as const, errors };
 }
 
 export function StepCraft({ value, onChange, fullName, mobile, onBack, onSubmit, submitting = false, serverErrors = {} }: {
@@ -76,6 +92,11 @@ export function StepCraft({ value, onChange, fullName, mobile, onBack, onSubmit,
   const [logoBusy, setLogoBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const focusOther = useRef(false); // set when the maker just picked Other: the new input takes focus (not on a draft restore)
+  const otherRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (value.category === OTHER_CATEGORY && focusOther.current) { focusOther.current = false; otherRef.current?.focus(); }
+  }, [value.category]);
 
   useEffect(() => {
     let live = true;
@@ -87,7 +108,7 @@ export function StepCraft({ value, onChange, fullName, mobile, onBack, onSubmit,
   }, []);
 
   // After the first Finish attempt the errors follow the fields live, so each one clears as soon as it is fixed.
-  const result = buildPayload(value, fullName, mobile);
+  const result = buildPayload(value, fullName, mobile, categories);
   const errors: FieldErrors = { ...serverErrors, ...(submitted && !result.ok ? result.errors : {}) };
   const err = (k: keyof FieldErrors) => errors[k];
   const bad = (k: keyof FieldErrors) => (errors[k] ? true : undefined);
@@ -97,13 +118,17 @@ export function StepCraft({ value, onChange, fullName, mobile, onBack, onSubmit,
   const toggle = (m: ContactMethod) => onChange({
     contactMethods: value.contactMethods.includes(m) ? value.contactMethods.filter(x => x !== m) : [...value.contactMethods, m],
   });
-  const categoryOptions = value.category && !categories.includes(value.category) ? [value.category, ...categories] : categories;
+  const isOther = value.category === OTHER_CATEGORY;
+  const categoryOptions = value.category && !isOther && !categories.includes(value.category) ? [value.category, ...categories] : categories;
+
+  // With Other chosen the category error is shown at the typed name, so that is where focus goes.
+  const focusFor = (k: string) => (k === 'category' && isOther ? '[name="newCategory"]' : FOCUS[k]);
 
   // A new set of server errors: bring the first one into view.
   useEffect(() => {
     const first = ORDER.find(k => serverErrors[k]);
     if (!first) return;
-    const el = formRef.current?.querySelector<HTMLElement>(FOCUS[first]);
+    const el = formRef.current?.querySelector<HTMLElement>(focusFor(first));
     el?.scrollIntoView?.({ block: 'center' });
     el?.focus();
   }, [serverErrors]);
@@ -114,7 +139,7 @@ export function StepCraft({ value, onChange, fullName, mobile, onBack, onSubmit,
     setSubmitted(true);
     if (result.ok) { onSubmit(result.value); return; }
     const first = ORDER.find(k => result.errors[k]);
-    const el = first ? formRef.current?.querySelector<HTMLElement>(FOCUS[first]) : null;
+    const el = first ? formRef.current?.querySelector<HTMLElement>(focusFor(first)) : null;
     el?.scrollIntoView?.({ block: 'center' });
     el?.focus();
   }
@@ -133,14 +158,27 @@ export function StepCraft({ value, onChange, fullName, mobile, onBack, onSubmit,
 
       <label>
         <span className="lbl">Category</span>
-        <select name="category" required value={value.category} onChange={e => onChange({ category: e.target.value })}
-          aria-invalid={bad('category')} aria-describedby={desc('category')}>
+        <select name="category" required value={value.category}
+          onChange={e => { focusOther.current = e.target.value === OTHER_CATEGORY; onChange({ category: e.target.value }); }}
+          aria-invalid={isOther ? undefined : bad('category')} aria-describedby={isOther ? undefined : desc('category')}>
           <option value="">Choose a category</option>
           {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
+          <option value={OTHER_CATEGORY}>Other (add a new category)</option>
         </select>
         {categoriesDown && <small>Categories could not be loaded. Refresh the page to try again.</small>}
       </label>
-      <FieldError id="err-category" message={err('category')} />
+      {!isOther && <FieldError id="err-category" message={err('category')} />}
+      {isOther && (
+        <>
+          <label>
+            <span className="lbl">Your category</span>
+            <input ref={otherRef} name="newCategory" required maxLength={100} value={value.newCategory} onChange={e => onChange({ newCategory: e.target.value })}
+              aria-invalid={bad('category')} aria-describedby={desc('category', 'hint-newCategory')} />
+          </label>
+          <p className="onboard-hint" id="hint-newCategory">Tell us what you make</p>
+          <FieldError id="err-category" message={err('category')} />
+        </>
+      )}
 
       <label>
         <span className="lbl">Short description</span>

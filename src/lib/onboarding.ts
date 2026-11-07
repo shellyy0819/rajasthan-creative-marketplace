@@ -3,9 +3,9 @@ import { getDb } from '../db/client';
 import { ROLE_ID, ensureSellerProfile, ensureUser, grantRole } from '../db/people';
 import { sellerProfiles, userRoles, users } from '../db/schema';
 import { roleFor } from './authz';
-import { canonicalCategory } from './categories';
+import { CATEGORY_HINT, ensureCategory } from './categories';
 import { resolveCityInput } from './cities';
-import { CITY_ERROR, isHttpUrl, validateOnboarding, type OnboardingInput } from './onboarding-validate';
+import { CATEGORY_HINT_ERROR, CITY_ERROR, isHttpUrl, validateOnboarding, type OnboardingInput } from './onboarding-validate';
 import { ApiError } from './errors';
 
 export type OnboardingResult = { status: 'created' | 'completed' | 'unchanged'; userId: string };
@@ -13,7 +13,7 @@ export type OnboardingResult = { status: 'created' | 'completed' | 'unchanged'; 
 /**
  * Finishes seller onboarding for a verified Google email in ONE transaction: the user row is locked, a deactivated
  * user is refused before anything is written, and the seller role is granted together with the profile save, so a
- * failed profile (bad city, bad category) leaves no role behind. Input is re-validated here: callers are not trusted.
+ * failed profile (bad city, bad category) and a new category created for the maker is rolled back too leaves no role behind. Input is re-validated here: callers are not trusted.
  */
 export async function completeOnboarding(email: string, input: OnboardingInput): Promise<OnboardingResult> {
   const checked = validateOnboarding(input);
@@ -40,8 +40,9 @@ export async function completeOnboarding(email: string, input: OnboardingInput):
 
     // Failures the maker can fix are tied to their field so the form shows them there (the route answers 422).
     let category: string;
-    try { category = await canonicalCategory(tx, v.category); }
-    catch (e) { throw e instanceof ApiError ? new ApiError(400, e.message, 'category') : e; }
+    // An existing name is reused as stored; a new valid one is created here, inside this transaction (rolled back with it).
+    try { category = (await ensureCategory(tx, v.category, u.id)).name; }
+    catch (e) { throw e instanceof ApiError ? new ApiError(400, e.message === CATEGORY_HINT ? CATEGORY_HINT_ERROR : e.message, 'category') : e; }
     let cityId: number | null;
     try { cityId = await resolveCityInput(tx, v, { required: true }); }
     catch (e) { throw e instanceof ApiError ? new ApiError(400, e.status === 409 ? e.message : CITY_ERROR, 'cityRef') : e; }

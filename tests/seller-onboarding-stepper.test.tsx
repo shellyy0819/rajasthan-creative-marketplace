@@ -83,4 +83,11 @@ describe('onboarding stepper', () => {
     await waitFor(() => expect(screen.queryByRole('list', { name: 'Progress' })).toBeNull());
     expect(screen.queryByText(/Step \d of 2/)).toBeNull();
   });
+
+  it('css: a connector is green only after a done step, never after the current one', async () => {
+    const css = (await import('node:fs')).readFileSync('src/app/globals.css', 'utf8');
+    const greens = [...css.matchAll(/([^{}]*\.onboard-stepper-step[^{}]*::before)\s*\{[^}]*background:\s*var\(--green\)/g)].map(m => m[1]);
+    expect(greens.join(' ')).toMatch(/\.done \+ \.onboard-stepper-step::before/);
+    expect(greens.join(' ')).not.toMatch(/\.current \+/);
+  });
 });

@@ -1,4 +1,5 @@
 // Pure validation for seller onboarding. No db or server-only imports: safe for client components.
+import { CATEGORY_HINT, checkCategoryName } from './category-name';
 import { normalizePhone } from './phone';
 import type { ContactMethod } from './types';
 
@@ -10,6 +11,7 @@ export type OnboardingInput = {
 export type FieldErrors = Partial<Record<keyof OnboardingInput | 'form', string>>;
 export type FieldResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
+export const CATEGORY_HINT_ERROR = `Category ${CATEGORY_HINT}`;
 export const MOBILE_ERROR = 'Enter a 10-digit mobile number.';
 export const INSTAGRAM_OR_WEBSITE_ERROR = 'Add an Instagram handle or a website.';
 export const CITY_ERROR = 'Pick your city from the list.';
@@ -28,7 +30,14 @@ function requiredText(v: unknown, label: string, max: number): FieldResult<strin
 }
 export const validateFullName = (v: unknown) => requiredText(v, 'your full name', 100);
 export const validateBrandName = (v: unknown) => requiredText(v, 'your brand name', 100);
+// Length only here (the name rule for a NEW category is checkCategoryName, applied where it would be created).
 export const validateCategory = (v: unknown) => requiredText(v, 'a category', 100);
+/** Step 2 "Other": the typed name must follow the same rule as a category created anywhere else. */
+export function validateNewCategory(v: unknown): FieldResult<string> {
+  if (!str(v)) return fail('Enter your category.');
+  const r = checkCategoryName(v);
+  return r.ok ? ok(r.name) : fail(CATEGORY_HINT_ERROR);
+}
 export const validateDescription = (v: unknown) => requiredText(v, 'a short description', 200);
 export function validateLogoUrl(v: unknown): FieldResult<string> {
   const t = str(v);

@@ -63,12 +63,18 @@ describe('POST /api/onboarding', () => {
     expect(await (await getTestDb()).select().from(userRoles).where(eq(userRoles.userId, s.id))).toEqual(before);
     expect((await (await getTestDb()).select().from(sellerProfiles).where(eq(sellerProfiles.userId, s.id)))[0].onboardedAt).toBeNull();
   });
-  it('an unknown category, an expired city pick and a non-http logo are 422s keyed to their field', async () => {
+  it('a category name that breaks the rule is a 422 keyed to category; a new valid one is created', async () => {
     as('new@x.co');
-    let r = await post(body({ category: 'Deleted Category' }));
+    const r = await post(body({ category: 'x' }));
     expect(r.status).toBe(422);
-    expect(typeof (await r.json()).errors.category).toBe('string');
-    r = await post(body({ cityRef: 'expired.garbage' }));
+    expect((await r.json()).errors).toEqual({ category: expect.stringMatching(/2-40 characters/) });
+    expect(await resolveRole('new@x.co')).toBe('customer');
+    expect((await post(body({ category: 'Bamboo Craft' }))).status).toBe(200);
+    expect(await resolveRole('new@x.co')).toBe('seller');
+  });
+  it('an expired city pick and a non-http logo are 422s keyed to their field', async () => {
+    as('new@x.co');
+    let r = await post(body({ cityRef: 'expired.garbage' }));
     expect(r.status).toBe(422);
     expect((await r.json()).errors).toEqual({ cityRef: 'Pick your city from the list.' });
     r = await post(body({ logoUrl: 'ftp://x.example/logo.png' }));

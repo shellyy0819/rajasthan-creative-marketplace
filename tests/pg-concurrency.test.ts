@@ -164,4 +164,14 @@ describe.skipIf(!adminUrl)('real Postgres: concurrency and locking', () => {
     expect(await db.select().from(schema.userRoles).where(eq(schema.userRoles.userId, id))).toHaveLength(1);
     expect(await db.select().from(schema.sellerProfiles).where(eq(schema.sellerProfiles.userId, id))).toHaveLength(1);
   });
+
+  it('ten different accounts onboarding with the same new category name (varied case) create exactly one category row', async () => {
+    const base = { fullName: 'Asha Verma', mobile: '9876543210', brandName: 'Asha Crafts', description: 'Hand-set lac.', cityRef: cityRef('Jaipur'), instagram: 'asha', logoUrl: 'https://example.com/l.png', contactMethods: ['instagram' as const] };
+    const before = (await db.select().from(schema.categories)).length;
+    const rs = await Promise.allSettled(Array.from({ length: 10 }, (_, i) => completeOnboarding(`cat${i}@x.co`, { ...base, category: i % 2 ? 'Bamboo Craft' : 'bamboo craft' })));
+    expect(ok(rs)).toBe(10);
+    const rows = await db.select().from(schema.categories);
+    expect(rows.length).toBe(before + 1);
+    expect(rows.filter(r => r.name.toLowerCase() === 'bamboo craft')).toHaveLength(1);
+  });
 });

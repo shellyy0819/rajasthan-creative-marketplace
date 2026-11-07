@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { completeOnboarding } from '@/lib/onboarding';
 import * as people from '@/db/people';
 import { resolveRole } from '@/lib/roles';
-import { sellerProfiles, userRoles, users } from '@/db/schema';
+import { categories, sellerProfiles, userRoles, users } from '@/db/schema';
 import type { OnboardingInput } from '@/lib/onboarding-validate';
 import { getTestDb, giveRole, makeSeller, resetTestDb } from './helpers/testdb';
 import { cityRef } from './helpers/cities';
@@ -81,8 +81,8 @@ describe('completeOnboarding', () => {
     expect((await completeOnboarding('fresh@x.co', input())).status).toBe('created');
     expect(await resolveRole('fresh@x.co')).toBe('seller');
   });
-  it('unknown category and bad city pick fail with a field', async () => {
-    await expect(completeOnboarding('f@x.co', input({ category: 'Nonexistent' }))).rejects.toMatchObject({ status: 400, field: 'category' });
+  it('invalid category name and bad city pick fail with a field', async () => {
+    await expect(completeOnboarding('f@x.co', input({ category: '<bad>' }))).rejects.toMatchObject({ status: 400, field: 'category' });
     await expect(completeOnboarding('f@x.co', input({ cityRef: 'garbage' }))).rejects.toMatchObject({ status: 400, field: 'cityRef', message: 'Pick your city from the list.' });
     await expect(completeOnboarding('f@x.co', input({ logoUrl: 'ftp://x/y.png' }))).rejects.toMatchObject({ status: 400, field: 'logoUrl' });
     expect(await resolveRole('f@x.co')).toBe('customer');
@@ -95,7 +95,7 @@ describe('completeOnboarding', () => {
     expect(await profile(u.id)).toBeUndefined();
   });
   it('invalid category rejected, no role', async () => {
-    await expect(completeOnboarding('c@x.co', input({ category: 'Nonexistent' }))).rejects.toMatchObject({ status: 400 });
+    await expect(completeOnboarding('c@x.co', input({ category: '<bad>' }))).rejects.toMatchObject({ status: 400 });
     expect(await resolveRole('c@x.co')).toBe('customer');
   });
   it('rejects a non-http logo and invalid input, no role', async () => {
@@ -126,5 +126,53 @@ describe('completeOnboarding', () => {
   it('invalid cityRef is rejected, no role', async () => {
     await expect(completeOnboarding('bad2@x.co', input({ cityRef: 'garbage' }))).rejects.toBeDefined();
     expect(await resolveRole('bad2@x.co')).toBe('customer');
+  });
+
+  describe('"Other": a new category', () => {
+    const cats = async () => (await (await getTestDb()).select().from(categories)).map(c => c.name);
+    it('a new name creates exactly one category and the seller role together, stored on the profile', async () => {
+      const before = (await cats()).length;
+      const r = await completeOnboarding('n@x.co', input({ category: '  Bamboo   Craft ' }));
+      const after = await cats();
+      expect(after.length).toBe(before + 1);
+      expect(after.filter(n => n === 'Bamboo Craft')).toHaveLength(1);
+      expect((await profile(r.userId)).category).toBe('Bamboo Craft');
+      expect(await resolveRole('n@x.co')).toBe('seller');
+      const [row] = (await (await getTestDb()).select().from(categories)).filter(c => c.name === 'Bamboo Craft');
+      expect(row.createdBy).toBe(r.userId);
+    });
+    it('an existing name in another case reuses the stored spelling and adds no row', async () => {
+      const before = (await cats()).length;
+      const r = await completeOnboarding('n@x.co', input({ category: ' pOTTERY' }));
+      expect((await profile(r.userId)).category).toBe('Pottery');
+      expect((await cats()).length).toBe(before);
+    });
+    it('two accounts onboarding with the same new name leave one category row', async () => {
+      await Promise.all([completeOnboarding('a@x.co', input({ category: 'Bamboo Craft' })), completeOnboarding('b@x.co', input({ category: 'bamboo craft' }))]);
+      expect((await cats()).filter(n => n.toLowerCase() === 'bamboo craft')).toHaveLength(1);
+    });
+    it('a rule-breaking name fails on category (field) and creates no category or role', async () => {
+      const before = (await cats()).length;
+      for (const bad of ['x', 'a'.repeat(41), '<b>x</b>', '123', 'tab\there']) {
+        await expect(completeOnboarding('n@x.co', input({ category: bad }))).rejects.toMatchObject({ status: 400, field: 'category', message: expect.stringMatching(/2-40 characters/) });
+      }
+      expect((await cats()).length).toBe(before);
+      expect(await resolveRole('n@x.co')).toBe('customer');
+    });
+    it('at the category cap a new name is refused on category and nothing is created', async () => {
+      const db = await getTestDb();
+      const have = (await cats()).length;
+      await db.insert(categories).values(Array.from({ length: 100 - have }, (_, i) => ({ name: `Filler ${i}` })));
+      await expect(completeOnboarding('n@x.co', input({ category: 'Brand New' }))).rejects.toMatchObject({ status: 400, field: 'category', message: 'Category limit reached (100).' });
+      expect(await cats()).not.toContain('Brand New');
+      expect(await resolveRole('n@x.co')).toBe('customer');
+    });
+    it('a failed profile save (bad city) rolls the new category back with the role', async () => {
+      const before = (await cats()).length;
+      await expect(completeOnboarding('n@x.co', input({ category: 'Bamboo Craft', cityRef: 'garbage' }))).rejects.toMatchObject({ field: 'cityRef' });
+      expect((await cats()).length).toBe(before);
+      expect(await cats()).not.toContain('Bamboo Craft');
+      expect(await resolveRole('n@x.co')).toBe('customer');
+    });
   });
 });

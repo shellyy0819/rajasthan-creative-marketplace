@@ -2862,8 +2862,8 @@ main {
   background: var(--line);
   flex: none;
 }
-.onboard-stepper-step.done + .onboard-stepper-step::before,
-.onboard-stepper-step.current + .onboard-stepper-step::before {
+/* Green only after a completed step: the connector that follows the CURRENT step is not done yet. */
+.onboard-stepper-step.done + .onboard-stepper-step::before {
   background: var(--green);
 }
 .onboard-stepper-btn {
