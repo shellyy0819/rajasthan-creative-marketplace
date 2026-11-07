@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, waitFor, act } from '@testing-library/react';
 
 const signInMock = vi.hoisted(() => vi.fn());
 vi.mock('next-auth/react', () => ({ signIn: signInMock }));
@@ -41,19 +41,32 @@ const btn = () => screen.getByRole('button', { name: 'Finish and add my first pr
 const finish = () => fireEvent.click(btn());
 
 describe('onboarding submit', () => {
-  it('finish posts once even if clicked twice', async () => {
-    let release!: () => void;
-    onboarding = () => new Promise(r => { release = () => r(reply(200, { status: 'ok' })); });
+  const pending = () => { onboarding = () => new Promise(() => {}); };
+  const form = () => btn().closest('form')!;
+
+  it('two submits in the same tick send one request (the in-flight ref guard)', async () => {
+    pending();
     await openStep2();
-    finish(); finish();
-    fireEvent.submit(btn().closest('form')!);
+    act(() => { fireEvent.submit(form()); fireEvent.submit(form()); }); // one batch: no re-render between them, so only the ref can stop the second
+    expect(posts).toBe(1);
+  });
+  it('a submit while pending is ignored and the button is disabled and busy (state guards)', async () => {
+    pending();
+    await openStep2();
+    finish();
     await waitFor(() => expect(btn().disabled).toBe(true));
     expect(btn().getAttribute('aria-busy')).toBe('true');
+    fireEvent.click(btn());
     expect(posts).toBe(1);
     const call = (fetch as ReturnType<typeof vi.fn>).mock.calls.find(c => c[0] === '/api/onboarding')!;
     expect(JSON.parse(call[1].body)).toMatchObject({ fullName: 'Meera Rao', brandName: 'Meera Pottery', cityRef: 'REF-KOTA' });
-    release();
-    await screen.findByText('You are in, Meera.');
+  });
+  it('a form submit while pending (the Enter-key path) sends no second request', async () => {
+    pending();
+    await openStep2();
+    finish();
+    await waitFor(() => expect(btn().disabled).toBe(true));
+    fireEvent.submit(form()); // a keyboard Enter would take this path
     expect(posts).toBe(1);
   });
 
@@ -84,11 +97,22 @@ describe('onboarding submit', () => {
     expect(btn().disabled).toBe(false);
   });
 
-  it('401 keeps the draft and starts sign-in', async () => {
+  it('401 writes the typed draft before redirecting and keeps the button locked', async () => {
     onboarding = async () => reply(401, { error: 'Sign in required.' });
-    await openStep2(); finish();
+    await openStep2();
+    fireEvent.change(screen.getByLabelText('Business or brand name'), { target: { value: 'Typed Name' } });
+    sessionStorage.removeItem(KEY); // prove the 401 path itself writes the draft
+    finish();
     await waitFor(() => expect(signInMock).toHaveBeenCalledWith('google', { callbackUrl: '/sell' }));
-    expect(JSON.parse(sessionStorage.getItem(KEY)!).craft.brandName).toBe('Meera Pottery');
+    expect(JSON.parse(sessionStorage.getItem(KEY)!)).toMatchObject({ step: 2, fullName: 'Meera Rao', craft: { brandName: 'Typed Name' } });
+    expect(btn().disabled).toBe(true);
+  });
+  it('a failed sign-in redirect shows the retry notice and unlocks the button', async () => {
+    onboarding = async () => reply(401, { error: 'Sign in required.' });
+    signInMock.mockRejectedValueOnce(new Error('boom'));
+    await openStep2(); finish();
+    expect(await screen.findByText('Something went wrong. Please try again.')).toBeTruthy();
+    await waitFor(() => expect(btn().disabled).toBe(false));
   });
 
   it('403 shows the message', async () => {
@@ -131,5 +155,32 @@ describe('onboarding submit', () => {
     expect(screen.getByRole('link', { name: 'Add your first product' }).getAttribute('href')).toBe(props.postsUrlNew);
     expect(screen.getByRole('link', { name: 'Go to my dashboard' }).getAttribute('href')).toBe(props.postsUrl);
     expect(sessionStorage.getItem(KEY)).toBeNull();
+  });
+
+  it('success moves focus to the heading', async () => {
+    await openStep2(); finish();
+    const h = await screen.findByRole('heading', { name: 'You are in, Meera.' });
+    await waitFor(() => expect(document.activeElement).toBe(h));
+  });
+  it('a 422 that returns to step 1 focuses the first offending field', async () => {
+    onboarding = async () => reply(422, { errors: { fullName: 'Enter your full name.', mobile: 'Enter a 10-digit mobile number.' } });
+    await openStep2(); finish();
+    await screen.findByText('Step 1 of 2: You');
+    await waitFor(() => expect(document.activeElement).toBe(document.querySelector('[name="fullName"]')));
+  });
+
+  const KEYS: [string, Partial<typeof craft>][] = [
+    ['brandName', {}], ['category', {}], ['description', {}], ['cityRef', {}], ['instagram', {}], ['website', {}], ['logoUrl', {}],
+    ['contactMethods', {}], ['whatsapp', { contactMethods: ['whatsapp'] } as never], ['whatsapp', {}],
+  ];
+  it.each(KEYS)('a 422 for %s (%j) leaves a visible message', async (key, over) => {
+    onboarding = async () => reply(422, { errors: { [key]: `msg-${key}` } });
+    sessionStorage.setItem(KEY, JSON.stringify({ email: 'c@x.co', step: 2, fullName: 'Meera Rao', mobile: '9876543210', craft: { ...craft, ...over } }));
+    render(<SellerOnboarding {...props} />);
+    await screen.findByText('Step 2 of 2: Your craft');
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Textiles' })).toBeTruthy());
+    finish();
+    const msg = await screen.findByText(`msg-${key}`);
+    expect(msg.closest('[role="alert"]')).toBeTruthy();
   });
 });

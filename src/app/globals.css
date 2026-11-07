@@ -3053,10 +3053,10 @@ main {
 .onboard-banner {
   margin: 0 0 16px;
   padding: 10px 12px;
-  border: 1px solid #e0b9ad;
+  border: 1px solid var(--danger-line);
   border-radius: 6px;
   background: var(--white);
-  color: #a74d35;
+  color: var(--danger);
   font-size: 13px;
   line-height: 1.5;
 }

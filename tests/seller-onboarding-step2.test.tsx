@@ -13,20 +13,23 @@ const valid: Craft = {
 };
 const KOTA = [{ label: 'Kota, Rajasthan', name: 'Kota', state: 'Rajasthan', ref: 'REF-KOTA' }];
 
+const onSubmit = vi.fn(); // receives the body of every POST /api/onboarding
 beforeEach(() => {
+  onSubmit.mockReset();
   sessionStorage.clear();
-  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: unknown) => {
     if (url === '/api/categories') return { ok: true, status: 200, json: () => Promise.resolve(['Pottery', 'Textiles']) } as Response;
     if (url.startsWith('/api/places')) return { ok: true, status: 200, json: () => Promise.resolve(KOTA) } as Response;
+    if (url === '/api/onboarding') { onSubmit(JSON.parse((init as RequestInit).body as string)); return { ok: true, status: 200, json: () => Promise.resolve({ status: 'ok' }) } as Response; }
     return { ok: false, status: 404, json: () => Promise.resolve({}) } as Response;
   }));
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 /** Opens step 2 with a saved draft (the same path a refresh takes), overriding fields of an otherwise valid craft. */
-async function openStep2(over: Partial<Craft> = {}, onSubmit = vi.fn()) {
+async function openStep2(over: Partial<Craft> = {}) {
   sessionStorage.setItem('craftofy.onboarding', JSON.stringify({ email: 'c@x.co', step: 2, fullName: 'Chai Maker', mobile: '9876543210', craft: { ...valid, ...over } }));
-  render(<SellerOnboarding {...props} onSubmit={onSubmit} />);
+  render(<SellerOnboarding {...props} />);
   await screen.findByText('Step 2 of 2: Your craft');
   await waitFor(() => expect(screen.getByRole('option', { name: 'Textiles' })).toBeTruthy());
   return onSubmit;
@@ -41,16 +44,16 @@ function errorOf(control: HTMLElement) {
 
 describe('onboarding step 2 errors', () => {
   it('a valid craft submits the payload and no error shows', async () => {
-    const onSubmit = await openStep2();
+    await openStep2();
     finish();
-    expect(onSubmit).toHaveBeenCalledWith({
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({
       fullName: 'Chai Maker', mobile: '9876543210', brandName: 'Meera Pottery', category: 'Pottery', description: 'Hand-thrown mugs.',
       cityRef: 'REF-KOTA', instagram: 'meerapottery', logoUrl: LOGO, contactMethods: ['instagram'],
-    });
+    }));
     expect(screen.queryByRole('alert')).toBeNull();
   });
   it('blank brand name shows its error and focuses it', async () => {
-    const onSubmit = await openStep2({ brandName: '  ' });
+    await openStep2({ brandName: '  ' });
     finish();
     const input = screen.getByLabelText('Business or brand name');
     expect(errorOf(input)).toBe('Enter your brand name.');
@@ -63,7 +66,7 @@ describe('onboarding step 2 errors', () => {
     expect(errorOf(screen.getByLabelText('Category'))).toBe('Enter a category.');
   });
   it('description over 200 shows its error, counter 201 / 200', async () => {
-    const onSubmit = await openStep2({ description: 'a'.repeat(201) });
+    await openStep2({ description: 'a'.repeat(201) });
     expect(screen.getByText('201 / 200')).toBeTruthy();
     finish();
     expect(errorOf(screen.getByLabelText('Short description'))).toBe('A short description must be 200 characters or fewer.');
@@ -87,7 +90,7 @@ describe('onboarding step 2 errors', () => {
     expect(errorOf(screen.getByLabelText('Upload photo'))).toBe('Upload your logo.');
   });
   it('no contact method shows the required message', async () => {
-    const onSubmit = await openStep2({ contactMethods: [] });
+    await openStep2({ contactMethods: [] });
     finish();
     expect(screen.getByText('Choose at least one way for customers to reach you.')).toBeTruthy();
     expect(onSubmit).not.toHaveBeenCalled();
@@ -131,8 +134,9 @@ describe('onboarding step 2 behaviour', () => {
     expect(wa.readOnly).toBe(false);
   });
   it('WhatsApp submits the mobile when same-as-mobile is on', async () => {
-    const onSubmit = await openStep2({ contactMethods: ['whatsapp'], sameAsMobile: true });
+    await openStep2({ contactMethods: ['whatsapp'], sameAsMobile: true });
     finish();
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     expect(onSubmit.mock.calls[0][0]).toMatchObject({ whatsapp: '9876543210', contactMethods: ['whatsapp'] });
   });
   it('contact toggles use aria-pressed', async () => {
@@ -144,13 +148,14 @@ describe('onboarding step 2 behaviour', () => {
     expect(screen.getByText(/Phone uses your mobile number/)).toBeTruthy();
   });
   it('picking a city fills the read-only state and submits its ref', async () => {
-    const onSubmit = await openStep2({ city: null });
+    await openStep2({ city: null });
     fireEvent.change(screen.getByLabelText('City'), { target: { value: 'Kota' } });
     fireEvent.mouseDown(await screen.findByRole('option', { name: 'Kota, Rajasthan' }, { timeout: 2000 }));
     const state = screen.getByLabelText('State') as HTMLInputElement;
     expect(state.value).toBe('Rajasthan');
     expect(state.readOnly).toBe(true);
     finish();
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     expect(onSubmit.mock.calls[0][0]).toMatchObject({ cityRef: 'REF-KOTA' });
   });
   it('edits are kept in the draft with the signed-in email', async () => {

@@ -8,8 +8,6 @@ import { validateFullName, validateMobile, type FieldErrors, type OnboardingInpu
 
 export type SellerOnboardingProps = {
   initialName: string; initialEmail: string; postsUrl: string; postsUrlNew: string;
-  /** Test seam: when given, Finish hands the validated payload to it instead of calling the API. */
-  onSubmit?: (payload: OnboardingInput) => void;
 };
 
 export const DRAFT_KEY = 'craftofy.onboarding';
@@ -31,7 +29,7 @@ const STEP1_KEYS = ['fullName', 'mobile'];
 const STEP2_KEYS = ['brandName', 'category', 'description', 'cityRef', 'instagram', 'website', 'logoUrl', 'contactMethods', 'whatsapp'];
 const RETRY = 'Something went wrong. Please try again.';
 
-export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrlNew, onSubmit }: SellerOnboardingProps) {
+export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrlNew }: SellerOnboardingProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [fullName, setFullName] = useState(initialName);
   const [mobile, setMobile] = useState('');
@@ -46,6 +44,7 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
   const [notice, setNotice] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const inFlight = useRef(false);
+  const pendingFocus = useRef<'fullName' | 'mobile' | null>(null);
   const [done, setDone] = useState<{ name: string; brand: string } | null>(null);
 
   // Restore once on mount. Idempotent (safe under StrictMode double-effects): it only reads, never writes, and
@@ -59,6 +58,15 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
     if (d.craft !== undefined) setCraft(sanitizeCraft(d.craft));
     if (d.step === 2) setStep(2);
   }, [initialEmail]);
+
+  // After a 422 sent the seller back to step 1, focus the first offending field once it is on screen.
+  useEffect(() => {
+    if (step !== 1 || !pendingFocus.current) return;
+    const el = pendingFocus.current === 'fullName' ? nameRef.current : mobileRef.current;
+    pendingFocus.current = null;
+    el?.scrollIntoView?.({ block: 'center' });
+    el?.focus();
+  }, [step]);
 
   // Drafts are written from event handlers only, never from an effect.
   function persist(patch: Partial<Draft>) {
@@ -87,11 +95,11 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
     persist({ craft: merged });
   }
   async function submit(payload: OnboardingInput) {
-    if (onSubmit) { onSubmit(payload); return; }
     if (inFlight.current) return;
     inFlight.current = true;
     setSubmitting(true);
     setNotice('');
+    let keepLocked = false; // a 401 redirect is under way: the button stays disabled until the page leaves
     try {
       let res: Response;
       try {
@@ -107,8 +115,13 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
       if (res.status === 422 && body && body.errors && typeof body.errors === 'object') {
         applyServerErrors(body.errors as FieldErrors);
       } else if (res.status === 401) {
-        void signIn('google', { callbackUrl: '/sell' }); // the draft stays in sessionStorage
+        keepLocked = true;
+        saveDraft({ email: initialEmail, step: 2, fullName, mobile, craft: craftRef.current }); // make sure nothing typed is lost
         setNotice('Your session ended. Taking you to sign in again.');
+        // The draft is already in sessionStorage (written on every edit); a failed redirect unlocks the form.
+        Promise.resolve(signIn('google', { callbackUrl: '/sell' })).catch(() => {
+          inFlight.current = false; setSubmitting(false); setNotice(RETRY);
+        });
       } else if (res.status === 403) {
         setNotice(typeof body?.error === 'string' && body.error ? body.error : 'This account cannot sell on Craftofy.');
       } else if (res.status === 429) {
@@ -117,8 +130,7 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
         setNotice(RETRY);
       }
     } finally {
-      inFlight.current = false;
-      setSubmitting(false);
+      if (!keepLocked) { inFlight.current = false; setSubmitting(false); }
     }
   }
   function applyServerErrors(errs: FieldErrors) {
@@ -126,13 +138,16 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
     const loose: string[] = [];
     for (const [k, v] of Object.entries(errs)) {
       if (typeof v !== 'string' || !v) continue;
-      if (STEP1_KEYS.includes(k) || STEP2_KEYS.includes(k)) clean[k as keyof FieldErrors] = v;
+      // WhatsApp has no field on screen unless that method is chosen, so it needs the banner otherwise.
+      const hasHome = STEP1_KEYS.includes(k) || (STEP2_KEYS.includes(k) && (k !== 'whatsapp' || craftRef.current.contactMethods.includes('whatsapp')));
+      if (hasHome) clean[k as keyof FieldErrors] = v;
       else loose.push(v); // e.g. `form` or an unknown key: no field to hang it on, so say it at the top
     }
     setServerErrors(clean);
     setNotice(loose.join(' '));
     if (clean.fullName || clean.mobile) {
       setErrors({ fullName: clean.fullName, mobile: clean.mobile });
+      pendingFocus.current = clean.fullName ? 'fullName' : 'mobile';
       setStep(1);
       saveDraft({ email: initialEmail, step: 1, fullName, mobile, craft: craftRef.current }); // not persist(): that would clear the errors just set
     } else if (!Object.keys(clean).length && !loose.length) setNotice(RETRY);
