@@ -6,14 +6,9 @@ import { roleFor } from './authz';
 import { canonicalCategory } from './categories';
 import { resolveCityInput } from './cities';
 import { ApiError } from './errors';
-import { validateOnboarding, type OnboardingInput } from './onboarding-validate';
+import { isHttpUrl, validateOnboarding, type OnboardingInput } from './onboarding-validate';
 
 export type OnboardingResult = { status: 'created' | 'completed' | 'unchanged'; userId: string };
-
-/** The logo must be an http(s) URL (validateLogoUrl only checks length). */
-function isHttpUrl(v: string): boolean {
-  try { const u = new URL(v); return u.protocol === 'http:' || u.protocol === 'https:'; } catch { return false; }
-}
 
 /**
  * Finishes seller onboarding for a verified Google email in ONE transaction: the user row is locked, a deactivated

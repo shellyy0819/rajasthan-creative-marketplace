@@ -36,6 +36,10 @@ export function validateLogoUrl(v: unknown): FieldResult<string> {
   if (t.length > 500) return fail('Logo link is too long.');
   return ok(t);
 }
+/** The logo must be an http(s) URL (validateLogoUrl only checks length). */
+export function isHttpUrl(v: string): boolean {
+  try { const u = new URL(v); return u.protocol === 'http:' || u.protocol === 'https:'; } catch { return false; }
+}
 /** Canonical 10-digit mobile (prefix dropped), or undefined when invalid. */
 function canonicalMobile(input: string): string | undefined {
   const n = normalizePhone(input);

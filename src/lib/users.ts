@@ -3,9 +3,15 @@ import { getDb, type Q, type Tx } from '../db/client';
 import { ROLE_ID, ensureSellerProfile, ensureUser, normEmail, type StoredRole } from '../db/people';
 import { cities, sellerProfiles, userRoles, users } from '../db/schema';
 import { roleFor } from './authz';
+import { canonicalCategory } from './categories';
 import { resolveCityInput } from './cities';
 import { ApiError } from './errors';
-import type { AdminUser, SellerProfile } from './types';
+import {
+  CONTACT_METHOD_VALUES, isHttpUrl, validateCategory, validateContactMethods, validateLogoUrl, validateWebsite, validateWhatsapp,
+  type FieldResult,
+} from './onboarding-validate';
+import { isOwnLogoUrl, storageConfig } from './storage';
+import type { AdminUser, ContactMethod, SellerProfile } from './types';
 import { EMAIL_RE, bad, obj, optionalEmail, optionalPhone, optionalText, pick, text } from './validate';
 
 const ASSIGNABLE: readonly StoredRole[] = ['seller', 'admin'];
@@ -119,6 +125,10 @@ const toProfile = (r: ProfileRow): SellerProfile => ({
   ...(r.publicPhone ? { publicPhone: r.publicPhone } : {}), ...(r.publicEmail ? { publicEmail: r.publicEmail } : {}),
   ...(r.instagram ? { instagram: r.instagram } : {}), ...(r.youtube ? { youtube: r.youtube } : {}),
   ...(r.bio ? { bio: r.bio } : {}), ...(r.cityName ? { city: r.cityName, cityId: r.cityId! } : {}),
+  ...(r.website ? { website: r.website } : {}), ...(r.category ? { category: r.category } : {}),
+  ...(r.logoUrl ? { logoUrl: r.logoUrl } : {}), ...(r.whatsapp ? { whatsapp: r.whatsapp } : {}),
+  ...(r.contactMethods?.length ? { contactMethods: r.contactMethods as ContactMethod[] } : {}),
+  ...(r.onboardedAt ? { onboardedAt: r.onboardedAt.toISOString() } : {}),
 });
 
 async function loadProfile(q: Q, userId: string): Promise<ProfileRow | undefined> {
@@ -151,6 +161,18 @@ export async function saveProfile(userId: string, input: unknown): Promise<Selle
     bio: optionalText(raw.bio, 'bio', 500) ?? null,
   };
   if ('city' in raw) throw bad('city is not accepted; send cityId or cityRef.');
+  // The onboarding fields are optional here: a key that is absent keeps the stored value, an empty one clears it.
+  const fieldFail = (field: string, message: string) => new ApiError(400, message, field);
+  const take = <T,>(field: string, res: FieldResult<T>): T => { if (!res.ok) throw fieldFail(field, res.error); return res.value; };
+  const has = (k: string) => k in raw && raw[k] !== undefined && raw[k] !== null;
+  const blank = (k: string) => typeof raw[k] === 'string' && !(raw[k] as string).trim();
+  const website = has('website') ? take('website', validateWebsite(raw.website)) ?? null : undefined;
+  const whatsapp = has('whatsapp') ? take('whatsapp', validateWhatsapp(raw.whatsapp)) ?? null : undefined;
+  const logoUrl = has('logoUrl') ? (blank('logoUrl') ? null : take('logoUrl', validateLogoUrl(raw.logoUrl))) : undefined;
+  if (logoUrl && !isHttpUrl(logoUrl)) throw fieldFail('logoUrl', 'Upload your logo.');
+  const category = has('category') ? (blank('category') ? null : take('category', validateCategory(raw.category))) : undefined;
+  if (has('contactMethods') && !Array.isArray(raw.contactMethods)) throw fieldFail('contactMethods', 'Choose at least one way for customers to reach you.');
+  const methodsIn = has('contactMethods') ? (raw.contactMethods as unknown[]) : undefined;
   return getDb().transaction(async tx => {
     const [u] = await tx.select({ id: users.id }).from(users).where(eq(users.id, userId));
     if (!u) throw new ApiError(404, 'User not found.');
@@ -158,8 +180,40 @@ export async function saveProfile(userId: string, input: unknown): Promise<Selle
     if (!holds.length && !(await isEnvAdmin(tx, userId))) throw bad('That user is not a seller.');
     // Neither cityId nor cityRef clears the profile city.
     const cityId = await resolveCityInput(tx, raw);
-    await tx.insert(sellerProfiles).values({ userId, ...v, cityId })
-      .onConflictDoUpdate({ target: sellerProfiles.userId, set: { ...v, cityId } });
+    const [cur] = await tx.select().from(sellerProfiles).where(eq(sellerProfiles.userId, userId));
+    const extra: Partial<typeof sellerProfiles.$inferInsert> = {};
+    if (website !== undefined) extra.website = website;
+    if (whatsapp !== undefined) extra.whatsapp = whatsapp;
+    if (logoUrl !== undefined) {
+      // With uploads configured, a new logo must sit in this account's own logos/ folder; the stored one may be saved again.
+      const cfg = storageConfig();
+      if (logoUrl && logoUrl !== cur?.logoUrl && cfg && !isOwnLogoUrl(cfg, userId, logoUrl)) throw fieldFail('logoUrl', 'Upload your logo.');
+      extra.logoUrl = logoUrl;
+    }
+    if (category !== undefined) {
+      if (category && category !== cur?.category) {
+        try { extra.category = await canonicalCategory(tx, category); }
+        catch (e) { throw e instanceof ApiError ? fieldFail('category', e.message) : e; }
+      } else extra.category = category;
+    }
+    if (methodsIn !== undefined) {
+      if (methodsIn.length === 0) extra.contactMethods = [];
+      else {
+        const eff = {
+          mobile: v.publicPhone ?? undefined,
+          whatsapp: whatsapp !== undefined ? whatsapp : cur?.whatsapp,
+          instagram: v.instagram, website: website !== undefined ? website : cur?.website,
+        };
+        const cm = validateContactMethods(methodsIn.filter(m => CONTACT_METHOD_VALUES.includes(m as ContactMethod)), eff);
+        if (!cm.ok) {
+          const [k, msg] = Object.entries(cm.errors)[0];
+          throw fieldFail(k === 'mobile' ? 'publicPhone' : k, k === 'mobile' ? 'Add a public phone to list Phone.' : msg!);
+        }
+        extra.contactMethods = cm.value;
+      }
+    }
+    await tx.insert(sellerProfiles).values({ userId, ...v, cityId, ...extra })
+      .onConflictDoUpdate({ target: sellerProfiles.userId, set: { ...v, cityId, ...extra } });
     return toProfile((await loadProfile(tx, userId))!);
   });
 }

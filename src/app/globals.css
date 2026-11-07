@@ -3153,3 +3153,8 @@ main {
 body.modal-open {
   overflow: hidden;
 }
+
+.admin-form input[aria-invalid='true'],
+.admin-form select[aria-invalid='true'] {
+  border-color: var(--danger);
+}
