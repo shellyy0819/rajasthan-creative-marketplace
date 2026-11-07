@@ -35,8 +35,13 @@ export function validateLogoUrl(v: unknown): FieldResult<string> {
   if (t.length > 500) return fail('Logo link is too long.');
   return ok(t);
 }
+/** Canonical 10-digit mobile (prefix dropped), or undefined when invalid. */
+function canonicalMobile(input: string): string | undefined {
+  const n = normalizePhone(input);
+  return n ? n.slice(-10) : undefined;
+}
 export function validateMobile(v: unknown): FieldResult<string> {
-  const n = normalizePhone(str(v));
+  const n = canonicalMobile(str(v));
   return n ? ok(n) : fail(MOBILE_ERROR);
 }
 /** Optional website. Empty gives ok(undefined). */
@@ -65,7 +70,7 @@ export function validateInstagramOrWebsite(instagram: unknown, website: unknown)
 export function validateWhatsapp(v: unknown): FieldResult<string | undefined> {
   const t = str(v);
   if (!t) return ok(undefined);
-  const n = normalizePhone(t);
+  const n = canonicalMobile(t);
   return n ? ok(n) : fail('Enter a valid WhatsApp number.');
 }
 
@@ -81,8 +86,8 @@ export function validateContactMethods(
     : [];
   if (picked.length === 0) return { ok: false, errors: { contactMethods: CONTACT_METHODS_ERROR } };
   const errors: FieldErrors = {};
-  if (picked.includes('whatsapp') && !normalizePhone(str(ctx.whatsapp))) errors.whatsapp = 'Enter a valid WhatsApp number.';
-  if (picked.includes('phone') && !normalizePhone(str(ctx.mobile))) errors.mobile = MOBILE_ERROR;
+  if (picked.includes('whatsapp') && !canonicalMobile(str(ctx.whatsapp))) errors.whatsapp = 'Enter a valid WhatsApp number.';
+  if (picked.includes('phone') && !canonicalMobile(str(ctx.mobile))) errors.mobile = MOBILE_ERROR;
   if (picked.includes('instagram') && !str(ctx.instagram).replace(/^@+/, '')) errors.instagram = 'Add your Instagram handle.';
   if (picked.includes('website') && !str(ctx.website)) errors.website = 'Add your website.';
   return Object.keys(errors).length ? { ok: false, errors } : { ok: true, value: picked };

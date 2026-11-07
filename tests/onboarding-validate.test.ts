@@ -20,11 +20,11 @@ describe('validateOnboarding', () => {
   it('rejects blank full name', () => { expect(errs({ fullName: '   ' }).fullName).toBeTruthy(); });
   it('rejects whitespace-only brand name', () => { expect(errs({ brandName: '  \t ' }).brandName).toBeTruthy(); });
   it('mobile accepts +91, 0 prefix and spaces and stores normalised', () => {
-    // normalizePhone strips separators only; the prefix is kept as typed.
-    for (const [m, want] of [['+91 99898-98999', '+919989898999'], ['09989898999', '09989898999'], ['919989898999', '919989898999']]) {
+    const stored = ['+91 98765 43210', '098765 43210', '98765-43210', '9876543210', '91 98765 43210'].map(m => {
       const r = validateOnboarding({ ...good, mobile: m });
-      expect(r.ok && r.value.mobile).toBe(want);
-    }
+      return r.ok && r.value.mobile;
+    });
+    expect(new Set(stored)).toEqual(new Set(['9876543210']));
   });
   it('mobile 12345 gives "Enter a 10-digit mobile number."', () => {
     expect(errs({ mobile: '12345' }).mobile).toBe('Enter a 10-digit mobile number.');
@@ -57,7 +57,7 @@ describe('validateOnboarding', () => {
     expect(errs({ contactMethods: ['whatsapp'] }).whatsapp).toBeTruthy();
     expect(errs({ contactMethods: ['whatsapp'], whatsapp: '123' }).whatsapp).toBeTruthy();
     const r = validateOnboarding({ ...good, contactMethods: ['whatsapp'], whatsapp: '+91 98765 43210' });
-    expect(r.ok && r.value.whatsapp).toBe('+919876543210');
+    expect(r.ok && r.value.whatsapp).toBe('9876543210');
   });
   it('phone method needs mobile', () => {
     expect(errs({ contactMethods: ['phone'], mobile: '' }).mobile).toBe('Enter a 10-digit mobile number.');
