@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { completeOnboarding } from '@/lib/onboarding';
+import * as people from '@/db/people';
 import { resolveRole } from '@/lib/roles';
 import { sellerProfiles, userRoles, users } from '@/db/schema';
 import type { OnboardingInput } from '@/lib/onboarding-validate';
@@ -83,17 +84,28 @@ describe('completeOnboarding', () => {
     await expect(completeOnboarding('l@x.co', input({ mobile: '123' }))).rejects.toMatchObject({ status: 400 });
     expect(await resolveRole('l@x.co')).toBe('customer');
   });
-  it('two concurrent calls leave one role row and one profile', async () => {
+  it('after two concurrent calls the end state is one role row and one profile (primary keys; the lock itself is tested in pg-concurrency)', async () => {
     const rs = await Promise.all([completeOnboarding('race@x.co', input()), completeOnboarding('race@x.co', input())]);
     expect(rs.map(r => r.status).sort()).toEqual(['created', 'unchanged']);
     const u = await byEmail('race@x.co');
     expect(await roles(u.id)).toHaveLength(1);
     expect(await (await getTestDb()).select().from(sellerProfiles).where(eq(sellerProfiles.userId, u.id))).toHaveLength(1);
   });
-  it('profile failure rolls back the role', async () => {
-    await expect(completeOnboarding('bad@x.co', input({ cityRef: 'garbage' }))).rejects.toBeDefined();
+  it('missing city is rejected, no role', async () => {
+    await expect(completeOnboarding('nc@x.co', input({ cityRef: undefined }))).rejects.toMatchObject({ status: 400, message: 'Pick your city from the list.' });
+    expect(await resolveRole('nc@x.co')).toBe('customer');
+  });
+  it('a profile write that fails after the role grant rolls the role back', async () => {
+    const spy = vi.spyOn(people, 'ensureSellerProfile').mockRejectedValueOnce(new Error('profile write failed'));
+    try {
+      await expect(completeOnboarding('bad@x.co', input())).rejects.toThrow('profile write failed');
+    } finally { spy.mockRestore(); }
     const u = await byEmail('bad@x.co');
     expect(u ? await roles(u.id) : []).toHaveLength(0);
     expect(await resolveRole('bad@x.co')).toBe('customer');
+  });
+  it('invalid cityRef is rejected, no role', async () => {
+    await expect(completeOnboarding('bad2@x.co', input({ cityRef: 'garbage' }))).rejects.toBeDefined();
+    expect(await resolveRole('bad2@x.co')).toBe('customer');
   });
 });

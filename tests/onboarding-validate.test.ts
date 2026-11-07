@@ -4,7 +4,7 @@ import { validateOnboarding, validateMobile, validateContactMethods } from '../s
 const good = {
   fullName: ' Asha Devi ', mobile: '99898 98999', brandName: 'Asha Crafts', category: 'Textiles',
   description: 'Hand block printed fabrics.', instagram: '@asha.crafts', logoUrl: 'https://x.test/logo.png',
-  contactMethods: ['phone'],
+  contactMethods: ['phone'], cityRef: 'signed.ref',
 };
 const errs = (o: object) => {
   const r = validateOnboarding({ ...good, ...o });
@@ -16,6 +16,12 @@ describe('validateOnboarding', () => {
   it('accepts valid input, trimmed and normalised', () => {
     const r = validateOnboarding(good);
     expect(r).toMatchObject({ ok: true, value: { fullName: 'Asha Devi', mobile: '9989898999', instagram: 'asha.crafts' } });
+  });
+  it('requires a city: cityRef or cityId', () => {
+    expect(errs({ cityRef: undefined }).cityRef).toBe('Pick your city from the list.');
+    expect(errs({ cityRef: '  ' }).cityRef).toBe('Pick your city from the list.');
+    expect(validateOnboarding({ ...good, cityRef: undefined, cityId: 7 }).ok).toBe(true);
+    expect(errs({ cityRef: undefined, cityId: 0 }).cityRef).toBe('Pick your city from the list.');
   });
   it('rejects blank full name', () => { expect(errs({ fullName: '   ' }).fullName).toBeTruthy(); });
   it('rejects whitespace-only brand name', () => { expect(errs({ brandName: '  \t ' }).brandName).toBeTruthy(); });
@@ -77,7 +83,7 @@ describe('validateOnboarding', () => {
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(Object.keys(r.errors).sort()).toEqual(
-        ['brandName', 'category', 'contactMethods', 'description', 'fullName', 'instagram', 'logoUrl', 'mobile'].sort());
+        ['brandName', 'category', 'cityRef', 'contactMethods', 'description', 'fullName', 'instagram', 'logoUrl', 'mobile'].sort());
     }
   });
   it('non-object input gives a form error', () => {

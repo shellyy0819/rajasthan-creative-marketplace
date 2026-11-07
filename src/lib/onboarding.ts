@@ -39,10 +39,11 @@ export async function completeOnboarding(email: string, input: OnboardingInput):
     const isStaff = hasSeller || ids.includes(ROLE_ID.admin) || roleFor(u.email) === 'admin';
 
     const [existing] = await tx.select({ onboardedAt: sellerProfiles.onboardedAt }).from(sellerProfiles).where(eq(sellerProfiles.userId, u.id));
+    // Deliberate: a user without a role but with a stale onboarded_at is re-granted the role and returns 'created'.
     if (isStaff && existing?.onboardedAt) return { status: 'unchanged', userId: u.id };
 
     const category = await canonicalCategory(tx, v.category);
-    const cityId = await resolveCityInput(tx, v);
+    const cityId = await resolveCityInput(tx, v, { required: true });
 
     const status: OnboardingResult['status'] = isStaff ? 'completed' : 'created';
     if (!isStaff) await grantRole(tx, u.id, 'seller', u.id);

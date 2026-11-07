@@ -12,6 +12,7 @@ export type FieldResult<T> = { ok: true; value: T } | { ok: false; error: string
 
 export const MOBILE_ERROR = 'Enter a 10-digit mobile number.';
 export const INSTAGRAM_OR_WEBSITE_ERROR = 'Add an Instagram handle or a website.';
+export const CITY_ERROR = 'Pick your city from the list.';
 export const CONTACT_METHODS_ERROR = 'Choose at least one way for customers to reach you.';
 export const CONTACT_METHOD_VALUES: readonly ContactMethod[] = ['whatsapp', 'instagram', 'website', 'phone'];
 
@@ -121,6 +122,8 @@ export function validateOnboarding(raw: unknown): { ok: true; value: OnboardingI
 
   const cityId = typeof r.cityId === 'number' && Number.isInteger(r.cityId) && r.cityId > 0 ? r.cityId : undefined;
   const cityRef = str(r.cityRef).slice(0, 1000) || undefined;
+
+  if (cityId === undefined && !cityRef) errors.cityRef = CITY_ERROR;
 
   if (Object.keys(errors).length) return { ok: false, errors };
   return {

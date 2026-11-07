@@ -11,6 +11,7 @@ import { seedFromJson, truncateAll, type LegacyDb } from '@/db/seed';
 import { createBooking, createOrder } from '@/lib/orders';
 vi.mock('@/lib/storage', async importActual => ({ ...(await importActual<typeof import('@/lib/storage')>()), deleteObjects: vi.fn(async () => undefined) }));
 import { deleteObjects } from '@/lib/storage';
+import { completeOnboarding } from '@/lib/onboarding';
 import { createProduct, createWorkshop, deleteProduct, updateProduct } from '@/lib/admin';
 import { cityRef } from './helpers/cities';
 import { admin as adminActor, seller as sellerActor } from './helpers/actors';
@@ -153,5 +154,14 @@ describe.skipIf(!adminUrl)('real Postgres: concurrency and locking', () => {
         expect(await db.select().from(schema.productImages).where(eq(schema.productImages.productId, p.id))).toHaveLength(0);
       }
     } finally { for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } }
+  });
+
+  it('two concurrent completeOnboarding calls: one created, one unchanged, one role row, one profile', async () => {
+    const onb = { fullName: 'Asha Verma', mobile: '9876543210', brandName: 'Asha Crafts', category: 'Accessories', description: 'Hand-set lac.', cityRef: cityRef('Jaipur'), instagram: 'asha', logoUrl: 'https://example.com/l.png', contactMethods: ['instagram' as const] };
+    const rs = await Promise.all([completeOnboarding('race@x.co', onb), completeOnboarding('race@x.co', onb)]);
+    expect(rs.map(r => r.status).sort()).toEqual(['created', 'unchanged']);
+    const id = rs[0].userId;
+    expect(await db.select().from(schema.userRoles).where(eq(schema.userRoles.userId, id))).toHaveLength(1);
+    expect(await db.select().from(schema.sellerProfiles).where(eq(schema.sellerProfiles.userId, id))).toHaveLength(1);
   });
 });
