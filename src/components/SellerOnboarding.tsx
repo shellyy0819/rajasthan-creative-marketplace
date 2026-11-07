@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { FieldError } from '@/components/onboarding/FieldError';
-import { EMPTY_CRAFT, StepCraft, type Craft } from '@/components/onboarding/StepCraft';
+import { EMPTY_CRAFT, StepCraft, sanitizeCraft, type Craft } from '@/components/onboarding/StepCraft';
 import { validateFullName, validateMobile, type OnboardingInput } from '@/lib/onboarding-validate';
 
 export type SellerOnboardingProps = {
@@ -45,7 +45,7 @@ export function SellerOnboarding({ initialName, initialEmail, onSubmit }: Seller
     if (touched.current || !d || d.email !== initialEmail) return; // re-check: an edit may land while the draft is being read
     if (typeof d.fullName === 'string') setFullName(d.fullName);
     if (typeof d.mobile === 'string') setMobile(d.mobile);
-    if (d.craft && typeof d.craft === 'object') setCraft({ ...EMPTY_CRAFT, ...d.craft });
+    if (d.craft !== undefined) setCraft(sanitizeCraft(d.craft));
     if (d.step === 2) setStep(2);
   }, [initialEmail]);
 

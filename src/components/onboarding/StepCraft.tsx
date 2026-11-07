@@ -13,6 +13,20 @@ export type Craft = {
   instagram: string; website: string; logoUrl: string;
   contactMethods: ContactMethod[]; sameAsMobile: boolean; whatsapp: string;
 };
+/** A stored draft may be malformed (older shape, edited storage): keep only well-typed fields. */
+export function sanitizeCraft(raw: unknown): Craft {
+  const r = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as Record<string, unknown> : {};
+  const str = (v: unknown, d: string) => (typeof v === 'string' ? v : d);
+  const c = r.city && typeof r.city === 'object' ? r.city as Record<string, unknown> : null;
+  const city = c && typeof c.ref === 'string' && typeof c.label === 'string' ? { ref: c.ref, label: c.label, ...(typeof c.state === 'string' && { state: c.state }) } : null;
+  const methods = Array.isArray(r.contactMethods) ? METHOD_IDS.filter(m => (r.contactMethods as unknown[]).includes(m)) : [];
+  return {
+    brandName: str(r.brandName, ''), category: str(r.category, ''), description: str(r.description, ''), city,
+    instagram: str(r.instagram, ''), website: str(r.website, ''), logoUrl: str(r.logoUrl, ''),
+    contactMethods: methods, sameAsMobile: typeof r.sameAsMobile === 'boolean' ? r.sameAsMobile : true, whatsapp: str(r.whatsapp, ''),
+  };
+}
+
 export const EMPTY_CRAFT: Craft = {
   brandName: '', category: '', description: '', city: null, instagram: '', website: '', logoUrl: '',
   contactMethods: [], sameAsMobile: true, whatsapp: '',
@@ -24,6 +38,8 @@ const METHODS: { id: ContactMethod; label: string; note?: string }[] = [
   { id: 'website', label: 'Website', note: 'Website uses the link you entered above.' },
   { id: 'phone', label: 'Phone', note: 'Phone uses your mobile number from step 1.' },
 ];
+
+const METHOD_IDS = METHODS.map(m => m.id);
 
 /** Where each error key is shown, in page order (the first one gets focus). */
 const ORDER = ['brandName', 'category', 'description', 'cityRef', 'instagram', 'website', 'logoUrl', 'contactMethods', 'whatsapp', 'mobile'] as const;
@@ -122,8 +138,10 @@ export function StepCraft({ value, onChange, fullName, mobile, onBack, onSubmit,
       </label>
       <p className="onboard-counter" id="hint-description">
         <span>A line or two about what you make.</span>
-        <span className={value.description.length > DESCRIPTION_MAX ? 'over' : undefined} aria-live="polite">{value.description.length} / {DESCRIPTION_MAX}</span>
+        <span className={value.description.length > DESCRIPTION_MAX ? 'over' : undefined} data-testid="description-counter">{value.description.length} / {DESCRIPTION_MAX}</span>
       </p>
+      {/* Only the over-limit state is announced, once: the text is constant, so further keystrokes do not re-announce it. */}
+      {value.description.length > DESCRIPTION_MAX && <span className="sr-only" role="status">Description is over {DESCRIPTION_MAX} characters.</span>}
       <FieldError id="err-description" message={err('description')} />
 
       <div className="onboard-pair">

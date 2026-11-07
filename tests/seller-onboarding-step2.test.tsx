@@ -167,3 +167,35 @@ describe('onboarding step 2 behaviour', () => {
     expect((screen.getByLabelText('Business or brand name') as HTMLInputElement).value).toBe('Meera Pottery');
   });
 });
+
+describe('onboarding step 2 accessibility and drafts', () => {
+  it('the counter is not a live region and only crossing 200 adds one status', async () => {
+    await openStep2({ description: '' });
+    const area = screen.getByLabelText('Short description');
+    const counter = screen.getByTestId('description-counter');
+    expect(counter.closest('[aria-live]')).toBeNull();
+    const live = () => document.querySelectorAll('[aria-live], [role="status"], [role="alert"]');
+    const before = live().length;
+    fireEvent.change(area, { target: { value: 'a'.repeat(100) } });
+    fireEvent.change(area, { target: { value: 'a'.repeat(200) } });
+    expect(counter.textContent).toBe('200 / 200');
+    expect(live().length).toBe(before);
+    fireEvent.change(area, { target: { value: 'a'.repeat(201) } });
+    expect(screen.getAllByRole('status').filter(e => /over 200/.test(e.textContent ?? ''))).toHaveLength(1);
+    fireEvent.change(area, { target: { value: 'a'.repeat(205) } });
+    expect(screen.getAllByRole('status').filter(e => /over 200/.test(e.textContent ?? ''))).toHaveLength(1);
+    fireEvent.change(area, { target: { value: 'a'.repeat(150) } });
+    expect(screen.queryByText(/is over 200/)).toBeNull();
+  });
+  it('a malformed stored draft renders the form normally', async () => {
+    sessionStorage.setItem('craftofy.onboarding', JSON.stringify({
+      email: 'c@x.co', step: 2, fullName: 'Chai Maker', mobile: '9876543210',
+      craft: { brandName: 42, contactMethods: 'whatsapp', city: 'Kota', description: null, sameAsMobile: 'yes', website: { a: 1 } },
+    }));
+    render(<SellerOnboarding {...props} />);
+    await screen.findByText('Step 2 of 2: Your craft');
+    expect((screen.getByLabelText('Business or brand name') as HTMLInputElement).value).toBe('');
+    expect(screen.getByRole('button', { name: 'Phone' }).getAttribute('aria-pressed')).toBe('false');
+    expect((screen.getByLabelText('City') as HTMLInputElement).value).toBe('');
+  });
+});
