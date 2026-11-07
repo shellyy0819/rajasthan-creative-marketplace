@@ -120,7 +120,7 @@ export function validateOnboarding(raw: unknown): { ok: true; value: OnboardingI
   else for (const [k, msg] of Object.entries(cm.errors)) errors[k as keyof FieldErrors] ??= msg;
 
   const cityId = typeof r.cityId === 'number' && Number.isInteger(r.cityId) && r.cityId > 0 ? r.cityId : undefined;
-  const cityRef = str(r.cityRef).slice(0, 100) || undefined;
+  const cityRef = str(r.cityRef).slice(0, 1000) || undefined;
 
   if (Object.keys(errors).length) return { ok: false, errors };
   return {
