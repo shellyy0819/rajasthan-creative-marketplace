@@ -63,3 +63,8 @@ export function signInUrl(returnPath: string, cfg: HostConfig = hostConfig()): s
     return `${cfg.publicOrigin}/api/auth/signin?callbackUrl=${encodeURIComponent(cfg.dashboardOrigin + returnPath)}`;
   return `/api/auth/signin?callbackUrl=${encodeURIComponent(returnPath)}`;
 }
+
+/** The dashboard posts page (absolute on the dashboard host in split-host mode). `newPost` opens the new-post form. */
+export function dashboardPostsUrl(opts: { newPost?: boolean } = {}, cfg: HostConfig = hostConfig()): string {
+  return `${cfg.dashboardOrigin ?? ''}/dashboard/posts${opts.newPost ? '?new=1' : ''}`;
+}

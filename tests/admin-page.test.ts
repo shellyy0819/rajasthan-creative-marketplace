@@ -22,9 +22,9 @@ describe('dashboard page gates', () => {
     authMock.mockResolvedValue(null);
     await expect(requireStaffPage()).rejects.toThrow('REDIRECT:https://www.example.com/api/auth/signin?callbackUrl=' + encodeURIComponent('https://dashboard.example.com/dashboard/posts'));
   });
-  it('customers get a 404, sellers pass the staff gate but not the admin gate, admins pass both', async () => {
+  it('requireStaffPage sends roleless user to /sell; customers are sent to /sell, sellers pass the staff gate but get a 404 on the admin gate, admins pass both', async () => {
     authMock.mockResolvedValue({ user: { email: 'c@x.co', role: 'customer' } });
-    await expect(requireStaffPage()).rejects.toThrow('NOT_FOUND');
+    await expect(requireStaffPage()).rejects.toThrow(/^REDIRECT:\/sell$/);
     authMock.mockResolvedValue({ user: { email: 's@x.co', role: 'seller' } });
     await expect(requireStaffPage()).resolves.toMatchObject({ role: 'seller' });
     await expect(requireAdminPage()).rejects.toThrow('NOT_FOUND');

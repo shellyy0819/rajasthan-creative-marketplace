@@ -37,6 +37,13 @@ describe('proxy', () => {
     const pub = proxy(req('app:3000', '/dashboard', { 'x-forwarded-host': 'www.example.com, 10.0.0.1' }));
     expect(pub.headers.get('x-middleware-rewrite')).toContain('/_not-found-dashboard');
   });
+  it('/sell is served on the public host and redirected to the public host from the dashboard host', () => {
+    split();
+    expect(proxy(req('www.example.com', '/sell')).headers.get('x-middleware-next')).toBe('1');
+    const r = proxy(req('dashboard.example.com', '/sell'));
+    expect(r.status).toBe(307);
+    expect(r.headers.get('location')).toBe('https://www.example.com/sell');
+  });
   it('the API is served on both hosts (it does its own authorisation)', () => {
     split();
     for (const host of ['www.example.com', 'dashboard.example.com']) expect(proxy(req(host, '/api/products')).headers.get('x-middleware-next')).toBe('1');
