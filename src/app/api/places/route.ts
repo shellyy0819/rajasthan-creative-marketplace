@@ -1,11 +1,11 @@
 import { auth } from '@/auth';
 import { handle, json } from '@/lib/api';
-import { requireStaff } from '@/lib/authz';
+import { requireUser } from '@/lib/authz';
 import { ApiError } from '@/lib/errors';
 import { searchPlaces } from '@/lib/places';
 export const dynamic = 'force-dynamic';
 
-// The free Photon service is fair-use only: cap each signed-in seller/admin at 60 lookups a minute.
+// The free Photon service is fair-use only: cap each signed-in user at 60 lookups a minute.
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 60;
 const hits = new Map<string, number[]>();
@@ -17,9 +17,9 @@ function limit(email: string) {
   hits.set(email.toLowerCase(), [...recent, now]);
 }
 
-/** Place suggestions for the pickup-location field. Sellers and admins only (it proxies a third-party service). */
+/** Place suggestions for the pickup-location field. Any signed-in account (onboarding uses it before a role exists; it proxies a third-party service). */
 export const GET = (req: Request) => handle(async () => {
-  const user = requireStaff(await auth());
+  const user = requireUser(await auth());
   const params = new URL(req.url).searchParams;
   const q = params.get('q') ?? '';
   if (q.trim().length < 2) return json([], 200, { 'cache-control': 'private, max-age=60' });

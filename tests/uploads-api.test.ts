@@ -5,6 +5,7 @@ vi.mock('@/auth', () => ({ auth: authMock }));
 const presign = vi.hoisted(() => vi.fn());
 vi.mock('@aws-sdk/s3-presigned-post', () => ({ createPresignedPost: presign }));
 import { POST } from '@/app/api/uploads/product-image/route';
+import { POST as LOGO } from '@/app/api/uploads/seller-logo/route';
 import { resetLimitersForTests } from '@/lib/engagement-limits';
 import { makeSeller, resetTestDb } from './helpers/testdb';
 
@@ -74,5 +75,51 @@ describe('POST /api/uploads/product-image', () => {
     expect(blocked.status).toBe(429);
     expect((await blocked.json()).error).toBe('Too many requests.');
     as('t@x.co'); expect((await post({ contentType: 'image/png', size: 10 })).status).toBe(200);
+  });
+});
+
+describe('POST /api/uploads/product-image stays staff-only', () => {
+  it('a signed-in customer is still 403', async () => {
+    as('buyer@x.co', 'customer');
+    expect((await post({ contentType: 'image/png', size: 10 })).status).toBe(403);
+    expect(presign).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/uploads/seller-logo', () => {
+  const logo = (body: unknown, headers: Record<string, string> = J) =>
+    LOGO(new Request('http://x/api/uploads/seller-logo', { method: 'POST', headers, body: typeof body === 'string' ? body : JSON.stringify(body) }));
+  it('requires sign-in (401), and a deactivated account is 403', async () => {
+    as(null); expect((await logo({ contentType: 'image/png', size: 10 })).status).toBe(401);
+    as('off@x.co', 'customer', { active: false }); expect((await logo({ contentType: 'image/png', size: 10 })).status).toBe(403);
+    expect(presign).not.toHaveBeenCalled();
+  });
+  it('gives a signed-in customer a presigned form for jpg and png', async () => {
+    as('new@x.co', 'customer');
+    for (const contentType of ['image/png', 'image/jpeg']) {
+      const r = await logo({ contentType, size: 1000 });
+      expect(r.status).toBe(200);
+      expect(r.headers.get('cache-control')).toBe('no-store');
+      expect(Object.keys(await r.json()).sort()).toEqual(['fields', 'publicUrl', 'url']);
+    }
+  });
+  it('rejects webp and over 5 MiB', async () => {
+    as('new@x.co', 'customer');
+    expect((await logo({ contentType: 'image/webp', size: 1000 })).status).toBe(400);
+    expect((await logo({ contentType: 'image/png', size: 5242881 })).status).toBe(400);
+    expect(presign).not.toHaveBeenCalled();
+  });
+  it('503 without storage config', async () => {
+    as('new@x.co', 'customer');
+    for (const k of Object.keys(ENV)) delete process.env[k];
+    const r = await logo({ contentType: 'image/png', size: 10 });
+    expect(r.status).toBe(503);
+    expect((await r.json()).error).toBe('Image uploads are not set up yet.');
+  });
+  it('429 after the per-email limit', async () => {
+    as('new@x.co', 'customer');
+    let last = 200;
+    for (let i = 0; i < 100 && last !== 429; i++) last = (await logo({ contentType: 'image/png', size: 10 })).status;
+    expect(last).toBe(429);
   });
 });

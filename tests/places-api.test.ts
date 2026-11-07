@@ -14,10 +14,14 @@ const as = (role: string, email = `${role}@x.co`) => authMock.mockResolvedValue(
 beforeEach(() => { authMock.mockReset(); searchMock.mockReset(); searchMock.mockResolvedValue([{ label: 'Udaipur, Rajasthan', name: 'Udaipur', state: 'Rajasthan' }]); resetPlacesRateLimit(); authMock.mockResolvedValue(null); });
 
 describe('GET /api/places', () => {
-  it('401 anonymous, 403 customers and deactivated users; upstream is never called', async () => {
+  it('works for a signed-in non-seller, 401 signed out', async () => {
     expect((await get('udai')).status).toBe(401);
+    expect(searchMock).not.toHaveBeenCalled();
     as('customer');
-    expect((await get('udai')).status).toBe(403);
+    expect((await get('udai')).status).toBe(200);
+    expect(searchMock).toHaveBeenCalledTimes(1);
+  });
+  it('403 deactivated users; upstream is never called', async () => {
     authMock.mockResolvedValue({ user: { email: 's@x.co', role: 'seller', active: false } });
     expect((await get('udai')).status).toBe(403);
     expect(searchMock).not.toHaveBeenCalled();
