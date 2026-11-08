@@ -74,16 +74,24 @@ describe('validateOnboarding', () => {
   it('website method needs website value', () => {
     expect(errs({ contactMethods: ['website'] }).website).toBeTruthy();
   });
-  it('logoUrl required', () => {
-    expect(errs({ logoUrl: '  ' }).logoUrl).toBeTruthy();
-    expect(errs({ logoUrl: undefined }).logoUrl).toBeTruthy();
+  it('logoUrl is optional: absent or blank is accepted and left out of the value', () => {
+    for (const logoUrl of ['  ', '', undefined]) {
+      const r = validateOnboarding({ ...good, logoUrl });
+      expect(r.ok).toBe(true);
+      if (r.ok) expect(r.value.logoUrl).toBeUndefined();
+    }
+  });
+  it('a provided logoUrl is still checked and kept', () => {
+    expect(errs({ logoUrl: 'x'.repeat(501) }).logoUrl).toBeTruthy();
+    const r = validateOnboarding({ ...good, logoUrl: 'https://x.test/logo.png' });
+    expect(r.ok && r.value.logoUrl).toBe('https://x.test/logo.png');
   });
   it('returns every error at once', () => {
     const r = validateOnboarding({});
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(Object.keys(r.errors).sort()).toEqual(
-        ['brandName', 'category', 'cityRef', 'contactMethods', 'description', 'fullName', 'instagram', 'logoUrl', 'mobile'].sort());
+        ['brandName', 'category', 'cityRef', 'contactMethods', 'description', 'fullName', 'instagram', 'mobile'].sort());
     }
   });
   it('non-object input gives a form error', () => {

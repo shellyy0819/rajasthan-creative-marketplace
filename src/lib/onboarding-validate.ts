@@ -5,7 +5,7 @@ import type { ContactMethod } from './types';
 
 export type OnboardingInput = {
   fullName: string; mobile: string; brandName: string; category: string; description: string;
-  cityId?: number; cityRef?: string; instagram?: string; website?: string; logoUrl: string;
+  cityId?: number; cityRef?: string; instagram?: string; website?: string; logoUrl?: string;
   contactMethods: ContactMethod[]; whatsapp?: string;
 };
 export type FieldErrors = Partial<Record<keyof OnboardingInput | 'form', string>>;
@@ -39,9 +39,10 @@ export function validateNewCategory(v: unknown): FieldResult<string> {
   return r.ok ? ok(r.name) : fail(CATEGORY_HINT_ERROR);
 }
 export const validateDescription = (v: unknown) => requiredText(v, 'a short description', 200);
+/** Optional: empty gives ok(''). A provided link is length-checked here and fully checked (http(s), own folder) by the caller. */
 export function validateLogoUrl(v: unknown): FieldResult<string> {
   const t = str(v);
-  if (!t) return fail('Upload your logo.');
+  if (!t) return ok('');
   if (t.length > 500) return fail('Logo link is too long.');
   return ok(t);
 }
@@ -145,7 +146,7 @@ export function validateOnboarding(raw: unknown): { ok: true; value: OnboardingI
       fullName: fullName!, mobile: mobile!, brandName: brandName!, category: category!, description: description!,
       ...(cityId !== undefined && { cityId }), ...(cityRef && { cityRef }),
       ...(instagram && { instagram }), ...(website && { website }),
-      logoUrl: logoUrl!, contactMethods, ...(whatsapp && { whatsapp }),
+      ...(logoUrl && { logoUrl }), contactMethods, ...(whatsapp && { whatsapp }),
     },
   };
 }

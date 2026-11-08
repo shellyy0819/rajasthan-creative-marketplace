@@ -19,7 +19,7 @@ export async function completeOnboarding(email: string, input: OnboardingInput):
   const checked = validateOnboarding(input);
   if (!checked.ok) throw new ApiError(400, Object.values(checked.errors)[0] ?? 'Invalid request.');
   const v = checked.value;
-  if (!isHttpUrl(v.logoUrl)) throw new ApiError(400, 'Upload your logo.', 'logoUrl');
+  if (v.logoUrl && !isHttpUrl(v.logoUrl)) throw new ApiError(400, 'Upload your logo.', 'logoUrl');
 
   return getDb().transaction(async tx => {
     const found = await ensureUser(tx, email);
@@ -54,7 +54,7 @@ export async function completeOnboarding(email: string, input: OnboardingInput):
     await ensureSellerProfile(tx, u.id, v.brandName);
     await tx.update(sellerProfiles).set({
       displayName: v.brandName, bio: v.description, category, cityId,
-      instagram: v.instagram ?? null, website: v.website ?? null, logoUrl: v.logoUrl,
+      instagram: v.instagram ?? null, website: v.website ?? null, logoUrl: v.logoUrl ?? null,
       whatsapp: v.whatsapp ?? null,
       contactMethods: v.contactMethods,
       ...(v.contactMethods.includes('phone') ? { publicPhone: v.mobile } : {}),

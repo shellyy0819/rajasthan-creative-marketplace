@@ -20,12 +20,14 @@ export const POST = (req: Request) => handle(async () => {
   const checked = validateOnboarding(await readJson(req));
   if (!checked.ok) return json({ errors: checked.errors }, 422);
   // With uploads configured, the logo must be a file our own logo upload route handed out for this account, not an arbitrary link.
+  // The logo is optional: an absent one is stored as null and needs none of these checks.
   const cfg = storageConfig();
+  const logoUrl = checked.value.logoUrl;
   // Without uploads configured, only a non-production build accepts a plain link: in production an arbitrary URL would be rendered as an image for admins.
-  if (!cfg && process.env.NODE_ENV === 'production') return json({ errors: { logoUrl: 'Upload your logo.' } }, 422);
-  if (cfg) {
+  if (logoUrl && !cfg && process.env.NODE_ENV === 'production') return json({ errors: { logoUrl: 'Upload your logo.' } }, 422);
+  if (logoUrl && cfg) {
     const me = await ensureUser(getDb(), user.email);
-    if (!isOwnLogoUrl(cfg, me.id, checked.value.logoUrl)) return json({ errors: { logoUrl: 'Upload your logo.' } }, 422);
+    if (!isOwnLogoUrl(cfg, me.id, logoUrl)) return json({ errors: { logoUrl: 'Upload your logo.' } }, 422);
   }
   let result;
   try { result = await completeOnboarding(user.email, checked.value); }

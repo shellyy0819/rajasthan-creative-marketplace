@@ -20,6 +20,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: unknown) => {
     if (url === '/api/categories') return { ok: true, status: 200, json: () => Promise.resolve(['Pottery', 'Textiles']) } as Response;
     if (url.startsWith('/api/places')) return { ok: true, status: 200, json: () => Promise.resolve(KOTA) } as Response;
+    if (url === '/api/uploads/seller-logo') return { ok: false, status: 500, json: () => Promise.resolve({}) } as Response;
     if (url === '/api/onboarding') { onSubmit(JSON.parse((init as RequestInit).body as string)); return { ok: true, status: 200, json: () => Promise.resolve({ status: 'ok' }) } as Response; }
     return { ok: false, status: 404, json: () => Promise.resolve({}) } as Response;
   }));
@@ -89,10 +90,32 @@ describe('onboarding step 2 errors', () => {
     finish();
     expect(errorOf(screen.getByLabelText('Instagram'))).toBe('Add an Instagram handle or a website.');
   });
-  it('logo missing shows "Upload your logo."', async () => {
+  it('logo is optional: no marker, no error, and Finish submits without a logoUrl', async () => {
     await openStep2({ logoUrl: '' });
+    expect(screen.getByRole('heading', { name: 'Logo or profile photo (optional)' })).toBeTruthy();
     finish();
-    expect(errorOf(screen.getByLabelText('Upload photo'))).toBe('Upload your logo.');
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('logoUrl');
+    expect(screen.queryByText('Upload your logo.')).toBeNull();
+  });
+  it('a failed logo upload does not block Finish, which submits without a logo', async () => {
+    await openStep2({ logoUrl: '' });
+    vi.stubGlobal('createImageBitmap', vi.fn(async () => ({ width: 500, height: 500, close: () => {} })));
+    const f = new File(['x'], 'logo.png', { type: 'image/png' });
+    fireEvent.change(screen.getByLabelText('Upload photo'), { target: { files: [f] } });
+    expect(await screen.findByText('The photo could not be uploaded.')).toBeTruthy();
+    finish();
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('logoUrl');
+  });
+  it('an upload in progress still blocks Finish', async () => {
+    await openStep2({ logoUrl: '' });
+    vi.stubGlobal('createImageBitmap', vi.fn(() => new Promise(() => {}))); // the check never ends
+    fireEvent.change(screen.getByLabelText('Upload photo'), { target: { files: [new File(['x'], 'logo.png', { type: 'image/png' })] } });
+    await screen.findByText('Uploading…');
+    finish();
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect((screen.getByRole('button', { name: 'Finish and add my first product' }) as HTMLButtonElement).disabled).toBe(true);
   });
   it('no contact method shows the required message', async () => {
     await openStep2({ contactMethods: [] });

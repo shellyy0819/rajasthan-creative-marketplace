@@ -99,6 +99,14 @@ describe('completeOnboarding', () => {
     await expect(completeOnboarding('c@x.co', input({ category: '<bad>' }))).rejects.toMatchObject({ status: 400 });
     expect(await resolveRole('c@x.co')).toBe('customer');
   });
+  it('an absent or empty logo is stored as null and the maker still becomes a seller', async () => {
+    for (const [email, logoUrl] of [['nl1@x.co', undefined], ['nl2@x.co', '']] as const) {
+      const r = await completeOnboarding(email, input({ logoUrl }));
+      expect(r.status).toBe('created');
+      expect((await profile(r.userId)).logoUrl).toBeNull();
+      expect(await resolveRole(email)).toBe('seller');
+    }
+  });
   it('rejects a non-http logo and invalid input, no role', async () => {
     await expect(completeOnboarding('l@x.co', input({ logoUrl: 'javascript:alert(1)' }))).rejects.toMatchObject({ status: 400 });
     await expect(completeOnboarding('l@x.co', input({ mobile: '123' }))).rejects.toMatchObject({ status: 400 });

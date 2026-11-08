@@ -103,6 +103,23 @@ describe('POST /api/onboarding', () => {
     } finally { vi.unstubAllEnvs(); }
     expect((await post(body())).status).toBe(200);
   });
+  it('a missing logo is accepted (200, logo_url null) outside and inside production without storage, and with storage', async () => {
+    const noLogo = { logoUrl: undefined };
+    as('nl1@x.co');
+    expect((await post(body(noLogo))).status).toBe(200);
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      as('nl2@x.co');
+      expect((await post(body({ logoUrl: '' }))).status).toBe(200);
+      Object.assign(process.env, { S3_BUCKET: 'b', S3_REGION: 'ap-south-1', AWS_ACCESS_KEY_ID: 'k', AWS_SECRET_ACCESS_KEY: 's' });
+      as('nl3@x.co');
+      expect((await post(body(noLogo))).status).toBe(200);
+    } finally { vi.unstubAllEnvs(); }
+    const rows = await (await getTestDb()).select().from(sellerProfiles);
+    const mine = rows.filter(r => r.displayName === 'Asha Crafts');
+    expect(mine).toHaveLength(3);
+    expect(mine.every(r => r.logoUrl === null)).toBe(true);
+  });
   it('422 returns field-keyed errors', async () => {
     as('new@x.co');
     const r = await post(body({ mobile: '123', cityRef: undefined, cityId: undefined }));

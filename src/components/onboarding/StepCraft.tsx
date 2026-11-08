@@ -232,7 +232,7 @@ export function StepCraft({ value, onChange, fullName, mobile, onBack, onSubmit,
       </label>
       <FieldError id="err-website" message={err('website')} />
 
-      <h2 className="onboard-sub">Logo or profile photo <b className="onboard-req" aria-hidden="true">*</b></h2>
+      <h2 className="onboard-sub">Logo or profile photo (optional)</h2>
       <p className="onboard-hint">A square photo works best, at least 400 by 400.</p>
       <LogoUpload value={value.logoUrl} onChange={logoUrl => onChange({ logoUrl })} onBusyChange={setLogoBusy}
         invalid={!!errors.logoUrl} describedBy={desc('logoUrl')} />
