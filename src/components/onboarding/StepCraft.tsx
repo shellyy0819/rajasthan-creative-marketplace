@@ -47,7 +47,7 @@ const METHOD_IDS = METHODS.map(m => m.id);
 /** Where each error key is shown, in page order (the first one gets focus). */
 const ORDER = ['brandName', 'category', 'description', 'cityRef', 'instagram', 'website', 'logoUrl', 'contactMethods', 'whatsapp', 'mobile'] as const;
 const FOCUS: Record<string, string> = {
-  brandName: '[name="brandName"]', category: '[name="category"]',  description: '[name="description"]', cityRef: 'input[name="city"]',
+  brandName: '[name="brandName"]', category: '[name="category"]', description: '[name="description"]', cityRef: 'input[name="city"]',
   instagram: '[name="instagram"]', website: '[name="website"]', logoUrl: '[data-field="logoUrl"]',
   contactMethods: '[data-method]', whatsapp: '[name="whatsapp"]', mobile: '[data-method]',
 };

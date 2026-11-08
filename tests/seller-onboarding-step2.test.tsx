@@ -223,8 +223,6 @@ describe('onboarding step 2: Other category', () => {
 
   it('Other is the last option; choosing it reveals "Your category", focused, with its helper', async () => {
     await openStep2();
-    const opts = screen.getAllByRole('option').map(o => o.textContent);
-    expect(opts.filter(Boolean).at(-1) === OTHER || opts.includes(OTHER)).toBe(true);
     const select = screen.getByLabelText('Category') as HTMLSelectElement;
     expect(select.options[select.options.length - 1].textContent).toBe(OTHER);
     expect(typed()).toBeNull();

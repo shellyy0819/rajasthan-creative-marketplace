@@ -30,7 +30,7 @@ export const POST = (req: Request) => handle(async () => {
   let result;
   try { result = await completeOnboarding(user.email, checked.value); }
   catch (e) {
-    // A fixable problem tied to one field (unknown category, expired city pick) is a field error like any other.
+    // A fixable problem tied to one field (a rejected new category name, expired city pick) is a field error like any other.
     if (e instanceof ApiError && e.status === 400 && e.field) return json({ errors: { [e.field]: e.message } }, 422);
     throw e;
   }

@@ -1,7 +1,8 @@
 // Pure category-name rule shared by the server (categories.ts) and client components. No db imports.
 const NAME_RE = /^[\p{L}\p{N}][\p{L}\p{M}\p{N} &\-',.()/]*$/u;
 export const CATEGORY_HINT = 'name must be 2-40 characters: letters, numbers, spaces and & - \' , . ( ) /';
-export const collapseSpaces = (s: string) => s.trim().replace(/\s+/g, ' ');
+/** NFC first so composed and decomposed spellings of an accented name are one name, then trim and collapse spaces. */
+export const collapseSpaces = (s: string) => s.normalize('NFC').trim().replace(/\s+/g, ' ');
 
 /** The collapsed name when it follows the rule (2-40 characters, allowed characters, a letter, no control characters). */
 export function checkCategoryName(raw: unknown): { ok: true; name: string } | { ok: false; error: string } {

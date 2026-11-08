@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { completeOnboarding } from '@/lib/onboarding';
+import { MAX_CATEGORIES, ONBOARDING_CATEGORY_LIMIT, ONBOARDING_LIMIT_MESSAGE, createCategory } from '@/lib/categories';
 import * as people from '@/db/people';
 import { resolveRole } from '@/lib/roles';
 import { categories, sellerProfiles, userRoles, users } from '@/db/schema';
@@ -159,13 +160,41 @@ describe('completeOnboarding', () => {
       expect((await cats()).length).toBe(before);
       expect(await resolveRole('n@x.co')).toBe('customer');
     });
-    it('at the category cap a new name is refused on category and nothing is created', async () => {
-      const db = await getTestDb();
+    const fill = async (total: number) => {
       const have = (await cats()).length;
-      await db.insert(categories).values(Array.from({ length: 100 - have }, (_, i) => ({ name: `Filler ${i}` })));
-      await expect(completeOnboarding('n@x.co', input({ category: 'Brand New' }))).rejects.toMatchObject({ status: 400, field: 'category', message: 'Category limit reached (100).' });
-      expect(await cats()).not.toContain('Brand New');
-      expect(await resolveRole('n@x.co')).toBe('customer');
+      await (await getTestDb()).insert(categories).values(Array.from({ length: total - have }, (_, i) => ({ name: `Filler ${have + i}` })));
+    };
+    it('onboarding may create the 80th category (79 exist) but not an 81st: headroom is kept for staff', async () => {
+      await fill(ONBOARDING_CATEGORY_LIMIT - 1);
+      await completeOnboarding('a@x.co', input({ category: 'Brand New' }));
+      expect((await cats()).length).toBe(ONBOARDING_CATEGORY_LIMIT);
+      await expect(completeOnboarding('b@x.co', input({ category: 'Another New' }))).rejects.toMatchObject({ status: 400, field: 'category', message: ONBOARDING_LIMIT_MESSAGE });
+      expect(await cats()).not.toContain('Another New');
+      expect(await resolveRole('b@x.co')).toBe('customer');
+      // reuse still works at the limit
+      expect((await completeOnboarding('c@x.co', input({ category: 'brand new' }))).status).toBe('created');
+    });
+    it('staff can still create categories up to the full 100 after onboarding stopped at 80', async () => {
+      await fill(ONBOARDING_CATEGORY_LIMIT);
+      const admin = await giveRole('adm@x.co', 'admin');
+      await createCategory({ name: 'Staff One' }, admin.email);
+      await fill(MAX_CATEGORIES - 1);
+      await expect(createCategory({ name: 'Staff Last' }, admin.email)).resolves.toMatchObject({ created: true });
+      await expect(createCategory({ name: 'Staff Over' }, admin.email)).rejects.toMatchObject({ status: 409 });
+    });
+    it('an existing category whose stored name breaks the rule is reused without error; a new rule-breaking name is still refused', async () => {
+      await (await getTestDb()).insert(categories).values({ name: 'X' });
+      const r = await completeOnboarding('n@x.co', input({ category: ' x ' }));
+      expect((await profile(r.userId)).category).toBe('X');
+      expect((await cats()).filter(n => n.toLowerCase() === 'x')).toHaveLength(1);
+      await expect(completeOnboarding('m@x.co', input({ category: 'Y' }))).rejects.toMatchObject({ field: 'category', message: expect.stringMatching(/2-40 characters/) });
+    });
+    it('composed and decomposed spellings of an accented name are one category', async () => {
+      const composed = 'Caf\u00e9 Ware', decomposed = 'Cafe\u0301 Ware';
+      await completeOnboarding('a@x.co', input({ category: composed }));
+      const r = await completeOnboarding('b@x.co', input({ category: decomposed }));
+      expect((await profile(r.userId)).category).toBe(composed);
+      expect((await cats()).filter(n => n.normalize('NFC') === composed)).toHaveLength(1);
     });
     it('a failed profile save (bad city) rolls the new category back with the role', async () => {
       const before = (await cats()).length;
