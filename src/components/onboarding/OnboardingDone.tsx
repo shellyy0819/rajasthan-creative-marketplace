@@ -17,7 +17,7 @@ export function OnboardingDone({ name, brand, postsUrl, postsUrlNew }: { name: s
         <svg viewBox="0 0 24 24" width="32" height="32"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </span>
       <h1 ref={h1} tabIndex={-1}>You are in, {name}.</h1>
-      <p className="onboard-lead">Your seller profile for {brand} is ready. Here is what happens next.</p>
+      <p className="onboard-lead">Your seller profile for <strong className="onboard-brand">{brand}</strong> is ready. Here is what happens next.</p>
       <ol className="onboard-next">
         {STEPS.map((s, i) => (
           <li key={s.title}><span className="onboard-next-n" aria-hidden="true">{i + 1}</span><span><b>{s.title}</b> {s.text}</span></li>

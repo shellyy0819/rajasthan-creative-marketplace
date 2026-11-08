@@ -3213,6 +3213,14 @@ button.onboard-stepper-btn {
   margin-top: 0;
   text-decoration: none;
 }
+.onboard-brand {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--orange);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
 .onboard-done-link {
   min-height: 44px;
   display: flex;

@@ -175,7 +175,8 @@ describe('onboarding submit', () => {
   it('success shows the done screen with both actions and clears the draft', async () => {
     await openStep2(); finish();
     expect(await screen.findByText('You are in, Meera.')).toBeTruthy();
-    expect(screen.getByText(/Meera Pottery is ready/)).toBeTruthy();
+    expect(document.querySelector('.onboard-lead')?.textContent).toMatch(/Meera Pottery is ready/);
+    expect(document.querySelector('.onboard-lead strong.onboard-brand')?.textContent).toBe('Meera Pottery');
     expect(screen.getByRole('link', { name: 'Add your first product' }).getAttribute('href')).toBe(props.postsUrlNew);
     expect(screen.getByRole('link', { name: 'Go to my dashboard' }).getAttribute('href')).toBe(props.postsUrl);
     expect(sessionStorage.getItem(KEY)).toBeNull();
