@@ -651,6 +651,11 @@ h2 em {
   color: var(--muted);
   background: var(--white);
 }
+/* empty states of the product and workshop lists sit directly on the page/band colour */
+.product-grid .empty,
+.workshop-list .empty {
+  background: transparent;
+}
 .workshop-band {
   background: var(--band-2);
   padding: 72px 8.5%;
