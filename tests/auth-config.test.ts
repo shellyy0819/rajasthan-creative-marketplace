@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { auth, authOptions } from '@/auth';
 
 describe('auth fails closed without NEXTAUTH_SECRET', () => {
@@ -50,8 +50,22 @@ describe('auth across the public and dashboard hosts', () => {
     expect(await redirect({ url: 'https://www.example.com/shop', baseUrl: base })).toBe('https://www.example.com/shop');
     expect(await redirect({ url: 'https://dashboard.example.com/dashboard/posts', baseUrl: base })).toBe('https://dashboard.example.com/dashboard/posts');
     const dflt = base + '/sell'; // anything unsafe falls back to the default
-    for (const bad of ['https://evil.example.org/phish', 'https://dashboard.example.com.evil.org/x', '//evil.example.org/x', 'javascript:alert(1)', 'https://evil.example', '/\\evil.example', '\\\\evil.example', '/\\/evil.example', 'https://dashboard.example.com@evil.example/x', 'https://dashboard.example.com\\@evil.example/x', 'data:text/html,x'])
+    for (const bad of ['https://evil.example.org/phish', 'https://dashboard.example.com.evil.org/x', '//evil.example.org/x', 'javascript:alert(1)', 'https://evil.example', '/\\evil.example', '\\\\evil.example', '/\\/evil.example', 'https://dashboard.example.com@evil.example/x', 'https://dashboard.example.com\\@evil.example/x', 'data:text/html,x', '/\t/evil.example', '/\n/evil.example', '/\u0000/evil', 'https://www.example.com,evil.com/', 'https://www.example.com%2Cevil.com', 'https://www.example.com:444/x', 'http://www.example.com:443/x', 'https://www.example.com:80/x', '/signin', '/signin?callbackUrl=/signin', '/api/auth/signin', 'https://dashboard.example.com/api/auth/signout'])
       expect(await redirect({ url: bad, baseUrl: base }), bad).toBe(dflt);
+    // allowed: case-insensitive host, the scheme's own default port, an encoded slash stays on our site
+    expect(await redirect({ url: 'https://WWW.Example.com/shop', baseUrl: base })).toBe('https://WWW.Example.com/shop');
+    expect(await redirect({ url: 'https://www.example.com:443/path', baseUrl: base })).toBe('https://www.example.com:443/path');
+    expect(await redirect({ url: '/%2f/evil', baseUrl: base })).toBe('https://www.example.com/%2f/evil');
+    // a relative /dashboard path goes to the dashboard host
+    expect(await redirect({ url: '/dashboard/posts', baseUrl: base })).toBe('https://dashboard.example.com/dashboard/posts');
+  });
+  it('http callbacks are refused in production', async () => {
+    process.env.NEXTAUTH_URL = 'http://www.example.com'; process.env.NEXT_PUBLIC_SITE_URL = 'http://www.example.com'; delete process.env.DASHBOARD_URL;
+    const redirect = (await opts()).callbacks!.redirect!;
+    expect(await redirect({ url: 'http://www.example.com/shop', baseUrl: 'http://www.example.com' })).toBe('http://www.example.com/shop');
+    vi.stubEnv('NODE_ENV', 'production');
+    try { expect(await redirect({ url: 'http://www.example.com/shop', baseUrl: 'http://www.example.com' })).toBe('http://www.example.com/sell'); }
+    finally { vi.unstubAllEnvs(); }
   });
 });
 

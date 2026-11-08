@@ -85,7 +85,7 @@ describe('/signin page', () => {
     authMock.mockResolvedValue(null);
     expect(await card({ callbackUrl: '/dashboard/posts', error: 'AccessDenied' })).toEqual({ callbackUrl: '/dashboard/posts', error: 'AccessDenied' });
     expect((await card({})).callbackUrl).toBe('/sell');
-    for (const bad of ['https://evil.example', '//evil.example', 'javascript:alert(1)', '/\\evil.example', '\\\\evil.example'])
+    for (const bad of ['https://evil.example', '//evil.example', 'javascript:alert(1)', '/\\evil.example', '\\\\evil.example', '/\t/evil.example', '/\n/evil.example', '/signin', '/signin?callbackUrl=/x', '/api/auth/signin'])
       expect((await card({ callbackUrl: bad })).callbackUrl, bad).toBe('/sell');
   });
   it('the dashboard origin is an allowed callback in split-host mode', async () => {
@@ -94,12 +94,34 @@ describe('/signin page', () => {
     expect((await card({ callbackUrl: 'https://dashboard.example.com/dashboard/posts' })).callbackUrl).toBe('https://dashboard.example.com/dashboard/posts');
     expect((await card({ callbackUrl: 'https://dashboard.example.com.evil.org/x' })).callbackUrl).toBe('/sell');
   });
+  it('host checks use the URL\'s own host: comma, encoded comma, wrong port and look-alike hosts are refused; case and the default port are fine', async () => {
+    process.env.DASHBOARD_URL = 'https://dashboard.example.com'; process.env.NEXT_PUBLIC_SITE_URL = 'https://www.example.com';
+    authMock.mockResolvedValue(null);
+    for (const bad of ['https://www.example.com,evil.com/', 'https://www.example.com%2Cevil.com', 'http://www.example.com:443', 'https://www.example.com:444', 'https://www.example.com.evil.org', 'https://dashboard.example.com,evil.com/x'])
+      expect((await card({ callbackUrl: bad })).callbackUrl, bad).toBe('/sell');
+    for (const ok of ['https://WWW.example.com/x', 'https://www.example.com:443/path', 'https://dashboard.example.com/dashboard/posts'])
+      expect((await card({ callbackUrl: ok })).callbackUrl, ok).toBe(ok);
+    expect((await card({ callbackUrl: '/%2f/evil' })).callbackUrl).toBe('/%2f/evil');
+  });
+  it('http callbacks are refused in production', async () => {
+    process.env.NEXT_PUBLIC_SITE_URL = 'http://www.example.com'; delete process.env.DASHBOARD_URL;
+    authMock.mockResolvedValue(null);
+    expect((await card({ callbackUrl: 'http://www.example.com/x' })).callbackUrl).toBe('http://www.example.com/x');
+    vi.stubEnv('NODE_ENV', 'production');
+    try { expect((await card({ callbackUrl: 'http://www.example.com/x' })).callbackUrl).toBe('/sell'); } finally { vi.unstubAllEnvs(); }
+  });
+  it('split host: a relative /dashboard callback goes to the dashboard origin', async () => {
+    process.env.DASHBOARD_URL = 'https://dashboard.example.com'; process.env.NEXT_PUBLIC_SITE_URL = 'https://www.example.com';
+    authMock.mockResolvedValue({ user: { email: 'a@x.co', role: 'seller', active: true } });
+    await expect(SignInPage({ searchParams: sp({ callbackUrl: '/dashboard/users' }) })).rejects.toThrow('REDIRECT:https://dashboard.example.com/dashboard/users');
+  });
   it('signed-in seller or admin goes to the dashboard, or to a safe callback', async () => {
     for (const role of ['seller', 'admin']) {
       authMock.mockResolvedValue({ user: { email: 'a@x.co', role, active: true } });
       await expect(SignInPage({ searchParams: sp({}) })).rejects.toThrow('REDIRECT:/dashboard/posts');
       await expect(SignInPage({ searchParams: sp({ callbackUrl: '/dashboard/users' }) })).rejects.toThrow('REDIRECT:/dashboard/users');
-      await expect(SignInPage({ searchParams: sp({ callbackUrl: 'https://evil.example' }) })).rejects.toThrow('REDIRECT:/dashboard/posts');
+      for (const bad of ['https://evil.example', '//evil.example', '/signin', '/signin?callbackUrl=/dashboard', '/api/auth/signout', '/\t/evil.example'])
+        await expect(SignInPage({ searchParams: sp({ callbackUrl: bad }) }), bad).rejects.toThrow('REDIRECT:/dashboard/posts');
     }
   });
   it('signed-in roleless user goes to /sell', async () => {

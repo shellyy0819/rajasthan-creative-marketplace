@@ -1387,7 +1387,6 @@ form label select {
 .admin-shell {
   min-height: 60vh;
 }
-.admin-grid-solo { grid-template-columns: minmax(0, 1fr) !important; }
 .admin-grid {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
@@ -3254,7 +3253,7 @@ body.modal-open {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--white);
+  background: #fff; /* the Google mark is brand-coloured, so its circle stays white in both themes */
 }
 .signin-error {
   display: flex;

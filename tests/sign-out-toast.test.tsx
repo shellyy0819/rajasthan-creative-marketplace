@@ -45,7 +45,8 @@ describe('sign-out confirmation', () => {
 
 describe('sign out wiring', () => {
   it('every signOut call lands on the home page with signedout=1', () => {
-    const files = fs.readdirSync('src/components').filter(f => f.endsWith('.tsx')).map(f => 'src/components/' + f);
+    const walk = (d: string): string[] => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => (e.isDirectory() ? walk(`${d}/${e.name}`) : /\.(tsx?|jsx?)$/.test(e.name) ? [`${d}/${e.name}`] : []));
+    const files = walk('src');
     let calls = 0;
     for (const f of files) {
       const src = fs.readFileSync(f, 'utf8');
