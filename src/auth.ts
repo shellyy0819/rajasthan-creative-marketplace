@@ -1,7 +1,7 @@
 import { getServerSession, type NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { asRole, type AppSession } from '@/lib/authz';
-import { DEFAULT_CALLBACK, safeCallback } from '@/lib/callback-url';
+import { DEFAULT_CALLBACK, allowedCallbackHosts, onDashboardHost, safeCallback } from '@/lib/callback-url';
 import { hostConfig, normalizeHost } from '@/lib/hosts';
 import { resolveAccess, upsertUserOnSignIn } from '@/lib/roles';
 
@@ -32,9 +32,9 @@ export const buildAuthOptions = (): NextAuthOptions => ({
   callbacks: {
     // After sign-in only go back to this site or the dashboard host (no open redirects).
     async redirect({ url, baseUrl }) {
-      const safe = safeCallback(url, [normalizeHost(new URL(baseUrl).host), hostConfig().dashboardHost], normalizeHost);
+      const safe = safeCallback(url, allowedCallbackHosts(baseUrl));
       if (!safe) return baseUrl + DEFAULT_CALLBACK;
-      return safe.startsWith('/') ? baseUrl + safe : safe;
+      return safe.startsWith('/') ? onDashboardHost(safe, hostConfig().dashboardOrigin).replace(/^\//, baseUrl + '/') : safe;
     },
     // Only verified Google emails may sign in, and the user row is created/refreshed here. Deactivated users are refused.
     async signIn({ account, profile }) {
