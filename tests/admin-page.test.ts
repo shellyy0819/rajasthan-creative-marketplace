@@ -14,13 +14,13 @@ describe('dashboard page gates', () => {
   it('single host: a signed-out visitor is sent to a relative sign-in that returns to /dashboard/posts', async () => {
     delete process.env.DASHBOARD_URL;
     authMock.mockResolvedValue(null);
-    await expect(requireStaffPage()).rejects.toThrow('REDIRECT:/api/auth/signin?callbackUrl=%2Fdashboard%2Fposts');
-    await expect(requireAdminPage()).rejects.toThrow('REDIRECT:/api/auth/signin?callbackUrl=%2Fdashboard%2Fposts');
+    await expect(requireStaffPage()).rejects.toThrow('REDIRECT:/signin?callbackUrl=%2Fdashboard%2Fposts');
+    await expect(requireAdminPage()).rejects.toThrow('REDIRECT:/signin?callbackUrl=%2Fdashboard%2Fposts');
   });
   it('two hosts: sign-in starts on the public host and returns to the dashboard host', async () => {
     process.env.DASHBOARD_URL = 'https://dashboard.example.com'; process.env.NEXT_PUBLIC_SITE_URL = 'https://www.example.com';
     authMock.mockResolvedValue(null);
-    await expect(requireStaffPage()).rejects.toThrow('REDIRECT:https://www.example.com/api/auth/signin?callbackUrl=' + encodeURIComponent('https://dashboard.example.com/dashboard/posts'));
+    await expect(requireStaffPage()).rejects.toThrow('REDIRECT:https://www.example.com/signin?callbackUrl=' + encodeURIComponent('https://dashboard.example.com/dashboard/posts'));
   });
   it('requireStaffPage sends roleless user to /sell; customers are sent to /sell, sellers pass the staff gate but get a 404 on the admin gate, admins pass both', async () => {
     authMock.mockResolvedValue({ user: { email: 'c@x.co', role: 'customer' } });

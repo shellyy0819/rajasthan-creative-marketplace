@@ -94,10 +94,10 @@ describe('routeFor: single-host mode (local development)', () => {
 
 describe('signInUrl', () => {
   it('single host: a relative sign-in URL with the dashboard page as callback', () => {
-    expect(signInUrl('/dashboard/posts', single)).toBe('/api/auth/signin?callbackUrl=%2Fdashboard%2Fposts');
+    expect(signInUrl('/dashboard/posts', single)).toBe('/signin?callbackUrl=%2Fdashboard%2Fposts');
   });
   it('two hosts: sign-in always starts on the public host and returns to the dashboard host', () => {
-    expect(signInUrl('/dashboard/posts', split)).toBe('https://www.example.com/api/auth/signin?callbackUrl=' + encodeURIComponent('https://dashboard.example.com/dashboard/posts'));
+    expect(signInUrl('/dashboard/posts', split)).toBe('https://www.example.com/signin?callbackUrl=' + encodeURIComponent('https://dashboard.example.com/dashboard/posts'));
   });
 });
 

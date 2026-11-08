@@ -4,6 +4,7 @@ import { Hero } from '@/components/Hero';
 import { HomeCraftExplorer } from '@/components/HomeCraftExplorer';
 import { WorkshopList } from '@/components/WorkshopList';
 import { TrendingSection } from '@/components/TrendingSection';
+import { SignedOutToast } from '@/components/SignedOutToast';
 import { ValueProps } from '@/components/ValueProps';
 import { listProducts, listWorkshops } from '@/lib/catalog';
 import { listActiveCities } from '@/lib/cities';
@@ -30,6 +31,7 @@ export default async function Home() {
   const cityLabel = cityLabeller(cities);
   return (
     <>
+      <SignedOutToast />
       <Hero stall={{ sign, chalkLabel, chalkTitle, chalkSub, bunting, stickers }} />
       <ValueProps />
       <TrendingSection />

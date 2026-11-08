@@ -1387,6 +1387,7 @@ form label select {
 .admin-shell {
   min-height: 60vh;
 }
+.admin-grid-solo { grid-template-columns: minmax(0, 1fr) !important; }
 .admin-grid {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
@@ -3238,4 +3239,42 @@ body.modal-open {
 .admin-form input[aria-invalid='true'],
 .admin-form select[aria-invalid='true'] {
   border-color: var(--danger);
+}
+
+/* Sign-in page */
+.signin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.signin-g {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--white);
+}
+.signin-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--danger-line);
+  border-radius: 3px;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.signin-error svg {
+  flex: none;
+  margin-top: 1px;
+}
+.signin-back {
+  display: inline-block;
+  margin-top: 14px;
+  font-size: 12px;
 }

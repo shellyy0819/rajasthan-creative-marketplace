@@ -49,9 +49,14 @@ describe('auth across the public and dashboard hosts', () => {
     expect(await redirect({ url: '/shop', baseUrl: base })).toBe('https://www.example.com/shop');
     expect(await redirect({ url: 'https://www.example.com/shop', baseUrl: base })).toBe('https://www.example.com/shop');
     expect(await redirect({ url: 'https://dashboard.example.com/dashboard/posts', baseUrl: base })).toBe('https://dashboard.example.com/dashboard/posts');
-    expect(await redirect({ url: 'https://evil.example.org/phish', baseUrl: base })).toBe(base);
-    expect(await redirect({ url: 'https://dashboard.example.com.evil.org/x', baseUrl: base })).toBe(base);
-    expect(await redirect({ url: '//evil.example.org/x', baseUrl: base })).toBe(base);
-    expect(await redirect({ url: 'javascript:alert(1)', baseUrl: base })).toBe(base);
+    const dflt = base + '/sell'; // anything unsafe falls back to the default
+    for (const bad of ['https://evil.example.org/phish', 'https://dashboard.example.com.evil.org/x', '//evil.example.org/x', 'javascript:alert(1)', 'https://evil.example', '/\\evil.example', '\\\\evil.example', '/\\/evil.example', 'https://dashboard.example.com@evil.example/x', 'https://dashboard.example.com\\@evil.example/x', 'data:text/html,x'])
+      expect(await redirect({ url: bad, baseUrl: base }), bad).toBe(dflt);
+  });
+});
+
+describe('auth pages', () => {
+  it('uses the Craftofy sign-in page for sign-in and for provider errors', () => {
+    expect(authOptions.pages).toEqual({ signIn: '/signin', error: '/signin' });
   });
 });

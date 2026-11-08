@@ -22,7 +22,7 @@ export function AuthButton({ dashboardUrl = '' }: { dashboardUrl?: string }) {
     <>
       {session.user.role === 'admin' && <Link href={`${dashboardUrl}/dashboard/posts`}>Admin</Link>}
       {session.user.role === 'seller' && <Link href={`${dashboardUrl}/dashboard/posts`}>My products</Link>}
-      <button className="cart-btn" onClick={() => signOut()} title={session.user.email ?? undefined}>
+      <button className="cart-btn" onClick={() => signOut({ callbackUrl: '/?signedout=1' })} title={session.user.email ?? undefined}>
         Sign out{session.user.role === 'admin' ? ' (admin)' : session.user.role === 'seller' ? ` (${session.user.name?.trim() || 'seller'})` : ''}
       </button>
     </>

@@ -5,13 +5,13 @@ export type ToastState = { id: number; kind: 'success' | 'error'; text: string }
 export const TOAST_MS = 3000;
 
 /** Green (success) or red (error) message that closes itself after 3 seconds. A new `id` restarts the timer. */
-export function Toast({ toast, onClose }: { toast: ToastState; onClose: () => void }) {
+export function Toast({ toast, onClose, ms = TOAST_MS }: { toast: ToastState; onClose: () => void; ms?: number }) {
   const id = toast?.id;
   useEffect(() => {
     if (id === undefined) return;
-    const t = setTimeout(onClose, TOAST_MS);
+    const t = setTimeout(onClose, ms);
     return () => clearTimeout(t);
-  }, [id, onClose]);
+  }, [id, onClose, ms]);
   if (!toast) return null;
   return (
     <div className="rr-toast-wrap">
