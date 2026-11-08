@@ -16,12 +16,22 @@ export type Craft = {
   instagram: string; website: string; logoUrl: string;
   contactMethods: ContactMethod[]; sameAsMobile: boolean; whatsapp: string;
 };
+/**
+ * A draft city keeps ref, label, name and state. An older draft has only the combined label: its name is the label
+ * without a trailing ", <state>" (split on the last one, and only when the state is there), else the label itself.
+ */
+function cityFromDraft(c: { ref: string; label: string; name?: unknown; state?: unknown }): PickedCity {
+  const state = typeof c.state === 'string' && c.state ? c.state : undefined;
+  const tail = state ? `, ${state}` : '';
+  const name = typeof c.name === 'string' && c.name ? c.name : tail && c.label.endsWith(tail) && c.label.length > tail.length ? c.label.slice(0, -tail.length) : c.label;
+  return { ref: c.ref, label: c.label, name, ...(state && { state }) };
+}
 /** A stored draft may be malformed (older shape, edited storage): keep only well-typed fields. */
 export function sanitizeCraft(raw: unknown): Craft {
   const r = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as Record<string, unknown> : {};
   const str = (v: unknown, d: string) => (typeof v === 'string' ? v : d);
   const c = r.city && typeof r.city === 'object' ? r.city as Record<string, unknown> : null;
-  const city = c && typeof c.ref === 'string' && typeof c.label === 'string' ? { ref: c.ref, label: c.label, ...(typeof c.state === 'string' && { state: c.state }) } : null;
+  const city = c && typeof c.ref === 'string' && typeof c.label === 'string' ? cityFromDraft(c as { ref: string; label: string; name?: unknown; state?: unknown }) : null;
   const methods = Array.isArray(r.contactMethods) ? METHOD_IDS.filter(m => (r.contactMethods as unknown[]).includes(m)) : [];
   return {
     brandName: str(r.brandName, ''), category: str(r.category, ''), newCategory: str(r.newCategory, '').slice(0, 100), description: str(r.description, ''), city,
@@ -196,7 +206,7 @@ export function StepCraft({ value, onChange, fullName, mobile, onBack, onSubmit,
       <div className="onboard-pair">
         <label>
           <span className="lbl">City</span>
-          <CityInput required defaultRef={value.city ?? undefined} onPick={city => onChange({ city })}
+          <CityInput required valueFormat="name" defaultRef={value.city ?? undefined} onPick={city => onChange({ city })}
             ariaInvalid={!!errors.cityRef} describedBy={desc('cityRef', 'hint-city')} />
         </label>
         <label>
