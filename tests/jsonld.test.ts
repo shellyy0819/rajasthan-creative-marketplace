@@ -16,10 +16,10 @@ describe('serializeJsonLd', () => {
 });
 
 describe('productJsonLd', () => {
-  it('has offer in INR with decimal price, InStock, absolute url + image', () => {
+  it('has absolute image + brand and no offers (contact-only, no checkout)', () => {
     const j = productJsonLd(product) as any;
     expect(j['@type']).toBe('Product');
-    expect(j.offers).toMatchObject({ '@type': 'Offer', priceCurrency: 'INR', price: '850.00', availability: 'https://schema.org/InStock', url: 'https://rr.test/products/crochet-lily-bouquet-p1' });
+    expect(j).not.toHaveProperty('offers');
     expect(j.image[0]).toBe('https://rr.test/products/crochet-lily-bouquet-p1/opengraph-image');
     expect(j.brand).toMatchObject({ '@type': 'Brand', name: 'Shauk and Stuff' });
   });
@@ -29,21 +29,18 @@ describe('productJsonLd', () => {
     expect((productJsonLd({ ...product, imageUrl: 'https://c.example/only.jpg' }) as any).image).toEqual(['https://c.example/only.jpg', og]);
     expect((productJsonLd({ ...product, images: undefined, imageUrl: undefined }) as any).image).toEqual([og]);
   });
-  it('OutOfStock when stock is 0', () => {
-    expect((productJsonLd({ ...product, stock: 0 }) as any).offers.availability).toBe('https://schema.org/OutOfStock');
-  });
 });
 
 describe('workshopJsonLd', () => {
-  it('builds an Event with IST start date, offline mode, capacity', () => {
+  it('builds an Event with IST start date, offline mode, and no offers (contact-only)', () => {
     const j = workshopJsonLd(workshop) as any;
     expect(j['@type']).toBe('Event');
     expect(j.startDate).toBe('2026-11-08T11:00:00+05:30');
     expect(j.eventAttendanceMode).toBe('https://schema.org/OfflineEventAttendanceMode');
     expect(j.eventStatus).toBe('https://schema.org/EventScheduled');
     expect(j.location).toMatchObject({ '@type': 'Place', name: 'The Courtyard Café', address: { addressLocality: 'Udaipur', addressRegion: 'Rajasthan', addressCountry: 'IN' } });
-    expect(j.remainingAttendeeCapacity).toBe(9);
-    expect(j.offers).toMatchObject({ price: '499.00', availability: 'https://schema.org/InStock' });
+    expect(j).not.toHaveProperty('offers');
+    expect(j).not.toHaveProperty('remainingAttendeeCapacity');
   });
   it('omits addressRegion when the city has no state', () => {
     const { cityState: _s, ...noState } = workshop;
@@ -54,11 +51,6 @@ describe('workshopJsonLd', () => {
   it('uses the city state for addressRegion', () => {
     const j = workshopJsonLd({ ...workshop, city: 'Indore', cityState: 'Madhya Pradesh' }) as any;
     expect(j.location.address.addressRegion).toBe('Madhya Pradesh');
-  });
-  it('SoldOut when full; free price is 0.00', () => {
-    const j = workshopJsonLd({ ...workshop, booked: 12, type: 'FREE', pricePaise: 0 }) as any;
-    expect(j.offers.availability).toBe('https://schema.org/SoldOut');
-    expect(j.offers.price).toBe('0.00');
   });
 });
 
