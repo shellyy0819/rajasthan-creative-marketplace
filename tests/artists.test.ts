@@ -36,8 +36,8 @@ describe('getArtist', () => {
     await saveProfile(s.id, { displayName: 'Contact Studio', publicPhone: '99898 98999', publicEmail: 'hi@studio.co', instagram: 'studio', youtube: '@studio' });
     const p = await createProduct({ name: 'Bowl', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 1, description: 'D', stock: 1, status: 'APPROVED', sellerId: s.id }, admin);
     const a = (await getArtist(await slugOf(p.id)))!;
-    expect(a).toMatchObject({ phone: '9989898999', email: 'hi@studio.co', instagram: 'studio', youtube: '@studio' });
-    expect(JSON.stringify(a)).not.toContain('contact@x.co');                       // the login email is private
+    expect(a).toMatchObject({ phone: '9989898999', email: 'contact@x.co', instagram: 'studio', youtube: '@studio' });
+    expect(JSON.stringify(a)).not.toContain('hi@studio.co');                       // a typed public email is ignored: it is always the registration email
   });
   it('is undefined for unknown slugs, a wrong name part, junk, and artists with no published product (drafts are not enumerable)', async () => {
     const s = await makeSeller('draft@x.co', 'Only Drafts');

@@ -208,7 +208,8 @@ export function PostsAdmin({
       <Toast toast={toast} onClose={closeToast} />
       <PageLoader show={!!pageBusy} label={pageBusy} />
 
-      <div className="admin-grid">
+      <div className={seller ? "admin-grid admin-grid-solo" : "admin-grid"}>
+        {!seller && (
         <nav aria-label="Artists" className="admin-artists">
           <button
             type="button"
@@ -235,6 +236,7 @@ export function PostsAdmin({
             </button>
           ))}
         </nav>
+        )}
 
         <div>
           <div className="admin-toolbar">
@@ -264,7 +266,7 @@ export function PostsAdmin({
             >
               New post
             </button>
-            {myProfile && (
+            {myProfile && !(seller && myProfile.onboardedAt) && (
               <button type="button" className="button" onClick={() => setEditingProfile(true)}>
                 My profile
               </button>
@@ -301,7 +303,7 @@ export function PostsAdmin({
                     </button>
                   </h3>
                   <p>
-                    {p.seller}{!seller && p.sellerEmail ? ` (${p.sellerEmail})` : ""} · {p.category} · {p.city} · {money(p.pricePaise)}{" "}
+                    {!seller && <>{p.seller}{p.sellerEmail ? ` (${p.sellerEmail})` : ""} · </>}{p.category} · {p.city} · {money(p.pricePaise)}{" "}
                     · {p.stock} in stock
                   </p>
                   <p className="admin-status-line">

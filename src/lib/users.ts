@@ -174,10 +174,12 @@ export async function saveProfile(userId: string, input: unknown): Promise<Selle
   if (has('contactMethods') && !Array.isArray(raw.contactMethods)) throw fieldFail('contactMethods', 'Choose at least one way for customers to reach you.');
   const methodsIn = has('contactMethods') ? (raw.contactMethods as unknown[]) : undefined;
   return getDb().transaction(async tx => {
-    const [u] = await tx.select({ id: users.id }).from(users).where(eq(users.id, userId));
+    const [u] = await tx.select({ id: users.id, email: users.email }).from(users).where(eq(users.id, userId));
     if (!u) throw new ApiError(404, 'User not found.');
     const holds = await tx.select({ r: userRoles.roleId }).from(userRoles).where(and(eq(userRoles.userId, userId), inArray(userRoles.roleId, [ROLE_ID.seller, ROLE_ID.admin])));
     if (!holds.length && !(await isEnvAdmin(tx, userId))) throw bad('That user is not a seller.');
+    // A seller's public email is always the one they registered with; it cannot be changed or hidden.
+    const vals = holds.some(h => h.r === ROLE_ID.seller) ? { ...v, publicEmail: u.email } : v;
     // Neither cityId nor cityRef clears the profile city.
     const cityId = await resolveCityInput(tx, raw);
     const [cur] = await tx.select().from(sellerProfiles).where(eq(sellerProfiles.userId, userId));
@@ -214,8 +216,8 @@ export async function saveProfile(userId: string, input: unknown): Promise<Selle
         extra.contactMethods = cm.value;
       }
     }
-    await tx.insert(sellerProfiles).values({ userId, ...v, cityId, ...extra })
-      .onConflictDoUpdate({ target: sellerProfiles.userId, set: { ...v, cityId, ...extra } });
+    await tx.insert(sellerProfiles).values({ userId, ...vals, cityId, ...extra })
+      .onConflictDoUpdate({ target: sellerProfiles.userId, set: { ...vals, cityId, ...extra } });
     return toProfile((await loadProfile(tx, userId))!);
   });
 }

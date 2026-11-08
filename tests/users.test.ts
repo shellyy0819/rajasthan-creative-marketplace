@@ -117,9 +117,10 @@ describe('seller profiles (public name and contact)', () => {
   it('saves, trims, normalises the phone, and blank optional fields clear to nothing', async () => {
     const s = await makeSeller('s@x.co', 'S');
     const saved = await saveProfile(s.id, { displayName: ' Shauk & Co ', publicPhone: '+91 99898 98999', publicEmail: 'hi@shauk.co', instagram: 'shauk', youtube: '@shauk' });
-    expect(saved).toEqual({ userId: s.id, displayName: 'Shauk & Co', publicPhone: '+919989898999', publicEmail: 'hi@shauk.co', instagram: 'shauk', youtube: '@shauk' });
+    // A seller's public email is always their registration email, whatever is sent.
+    expect(saved).toEqual({ userId: s.id, displayName: 'Shauk & Co', publicPhone: '+919989898999', publicEmail: 's@x.co', instagram: 'shauk', youtube: '@shauk' });
     const cleared = await saveProfile(s.id, { displayName: 'Shauk & Co', publicPhone: '', publicEmail: '  ', instagram: '', youtube: '' });
-    expect(cleared).toEqual({ userId: s.id, displayName: 'Shauk & Co' });
+    expect(cleared).toEqual({ userId: s.id, displayName: 'Shauk & Co', publicEmail: 's@x.co' });
     expect(JSON.stringify(cleared)).not.toContain('null');
   });
   it('validates: name required, phone format, email format, lengths', async () => {
@@ -176,11 +177,11 @@ describe('seller profiles: onboarding fields', () => {
   it('saves without the new fields, keeps stored ones when the keys are absent, and clears them when empty', async () => {
     await seed();
     const s = await makeSeller('s@x.co', 'S');
-    expect(await saveProfile(s.id, { displayName: 'S' })).toEqual({ userId: s.id, displayName: 'S' });
+    expect(await saveProfile(s.id, { displayName: 'S' })).toEqual({ userId: s.id, displayName: 'S', publicEmail: 's@x.co' });
     await saveProfile(s.id, { displayName: 'S', website: 'https://shauk.co', category: 'Pottery', contactMethods: ['website'] });
     expect(await saveProfile(s.id, { displayName: 'S2' })).toMatchObject({ website: 'https://shauk.co', category: 'Pottery', contactMethods: ['website'] });
     const cleared = await saveProfile(s.id, { displayName: 'S', website: '', category: '', contactMethods: [] });
-    expect(cleared).toEqual({ userId: s.id, displayName: 'S' });
+    expect(cleared).toEqual({ userId: s.id, displayName: 'S', publicEmail: 's@x.co' });
   });
   it('rejects an invalid website, whatsapp, category and contact methods with the onboarding messages, naming the field', async () => {
     const s = await makeSeller('s@x.co', 'S');

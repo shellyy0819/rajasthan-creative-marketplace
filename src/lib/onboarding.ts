@@ -53,7 +53,7 @@ export async function completeOnboarding(email: string, input: OnboardingInput):
     await tx.update(users).set({ name: v.fullName, phone: v.mobile, updatedAt: new Date() }).where(eq(users.id, u.id));
     await ensureSellerProfile(tx, u.id, v.brandName);
     await tx.update(sellerProfiles).set({
-      displayName: v.brandName, bio: v.description, category, cityId,
+      displayName: v.brandName, publicEmail: u.email, bio: v.description, category, cityId,
       instagram: v.instagram ?? null, website: v.website ?? null, logoUrl: v.logoUrl ?? null,
       whatsapp: v.whatsapp ?? null,
       contactMethods: v.contactMethods,
