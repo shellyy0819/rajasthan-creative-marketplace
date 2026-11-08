@@ -2733,6 +2733,37 @@ main {
 }
 .gallery {
   min-width: 0;
+  position: relative;
+}
+/* Amazon-style hover zoom: only for a real pointer on a wide screen. */
+.zoom-lens, .zoom-pane {
+  display: none;
+}
+@media (hover: hover) and (pointer: fine) and (min-width: 900px) {
+  .product-visual.zoomable {
+    cursor: crosshair;
+  }
+  .zoom-lens {
+    display: block;
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    background: rgba(120, 150, 255, 0.18);
+    border: 1px solid rgba(120, 150, 255, 0.55);
+  }
+  .zoom-pane {
+    display: block;
+    position: absolute;
+    z-index: 30;
+    top: 0;
+    left: calc(100% + 16px);
+    max-width: 90vw;
+    background-color: #fff;
+    background-repeat: no-repeat;
+    border: 1px solid var(--line, #ccc);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+  }
 }
 .gallery-thumbs {
   display: flex;
