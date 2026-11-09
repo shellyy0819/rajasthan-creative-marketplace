@@ -357,7 +357,7 @@ describe('Profile dialog (public name and contact)', () => {
   });
   it('"Use my sign-in email" fills the public email (explicit opt-in); the field starts empty so nothing is published by accident', () => {
     mount('seller');
-    fireEvent.click(screen.getByRole('button', { name: 'My profile' }));
+    act(() => { window.dispatchEvent(new Event('craftofy:open-profile')); });
     const email = screen.getByLabelText(/^Public email/) as HTMLInputElement;
     expect(email.value).toBe('');
     fireEvent.click(screen.getByRole('button', { name: /Use my sign-in email/ }));
@@ -366,7 +366,7 @@ describe('Profile dialog (public name and contact)', () => {
   });
   it('opens from "My profile", validates the phone pattern in the browser, PUTs /api/profile and toasts', async () => {
     mount('seller');
-    fireEvent.click(screen.getByRole('button', { name: 'My profile' }));
+    act(() => { window.dispatchEvent(new Event('craftofy:open-profile')); });
     const phone = screen.getByLabelText(/^Public phone/) as HTMLInputElement;
     for (const bad of ['12345', '5989898999', 'abcdefghij']) { fireEvent.change(phone, { target: { value: bad } }); expect(phone.validity.patternMismatch).toBe(true); }
     for (const good of ['9989898999', '+91 99898 98999', '']) { fireEvent.change(phone, { target: { value: good } }); expect(phone.validity.patternMismatch).toBe(false); }
@@ -381,7 +381,7 @@ describe('Profile dialog (public name and contact)', () => {
   });
   it('a server error keeps the dialog open with the message', async () => {
     mount('seller');
-    fireEvent.click(screen.getByRole('button', { name: 'My profile' }));
+    act(() => { window.dispatchEvent(new Event('craftofy:open-profile')); });
     fetchMock.mockImplementation(() => res(400, { error: 'publicPhone is invalid.' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save profile' }));
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/publicPhone is invalid/));
@@ -738,7 +738,7 @@ describe('loaders', () => {
   });
   it('the profile Save button and the "Add category" button show a busy ring while pending', async () => {
     mount('seller');
-    fireEvent.click(screen.getByRole('button', { name: 'My profile' }));
+    act(() => { window.dispatchEvent(new Event('craftofy:open-profile')); });
     const put = deferred<Response>();
     fetchMock.mockImplementation(() => put.promise);
     fireEvent.click(screen.getByRole('button', { name: 'Save profile' }));

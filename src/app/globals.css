@@ -1217,7 +1217,6 @@ form label select {
   letter-spacing: -1.2px;
   margin: 12px 0;
 }
-.admin-posts .page-head .button { margin-top: 8px; }
 .page-head p {
   max-width: 560px;
   color: var(--muted);
@@ -3987,3 +3986,19 @@ body.modal-open {
 .profile-view { margin: 12px 0 0; display: grid; gap: 10px; }
 .profile-view dt { font-size: 0.8rem; color: var(--muted, #6b6b6b); }
 .profile-view dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+
+.user-menu { position: relative; }
+.user-menu-btn {
+  display: grid; place-items: center; width: 38px; height: 38px; padding: 0; overflow: hidden;
+  border: 1px solid var(--control-border); border-radius: 50%; background: transparent; color: inherit; cursor: pointer;
+}
+.user-menu-btn .avatar-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.user-menu-list {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 50; min-width: 160px; padding: 6px;
+  display: grid; background: var(--paper); border: 1px solid var(--control-border); border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.user-menu-list a, .user-menu-list button {
+  display: block; width: 100%; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent;
+  color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer;
+}
+.user-menu-list a:hover, .user-menu-list button:hover, .user-menu-list a:focus-visible, .user-menu-list button:focus-visible { background: var(--sand); }
