@@ -2254,15 +2254,6 @@ main {
   align-items: center;
   gap: 10px;
 }
-.artist-contact {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  margin: 0 0 18px;
-  padding: 0;
-  list-style: none;
-  font-size: 12.5px;
-}
 
 .brand-logo {
   display: block;
@@ -2416,11 +2407,6 @@ main {
 .contact-btn {
   position: relative;
   z-index: 1;
-}
-.artist-city {
-  margin: 0 0 10px;
-  color: var(--muted);
-  font-size: 12px;
 }
 .nearby-cities .link-row {
   justify-content: center;
@@ -3765,6 +3751,9 @@ body.modal-open {
 }
 
 /* Artist page hero: the stall awning */
+.artist-hero + .section {
+  padding-top: 32px;
+}
 .artist-hero + .section .section-heading {
   margin-bottom: 18px;
 }
@@ -3801,7 +3790,7 @@ body.modal-open {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--cream);
+  background: var(--sand);
   color: var(--green);
   font: 500 38px/1 var(--font-display);
   box-shadow: 0 0 0 4px var(--white), 0 0 0 6px var(--orange);
@@ -3873,22 +3862,21 @@ body.modal-open {
 .ah-links a {
   display: inline-flex;
   align-items: center;
-  min-height: 32px;
+  min-height: 44px;
   overflow-wrap: anywhere;
 }
 .ah-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 240px));
+  justify-content: center;
   gap: 16px;
   padding: 0 24px 26px;
 }
 .ah-row[data-count="1"] {
-  grid-template-columns: minmax(0, 260px);
-  justify-content: center;
+  grid-template-columns: minmax(0, 240px);
 }
 .ah-row[data-count="2"] {
-  grid-template-columns: repeat(2, minmax(0, 260px));
-  justify-content: center;
+  grid-template-columns: repeat(2, minmax(0, 240px));
 }
 .ah-card {
   position: relative;
@@ -3905,6 +3893,13 @@ body.modal-open {
   background: var(--white);
   border: 1px solid var(--line);
   overflow: hidden;
+  transition: border-color 0.2s;
+}
+.ah-card:hover .ah-photo {
+  border-color: var(--green);
+}
+.ah-card:hover .ah-cname {
+  text-decoration: underline;
 }
 .ah-photo .product-photo {
   object-fit: cover;
@@ -3915,7 +3910,6 @@ body.modal-open {
   display: grid;
   place-items: center;
   font-size: 48px;
-  background: linear-gradient(160deg, var(--orange), var(--green));
 }
 .ah-ptag {
   position: absolute;
@@ -3976,12 +3970,9 @@ body.modal-open {
     justify-content: stretch;
     padding: 0 16px 20px;
   }
-  .ah-row[data-count="1"] .ah-card {
-    grid-column: 1 / -1;
-    width: 60%;
-    justify-self: center;
-  }
   .ah-card:last-child:nth-child(odd) {
     grid-column: 1 / -1;
+    justify-self: center;
+    width: calc((100% - 16px) / 2);
   }
 }

@@ -4,8 +4,9 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, within, fireEvent } from '@testing-library/react';
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
-vi.mock('@/lib/track', () => ({ sendEvent: vi.fn() }));
-vi.mock('@/lib/analytics', () => ({ gaEvent: vi.fn() }));
+const track = vi.hoisted(() => ({ sendEvent: vi.fn(), gaEvent: vi.fn() }));
+vi.mock('@/lib/track', () => ({ sendEvent: track.sendEvent }));
+vi.mock('@/lib/analytics', () => ({ gaEvent: track.gaEvent }));
 import { ArtistHero, sharedCategory } from '@/components/ArtistHero';
 import { readCss } from './helpers/css';
 import type { Product } from '@/lib/types';
@@ -50,6 +51,15 @@ describe('ArtistHero', () => {
     expect(sharedCategory([prod(1), prod(2), prod(3, { category: 'Pottery' })])).toBe('Crochet');
     expect(sharedCategory([prod(1), prod(2, { category: 'Pottery' })])).toBeUndefined();
   });
+  it('the hero Contact artist is artist-level: no "About <product>" line, no View all link, event tagged source=artist', () => {
+    hero();
+    fireEvent.click(screen.getByRole('button', { name: 'Contact artist' }));
+    const d = screen.getByRole('dialog');
+    expect(d.textContent).not.toContain('About:');
+    expect(within(d).queryByRole('link', { name: /View all/ })).toBeNull();
+    expect(track.sendEvent).toHaveBeenCalledWith('contact', 'p1', 'artist');
+    expect(track.gaEvent).toHaveBeenCalledWith('contact_click', { item_id: 'p1', source: 'artist' });
+  });
   it('shows the bio only when there is one', () => {
     hero();
     expect(document.querySelector('.ah-bio')!.textContent).toBe('Hand-crocheted frocks.');
@@ -81,7 +91,7 @@ describe('ArtistHero', () => {
     hero(artist(3, { phone: undefined, email: undefined, youtube: undefined }));
     expect(document.querySelector('.ah-links')).toBeNull();
   });
-  it.each([[1, 1], [2, 2], [3, 3], [5, 3]])('%i products render %i hero cards, each a link with name and price and an aria-hidden-free label', (n, cards) => {
+  it.each([[1, 1], [2, 2], [3, 3], [5, 3]])('%i products render %i hero cards, each a link with name and price and an accessible name', (n, cards) => {
     hero(artist(n));
     const els = document.querySelectorAll('a.ah-card');
     expect(els).toHaveLength(cards);
@@ -98,9 +108,17 @@ describe('artist hero CSS contract', () => {
   it('phone: two columns, last odd card spans, bio clamps to three lines, 44px buttons', () => {
     const phone = css.slice(css.indexOf('@media(max-width:600px){.artist-hero{'));
     expect(phone).toContain('.ah-row,.ah-row[data-count]{grid-template-columns:1fr 1fr');
-    expect(phone).toContain('.ah-card:last-child:nth-child(odd){grid-column:1 / -1}');
+    expect(phone).toContain('.ah-card:last-child:nth-child(odd){grid-column:1 / -1;justify-self:center;width:calc((100% - 16px) / 2)}');
     expect(phone).toMatch(/\.ah-bio\{[^}]*-webkit-line-clamp:3/);
     expect(css).toMatch(/\.ah-acts \.contact-btn,\.ah-acts \.ah-ig\{[^}]*min-height:44px/);
+  });
+  it('laptop: cards are capped at 240px for 1, 2 and 3; unused artist CSS is gone', () => {
+    expect(css).toMatch(/\.ah-row\{[^}]*grid-template-columns:repeat\(3,minmax\(0,240px\)\);justify-content:center/);
+    expect(css).toContain('.ah-row[data-count="1"]{grid-template-columns:minmax(0,240px)}');
+    expect(css).toContain('.ah-row[data-count="2"]{grid-template-columns:repeat(2,minmax(0,240px))}');
+    expect(css).toMatch(/\.ah-card:hover \.ah-cname\{text-decoration:underline/);
+    expect(css).not.toContain('.artist-contact');
+    expect(css).not.toContain('.artist-city');
   });
   it('price tag: chalk token paper, rotated 3deg, top right, with a hole; name clamps to two lines', () => {
     expect(css).toMatch(/\.ah-ptag\{[^}]*right:-6px;top:14px[^}]*background:var\(--stall-chalk\)[^}]*transform:rotate\(3deg\)/);

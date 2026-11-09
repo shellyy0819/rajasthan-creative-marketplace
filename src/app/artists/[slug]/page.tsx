@@ -30,6 +30,7 @@ export default async function ArtistPage({ params, searchParams }: Props) {
   if (!a) notFound();
   const { from: fromParam } = await searchParams;
   const from = a.products.find(p => p.id === fromParam)?.id; // credit a visit only when the product really is this artist's
+  const rest = a.products.slice(3); // the hero already shows the first three
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Shop', path: '/shop' }, { name: a.name, path: `/artists/${a.slug}` }];
   return (
     <>
@@ -37,10 +38,12 @@ export default async function ArtistPage({ params, searchParams }: Props) {
       <Breadcrumbs items={crumbs} />
       {from && <TrackOnMount productId={from} type="artist" />}
       <ArtistHero a={a} />
-      <section className="section">
-        <div className="section-heading"><h2>All pieces</h2><span className="muted">{a.products.length} {a.products.length === 1 ? 'piece' : 'pieces'}</span></div>
-        <ProductGrid products={a.products} />
-      </section>
+      {rest.length > 0 && (
+        <section className="section">
+          <div className="section-heading"><h2>More pieces</h2><span className="muted">{rest.length} {rest.length === 1 ? 'piece' : 'pieces'}</span></div>
+          <ProductGrid products={rest} />
+        </section>
+      )}
     </>
   );
 }
