@@ -1387,6 +1387,7 @@ form label select {
 .admin-shell {
   min-height: 60vh;
 }
+.admin-grid-solo { grid-template-columns: minmax(0, 1fr) !important; }
 .admin-grid {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
@@ -3307,4 +3308,300 @@ body.modal-open {
   display: inline-block;
   margin-top: 14px;
   font-size: 12px;
+}
+
+/* Product card: immersive photo card (photo fills the card, details sit on a gradient). Overlay colours are fixed on purpose so text reads on any photo in both themes. */
+.product-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  aspect-ratio: 3 / 4;
+  border: 0;
+  border-radius: 22px;
+  isolation: isolate;
+  background: var(--visual-0);
+  box-shadow: 0 1px 2px #0000001a, 0 8px 22px #0000001f;
+}
+.product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 32px #00000033;
+}
+.product-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(to top, #0e120ee0 0%, #0e120e80 38%, #0e120e00 62%);
+}
+.product-card .product-visual {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  height: auto;
+  transition: transform 0.5s ease;
+}
+.product-card:hover .product-visual {
+  transform: scale(1.05);
+}
+.product-card .product-visual::after {
+  content: none;
+}
+/* No usable photo: a warm gradient instead of an empty box */
+.product-card .product-visual:not(:has(.product-photo)) {
+  background:
+    radial-gradient(circle at 30% 25%, #ffffff38, transparent 45%),
+    linear-gradient(160deg, #c66b43, #8a4a2b 55%, #405746);
+}
+.product-card .product-visual .symbol {
+  font-size: 64px;
+  margin-bottom: 70px;
+  opacity: 0.85;
+}
+.pc-top {
+  position: absolute;
+  z-index: 3;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.pc-chips {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+.pc-chip,
+.pc-low {
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 6px 11px;
+  border-radius: 999px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pc-chip {
+  background: #fffdf9e0;
+  color: #252a24;
+  backdrop-filter: blur(6px);
+}
+.pc-low {
+  background: #c66b43;
+  color: #fff;
+}
+.product-card .like-btn {
+  background: #fffdf9e0;
+  color: #252a24;
+  border-color: transparent;
+  backdrop-filter: blur(6px);
+  flex: none;
+}
+.product-card .like-btn:hover {
+  color: var(--like);
+  border-color: transparent;
+}
+.product-card .like-btn.liked {
+  color: #c0392b;
+  background: #fffdf9;
+  border-color: transparent;
+}
+.product-card .product-info {
+  position: static;
+  z-index: 2;
+  padding: 16px;
+  flex: none;
+  color: #fff;
+}
+.product-card .product-info h3 {
+  font: 700 20px/1.2 var(--font-display);
+  margin: 0;
+}
+.product-card .product-info h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+.product-card .product-info p.pc-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+  min-height: 0;
+  font-size: 13px;
+  line-height: 1.3;
+  color: #ffffffdb;
+}
+.pc-who span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pc-av {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #ffffffd9;
+  background: #405746;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+.product-card .product-bottom {
+  margin-top: 12px;
+  gap: 8px;
+}
+.product-card .price {
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+.product-card .contact-btn {
+  background: #fffdf9;
+  color: #252a24;
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 15px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.product-card .contact-btn:hover {
+  background: #fff;
+  color: #252a24;
+  filter: none;
+}
+@media (max-width: 600px) {
+  .product-card {
+    border-radius: 18px;
+  }
+  .product-card .product-visual {
+    height: auto;
+  }
+  .product-card .product-info {
+    padding: 12px;
+  }
+  .product-card .product-info h3 {
+    font-size: 15px;
+  }
+  .product-card .product-info p.pc-who {
+    font-size: 12px;
+  }
+  .product-card .price {
+    font-size: 17px;
+  }
+  .product-card .contact-btn {
+    padding: 8px 11px;
+    font-size: 12px;
+  }
+  .pc-top {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .product-card,
+  .product-card .product-visual {
+    transition: none;
+  }
+  .product-card:hover,
+  .product-card:hover .product-visual {
+    transform: none;
+  }
+}
+/* Cards fill edge to edge (the product page keeps the whole photo visible). */
+.product-card .product-photo {
+  object-fit: cover;
+}
+/* Click a photo in the dashboard to see it full size. */
+.photo-open {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+  display: grid;
+  place-items: center;
+}
+.photo-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 56px 64px;
+  background: #0b0e0bf0;
+}
+.photo-viewer img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+}
+.photo-viewer-close,
+.photo-viewer-nav {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff26;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+}
+.photo-viewer-close:hover,
+.photo-viewer-nav:hover {
+  background: #ffffff40;
+}
+.photo-viewer-close {
+  top: 12px;
+  right: 12px;
+}
+.photo-viewer-nav {
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 30px;
+  line-height: 1;
+}
+.photo-viewer-nav.prev {
+  left: 12px;
+}
+.photo-viewer-nav.next {
+  right: 12px;
+}
+.photo-viewer-count {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #ffffffcc;
+  font-size: 13px;
+}
+@media (max-width: 600px) {
+  .photo-viewer {
+    padding: 56px 12px;
+  }
+  .photo-viewer-nav.prev {
+    left: 4px;
+  }
+  .photo-viewer-nav.next {
+    right: 4px;
+  }
 }

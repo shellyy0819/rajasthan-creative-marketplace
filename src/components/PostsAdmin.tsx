@@ -7,6 +7,7 @@ import { artistKey } from "@/lib/artist";
 import { productSlug } from "@/lib/catalog-shared";
 import { money } from "@/lib/money";
 import { ProductImage } from "./ProductImage";
+import { PhotoButton } from "./PhotoButton";
 import { PostForm, type SellerOption, type WorkshopOption } from "./PostForm";
 import { ProfileDialog } from "./ProfileDialog";
 import { ProductDetail } from "./ProductDetail";
@@ -290,11 +291,13 @@ export function PostsAdmin({
                 }}
               >
                 <div className="admin-thumb">
-                  <ProductImage
-                    src={p.imageUrl}
-                    alt={p.name}
-                    fallback={<span aria-hidden="true">{symbolFor(p.id)}</span>}
-                  />
+                  <PhotoButton images={p.images?.length ? p.images : [p.imageUrl]} label={p.name}>
+                    <ProductImage
+                      src={p.imageUrl}
+                      alt={p.name}
+                      fallback={<span aria-hidden="true">{symbolFor(p.id)}</span>}
+                    />
+                  </PhotoButton>
                 </div>
                 <div className="admin-row-main">
                   <h3>

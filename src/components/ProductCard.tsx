@@ -11,15 +11,22 @@ export const visualIndex = (id: string) => Number(id.replace(/\D/g, '')) || 0;
 
 export function ProductCard({ p }: { p: Product }) {
   const i = visualIndex(p.id);
+  const low = p.stock > 0 && p.stock <= 2;
   return (
     <article className="product-card">
       <div className={`product-visual visual-${i % 4}`}><ProductImage src={p.imageUrl} alt={p.name} fallback={<span className="symbol" aria-hidden="true">{SYMBOLS[i % SYMBOLS.length]}</span>} /></div>
+      <div className="pc-top">
+        <span className="pc-chips">
+          <span className="pc-chip">{p.category}</span>
+          {low && <span className="pc-low">Only {p.stock} left</span>}
+        </span>
+        <LikeButton productId={p.id} initialCount={p.likeCount ?? 0} productName={p.name} />
+      </div>
       <div className="product-info">
-        <span className="product-meta">{p.category} · {p.city}</span>
         <h3><Link href={`/products/${productSlug(p)}`}>{p.name}</Link></h3>
-        <p>{p.description}<br />By {p.seller}</p>
+        <p className="pc-who"><span className="pc-av" aria-hidden="true">{p.seller.trim().charAt(0).toUpperCase()}</span><span>{p.seller} · {p.city}</span></p>
         <div className="product-bottom">
-          <span className="price-like"><span className="price">{money(p.pricePaise)}</span><LikeButton productId={p.id} initialCount={p.likeCount ?? 0} productName={p.name} /></span>
+          <span className="price">{money(p.pricePaise)}</span>
           <ContactArtistButton product={p} />
         </div>
       </div>
