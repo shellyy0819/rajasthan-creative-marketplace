@@ -74,4 +74,15 @@ describe('My profile on the posts page', () => {
     fireEvent.click(screen.getByRole('button', { name: 'My profile' }));
     expect(screen.getByRole('button', { name: 'Save profile' })).toBeTruthy();
   });
+  it('the button is shown for sellers and admins whatever the profile state', async () => {
+    const { PostsAdmin } = await import('@/components/PostsAdmin');
+    const common = { initialProducts: [], initialArtists: [], categories: ['Pottery'], workshops: [], sellers: [], me: { name: 'M', email: 'm@x.co' } } as unknown as Omit<React.ComponentProps<typeof PostsAdmin>, 'role' | 'profile'>;
+    for (const role of ['seller', 'admin'] as const) {
+      for (const profile of [undefined, { userId: 'u', displayName: 'D' }, P]) {
+        const r = render(<PostsAdmin {...common} role={role} profile={profile} />);
+        expect(screen.getByRole('button', { name: 'My profile' })).toBeTruthy();
+        r.unmount();
+      }
+    }
+  });
 });
