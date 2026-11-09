@@ -21,6 +21,7 @@ const frame = () => screen.getByRole('group', { name: 'Product photos' });
 const big = () => document.querySelector('.gallery-slide[data-active="true"] img.product-photo') as HTMLImageElement | null;
 const thumbs = () => within(screen.getByRole('group', { name: 'Product photo thumbnails' })).queryAllByRole('button');
 const dots = () => Array.from(document.querySelectorAll<HTMLButtonElement>('.gallery-dot'));
+const big2 = () => document.querySelector('.detail-art img.product-photo') as HTMLImageElement | null;
 const counter = () => document.querySelector('.gallery-count')!;
 const mount = (images: string[]) => render(<ProductGallery images={images} alt="Crochet Bag" fallback={<span data-testid="fallback">🌷</span>} variant={2} />);
 const cur = (els: Element[]) => els.map(b => b.getAttribute('aria-current'));
@@ -42,8 +43,8 @@ describe('ProductGallery', () => {
   });
   it('one photo: no arrows, dots, counter, thumbnails or carousel role, and the plain alt text', () => {
     mount([IMGS[0]]);
-    expect(big()!.getAttribute('src')).toBe(IMGS[0]);
-    expect(big()!.getAttribute('alt')).toBe('Crochet Bag');
+    expect(big2()!.getAttribute('src')).toBe(IMGS[0]);
+    expect(big2()!.getAttribute('alt')).toBe('Crochet Bag');
     expect(screen.queryByRole('button', { name: 'Next photo' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Previous photo' })).toBeNull();
     expect(dots()).toHaveLength(0); expect(document.querySelector('.gallery-count')).toBeNull();
@@ -116,19 +117,53 @@ describe('ProductGallery', () => {
     fireEvent.pointerUp(frame(), { clientX: 100, clientY: 100, pointerType: 'touch', pointerId: 7 });
     expect(counter().textContent).toBe('1 / 3');
   });
-  it('only the current and neighbouring photos are rendered eagerly; the rest wait until reached', () => {
+  it('every photo is mounted so jumps never show an empty frame, but only the current and neighbours are eager', () => {
     mount(['a', 'b', 'c', 'd', 'e'].map(x => `https://x.example/${x}.jpg`));
     const rendered = () => Array.from(document.querySelectorAll('img.product-photo')).map(i => [i.getAttribute('src')!.slice(-5, -4), i.getAttribute('loading')]);
-    expect(rendered()).toEqual([['a', 'eager'], ['b', 'eager'], ['e', 'eager']]);
+    expect(rendered()).toEqual([['a', 'eager'], ['b', 'eager'], ['c', 'lazy'], ['d', 'lazy'], ['e', 'eager']]);
     fireEvent.click(dots()[2]);
-    expect(rendered()).toEqual([['a', 'lazy'], ['b', 'eager'], ['c', 'eager'], ['d', 'eager']]); // e was never reached: not loaded; a was visited: kept
+    expect(rendered()).toEqual([['a', 'lazy'], ['b', 'eager'], ['c', 'eager'], ['d', 'eager'], ['e', 'lazy']]);
+  });
+  it('the same photo URL twice does not produce duplicate React keys', () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mount([IMGS[0], IMGS[0], IMGS[1]]);
+    expect(err.mock.calls.filter(c => String(c[0]).includes('same key'))).toHaveLength(0);
+    expect(dots()).toHaveLength(3); expect(thumbs()).toHaveLength(3);
+    err.mockRestore();
+  });
+  it('a pinch (two pointers) is never a swipe, even when one finger travels far', () => {
+    mount(IMGS);
+    fireEvent.pointerDown(frame(), { clientX: 200, clientY: 100, pointerType: 'touch', pointerId: 7 });
+    fireEvent.pointerDown(frame(), { clientX: 260, clientY: 100, pointerType: 'touch', pointerId: 8 });
+    fireEvent.pointerUp(frame(), { clientX: 60, clientY: 100, pointerType: 'touch', pointerId: 8 });
+    fireEvent.pointerUp(frame(), { clientX: 100, clientY: 100, pointerType: 'touch', pointerId: 7 });
+    expect(counter().textContent).toBe('1 / 3');
+    swipe(-80); expect(counter().textContent).toBe('2 / 3'); // a normal swipe afterwards still works
+  });
+  it('one photo keeps the original markup: no slide wrapper, no carousel role, lazy image, pen zoom as before', () => {
+    mount([IMGS[0]]);
+    const f = document.querySelector('.detail-art') as HTMLElement;
+    expect(f.className).toBe('product-visual detail-art visual-2 zoomable');
+    expect(f.getAttribute('tabindex')).toBeNull(); expect(f.getAttribute('role')).toBeNull();
+    expect(document.querySelector('.gallery-slide')).toBeNull();
+    expect(Array.from(f.children).map(c => c.tagName)).toEqual(['IMG']);
+    expect(big2()!.getAttribute('loading')).toBe('lazy');
+    const img = f.querySelector('img')!;
+    Object.defineProperty(img, 'naturalWidth', { value: 800 }); Object.defineProperty(img, 'naturalHeight', { value: 800 });
+    f.getBoundingClientRect = () => ({ left: 0, top: 0, width: 400, height: 400, right: 400, bottom: 400, x: 0, y: 0, toJSON() {} }) as DOMRect;
+    fireEvent.mouseMove(f, { clientX: 200, clientY: 200 });
+    expect(document.querySelector('.zoom-lens')).toBeTruthy();
+    fireEvent.mouseLeave(f); expect(document.querySelector('.zoom-lens')).toBeNull();
   });
   it('thumbnail row scrolls horizontally and the current thumbnail is brought into view', () => {
     mount(IMGS);
     const row = document.querySelector('.gallery-thumbs') as HTMLElement;
     const kids = Array.from(row.children) as HTMLElement[];
+    // the row itself sits 500px from the left of the page (offset parent is not the row): positions must be measured against the row
+    const rect = (left: number, width: number) => () => ({ left, width, right: left + width, top: 0, bottom: 0, height: 0, x: left, y: 0, toJSON() {} }) as DOMRect;
+    row.getBoundingClientRect = rect(500, 100);
     Object.defineProperty(row, 'clientWidth', { value: 100 });
-    kids.forEach((k, i) => { Object.defineProperty(k, 'offsetLeft', { value: i * 72 }); Object.defineProperty(k, 'offsetWidth', { value: 64 }); });
+    kids.forEach((k, i) => { k.getBoundingClientRect = rect(500 + i * 72, 64); });
     next();
     expect(row.scrollLeft).toBe(72 - (100 - 64) / 2);
     const css = readCss();
@@ -193,7 +228,7 @@ describe('ProductGallery', () => {
   });
   it('layout contract: stable frame, swipe keeps vertical scroll, arrows above the lens with a 44px target', () => {
     const css = readCss();
-    expect(css).toMatch(/\.product-visual\.carousel\{touch-action:pan-y\}/);
+    expect(css).toMatch(/\.product-visual\.carousel\{touch-action:pan-y pinch-zoom\}/);
     expect(css).toMatch(/\.gallery-arrow\{[^}]*z-index:3[^}]*width:44px;height:44px/);
     expect(css).toMatch(/\.zoom-lens\{[^}]*z-index:2/);
     expect(css).toMatch(/\.product-visual\.carousel:focus-visible\{outline:2px solid var\(--orange\)/);

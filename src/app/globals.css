@@ -2815,7 +2815,7 @@ main {
   transition: opacity .35s ease;
 }
 .product-visual.carousel {
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
 }
 .product-visual.carousel:focus-visible {
   outline: 2px solid var(--orange);
