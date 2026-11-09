@@ -41,7 +41,7 @@ export default async function ShopPage({ searchParams }: Props) {
         <h1>Handmade products</h1>
         <p>Handmade finds from independent makers, made with care and sold directly by the people who craft them.</p>
       </div>
-      <Suspense fallback={<SectionLoader label="Loading handmade finds…" variant="cards" />}>
+      <Suspense fallback={<SectionLoader label="Loading handmade finds…" variant="cards" withFilters />}>
         <ShopCatalog filters={f} />
       </Suspense>
     </>

@@ -31,6 +31,12 @@ export async function listProducts(f: ProductFilter = {}): Promise<Product[]> {
   return rows.map(toProduct);
 }
 
+/** Cheap check (one row at most) used to choose the page before streaming the list. */
+export async function hasAnyWorkshop(): Promise<boolean> {
+  const rows = await getDb().select({ id: workshopsT.id }).from(workshopsT).where(eq(workshopsT.status, 'APPROVED')).limit(1);
+  return rows.length > 0;
+}
+
 export async function listWorkshops(f: WorkshopFilter = {}): Promise<Workshop[]> {
   const where: (SQL | undefined)[] = [eq(workshopsT.status, 'APPROVED')];
   if (!anyCity(f.city)) {

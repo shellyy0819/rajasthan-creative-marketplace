@@ -9,7 +9,7 @@ import { listListingRequests } from '@/lib/listing-requests';
 export const dynamic = 'force-dynamic';
 
 async function RequestsData() {
-  return <Suspense fallback={<SectionLoader label="Loading requests…" variant="list" />}><RequestsData /></Suspense>;
+  return <ListingRequestsAdmin initial={await listListingRequests()} />;
 }
 
 export default async function ListingRequestsPage() {
@@ -20,7 +20,7 @@ export default async function ListingRequestsPage() {
       <Breadcrumbs items={crumbs} />
       <h1>Listing requests</h1>
       <p className="muted">People who asked to sell on Craftofy. Phone numbers are not verified: call the owner, then press Confirm. Confirming lets them sign in with Google using their email and list products.</p>
-      <ListingRequestsAdmin initial={await listListingRequests()} />
+      <Suspense fallback={<SectionLoader label="Loading requests…" variant="list" />}><RequestsData /></Suspense>
     </>
   );
 }

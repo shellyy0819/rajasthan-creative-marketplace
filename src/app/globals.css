@@ -2178,16 +2178,18 @@ main {
 .rr-section-loader.cards .product-grid {
   pointer-events: none;
 }
+/* same shape as the real .product-card: a 3/4 photo card, no border, text at the bottom */
 .sk-card {
-  background: var(--white);
-  border: 1px solid var(--line-soft);
+  background: var(--cream);
+  aspect-ratio: 3 / 4;
+  border-radius: 22px;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   overflow: hidden;
 }
-.sk-visual {
-  height: 205px;
-  background: var(--cream);
+.sk-card .sk-line {
+  background: var(--line);
 }
 .sk-body {
   padding: 16px;
@@ -2203,13 +2205,61 @@ main {
 }
 .sk-row {
   display: grid;
-  grid-template-columns: 78px 1fr;
+  grid-template-columns: 78px 1fr auto;
   gap: 16px;
   align-items: center;
   background: var(--white);
   border: 1px solid var(--line-soft);
   padding: 17px;
   min-height: 112px;
+}
+.sk-price {
+  width: 90px;
+  height: 36px;
+}
+.sk-control {
+  display: block;
+  height: 40px;
+  border-radius: 3px;
+  background: var(--cream);
+}
+.sk-catalog-head .sk-line {
+  height: 14px;
+  margin: 0 0 12px;
+}
+.sk-filters {
+  display: flex;
+  gap: 10px;
+  margin: 28px 0 25px;
+}
+.sk-filters .sk-control {
+  min-width: 155px;
+}
+.sk-filters .sk-search {
+  flex: 1;
+}
+@media (max-width: 600px) {
+  .sk-card {
+    border-radius: 18px;
+  }
+  .sk-row {
+    grid-template-columns: 58px 1fr;
+    gap: 11px;
+    padding: 12px;
+  }
+  .sk-row .sk-price {
+    grid-column: 2;
+  }
+  .sk-filters {
+    flex-wrap: wrap;
+  }
+  .sk-filters .sk-search {
+    flex-basis: 100%;
+  }
+  .sk-filters .sk-control:not(.sk-search) {
+    flex: 1;
+    min-width: 0;
+  }
 }
 .sk-tile {
   height: 70px;

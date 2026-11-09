@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { Hero } from '@/components/Hero';
 import { HomeCraftExplorer } from '@/components/HomeCraftExplorer';
 import { WorkshopList } from '@/components/WorkshopList';
-import { TrendingSection, TrendingFallback } from '@/components/TrendingSection';
+import { TrendingSection } from '@/components/TrendingSection';
 import { SectionLoader } from '@/components/SectionLoader';
 import { SignedOutToast } from '@/components/SignedOutToast';
 import { ValueProps } from '@/components/ValueProps';
@@ -55,7 +55,7 @@ export default async function Home() {
       <SignedOutToast />
       <Hero stall={{ sign, chalkLabel, chalkTitle, chalkSub, bunting, stickers }} />
       <ValueProps />
-      <Suspense fallback={<TrendingFallback />}><TrendingSection /></Suspense>
+      <Suspense fallback={null}><TrendingSection /></Suspense>
       <section className="section" id="shop" aria-labelledby="shop-h">
         <div className="section-heading">
           <div><span className="eyebrow">THE MAKERS&apos; SHELF</span><h2 id="shop-h">Handmade finds</h2></div>
@@ -70,7 +70,7 @@ export default async function Home() {
           <p>Find friendly workshops, creative meetups and pop-up experiences hosted by local makers and venues.</p>
           <p><Link className="text-link" href="/workshops">Browse &amp; filter all →</Link></p>
         </div>
-        <Suspense fallback={<SectionLoader label="Loading workshops…" variant="list" />}><HomeWorkshops /></Suspense>
+        <Suspense fallback={<SectionLoader label="Loading workshops…" variant="list" announce={false} />}><HomeWorkshops /></Suspense>
       </section>
       <section className="maker-cta" id="makers">
         <div className="cta-flower" aria-hidden="true">✿</div>

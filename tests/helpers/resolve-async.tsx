@@ -1,5 +1,8 @@
 import React from 'react';
 
+// Async components are detected by `constructor.name === 'AsyncFunction'`. That is safe here: the page files are
+// transpiled with native async functions (not regenerator wrappers) under Node 22, and only the data components that
+// pages put under <Suspense> are async. Client components (hooks) are never called, so they render normally.
 const isAsync = (t: unknown): t is (props: unknown) => Promise<React.ReactNode> =>
   typeof t === 'function' && t.constructor.name === 'AsyncFunction';
 

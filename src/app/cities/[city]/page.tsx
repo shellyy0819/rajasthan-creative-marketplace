@@ -54,7 +54,7 @@ export default async function CityPage({ params }: Props) {
         <p>Independent makers and creative gatherings in {city}.</p>
       </div>
       <section className="section" aria-labelledby="c-shop"><h2 id="c-shop">Handmade in {city}</h2><div style={{ height: 20 }} /><Suspense fallback={<SectionLoader label="Loading handmade finds…" variant="cards" />}><CityProducts slug={c.slug} /></Suspense></section>
-      <section className="workshop-band" style={{ display: 'block' }} aria-labelledby="c-ws"><h2 id="c-ws" style={{ marginTop: 0 }}>Workshops in {city}</h2><Suspense fallback={<SectionLoader label="Loading workshops…" variant="list" />}><CityWorkshops slug={c.slug} /></Suspense></section>
+      <section className="workshop-band" style={{ display: 'block' }} aria-labelledby="c-ws"><h2 id="c-ws" style={{ marginTop: 0 }}>Workshops in {city}</h2><Suspense fallback={<SectionLoader label="Loading workshops…" variant="list" announce={false} />}><CityWorkshops slug={c.slug} /></Suspense></section>
     </>
   );
 }
