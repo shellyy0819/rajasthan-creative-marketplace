@@ -33,7 +33,8 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 }
 
 /** Replaces "Add to bag": opens a sheet with everything the artist chose to share publicly. */
-export function ContactArtistButton({ product: p }: { product: Product }) {
+/** `artistLevel`: opened from the artist page, so it is about the artist, not one product (no "About" line, no "View all" link, event tagged source=artist). */
+export function ContactArtistButton({ product: p, artistLevel = false }: { product: Product; artistLevel?: boolean }) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -52,7 +53,9 @@ export function ContactArtistButton({ product: p }: { product: Product }) {
   return (
     <>
       <button ref={trigger} type="button" className="add-btn contact-btn" aria-haspopup="dialog" onClick={() => {
-        setOpen(true); sendEvent('contact', p.id); gaEvent('contact_click', { item_id: p.id });
+        setOpen(true);
+        if (artistLevel) { sendEvent('contact', p.id, 'artist'); gaEvent('contact_click', { item_id: p.id, source: 'artist' }); }
+        else { sendEvent('contact', p.id); gaEvent('contact_click', { item_id: p.id }); }
       }}>Contact artist</button>
       {open && createPortal(
         <div className="contact-backdrop admin-modal" onClick={e => { if (e.target === e.currentTarget) close(); }}>
@@ -68,7 +71,7 @@ export function ContactArtistButton({ product: p }: { product: Product }) {
               <button ref={closeRef} type="button" className="icon-btn" aria-label="Close" onClick={close}>✕</button>
             </div>
             {p.artistBio && <p className="contact-bio">{p.artistBio}</p>}
-            <p className="contact-about">About: <b>{p.name}</b></p>
+            {!artistLevel && <p className="contact-about">About: <b>{p.name}</b></p>}
             {shared ? (
               <div className="contact-rows">
                 {p.phone && (
@@ -91,7 +94,7 @@ export function ContactArtistButton({ product: p }: { product: Product }) {
             ) : <p className="contact-empty">This artist has not shared contact details yet.</p>}
             <div className="contact-foot">
               <span>Contact details are provided by the artist.</span>
-              {p.sellerSlug && <Link className="text-link" href={`/artists/${p.sellerSlug}?from=${p.id}`}>View all by {p.seller} →</Link>}
+              {!artistLevel && p.sellerSlug && <Link className="text-link" href={`/artists/${p.sellerSlug}?from=${p.id}`}>View all by {p.seller} →</Link>}
             </div>
           </div>
         </div>,

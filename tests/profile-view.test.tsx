@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
 
 vi.mock('@/components/onboarding/LogoUpload', () => ({
   LogoUpload: ({ onChange }: { onChange: (u: string) => void }) => <button type="button" onClick={() => onChange('https://cdn.example.com/logos/me.png')}>pick logo</button>,
@@ -66,23 +66,21 @@ describe('My profile on the posts page', () => {
     const common = { initialProducts: [], initialArtists: [], categories: ['Pottery'], workshops: [], sellers: [], me: { name: 'M', email: 'm@x.co' } } as unknown as Omit<React.ComponentProps<typeof PostsAdmin>, 'role' | 'profile'>;
     const locked = { ...P, logoUrl: 'https://cdn.example.com/logos/me.png' };
     const r = render(<PostsAdmin {...common} role="seller" profile={locked} />);
-    fireEvent.click(screen.getByRole('button', { name: 'My profile' }));
+    act(() => { window.dispatchEvent(new Event('craftofy:open-profile')); });
     expect(screen.getByText('Your details are locked. Contact Craftofy to change them.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Save profile' })).toBeNull();
     r.unmount();
     render(<PostsAdmin {...common} role="admin" profile={locked} />);
-    fireEvent.click(screen.getByRole('button', { name: 'My profile' }));
+    act(() => { window.dispatchEvent(new Event('craftofy:open-profile')); });
     expect(screen.getByRole('button', { name: 'Save profile' })).toBeTruthy();
   });
-  it('the button is shown for sellers and admins whatever the profile state', async () => {
+  it('the page header has no My profile button (it lives in the account menu); ?profile=1 opens it', async () => {
     const { PostsAdmin } = await import('@/components/PostsAdmin');
     const common = { initialProducts: [], initialArtists: [], categories: ['Pottery'], workshops: [], sellers: [], me: { name: 'M', email: 'm@x.co' } } as unknown as Omit<React.ComponentProps<typeof PostsAdmin>, 'role' | 'profile'>;
-    for (const role of ['seller', 'admin'] as const) {
-      for (const profile of [undefined, { userId: 'u', displayName: 'D' }, P]) {
-        const r = render(<PostsAdmin {...common} role={role} profile={profile} />);
-        expect(screen.getByRole('button', { name: 'My profile' })).toBeTruthy();
-        r.unmount();
-      }
-    }
+    const r = render(<PostsAdmin {...common} role="seller" profile={P} />);
+    expect(screen.queryByRole('button', { name: 'My profile' })).toBeNull();
+    r.unmount();
+    render(<PostsAdmin {...common} role="seller" profile={P} openProfile />);
+    expect(screen.getByText('Your details are locked. Contact Craftofy to change them.')).toBeTruthy();
   });
 });

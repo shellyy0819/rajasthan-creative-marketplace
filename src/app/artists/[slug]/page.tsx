@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { ArtistHero } from '@/components/ArtistHero';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { ProductGrid } from '@/components/ProductGrid';
@@ -7,7 +8,6 @@ import { TrackOnMount } from '@/components/TrackOnMount';
 import { getArtist } from '@/lib/artists';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
-import { instagramUrl, youtubeUrl } from '@/lib/social';
 
 export const dynamic = 'force-dynamic';
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ from?: string }> };
@@ -30,25 +30,20 @@ export default async function ArtistPage({ params, searchParams }: Props) {
   if (!a) notFound();
   const { from: fromParam } = await searchParams;
   const from = a.products.find(p => p.id === fromParam)?.id; // credit a visit only when the product really is this artist's
+  const rest = a.products.slice(3); // the hero already shows the first three
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Shop', path: '/shop' }, { name: a.name, path: `/artists/${a.slug}` }];
   return (
     <>
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
       <Breadcrumbs items={crumbs} />
       {from && <TrackOnMount productId={from} type="artist" />}
-      <div className="page-head">
-        <span className="eyebrow">ARTIST</span>
-        <h1>{a.name}</h1>
-        {a.city && <p className="artist-city">{a.city}</p>}
-        {a.bio && <p className="contact-bio">{a.bio}</p>}
-        <ul className="artist-contact">
-          {a.phone && <li><a href={`tel:${a.phone.replace(/[^\d+]/g, '')}`}>{a.phone}</a></li>}
-          {a.email && <li><a href={`mailto:${a.email}`}>{a.email}</a></li>}
-          {a.instagram && <li><a href={instagramUrl(a.instagram)} target="_blank" rel="noreferrer">Instagram ↗</a></li>}
-          {a.youtube && <li><a href={youtubeUrl(a.youtube)} target="_blank" rel="noreferrer">YouTube ↗</a></li>}
-        </ul>
-      </div>
-      <section className="section"><ProductGrid products={a.products} /></section>
+      <ArtistHero a={a} />
+      {rest.length > 0 && (
+        <section className="section">
+          <div className="section-heading"><h2>More pieces</h2><span className="muted">{rest.length} {rest.length === 1 ? 'piece' : 'pieces'}</span></div>
+          <ProductGrid products={rest} />
+        </section>
+      )}
     </>
   );
 }

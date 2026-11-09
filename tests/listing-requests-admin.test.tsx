@@ -84,7 +84,7 @@ describe('wiring (source contract)', () => {
     expect(home).not.toContain('<ListingRequestButton');
     expect(home).not.toMatch(/I’m a maker|Marketplace%20seller%20interest/);
     const layout = fs.readFileSync('src/app/dashboard/layout.tsx', 'utf8');
-    expect(layout).toMatch(/user\.role === 'admin' && <Link href="\/dashboard\/listing-requests">/);
+    expect(layout).toMatch(/user\.role === 'admin' && \(\s*<nav[\s\S]*<Link href="\/dashboard\/listing-requests">/);
     const page = fs.readFileSync('src/app/dashboard/listing-requests/page.tsx', 'utf8');
     expect(page).toContain('requireAdminPage()'); expect(page).toContain('<ListingRequestsAdmin');
   });

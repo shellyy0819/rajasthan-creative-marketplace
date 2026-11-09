@@ -63,7 +63,7 @@ describe('/artists/[slug] page', () => {
     const Page = (await import('@/app/artists/[slug]/page')).default;
     render(await Page({ params: Promise.resolve({ slug }), searchParams: Promise.resolve({ from: 'p1' }) }));
     expect(screen.getByRole('heading', { level: 1, name: 'Shauk and Stuff' })).toBeTruthy();
-    expect(document.querySelectorAll('.product-card')).toHaveLength(1);
+    expect(document.querySelectorAll('a.ah-card')).toHaveLength(1);        // the hero shows the piece; no repeated grid for 3 or fewer
     expect(document.querySelector('[data-track="artist:p1"]')).toBeTruthy();
     cleanup();
     render(await Page({ params: Promise.resolve({ slug }), searchParams: Promise.resolve({ from: 'p3' }) }));   // another artist's product: no credit
