@@ -2,7 +2,7 @@ export type Product = {
   id: string; name: string; category: string; city: string; cityId: number; citySlug: string; cityState?: string; pricePaise: number;
   seller: string; description: string; stock: number; status: string;
   instagram?: string; youtube?: string; phone?: string; email?: string; imageUrl?: string; workshopId?: string;
-  images?: string[]; likeCount?: number; sellerSlug?: string; artistBio?: string; artistCity?: string;
+  images?: string[]; likeCount?: number; sellerSlug?: string; sellerLogo?: string; artistBio?: string; artistCity?: string;
 };
 /** What admins and sellers see: the public product plus ownership and publishing details. */
 export type AdminProduct = Product & {

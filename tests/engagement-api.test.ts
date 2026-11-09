@@ -114,6 +114,13 @@ describe('POST /api/events', () => {
     expect(rows[0].actor).toMatch(/^h:[0-9a-f]{32}$/);
     expect(JSON.stringify(rows)).not.toContain('1.2.3.4');
   });
+  it('an artist-level contact (source=artist) answers 204 but is not counted against the product; other sources are rejected', async () => {
+    expect((await event({ type: 'contact', productId: 'p1', source: 'artist' })).status).toBe(204);
+    expect(await (await getTestDb()).select().from(productEvents)).toHaveLength(0);
+    expect((await event({ type: 'contact', productId: 'p1' })).status).toBe(204);
+    expect(await (await getTestDb()).select().from(productEvents)).toHaveLength(1);
+    expect((await event({ type: 'contact', productId: 'p1', source: 'x' })).status).toBe(400);
+  });
   it('different visitors (ip or user agent) are different people', async () => {
     await event({ type: 'view', productId: 'p1' });
     await event({ type: 'view', productId: 'p1' }, { ...JSON_H, 'user-agent': BROWSER, 'x-forwarded-for': '9.9.9.9' });

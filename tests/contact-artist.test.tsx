@@ -84,6 +84,22 @@ describe('ContactArtistButton', () => {
     expect(d.textContent).toContain('This artist has not shared contact details yet.');
     expect(within(d).getByRole('link', { name: /View all by Shauk and Stuff/ })).toBeTruthy();
   });
+  it('product mode (default) keeps the About line and View all link and logs a plain product event', () => {
+    const d = open();
+    expect(d.textContent).toContain('About:');
+    expect(within(d).getByRole('link', { name: /View all/ })).toBeTruthy();
+    expect(track.sendEvent.mock.calls[0]).toEqual(['contact', 'p1']);
+  });
+  it('artistLevel mode hides the About line and View all link and tags the events source=artist', () => {
+    render(<ContactArtistButton product={P} artistLevel />);
+    fireEvent.click(screen.getByRole('button', { name: 'Contact artist' }));
+    const d = screen.getByRole('dialog');
+    expect(d.textContent).not.toContain('About:');
+    expect(within(d).queryByRole('link', { name: /View all/ })).toBeNull();
+    expect(d.textContent).toContain('+91 99898 98999');
+    expect(track.sendEvent).toHaveBeenCalledWith('contact', 'p1', 'artist');
+    expect(track.gaEvent).toHaveBeenCalledWith('contact_click', { item_id: 'p1', source: 'artist' });
+  });
   it('without an artist page slug there is no "View all" link', () => {
     const d = open({ ...P, sellerSlug: undefined });
     expect(within(d).queryByRole('link', { name: /View all/ })).toBeNull();

@@ -10,6 +10,7 @@ import { ProductImage } from "./ProductImage";
 import { PhotoButton } from "./PhotoButton";
 import { PostForm, type SellerOption, type WorkshopOption } from "./PostForm";
 import { ProfileDialog } from "./ProfileDialog";
+import { ProfileView } from "./ProfileView";
 import { ProductDetail } from "./ProductDetail";
 import { PageLoader } from "./PageLoader";
 import { Toast, type ToastState } from "./Toast";
@@ -41,6 +42,7 @@ export function PostsAdmin({
   me,
   profile,
   openNew = false,
+  openProfile = false,
 }: {
   initialProducts: Product[];
   initialArtists: AdminArtist[];
@@ -52,10 +54,11 @@ export function PostsAdmin({
   profile?: SellerProfile;
   /** Open the new-post form on arrival (the page passes it for `?new=1`). Only the initial state; role gates are untouched. */
   openNew?: boolean;
+  openProfile?: boolean;
 }) {
   const seller = role === "seller";
   const [categories, setCategories] = useState(initialCategories);
-  const [editingProfile, setEditingProfile] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(openProfile);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const lastViewed = useRef<string | null>(null);
   const [myProfile, setMyProfile] = useState(profile);
@@ -78,6 +81,19 @@ export function PostsAdmin({
     url.searchParams.delete("new");
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
   }, [openNew]);
+  // The account menu opens the profile: by address (?profile=1, dropped once honoured) or by event when already here.
+  useEffect(() => {
+    const open = () => setEditingProfile(true);
+    window.addEventListener("craftofy:open-profile", open);
+    return () => window.removeEventListener("craftofy:open-profile", open);
+  }, []);
+  useEffect(() => {
+    if (!openProfile) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("profile") !== "1") return;
+    url.searchParams.delete("profile");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, [openProfile]);
   const notify = (kind: "success" | "error", text: string) =>
     setToast({ id: Date.now() + Math.random(), kind, text });
   const closeToast = useCallback(() => setToast(null), []);
@@ -267,11 +283,6 @@ export function PostsAdmin({
             >
               New post
             </button>
-            {myProfile && !(seller && myProfile.onboardedAt) && (
-              <button type="button" className="button" onClick={() => setEditingProfile(true)}>
-                My profile
-              </button>
-            )}
           </div>
 
           {products.length === 0 ? (
@@ -423,7 +434,18 @@ export function PostsAdmin({
           onCancel={() => setEditing(null)}
         />
       )}
-      {editingProfile && myProfile && (
+      {editingProfile && myProfile && seller && myProfile.onboardedAt && (
+        <ProfileView
+          profile={myProfile}
+          onLogoSaved={(p) => {
+            setMyProfile(p);
+            notify("success", "Logo saved.");
+            void refresh();
+          }}
+          onClose={() => setEditingProfile(false)}
+        />
+      )}
+      {editingProfile && myProfile && !(seller && myProfile.onboardedAt) && (
         <ProfileDialog
           title="My profile"
           initial={myProfile}

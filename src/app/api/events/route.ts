@@ -14,7 +14,8 @@ export const POST = (req: Request) => handle(async () => {
   const b = body && typeof body === 'object' && !Array.isArray(body) ? (body as Record<string, unknown>) : {};
   if (typeof b.type !== 'string' || !TYPES.includes(b.type)) throw new ApiError(400, 'type must be view, contact or artist.');
   if (typeof b.productId !== 'string' || !/^p\d+$/.test(b.productId)) throw new ApiError(400, 'productId must look like p1.');
+  if (b.source !== undefined && b.source !== 'artist') throw new ApiError(400, 'source must be artist.');
   const ua = req.headers.get('user-agent');
-  if (!isBot(ua)) await recordEvent({ productId: b.productId, type: b.type as EventType, actor: viewerActor({ ip, userAgent: ua! }) });
+  if (b.source !== 'artist' && !isBot(ua)) await recordEvent({ productId: b.productId, type: b.type as EventType, actor: viewerActor({ ip, userAgent: ua! }) });
   return new Response(null, { status: 204 });
 });

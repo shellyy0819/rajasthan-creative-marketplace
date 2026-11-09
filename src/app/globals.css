@@ -2245,15 +2245,6 @@ main {
   align-items: center;
   gap: 10px;
 }
-.artist-contact {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  margin: 0 0 18px;
-  padding: 0;
-  list-style: none;
-  font-size: 12.5px;
-}
 
 .brand-logo {
   display: block;
@@ -2407,11 +2398,6 @@ main {
 .contact-btn {
   position: relative;
   z-index: 1;
-}
-.artist-city {
-  margin: 0 0 10px;
-  color: var(--muted);
-  font-size: 12px;
 }
 .nearby-cities .link-row {
   justify-content: center;
@@ -3563,6 +3549,7 @@ body.modal-open {
 }
 .pc-av {
   flex: none;
+  overflow: hidden;
   display: inline-grid;
   place-items: center;
   width: 24px;
@@ -3879,3 +3866,256 @@ body.modal-open {
   font: 700 14px var(--font-sans), sans-serif;
   margin: 18px 0 4px;
 }
+
+/* Artist page hero: the stall awning */
+.artist-hero + .section {
+  padding-top: 32px;
+}
+.artist-hero + .section .section-heading {
+  margin-bottom: 18px;
+}
+.artist-hero {
+  margin: 18px 8.5% 0;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--sand-soft);
+}
+.ah-awning {
+  height: 84px;
+  overflow: hidden;
+  line-height: 0;
+}
+.stall-awning {
+  display: block;
+  width: 100%;
+  height: 84px;
+}
+.ah-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 0 24px 22px;
+  margin-top: -40px;
+  position: relative;
+}
+.ah-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--sand);
+  color: var(--green);
+  font: 500 38px/1 var(--font-display);
+  box-shadow: 0 0 0 4px var(--white), 0 0 0 6px var(--orange);
+  overflow: hidden;
+}
+.ah-logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.artist-hero h1 {
+  font: 500 36px/1.04 var(--font-display);
+  letter-spacing: -0.04em;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ah-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.ah-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--control-border);
+  border-radius: 30px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.ah-ico {
+  color: var(--orange);
+}
+.ah-bio {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.ah-acts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.ah-acts .contact-btn,
+.ah-acts .ah-ig {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 3px;
+  font: 600 12px var(--font-sans);
+  text-decoration: none;
+}
+.ah-acts .ah-ig {
+  border: 1px solid var(--control-border);
+  background: transparent;
+  color: var(--ink);
+}
+.ah-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+}
+.ah-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  overflow-wrap: anywhere;
+}
+.ah-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 240px));
+  justify-content: center;
+  gap: 16px;
+  padding: 0 24px 26px;
+}
+.ah-row[data-count="1"] {
+  grid-template-columns: minmax(0, 240px);
+}
+.ah-row[data-count="2"] {
+  grid-template-columns: repeat(2, minmax(0, 240px));
+}
+.ah-card {
+  position: relative;
+  display: block;
+  color: var(--ink);
+  text-decoration: none;
+  border-radius: 10px;
+}
+.ah-photo {
+  position: relative;
+  display: block;
+  aspect-ratio: 1 / 0.9;
+  border-radius: 10px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.ah-card:hover .ah-photo {
+  border-color: var(--green);
+}
+.ah-card:hover .ah-cname {
+  text-decoration: underline;
+}
+.ah-photo .product-photo {
+  object-fit: cover;
+}
+.ah-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 48px;
+}
+.ah-ptag {
+  position: absolute;
+  right: -6px;
+  top: 14px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--stall-chalk);
+  color: #252a24;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px 5px 7px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transform: rotate(3deg);
+}
+.ah-hole {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sand-soft);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+.ah-cname {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .artist-hero {
+    margin: 14px 5% 0;
+    border-radius: 16px;
+  }
+  .ah-center {
+    padding: 0 16px 18px;
+  }
+  .artist-hero h1 {
+    font-size: 30px;
+  }
+  .ah-bio {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .ah-row,
+  .ah-row[data-count] {
+    grid-template-columns: 1fr 1fr;
+    justify-content: stretch;
+    padding: 0 16px 20px;
+  }
+  .ah-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc((100% - 16px) / 2);
+  }
+}
+.profile-view { margin: 12px 0 0; display: grid; gap: 10px; }
+.profile-view dt { font-size: 0.8rem; color: var(--muted, #6b6b6b); }
+.profile-view dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+
+.user-menu { position: relative; }
+.user-menu-btn {
+  display: grid; place-items: center; width: 38px; height: 38px; padding: 0; overflow: hidden;
+  border: 1px solid var(--control-border); border-radius: 50%; background: transparent; color: inherit; cursor: pointer;
+}
+.user-menu-btn .avatar-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.user-menu-list {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 50; min-width: 160px; padding: 6px;
+  display: grid; background: var(--paper); border: 1px solid var(--control-border); border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.user-menu-list a, .user-menu-list button {
+  display: block; width: 100%; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent;
+  color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer;
+}
+.user-menu-list a:hover, .user-menu-list button:hover, .user-menu-list a:focus-visible, .user-menu-list button:focus-visible { background: var(--sand); }

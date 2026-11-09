@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { adminGate } from '@/lib/admin-gate';
 import robots from '@/app/robots';
 
@@ -49,17 +49,12 @@ describe('robots', () => {
 });
 
 describe('AuthButton seller link', () => {
-  it('shows My products (not Admin) for sellers and labels the sign-out button', () => {
+  it('shows My products (not Admin) for sellers', () => {
     session.value = { data: { user: { email: 's@x.co', role: 'seller' } }, status: 'authenticated' };
     render(<AuthButton />);
     expect(screen.getByRole('link', { name: 'My products' }).getAttribute('href')).toBe('/dashboard/posts');
     expect(screen.queryByRole('link', { name: 'Admin' })).toBeNull();
-    expect(screen.getByRole('button', { name: /Sign out \(seller\)/ })).toBeTruthy(); // no name on the session: falls back to the role
-  });
-  it("labels the sign-out button with the seller's name", () => {
-    session.value = { data: { user: { email: 's@x.co', name: 'Meera Sharma', role: 'seller' } }, status: 'authenticated' };
-    render(<AuthButton />);
-    expect(screen.getByRole('button', { name: 'Sign out (Meera Sharma)' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Sign out/ })).toBeNull(); // sign out now lives in the account menu
   });
 });
 
