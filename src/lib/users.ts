@@ -221,6 +221,23 @@ export async function saveProfile(userId: string, input: unknown): Promise<Selle
     return toProfile((await loadProfile(tx, userId))!);
   });
 }
+/** Adds a logo to a profile that has none. Everything else about an onboarded seller's profile stays locked. */
+export async function addMissingLogo(userId: string, input: unknown): Promise<SellerProfile> {
+  const raw = obj(input);
+  const res = validateLogoUrl(raw.logoUrl);
+  if (!res.ok || !res.value || !isHttpUrl(res.value)) throw new ApiError(400, 'Upload your logo.', 'logoUrl');
+  const logoUrl = res.value;
+  const cfg = storageConfig();
+  if (!cfg && process.env.NODE_ENV === 'production') throw new ApiError(400, 'Upload your logo.', 'logoUrl');
+  if (cfg && !isOwnLogoUrl(cfg, userId, logoUrl)) throw new ApiError(400, 'Upload your logo.', 'logoUrl');
+  return getDb().transaction(async tx => {
+    const [cur] = await tx.select().from(sellerProfiles).where(eq(sellerProfiles.userId, userId));
+    if (!cur) throw new ApiError(404, 'Profile not found.');
+    if (cur.logoUrl) throw new ApiError(403, 'Your details are locked. Contact Craftofy to change them.');
+    await tx.update(sellerProfiles).set({ logoUrl }).where(eq(sellerProfiles.userId, userId));
+    return toProfile((await loadProfile(tx, userId))!);
+  });
+}
 async function isEnvAdmin(tx: Tx, userId: string) {
   const [u] = await tx.select({ email: users.email }).from(users).where(eq(users.id, userId));
   return !!u && roleFor(u.email) === 'admin';
