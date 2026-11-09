@@ -3651,7 +3651,9 @@ body.modal-open {
 }
 .photo-viewer img {
   max-width: 100%;
-  max-height: 100%;
+  /* Percent heights do not resolve against a grid cell, so cap by the screen: viewport minus the 56px padding top and bottom. */
+  max-height: calc(100vh - 112px);
+  max-height: calc(100dvh - 112px);
   object-fit: contain;
   border-radius: 6px;
 }
