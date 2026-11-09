@@ -1217,6 +1217,7 @@ form label select {
   letter-spacing: -1.2px;
   margin: 12px 0;
 }
+.admin-posts .page-head .button { margin-top: 8px; }
 .page-head p {
   max-width: 560px;
   color: var(--muted);

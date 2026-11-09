@@ -206,6 +206,9 @@ export function PostsAdmin({
             ? "Create and edit your own listings. An admin reviews and publishes them; archive anything you no longer sell."
             : "Create, edit and remove each artist’s listings. Published posts appear on the site; drafts and archived posts stay here."}
         </p>
+        <button type="button" className="button" onClick={() => setEditingProfile(true)}>
+          My profile
+        </button>
       </div>
       <Toast toast={toast} onClose={closeToast} />
       <PageLoader show={!!pageBusy} label={pageBusy} />
@@ -267,9 +270,6 @@ export function PostsAdmin({
               }}
             >
               New post
-            </button>
-            <button type="button" className="button" onClick={() => setEditingProfile(true)}>
-              My profile
             </button>
           </div>
 
