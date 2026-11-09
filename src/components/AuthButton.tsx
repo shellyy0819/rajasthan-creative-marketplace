@@ -14,7 +14,7 @@ export function AuthButton({ dashboardUrl = '' }: { dashboardUrl?: string }) {
           Are you a seller?{' '}
           <button type="button" className="seller-login-link" onClick={login}>Login here</button>
         </span>
-        <button type="button" className="cart-btn seller-login-btn" onClick={login}>Seller login</button>
+        <button type="button" className="cart-btn seller-login-btn" onClick={login}>Login here</button>
       </>
     );
   }
