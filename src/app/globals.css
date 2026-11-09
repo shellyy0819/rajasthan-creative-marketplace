@@ -3605,3 +3605,161 @@ body.modal-open {
     right: 4px;
   }
 }
+/* How it works */
+.help-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 8.5% 8px;
+}
+.help-pills a {
+  padding: 8px 16px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+}
+.help-pills a:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+.help-role {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: center;
+  padding: 48px 8.5%;
+  scroll-margin-top: 80px;
+}
+.help-role:nth-of-type(even) {
+  background: var(--band);
+}
+.help-role:nth-of-type(even) .help-art {
+  order: 2;
+}
+.help-art {
+  border-radius: 22px;
+  overflow: hidden;
+  background: var(--card-2);
+  border: 1px solid var(--line-soft);
+}
+.help-scene {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.help-copy {
+  min-width: 0;
+}
+.help-copy h2 {
+  font: 500 clamp(26px, 3.2vw, 36px) / 1.15 var(--font-display);
+  letter-spacing: -0.5px;
+  margin: 10px 0;
+  text-wrap: balance;
+}
+.help-intro {
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.help-steps {
+  list-style: none;
+  counter-reset: step;
+  margin: 0 0 18px;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.help-steps li {
+  counter-increment: step;
+  position: relative;
+  padding-left: 40px;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.help-steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--green);
+  color: var(--on-green);
+  font-size: 13px;
+  font-weight: 700;
+}
+.help-benefits {
+  list-style: none;
+  margin: 0 0 22px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.help-benefits li {
+  padding: 6px 12px 6px 28px;
+  position: relative;
+  border-radius: 999px;
+  background: var(--chip-green);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.help-benefits li::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  width: 5px;
+  height: 9px;
+  border: solid var(--green);
+  border-width: 0 2px 2px 0;
+  transform: translateY(-65%) rotate(45deg);
+}
+.help-foot {
+  padding: 24px 8.5% 72px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.help-foot a {
+  color: var(--green);
+  font-weight: 700;
+  text-decoration: underline;
+}
+@media (max-width: 800px) {
+  .help-role {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 36px 6%;
+  }
+  .help-role:nth-of-type(even) .help-art {
+    order: 0;
+  }
+  .help-pills,
+  .help-foot {
+    padding-left: 6%;
+    padding-right: 6%;
+  }
+}
+
+.footer-base .copyright {
+  font-size: 12px;
+}
+.legal-draft {
+  padding: 12px 14px;
+  border: 1px dashed var(--orange);
+  border-radius: 8px;
+  background: var(--sand-soft);
+  color: var(--ink);
+}
+.info-body h3 {
+  font: 700 14px var(--font-sans), sans-serif;
+  margin: 18px 0 4px;
+}

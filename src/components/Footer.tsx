@@ -21,20 +21,22 @@ export async function Footer() {
   let cities: City[] = [];
   try { cities = await listActiveCities(); } catch (e) { console.error('Footer: could not load the active cities; rendering without city links', e); /* the footer must never take a page down */ }
   const label = cityLabeller(cities);
+  const year = new Date().getFullYear();
+  const years = year > 2026 ? `2026–${year}` : '2026'; // first published 2026
   const makerMail = `mailto:${contactEmail()}?subject=Marketplace%20seller%20interest`;
   return (
     <footer className="site-footer">
       <div className="footer-grid">
         <Column title="Get to Know Us">
           <li><Link href="/about">About us</Link></li>
-          <li><Link href="/blogs">Blogs</Link></li>
+          {/* <li><Link href="/blogs">Blogs</Link></li> */}
         </Column>
         <Column title="Connect with Us">
           <li><Link href="/contact">Contact us</Link></li>
         </Column>
         <Column title="Let Us Help You">
           <li><Link href="/help">How it works</Link></li>
-          <li><a href={makerMail}>For makers</a></li>
+          {/* <li><a href={makerMail}>For makers</a></li> */}
           <li><Link href="/sell" prefetch={false}>Seller login</Link></li>
           {/* <li><CookieSettings /></li> */}
         </Column>
@@ -46,6 +48,7 @@ export async function Footer() {
       </div>
       <div className="footer-base">
         <Brand />
+        <p className="copyright">© {years} Craftofy. All rights reserved.</p>
       </div>
     </footer>
   );
