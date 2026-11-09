@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { ProductGrid } from '@/components/ProductGrid';
+import { SectionLoader } from '@/components/SectionLoader';
 import { WorkshopList } from '@/components/WorkshopList';
 import { listProducts, listWorkshops } from '@/lib/catalog';
 import { listActiveCities } from '@/lib/cities';
@@ -28,12 +30,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 }
 
+async function CityProducts({ slug }: { slug: string }) {
+  // Filter by slug: two cities can share a name (Udaipur, Rajasthan vs Udaipur, Tripura).
+  return <ProductGrid products={await listProducts({ city: slug })} />;
+}
+
+async function CityWorkshops({ slug }: { slug: string }) {
+  return <WorkshopList workshops={await listWorkshops({ city: slug })} />;
+}
+
 export default async function CityPage({ params }: Props) {
   const c = await activeCity((await params).city);
   if (!c) notFound();
   const city = c.name;
-  // Filter by slug: two cities can share a name (Udaipur, Rajasthan vs Udaipur, Tripura).
-  const [products, workshops] = await Promise.all([listProducts({ city: c.slug }), listWorkshops({ city: c.slug })]);
   const crumbs = [{ name: 'Home', path: '/' }, { name: city, path: `/cities/${c.slug}` }];
   return (
     <>
@@ -44,8 +53,8 @@ export default async function CityPage({ params }: Props) {
         <h1>Handmade products &amp; workshops in {city}</h1>
         <p>Independent makers and creative gatherings in {city}.</p>
       </div>
-      <section className="section" aria-labelledby="c-shop"><h2 id="c-shop">Handmade in {city}</h2><div style={{ height: 20 }} /><ProductGrid products={products} /></section>
-      <section className="workshop-band" style={{ display: 'block' }} aria-labelledby="c-ws"><h2 id="c-ws" style={{ marginTop: 0 }}>Workshops in {city}</h2><WorkshopList workshops={workshops} /></section>
+      <section className="section" aria-labelledby="c-shop"><h2 id="c-shop">Handmade in {city}</h2><div style={{ height: 20 }} /><Suspense fallback={<SectionLoader label="Loading handmade finds…" variant="cards" />}><CityProducts slug={c.slug} /></Suspense></section>
+      <section className="workshop-band" style={{ display: 'block' }} aria-labelledby="c-ws"><h2 id="c-ws" style={{ marginTop: 0 }}>Workshops in {city}</h2><Suspense fallback={<SectionLoader label="Loading workshops…" variant="list" />}><CityWorkshops slug={c.slug} /></Suspense></section>
     </>
   );
 }
