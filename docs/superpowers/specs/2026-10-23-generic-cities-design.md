@@ -4,7 +4,7 @@ Part 1 of 3. Part 2 is the location hero (city picker, remembered city, "use my 
 
 ## Intent and why
 
-Craftology's positioning: local makers in any city, reached directly, no commission, no payments on the site. Launch focus is Rajasthan, but the platform must work for any city in India. Today the cities Udaipur, Jaipur and Jodhpur are hardcoded in one constant (`CITIES` in `src/lib/catalog-shared.ts`) and read in about ten places. A maker in Kota cannot post. This change removes the constant so any Indian city is valid.
+Craftofy's positioning: local makers in any city, reached directly, no commission, no payments on the site. Launch focus is Rajasthan, but the platform must work for any city in India. Today the cities Udaipur, Jaipur and Jodhpur are hardcoded in one constant (`CITIES` in `src/lib/catalog-shared.ts`) and read in about ten places. A maker in Kota cannot post. This change removes the constant so any Indian city is valid.
 
 ## Goals
 

@@ -38,10 +38,12 @@ describe('HomeCraftExplorer uses only real data', () => {
     fireEvent.click(screen.getByRole('button', { name: /^All/ }));
     expect(document.querySelectorAll('.product-card')).toHaveLength(4);
   });
-  it('the heading names the selected category and the real count', () => {
+  it('the heading names the selected category, and shows no duplicate heading when none is selected', () => {
     render(<HomeCraftExplorer products={PRODUCTS} />);
+    expect(document.querySelector('.craft-results-heading h3')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /Crochet/ }));
-    expect(document.querySelector('.craft-results-heading')!.textContent).toMatch(/Crochet & Textiles.*2 pieces/);
+    expect(document.querySelector('.craft-results-heading h3')!.textContent).toBe('Crochet & Textiles');
+    expect(document.querySelectorAll('.product-card')).toHaveLength(2);
   });
   it('with no products there are no filter buttons, just the empty state', () => {
     render(<HomeCraftExplorer products={[]} />);

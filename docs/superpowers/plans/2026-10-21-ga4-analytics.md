@@ -13,7 +13,7 @@
 ## Environment facts
 
 - Node 22: `export PATH=$HOME/.nvm/versions/node/v22.23.2/bin:$PATH`. Run the full suite as `npx vitest run --maxWorkers=2 --testTimeout=60000 --hookTimeout=60000` (the machine is often loaded).
-- The user is editing the same working tree (Craftology rebrand: `Header.tsx`, `Hero.tsx`, `Footer.tsx`, `site.ts`, `globals.css`, …). **Stage only the files you create or change, by name** (never `git add -A`), and never commit `.env*` or `*.pem` files. Commit trailer: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`. Do not push.
+- The user is editing the same working tree (Craftofy rebrand: `Header.tsx`, `Hero.tsx`, `Footer.tsx`, `site.ts`, `globals.css`, …). **Stage only the files you create or change, by name** (never `git add -A`), and never commit `.env*` or `*.pem` files. Commit trailer: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`. Do not push.
 - `Footer.tsx` and `globals.css` carry uncommitted user edits: make your edit, but commit only your hunks (`git add -p` is not available here; instead commit those two files only if `git diff <file>` shows nothing but your change, otherwise leave them unstaged and say so in your final message).
 - `.env.example` no longer exists; document settings in `.env.backend.example` and the README.
 - The dashboard may live on its own host (`DASHBOARD_URL`, see `src/lib/hosts.ts` and `docs/subdomains.md`); its pages are under `/dashboard`.
