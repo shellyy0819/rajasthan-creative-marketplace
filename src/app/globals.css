@@ -588,15 +588,6 @@ h2 em {
 .visual-3 {
   background: var(--visual-3);
 }
-.product-visual:after {
-  content: "HANDMADE";
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  font-size: 8px;
-  letter-spacing: 1.5px;
-  color: var(--ink-soft);
-}
 .product-info {
   padding: 16px;
   display: flex;
