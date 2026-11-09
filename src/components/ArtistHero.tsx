@@ -4,6 +4,7 @@ import { money } from '@/lib/money';
 import { instagramUrl, youtubeUrl } from '@/lib/social';
 import type { Artist } from '@/lib/artists';
 import type { Product } from '@/lib/types';
+import { ArtistAvatar } from './ArtistAvatar';
 import { ContactArtistButton } from './ContactArtistButton';
 import { ProductImage } from './ProductImage';
 import { StallAwning } from './StallAwning';
@@ -29,7 +30,7 @@ export function ArtistHero({ a }: { a: Artist }) {
     <section className="artist-hero" aria-label={`About ${a.name}`}>
       <div className="ah-awning" aria-hidden="true"><StallAwning /></div>
       <div className="ah-center">
-        <div className="ah-avatar" aria-hidden="true">{a.name.trim().charAt(0).toUpperCase()}</div>
+        <div className="ah-avatar" aria-hidden="true"><ArtistAvatar src={a.logoUrl} initial={a.name.trim().charAt(0).toUpperCase()} /></div>
         <span className="eyebrow">MEET THE MAKER</span>
         <h1>{a.name}</h1>
         <div className="ah-chips">

@@ -103,6 +103,36 @@ describe('ArtistHero', () => {
   });
 });
 
+describe('ArtistHero avatar logo', () => {
+  const LOGO = 'https://bucket.s3.ap-south-1.amazonaws.com/logos/u1/a.png';
+  it('shows the uploaded logo as a decorative round image when the artist has one', () => {
+    const { container } = hero(artist(3, { logoUrl: LOGO }));
+    const img = container.querySelector('.ah-avatar img.ah-logo') as HTMLImageElement;
+    expect(img.getAttribute('src')).toBe(LOGO);
+    expect(img.getAttribute('alt')).toBe('');
+    expect(img.getAttribute('referrerpolicy')).toBe('no-referrer');
+    expect(img.getAttribute('loading')).not.toBe('lazy'); // above the fold
+    expect(container.querySelector('.ah-avatar')!.textContent).toBe('');
+    expect(container.querySelector('.ah-avatar')!.getAttribute('aria-hidden')).toBe('true');
+  });
+  it('shows the initial when there is no logo', () => {
+    const { container } = hero(artist(3));
+    expect(container.querySelector('.ah-avatar img')).toBeNull();
+    expect(container.querySelector('.ah-avatar')!.textContent).toBe('S');
+  });
+  it('falls back to the initial when the logo cannot be loaded', () => {
+    const { container } = hero(artist(3, { logoUrl: LOGO }));
+    fireEvent.error(container.querySelector('.ah-avatar img')!);
+    expect(container.querySelector('.ah-avatar img')).toBeNull();
+    expect(container.querySelector('.ah-avatar')!.textContent).toBe('S');
+  });
+  it('crops the logo to the round avatar', () => {
+    const css = readCss();
+    expect(css).toMatch(/\.ah-avatar\{[^}]*overflow:hidden/);
+    expect(css).toMatch(/\.ah-logo\{[^}]*object-fit:cover/);
+  });
+});
+
 describe('artist hero CSS contract', () => {
   const css = readCss();
   it('phone: two columns, last odd card spans, bio clamps to three lines, 44px buttons', () => {

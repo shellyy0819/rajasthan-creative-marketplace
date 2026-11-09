@@ -5,7 +5,9 @@ import { createProduct, updateProduct } from '@/lib/admin';
 import { saveProfile } from '@/lib/users';
 import { listProducts } from '@/lib/catalog';
 import { admin } from './helpers/actors';
-import { makeSeller, resetTestDb } from './helpers/testdb';
+import { makeSeller, resetTestDb, getTestDb } from './helpers/testdb';
+import { sellerProfiles } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { cityRef } from './helpers/cities';
 
 beforeEach(async () => { await resetTestDb(); });
@@ -30,6 +32,19 @@ describe('getArtist', () => {
     expect(a.products.map(p => p.id)).toEqual(['p1']);
     expect(a).not.toHaveProperty('id');
     expect(JSON.stringify(a)).not.toContain('seed.rangrajasthan');
+  });
+  it('exposes the uploaded logo (http or https only) and nothing else about it', async () => {
+    const s = await makeSeller('logo@x.co', 'Logo Studio');
+    const p = await createProduct({ name: 'Bowl', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 1, description: 'D', stock: 1, status: 'APPROVED', sellerId: s.id }, admin);
+    const slug = await slugOf(p.id);
+    expect(await getArtist(slug)).not.toHaveProperty('logoUrl');                    // no logo uploaded
+    const db = await getTestDb();
+    await db.update(sellerProfiles).set({ logoUrl: 'https://bucket.example/logos/u/a.png' }).where(eq(sellerProfiles.userId, s.id));
+    expect((await getArtist(slug))!.logoUrl).toBe('https://bucket.example/logos/u/a.png');
+    for (const bad of ['javascript:alert(1)', 'data:image/svg+xml;base64,AAAA', '/relative.png', 'ftp://x/y.png']) {
+      await db.update(sellerProfiles).set({ logoUrl: bad }).where(eq(sellerProfiles.userId, s.id));
+      expect(await getArtist(slug)).not.toHaveProperty('logoUrl');                  // an unsafe stored value is never handed to the page
+    }
   });
   it('shows public profile contact details (phone, email, social) and nothing private', async () => {
     const s = await makeSeller('contact@x.co', 'Contact Studio');
