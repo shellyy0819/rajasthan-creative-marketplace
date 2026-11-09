@@ -150,8 +150,8 @@ describe('resolve', () => {
 });
 
 describe('catalogue and presets', () => {
-  it('has the 20 stickers with sane boxes', () => {
-    expect(Object.keys(STICKERS)).toHaveLength(20);
+  it('has the 36 stickers with sane boxes', () => {
+    expect(Object.keys(STICKERS)).toHaveLength(36);
     for (const [id, s] of Object.entries(STICKERS) as [string, { set: string; box: { w: number; h: number } }][]) {
       expect(isStickerId(id)).toBe(true);
       expect(isPresetKey(s.set)).toBe(true);
