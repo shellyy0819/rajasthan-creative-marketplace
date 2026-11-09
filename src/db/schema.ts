@@ -48,6 +48,12 @@ export const sellerProfiles = pgTable('seller_profiles', {
   youtube: text('youtube'),
   bio: text('bio'),
   cityId: integer('city_id').references(() => cities.id, { onDelete: 'set null' }),
+  website: text('website'),
+  category: text('category'),
+  logoUrl: text('logo_url'),
+  whatsapp: text('whatsapp'),
+  contactMethods: text('contact_methods').array().notNull().default(sql`'{}'::text[]`),
+  onboardedAt: timestamp('onboarded_at', { withTimezone: true, mode: 'date' }),
 }, t => [index('seller_profiles_city_idx').on(t.cityId)]);
 
 /** Product categories. Anyone who can create products may add one; names are unique ignoring case. */

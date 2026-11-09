@@ -1,6 +1,7 @@
 import { getServerSession, type NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { asRole, type AppSession } from '@/lib/authz';
+import { DEFAULT_CALLBACK, allowedCallbackHosts, onDashboardHost, safeCallback } from '@/lib/callback-url';
 import { hostConfig, normalizeHost } from '@/lib/hosts';
 import { resolveAccess, upsertUserOnSignIn } from '@/lib/roles';
 
@@ -25,19 +26,15 @@ export const buildAuthOptions = (): NextAuthOptions => ({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
     }),
   ],
+  pages: { signIn: '/signin', error: '/signin' },
   session: { strategy: 'jwt', maxAge: 60 * 60 * 24 * 7 },
   cookies: sharedCookies(),
   callbacks: {
     // After sign-in only go back to this site or the dashboard host (no open redirects).
     async redirect({ url, baseUrl }) {
-      if (url.startsWith('//')) return baseUrl;
-      if (url.startsWith('/')) return baseUrl + url;
-      try {
-        const u = new URL(url);
-        const host = normalizeHost(u.host);
-        if ((u.protocol === 'https:' || u.protocol === 'http:') && (host === normalizeHost(new URL(baseUrl).host) || host === hostConfig().dashboardHost)) return url;
-      } catch { /* not a URL */ }
-      return baseUrl;
+      const safe = safeCallback(url, allowedCallbackHosts(baseUrl));
+      if (!safe) return baseUrl + DEFAULT_CALLBACK;
+      return safe.startsWith('/') ? onDashboardHost(safe, hostConfig().dashboardOrigin).replace(/^\//, baseUrl + '/') : safe;
     },
     // Only verified Google emails may sign in, and the user row is created/refreshed here. Deactivated users are refused.
     async signIn({ account, profile }) {

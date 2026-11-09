@@ -17,6 +17,6 @@ export async function requireStaffPage(): Promise<StaffUser> {
   const session = await auth();
   const gate = staffGate(session);
   if (gate === 'signin') redirect(signInUrl('/dashboard/posts'));
-  if (gate === 'forbidden') notFound();
+  if (gate === 'forbidden') redirect('/sell'); // a signed-in non-seller is offered onboarding (or a refusal if deactivated), not a 404
   return requireStaff(session);
 }

@@ -92,6 +92,13 @@
       "when": 1793636325427,
       "tag": "0012_site_themes",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794050095718,
+      "tag": "0013_secret_vertigo",
+      "breakpoints": true
     }
   ]
 }

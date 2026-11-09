@@ -79,9 +79,9 @@ describe('ListingRequestsAdmin', () => {
 });
 
 describe('wiring (source contract)', () => {
-  it('the home page opens the form instead of the mailto link, and only admins see the dashboard tab and page', () => {
+  it('the home page no longer opens the form (it links to /sell), and only admins see the dashboard tab and page', () => {
     const home = fs.readFileSync('src/app/page.tsx', 'utf8');
-    expect(home).toContain('<ListingRequestButton />');
+    expect(home).not.toContain('<ListingRequestButton');
     expect(home).not.toMatch(/I’m a maker|Marketplace%20seller%20interest/);
     const layout = fs.readFileSync('src/app/dashboard/layout.tsx', 'utf8');
     expect(layout).toMatch(/user\.role === 'admin' && <Link href="\/dashboard\/listing-requests">/);

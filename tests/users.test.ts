@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { createUser, deleteUser, getProfileByEmail, listUsers, saveProfile, updateUser } from '@/lib/users';
 import { createProduct, createWorkshop } from '@/lib/admin';
@@ -8,6 +8,7 @@ import { sellerProfiles, userRoles, users } from '@/db/schema';
 import { admin } from './helpers/actors';
 import { getTestDb, giveRole, makeSeller, resetTestDb } from './helpers/testdb';
 import { cityRef } from './helpers/cities';
+import { categories } from '@/db/schema';
 
 const origAdmins = process.env.ADMIN_EMAILS;
 beforeEach(async () => { process.env.ADMIN_EMAILS = ''; await resetTestDb(); await giveRole(admin.email, 'admin'); });
@@ -116,9 +117,10 @@ describe('seller profiles (public name and contact)', () => {
   it('saves, trims, normalises the phone, and blank optional fields clear to nothing', async () => {
     const s = await makeSeller('s@x.co', 'S');
     const saved = await saveProfile(s.id, { displayName: ' Shauk & Co ', publicPhone: '+91 99898 98999', publicEmail: 'hi@shauk.co', instagram: 'shauk', youtube: '@shauk' });
-    expect(saved).toEqual({ userId: s.id, displayName: 'Shauk & Co', publicPhone: '+919989898999', publicEmail: 'hi@shauk.co', instagram: 'shauk', youtube: '@shauk' });
+    // A seller's public email is always their registration email, whatever is sent.
+    expect(saved).toEqual({ userId: s.id, displayName: 'Shauk & Co', publicPhone: '+919989898999', publicEmail: 's@x.co', instagram: 'shauk', youtube: '@shauk' });
     const cleared = await saveProfile(s.id, { displayName: 'Shauk & Co', publicPhone: '', publicEmail: '  ', instagram: '', youtube: '' });
-    expect(cleared).toEqual({ userId: s.id, displayName: 'Shauk & Co' });
+    expect(cleared).toEqual({ userId: s.id, displayName: 'Shauk & Co', publicEmail: 's@x.co' });
     expect(JSON.stringify(cleared)).not.toContain('null');
   });
   it('validates: name required, phone format, email format, lengths', async () => {
@@ -152,5 +154,85 @@ describe('bootstrap (ADMIN_EMAILS) admins are protected', () => {
     await expect(updateUser(boot.id, { roles: [] }, admin.email)).rejects.toMatchObject({ status: 409 });
     expect((await updateUser(boot.id, { roles: ['admin', 'seller'] }, admin.email)).roles).toEqual(['admin', 'seller']);
     await expect(deleteUser(boot.id, admin.email)).resolves.toBeUndefined(); // owns nothing: deleting the row is harmless, they re-create at sign-in
+  });
+});
+
+describe('seller profiles: onboarding fields', () => {
+  const ENV = ['S3_BUCKET', 'S3_REGION', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'S3_PUBLIC_BASE_URL'];
+  afterEach(() => { for (const k of ENV) delete process.env[k]; });
+  const withStorage = () => Object.assign(process.env, { S3_BUCKET: 'b', S3_REGION: 'ap-south-1', AWS_ACCESS_KEY_ID: 'k', AWS_SECRET_ACCESS_KEY: 's' });
+  const own = (id: string, f = 'a.png') => `https://b.s3.ap-south-1.amazonaws.com/logos/${id}/${f}`;
+  const seed = async () => { await (await getTestDb()).insert(categories).values({ name: 'Pottery' }).onConflictDoNothing(); };
+
+  it('stores and returns website, category, logo, whatsapp (10 digits) and de-duplicated contact methods', async () => {
+    await seed();
+    const s = await makeSeller('s@x.co', 'S');
+    const saved = await saveProfile(s.id, {
+      displayName: 'S', publicPhone: '9989898999', instagram: 'shauk', website: 'https://shauk.co', category: 'pottery',
+      logoUrl: 'https://cdn.example.com/l.png', whatsapp: '+91 99898 98999', contactMethods: ['whatsapp', 'phone', 'whatsapp', 'bogus', 'website'],
+    });
+    expect(saved).toMatchObject({ website: 'https://shauk.co', category: 'Pottery', logoUrl: 'https://cdn.example.com/l.png', whatsapp: '9989898999', contactMethods: ['whatsapp', 'website', 'phone'] });
+    expect(await getProfileByEmail('s@x.co')).toMatchObject({ website: 'https://shauk.co', whatsapp: '9989898999' });
+  });
+  it('saves without the new fields, keeps stored ones when the keys are absent, and clears them when empty', async () => {
+    await seed();
+    const s = await makeSeller('s@x.co', 'S');
+    expect(await saveProfile(s.id, { displayName: 'S' })).toEqual({ userId: s.id, displayName: 'S', publicEmail: 's@x.co' });
+    await saveProfile(s.id, { displayName: 'S', website: 'https://shauk.co', category: 'Pottery', contactMethods: ['website'] });
+    expect(await saveProfile(s.id, { displayName: 'S2' })).toMatchObject({ website: 'https://shauk.co', category: 'Pottery', contactMethods: ['website'] });
+    const cleared = await saveProfile(s.id, { displayName: 'S', website: '', category: '', contactMethods: [] });
+    expect(cleared).toEqual({ userId: s.id, displayName: 'S', publicEmail: 's@x.co' });
+  });
+  it('rejects an invalid website, whatsapp, category and contact methods with the onboarding messages, naming the field', async () => {
+    const s = await makeSeller('s@x.co', 'S');
+    const cases: [object, string, string][] = [
+      [{ website: 'ftp://x.co' }, 'website', 'Enter a website starting with http:// or https://.'],
+      [{ website: 'x'.repeat(201) }, 'website', 'Website must be 200 characters or fewer.'],
+      [{ whatsapp: '12345' }, 'whatsapp', 'Enter a valid WhatsApp number.'],
+      [{ category: 'Nope' }, 'category', 'category must be an existing category. Create it first.'],
+      [{ contactMethods: 'whatsapp' }, 'contactMethods', 'Choose at least one way for customers to reach you.'],
+      [{ contactMethods: ['fax'] }, 'contactMethods', 'Choose at least one way for customers to reach you.'],
+      [{ contactMethods: ['whatsapp'] }, 'whatsapp', 'Enter a valid WhatsApp number.'],
+      [{ contactMethods: ['instagram'] }, 'instagram', 'Add your Instagram handle.'],
+      [{ contactMethods: ['website'] }, 'website', 'Add your website.'],
+      [{ contactMethods: ['phone'] }, 'publicPhone', 'Add a public phone to list Phone.'],
+    ];
+    for (const [extra, field, message] of cases)
+      await expect(saveProfile(s.id, { displayName: 'S', ...extra })).rejects.toMatchObject({ status: 400, field, message });
+    expect(await getProfileByEmail('s@x.co')).toEqual({ userId: s.id, displayName: 'S' });
+  });
+  it('contact methods are checked against the stored whatsapp/website when the keys are absent', async () => {
+    const s = await makeSeller('s@x.co', 'S');
+    await saveProfile(s.id, { displayName: 'S', whatsapp: '9989898999' });
+    expect((await saveProfile(s.id, { displayName: 'S', contactMethods: ['whatsapp'] })).contactMethods).toEqual(['whatsapp']);
+  });
+  it('with storage configured the logo must be in the caller own logos/ folder; an unchanged stored logo saves again', async () => {
+    const s = await makeSeller('s@x.co', 'S');
+    const other = await makeSeller('o@x.co', 'O');
+    await saveProfile(s.id, { displayName: 'S', logoUrl: 'https://legacy.example.com/old.png' }); // saved before storage was configured
+    withStorage();
+    for (const url of [own(other.id), 'https://evil.example.com/a.png', own(s.id, '../x.png'), `https://b.s3.ap-south-1.amazonaws.com/logos/${s.id}/`])
+      await expect(saveProfile(s.id, { displayName: 'S', logoUrl: url })).rejects.toMatchObject({ status: 400, field: 'logoUrl', message: 'Upload your logo.' });
+    expect((await saveProfile(s.id, { displayName: 'S', logoUrl: 'https://legacy.example.com/old.png' })).logoUrl).toBe('https://legacy.example.com/old.png');
+    expect((await saveProfile(s.id, { displayName: 'S', logoUrl: own(s.id) })).logoUrl).toBe(own(s.id));
+    expect((await saveProfile(s.id, { displayName: 'S', logoUrl: own(s.id) })).logoUrl).toBe(own(s.id));
+  });
+  it('an unchanged stored category still saves after the category was deleted', async () => {
+    await (await getTestDb()).insert(categories).values({ name: 'Temp Craft' });
+    const s = await makeSeller('s@x.co', 'S');
+    await saveProfile(s.id, { displayName: 'S', category: 'Temp Craft' });
+    await (await getTestDb()).delete(categories).where(eq(categories.name, 'Temp Craft'));
+    expect((await saveProfile(s.id, { displayName: 'S', category: 'Temp Craft' })).category).toBe('Temp Craft');
+    await expect(saveProfile(s.id, { displayName: 'S', category: 'Textiles' })).rejects.toMatchObject({ field: 'category' });
+  });
+  it('without storage any http(s) logo link is accepted and other schemes are not', async () => {
+    const s = await makeSeller('s@x.co', 'S');
+    await expect(saveProfile(s.id, { displayName: 'S', logoUrl: 'javascript:alert(1)' })).rejects.toMatchObject({ status: 400, field: 'logoUrl' });
+    expect((await saveProfile(s.id, { displayName: 'S', logoUrl: 'https://cdn.example.com/a.png' })).logoUrl).toBe('https://cdn.example.com/a.png');
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      await expect(saveProfile(s.id, { displayName: 'S', logoUrl: 'https://cdn.example.com/b.png' })).rejects.toMatchObject({ status: 400, field: 'logoUrl', message: 'Upload your logo.' });
+      expect((await saveProfile(s.id, { displayName: 'S', logoUrl: 'https://cdn.example.com/a.png' })).logoUrl).toBe('https://cdn.example.com/a.png'); // the stored one may be saved again
+    } finally { vi.unstubAllEnvs(); }
   });
 });

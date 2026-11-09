@@ -15,7 +15,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const f = parseFilters(await searchParams);
   return pageMetadata({
     title: 'Handmade Products from Indian Artisans',
-    description: 'Discover handmade crochet, resin art, pottery and accessories from independent makers across India. Filter by city and contact the maker directly to order.',
+    description: 'Discover handmade products from independent makers. Filter by category or city and contact the maker directly to order.',
     path: '/shop',
     noindex: hasFilters(f),
   });
@@ -31,8 +31,8 @@ export default async function ShopPage({ searchParams }: Props) {
       <Breadcrumbs items={crumbs} />
       <div className="page-head">
         <span className="eyebrow">THE MAKERS&apos; SHELF</span>
-        <h1>Handmade products from India</h1>
-        <p>Crochet, resin art, pottery and accessories from independent makers across India.</p>
+        <h1>Handmade products</h1>
+        <p>Handmade finds from independent makers, made with care and sold directly by the people who craft them.</p>
       </div>
       <LiveCatalog kind="products" initialItems={products} initialValues={f} categories={categories} cities={cities.map(c => ({ name: c.name, slug: c.slug, state: c.state }))} />
     </>

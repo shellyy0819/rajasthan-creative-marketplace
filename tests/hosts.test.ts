@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hostConfig, normalizeHost, routeFor, signInUrl, type HostConfig } from '@/lib/hosts';
+import { hostConfig, normalizeHost, routeFor, signInUrl, dashboardPostsUrl, type HostConfig } from '@/lib/hosts';
 
 const split: HostConfig = { dashboardHost: 'dashboard.example.com', dashboardOrigin: 'https://dashboard.example.com', publicOrigin: 'https://www.example.com' };
 const single: HostConfig = {};
@@ -94,9 +94,18 @@ describe('routeFor: single-host mode (local development)', () => {
 
 describe('signInUrl', () => {
   it('single host: a relative sign-in URL with the dashboard page as callback', () => {
-    expect(signInUrl('/dashboard/posts', single)).toBe('/api/auth/signin?callbackUrl=%2Fdashboard%2Fposts');
+    expect(signInUrl('/dashboard/posts', single)).toBe('/signin?callbackUrl=%2Fdashboard%2Fposts');
   });
   it('two hosts: sign-in always starts on the public host and returns to the dashboard host', () => {
-    expect(signInUrl('/dashboard/posts', split)).toBe('https://www.example.com/api/auth/signin?callbackUrl=' + encodeURIComponent('https://dashboard.example.com/dashboard/posts'));
+    expect(signInUrl('/dashboard/posts', split)).toBe('https://www.example.com/signin?callbackUrl=' + encodeURIComponent('https://dashboard.example.com/dashboard/posts'));
+  });
+});
+
+describe('dashboardPostsUrl', () => {
+  it('dashboardPostsUrl single host and split host, with and without newPost', () => {
+    expect(dashboardPostsUrl({}, single)).toBe('/dashboard/posts');
+    expect(dashboardPostsUrl({ newPost: true }, single)).toBe('/dashboard/posts?new=1');
+    expect(dashboardPostsUrl(undefined, split)).toBe('https://dashboard.example.com/dashboard/posts');
+    expect(dashboardPostsUrl({ newPost: true }, split)).toBe('https://dashboard.example.com/dashboard/posts?new=1');
   });
 });

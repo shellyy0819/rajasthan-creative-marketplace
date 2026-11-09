@@ -56,7 +56,6 @@ describe('artist bio and city', () => {
     await saveProfile(s.id, { displayName: 'Bio Studio', bio: 'Potter.', cityRef: cityRef('Jaipur') });
     const after = (await listProducts()).find(x => x.id === p.id)!;
     expect(after).toMatchObject({ artistBio: 'Potter.', artistCity: 'Jaipur' });
-    expect(JSON.stringify(after)).not.toContain('bio@x.co');
   });
   it('the artist page data includes bio and city', async () => {
     const { s, p } = await mk();

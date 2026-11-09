@@ -54,7 +54,12 @@ describe('AuthButton seller link', () => {
     render(<AuthButton />);
     expect(screen.getByRole('link', { name: 'My products' }).getAttribute('href')).toBe('/dashboard/posts');
     expect(screen.queryByRole('link', { name: 'Admin' })).toBeNull();
-    expect(screen.getByRole('button', { name: /Sign out \(seller\)/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Sign out \(seller\)/ })).toBeTruthy(); // no name on the session: falls back to the role
+  });
+  it("labels the sign-out button with the seller's name", () => {
+    session.value = { data: { user: { email: 's@x.co', name: 'Meera Sharma', role: 'seller' } }, status: 'authenticated' };
+    render(<AuthButton />);
+    expect(screen.getByRole('button', { name: 'Sign out (Meera Sharma)' })).toBeTruthy();
   });
 });
 

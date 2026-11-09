@@ -37,10 +37,10 @@ export function HomeCraftExplorer({ products }: { products: Product[] }) {
 
       <div className="craft-results" aria-live="polite">
         <div className="craft-results-heading">
-          <h3>{category || "Handmade finds"}</h3>
-          <span>
+          {category && <h3>{category}</h3>}
+          {/* <span>
             {visible.length} {visible.length === 1 ? "piece" : "pieces"}
-          </span>
+          </span> */}
         </div>
         <ProductGrid products={visible} emptyMessage="No handmade finds yet. Check back soon." />
       </div>

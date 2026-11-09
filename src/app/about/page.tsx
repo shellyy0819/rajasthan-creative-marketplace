@@ -25,7 +25,6 @@ export default function AboutPage() {
         <ul>
           <li><b>Direct.</b> You talk to the maker yourself. We don’t sit in the middle.</li>
           <li><b>No commission.</b> Makers keep what they earn, so prices stay fair.</li>
-          <li><b>Local first.</b> We start in Rajasthan and are growing city by city across India.</li>
         </ul>
       </InfoPage>
     </>

@@ -22,11 +22,23 @@ export function storageConfig(env: Record<string, string | undefined> = process.
 
 const extOf = (contentType: unknown) => (typeof contentType === 'string' && Object.hasOwn(IMAGE_TYPES, contentType) ? IMAGE_TYPES[contentType as keyof typeof IMAGE_TYPES] : undefined);
 
-export function newProductKey(cfg: StorageConfig, userId: string, contentType: string): string {
-  const ext = extOf(contentType);
-  if (!ext) throw new ApiError(400, 'Photos must be JPEG, PNG or WebP.');
-  return `${cfg.keyPrefix}products/${userId}/${randomUUID()}.${ext}`;
+export type UploadArea = { folder: 'products' | 'logos'; types: readonly string[]; typeMessage: string; sizeMessage: string };
+const PRODUCT_AREA: UploadArea = {
+  folder: 'products', types: Object.keys(IMAGE_TYPES),
+  typeMessage: 'Photos must be JPEG, PNG or WebP.', sizeMessage: 'Each photo must be between 1 byte and 5 MB.',
+};
+/** Seller logos live in their own area so a logo is never a product photo and never deleted with one. */
+export const LOGO_AREA: UploadArea = {
+  folder: 'logos', types: ['image/jpeg', 'image/png'],
+  typeMessage: 'Your logo must be a JPG or PNG.', sizeMessage: 'Your logo must be between 1 byte and 5 MB.',
+};
+
+function newKey(cfg: StorageConfig, userId: string, contentType: string, area: UploadArea): string {
+  const ext = area.types.includes(contentType) ? extOf(contentType) : undefined;
+  if (!ext) throw new ApiError(400, area.typeMessage);
+  return `${cfg.keyPrefix}${area.folder}/${userId}/${randomUUID()}.${ext}`;
 }
+export const newProductKey = (cfg: StorageConfig, userId: string, contentType: string) => newKey(cfg, userId, contentType, PRODUCT_AREA);
 
 export const publicUrlFor = (cfg: StorageConfig, key: string) => `${cfg.publicBase}/${key}`;
 
@@ -42,22 +54,35 @@ export function keyFromUrl(cfg: StorageConfig, url: string): string | undefined 
 }
 
 /** A short-lived S3 POST form allowing exactly one key, exactly the declared type, 1 byte to 5 MB. */
-export async function presignProductUpload(
-  cfg: StorageConfig, userId: string, req: { contentType: unknown; size: unknown }, createPost: PresignFn = createPresignedPost,
+export async function presignUpload(
+  cfg: StorageConfig, userId: string, req: { contentType: unknown; size: unknown }, area: UploadArea, createPost: PresignFn = createPresignedPost,
 ): Promise<{ url: string; fields: Record<string, string>; publicUrl: string; key: string }> {
-  const ext = extOf(req.contentType);
-  if (!ext) throw new ApiError(400, 'Photos must be JPEG, PNG or WebP.');
+  if (typeof req.contentType !== 'string' || !area.types.includes(req.contentType) || !extOf(req.contentType)) throw new ApiError(400, area.typeMessage);
   const size = req.size;
-  if (typeof size !== 'number' || !Number.isInteger(size) || size < 1 || size > MAX_IMAGE_BYTES)
-    throw new ApiError(400, 'Each photo must be between 1 byte and 5 MB.');
-  const contentType = req.contentType as string;
-  const key = newProductKey(cfg, userId, contentType);
+  if (typeof size !== 'number' || !Number.isInteger(size) || size < 1 || size > MAX_IMAGE_BYTES) throw new ApiError(400, area.sizeMessage);
+  const contentType = req.contentType;
+  const key = newKey(cfg, userId, contentType, area);
   const { url, fields } = await createPost(new S3Client({ region: cfg.region }), {
     Bucket: cfg.bucket, Key: key, Expires: 300,
     Fields: { 'Content-Type': contentType },
     Conditions: [['content-length-range', 1, MAX_IMAGE_BYTES], ['eq', '$Content-Type', contentType]],
   });
   return { url, fields, publicUrl: publicUrlFor(cfg, key), key };
+}
+
+export const presignProductUpload = (
+  cfg: StorageConfig, userId: string, req: { contentType: unknown; size: unknown }, createPost: PresignFn = createPresignedPost,
+) => presignUpload(cfg, userId, req, PRODUCT_AREA, createPost);
+
+/** True when `url` is a public bucket url for a file directly inside this user's own logos/ folder. */
+export function isOwnLogoUrl(cfg: StorageConfig, userId: string, url: string): boolean {
+  const head = `${cfg.publicBase}/`;
+  if (typeof url !== 'string' || !url.startsWith(head)) return false;
+  const key = url.slice(head.length);
+  const folder = `${cfg.keyPrefix}logos/${userId}/`;
+  if (!key.startsWith(folder)) return false;
+  const name = key.slice(folder.length);
+  return name.length > 0 && !/[/?#%\\]/.test(name) && name !== '.' && name !== '..';
 }
 
 /** Best effort: a failure is logged (never with credentials) and never thrown, so a save or delete cannot fail because of S3. */

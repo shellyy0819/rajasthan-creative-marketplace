@@ -6,6 +6,7 @@ import { productSlug } from '@/lib/catalog-shared';
 import { money } from '@/lib/money';
 import { instagramHandle, instagramUrl } from '@/lib/social';
 import { ProductImage } from './ProductImage';
+import { PhotoButton } from './PhotoButton';
 
 const STATUS_LABEL: Record<string, string> = { APPROVED: 'Published', DRAFT: 'Draft', ARCHIVED: 'Archived' };
 const when = (iso?: string) => (iso ? new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }) : undefined);
@@ -50,7 +51,9 @@ export function ProductDetail({ product: p, role, onEdit, onClose }: { product: 
         </div>
         <div className="pd-top">
           <div className="admin-thumb pd-thumb">
-            <ProductImage src={p.imageUrl} alt={p.name} fallback={<span aria-hidden="true">🌸</span>} />
+            <PhotoButton images={p.images?.length ? p.images : [p.imageUrl]} label={p.name}>
+              <ProductImage src={p.imageUrl} alt={p.name} fallback={<span aria-hidden="true">🌸</span>} />
+            </PhotoButton>
           </div>
           <div className="pd-summary">
             <span className={`badge ${badge}`}>{status}</span>

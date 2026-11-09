@@ -27,7 +27,7 @@ export async function readJson(req: Request): Promise<unknown> {
 export async function handle(fn: () => Promise<Response>): Promise<Response> {
   try { return await fn(); }
   catch (e) {
-    if (e instanceof ApiError) return json({ error: e.message }, e.status);
+    if (e instanceof ApiError) return json(e.field ? { error: e.message, field: e.field } : { error: e.message }, e.status);
     console.error(e);
     return json({ error: 'Request failed.' }, 500);
   }

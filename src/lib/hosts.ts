@@ -60,6 +60,11 @@ export function routeFor(host: string | null | undefined, pathname: string, cfg:
 /** Where to send a signed-out visitor. With two hosts sign-in must start on the public host (it owns the OAuth cookies). */
 export function signInUrl(returnPath: string, cfg: HostConfig = hostConfig()): string {
   if (cfg.publicOrigin && cfg.dashboardOrigin)
-    return `${cfg.publicOrigin}/api/auth/signin?callbackUrl=${encodeURIComponent(cfg.dashboardOrigin + returnPath)}`;
-  return `/api/auth/signin?callbackUrl=${encodeURIComponent(returnPath)}`;
+    return `${cfg.publicOrigin}/signin?callbackUrl=${encodeURIComponent(cfg.dashboardOrigin + returnPath)}`;
+  return `/signin?callbackUrl=${encodeURIComponent(returnPath)}`;
+}
+
+/** The dashboard posts page (absolute on the dashboard host in split-host mode). `newPost` opens the new-post form. */
+export function dashboardPostsUrl(opts: { newPost?: boolean } = {}, cfg: HostConfig = hostConfig()): string {
+  return `${cfg.dashboardOrigin ?? ''}/dashboard/posts${opts.newPost ? '?new=1' : ''}`;
 }

@@ -7,6 +7,7 @@ import { artistKey } from "@/lib/artist";
 import { productSlug } from "@/lib/catalog-shared";
 import { money } from "@/lib/money";
 import { ProductImage } from "./ProductImage";
+import { PhotoButton } from "./PhotoButton";
 import { PostForm, type SellerOption, type WorkshopOption } from "./PostForm";
 import { ProfileDialog } from "./ProfileDialog";
 import { ProductDetail } from "./ProductDetail";
@@ -39,6 +40,7 @@ export function PostsAdmin({
   sellers = [],
   me,
   profile,
+  openNew = false,
 }: {
   initialProducts: Product[];
   initialArtists: AdminArtist[];
@@ -48,6 +50,8 @@ export function PostsAdmin({
   sellers?: SellerOption[];
   me?: SellerOption;
   profile?: SellerProfile;
+  /** Open the new-post form on arrival (the page passes it for `?new=1`). Only the initial state; role gates are untouched. */
+  openNew?: boolean;
 }) {
   const seller = role === "seller";
   const [categories, setCategories] = useState(initialCategories);
@@ -60,12 +64,20 @@ export function PostsAdmin({
   const [artist, setArtist] = useState("");
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
-  const [editing, setEditing] = useState<Product | "new" | null>(null);
+  const [editing, setEditing] = useState<Product | "new" | null>(() => (openNew ? "new" : null));
   const [confirming, setConfirming] = useState<Product | null>(null);
   const [changingStatus, setChangingStatus] = useState<string | null>(null);
   const [pageBusy, setPageBusy] = useState(""); // label of the page-wide loader ("" = idle)
   const [deleting, setDeleting] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
+  // Drop `new=1` from the address once honoured, so a refresh does not re-open the form.
+  useEffect(() => {
+    if (!openNew) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("new") !== "1") return;
+    url.searchParams.delete("new");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, [openNew]);
   const notify = (kind: "success" | "error", text: string) =>
     setToast({ id: Date.now() + Math.random(), kind, text });
   const closeToast = useCallback(() => setToast(null), []);
@@ -197,7 +209,8 @@ export function PostsAdmin({
       <Toast toast={toast} onClose={closeToast} />
       <PageLoader show={!!pageBusy} label={pageBusy} />
 
-      <div className="admin-grid">
+      <div className={seller ? "admin-grid admin-grid-solo" : "admin-grid"}>
+        {!seller && (
         <nav aria-label="Artists" className="admin-artists">
           <button
             type="button"
@@ -224,6 +237,7 @@ export function PostsAdmin({
             </button>
           ))}
         </nav>
+        )}
 
         <div>
           <div className="admin-toolbar">
@@ -253,7 +267,7 @@ export function PostsAdmin({
             >
               New post
             </button>
-            {myProfile && (
+            {myProfile && !(seller && myProfile.onboardedAt) && (
               <button type="button" className="button" onClick={() => setEditingProfile(true)}>
                 My profile
               </button>
@@ -277,11 +291,13 @@ export function PostsAdmin({
                 }}
               >
                 <div className="admin-thumb">
-                  <ProductImage
-                    src={p.imageUrl}
-                    alt={p.name}
-                    fallback={<span aria-hidden="true">{symbolFor(p.id)}</span>}
-                  />
+                  <PhotoButton images={p.images?.length ? p.images : [p.imageUrl]} label={p.name}>
+                    <ProductImage
+                      src={p.imageUrl}
+                      alt={p.name}
+                      fallback={<span aria-hidden="true">{symbolFor(p.id)}</span>}
+                    />
+                  </PhotoButton>
                 </div>
                 <div className="admin-row-main">
                   <h3>
@@ -290,7 +306,7 @@ export function PostsAdmin({
                     </button>
                   </h3>
                   <p>
-                    {p.seller}{!seller && p.sellerEmail ? ` (${p.sellerEmail})` : ""} · {p.category} · {p.city} · {money(p.pricePaise)}{" "}
+                    {!seller && <>{p.seller}{p.sellerEmail ? ` (${p.sellerEmail})` : ""} · </>}{p.category} · {p.city} · {money(p.pricePaise)}{" "}
                     · {p.stock} in stock
                   </p>
                   <p className="admin-status-line">
