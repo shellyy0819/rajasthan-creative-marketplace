@@ -1,4 +1,4 @@
-const STEPS = ['You', 'Your craft'] as const;
+const STEPS = ['You', 'Your business'] as const;
 
 // Two-step progress list. The current step is marked, a finished step is a button that goes back, a future step is plain text.
 export function Stepper({ step, onGoTo }: { step: 1 | 2; onGoTo: (s: 1 | 2) => void }) {
