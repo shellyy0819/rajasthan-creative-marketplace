@@ -14,17 +14,17 @@ beforeEach(() => { signIn.mockClear(); session.value = { data: null, status: 'un
 afterEach(cleanup);
 
 describe('AuthButton signed out', () => {
-  it('shows the seller prompt and the Seller login button', () => {
+  it('shows the seller prompt (desktop link) and the mobile button, both labelled Login here', () => {
     render(<AuthButton />);
     expect(screen.getByText(/Are you a seller\?/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Login here' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Seller login' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'Login here' })).toHaveLength(2);
   });
   it('click calls signIn with callbackUrl /sell', () => {
     render(<AuthButton />);
-    fireEvent.click(screen.getByRole('button', { name: 'Login here' }));
+    const [link, mobileBtn] = screen.getAllByRole('button', { name: 'Login here' });
+    fireEvent.click(link);
     expect(signIn).toHaveBeenLastCalledWith('google', { callbackUrl: '/sell' });
-    fireEvent.click(screen.getByRole('button', { name: 'Seller login' }));
+    fireEvent.click(mobileBtn);
     expect(signIn).toHaveBeenCalledTimes(2);
     expect(signIn).toHaveBeenLastCalledWith('google', { callbackUrl: '/sell' });
   });
@@ -47,7 +47,7 @@ describe('AuthButton signed in', () => {
     render(<AuthButton />);
     expect(screen.getByRole('link', { name: 'My products' }).getAttribute('href')).toBe('/dashboard/posts');
     expect(screen.getByRole('button', { name: 'Sign out (Meera Sharma)' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Seller login' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Login here' })).toBeNull();
   });
   it('My products and Admin links use the dashboard origin when split-host', () => {
     session.value = { data: { user: { email: 's@x.co', role: 'seller' } }, status: 'authenticated' };
