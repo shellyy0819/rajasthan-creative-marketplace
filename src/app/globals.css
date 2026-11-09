@@ -3763,3 +3763,7 @@ body.modal-open {
   font: 700 14px var(--font-sans), sans-serif;
   margin: 18px 0 4px;
 }
+
+.profile-view { margin: 12px 0 0; display: grid; gap: 10px; }
+.profile-view dt { font-size: 0.8rem; color: var(--muted, #6b6b6b); }
+.profile-view dd { margin: 2px 0 0; overflow-wrap: anywhere; }

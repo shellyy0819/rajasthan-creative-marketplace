@@ -10,6 +10,7 @@ import { ProductImage } from "./ProductImage";
 import { PhotoButton } from "./PhotoButton";
 import { PostForm, type SellerOption, type WorkshopOption } from "./PostForm";
 import { ProfileDialog } from "./ProfileDialog";
+import { ProfileView } from "./ProfileView";
 import { ProductDetail } from "./ProductDetail";
 import { PageLoader } from "./PageLoader";
 import { Toast, type ToastState } from "./Toast";
@@ -267,7 +268,7 @@ export function PostsAdmin({
             >
               New post
             </button>
-            {myProfile && !(seller && myProfile.onboardedAt) && (
+            {myProfile && (
               <button type="button" className="button" onClick={() => setEditingProfile(true)}>
                 My profile
               </button>
@@ -423,7 +424,18 @@ export function PostsAdmin({
           onCancel={() => setEditing(null)}
         />
       )}
-      {editingProfile && myProfile && (
+      {editingProfile && myProfile && seller && myProfile.onboardedAt && (
+        <ProfileView
+          profile={myProfile}
+          onLogoSaved={(p) => {
+            setMyProfile(p);
+            notify("success", "Logo saved.");
+            void refresh();
+          }}
+          onClose={() => setEditingProfile(false)}
+        />
+      )}
+      {editingProfile && myProfile && !(seller && myProfile.onboardedAt) && (
         <ProfileDialog
           title="My profile"
           initial={myProfile}
