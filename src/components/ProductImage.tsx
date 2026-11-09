@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 
-export function ProductImage({ src, alt, fallback }: { src?: string; alt: string; fallback: React.ReactNode }) {
+export function ProductImage({ src, alt, fallback, eager = false }: { src?: string; alt: string; fallback: React.ReactNode; eager?: boolean }) {
   const [failed, setFailed] = useState(false);
   const ref = useRef<HTMLImageElement>(null);
   // The browser can fail a URL (blocked, bad host) before React attaches onError during hydration;
@@ -13,5 +13,5 @@ export function ProductImage({ src, alt, fallback }: { src?: string; alt: string
   if (!src || failed) return <>{fallback}</>;
   // Plain <img>: admin-supplied URLs can be on any host, so next/image remotePatterns can't be known up front.
   // eslint-disable-next-line @next/next/no-img-element
-  return <img ref={ref} className="product-photo" src={src} alt={alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} />;
+  return <img ref={ref} className="product-photo" src={src} alt={alt} loading={eager ? 'eager' : 'lazy'} decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} />;
 }
