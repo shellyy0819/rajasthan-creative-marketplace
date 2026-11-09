@@ -17,6 +17,7 @@ import { TrendingSection } from '@/components/TrendingSection';
 import { ProductCard } from '@/components/ProductCard';
 import { likeProduct, recordEvent } from '@/lib/engagement';
 import { resetTestDb } from './helpers/testdb';
+import { resolveAsync } from './helpers/resolve-async';
 
 beforeEach(async () => { await resetTestDb(); nav.notFound.mockClear(); });
 afterEach(cleanup);
@@ -46,12 +47,12 @@ describe('ProductCard', () => {
 describe('/trending page', () => {
   it('lists trending products with breadcrumbs and an honest empty state', async () => {
     const Page = (await import('@/app/trending/page')).default;
-    render(await Page());
+    render((await resolveAsync(await Page())) as React.ReactElement);
     expect(screen.getByText('Nothing is trending yet. Like a product to start the trend.')).toBeTruthy();
     expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toBeTruthy();
     cleanup();
     await recordEvent({ productId: 'p1', type: 'view', actor: 'h:a' });
-    render(await Page());
+    render((await resolveAsync(await Page())) as React.ReactElement);
     expect(document.querySelectorAll('.product-card')).toHaveLength(1);
   });
 });
@@ -90,7 +91,7 @@ describe('city listings come from active cities', () => {
   const cityPage = async (city: string) => (await import('@/app/cities/[city]/page')).default({ params: Promise.resolve({ city }) });
 
   it('the city page renders an active city with its products and workshops', async () => {
-    render(await cityPage('udaipur'));
+    render((await resolveAsync(await cityPage('udaipur'))) as React.ReactElement);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Handmade products & workshops in Udaipur');
     expect(document.querySelectorAll('.product-card')).toHaveLength(2);
   });
@@ -139,18 +140,14 @@ describe('city listings come from active cities', () => {
   it('the home page "Explore by city" row lists active cities only', async () => {
     await archiveJaipur();
     const Home = (await import('@/app/page')).default;
-    // The page tree holds the async TrendingSection (tested above); jsdom cannot render async components.
-    const drop = (node: any): any => Array.isArray(node) ? node.map(drop)
-      : !React.isValidElement(node) ? node
-      : node.type === TrendingSection ? null
-      : (node.props as any)?.children === undefined ? node : React.cloneElement(node, { children: drop((node.props as any).children) } as any);
-    render(drop(await Home()));
+    // The page streams its lists under Suspense; resolve those async data components so jsdom can render them.
+    render((await resolveAsync(await Home())) as React.ReactElement);
     const row = screen.getByRole('navigation', { name: 'Explore by city' });
     expect(Array.from(row.querySelectorAll('a')).map(a => a.getAttribute('href'))).toEqual(['/cities/jodhpur', '/cities/udaipur']);
   });
   it('shop and workshops pages pass the active cities to the filter and no longer name the three launch cities', async () => {
     const Shop = await import('@/app/shop/page');
-    render(await Shop.default({ searchParams: Promise.resolve({}) }));
+    render((await resolveAsync(await Shop.default({ searchParams: Promise.resolve({}) }))) as React.ReactElement);
     expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All India', 'Jaipur', 'Jodhpur', 'Udaipur']);
     const shopMeta = await Shop.generateMetadata({ searchParams: Promise.resolve({}) });
     expect(String(shopMeta.description)).not.toMatch(/Udaipur|Jaipur|Jodhpur/);
@@ -158,7 +155,7 @@ describe('city listings come from active cities', () => {
     cleanup();
     await archiveJaipur();
     const Ws = await import('@/app/workshops/page');
-    render(await Ws.default({ searchParams: Promise.resolve({}) }));
+    render((await resolveAsync(await Ws.default({ searchParams: Promise.resolve({}) }))) as React.ReactElement);
     expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All India', 'Jodhpur', 'Udaipur']);
     expect(String((await Ws.generateMetadata({ searchParams: Promise.resolve({}) })).description)).not.toMatch(/Udaipur|Jaipur|Jodhpur/);
   });

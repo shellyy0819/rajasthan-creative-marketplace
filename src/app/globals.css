@@ -2132,6 +2132,183 @@ main {
   animation: rr-spin 0.7s linear infinite;
   pointer-events: none;
 }
+/* route change: a thin indeterminate bar at the very top of the viewport; never covers, dims or blocks anything */
+.rr-route-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 80;
+  overflow: hidden;
+  pointer-events: none;
+}
+.rr-route-bar > span:not(.sr-only) {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 35%;
+  background: var(--green);
+  border-radius: 0 3px 3px 0;
+  animation: rr-route-slide 1.2s ease-in-out infinite;
+}
+@keyframes rr-route-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+/* inline loader: sits where the dynamic data will appear, so the headings above stay visible */
+.rr-section-loader {
+  display: block;
+}
+.rr-section-loader-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0 18px;
+  color: var(--muted);
+  font:
+    600 12px var(--font-sans),
+    sans-serif;
+}
+.rr-section-loader.cards .product-grid {
+  pointer-events: none;
+}
+/* same shape as the real .product-card: a 3/4 photo card, no border, text at the bottom */
+.sk-card {
+  background: var(--cream);
+  aspect-ratio: 3 / 4;
+  border-radius: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+.sk-card .sk-line {
+  background: var(--line);
+}
+.sk-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sk-body.flush {
+  padding: 0;
+}
+.rr-section-loader.text .sk-line:last-child {
+  width: 60%;
+}
+.sk-row {
+  display: grid;
+  grid-template-columns: 78px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  background: var(--white);
+  border: 1px solid var(--line-soft);
+  padding: 17px;
+  min-height: 112px;
+}
+.sk-price {
+  width: 90px;
+  height: 36px;
+}
+.sk-control {
+  display: block;
+  height: 40px;
+  border-radius: 3px;
+  background: var(--cream);
+}
+.sk-catalog-head .sk-line {
+  height: 14px;
+  margin: 0 0 12px;
+}
+.sk-filters {
+  display: flex;
+  gap: 10px;
+  margin: 28px 0 25px;
+}
+.sk-filters .sk-control {
+  min-width: 155px;
+}
+.sk-filters .sk-search {
+  flex: 1;
+}
+@media (max-width: 600px) {
+  .sk-card {
+    border-radius: 18px;
+  }
+  .sk-row {
+    grid-template-columns: 58px 1fr;
+    gap: 11px;
+    padding: 12px;
+  }
+  .sk-row .sk-price {
+    grid-column: 2;
+  }
+  .sk-filters {
+    flex-wrap: wrap;
+  }
+  .sk-filters .sk-search {
+    flex-basis: 100%;
+  }
+  .sk-filters .sk-control:not(.sk-search) {
+    flex: 1;
+    min-width: 0;
+  }
+}
+.sk-tile {
+  height: 70px;
+  background: var(--cream);
+}
+.sk-line {
+  height: 10px;
+  border-radius: 3px;
+  background: var(--cream);
+}
+.sk-line.w60 {
+  width: 60%;
+}
+.sk-line.w80 {
+  width: 80%;
+}
+.sk-line.w40 {
+  width: 40%;
+}
+.sk-line.title {
+  height: 17px;
+}
+.sk-card,
+.sk-row,
+.rr-section-loader.text .sk-line {
+  animation: rr-sk-pulse 1.4s ease-in-out infinite;
+}
+@keyframes rr-sk-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+.rr-section-loader.text {
+  max-width: 560px;
+  display: grid;
+  gap: 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rr-route-bar > span:not(.sr-only) {
+    animation: none;
+    width: 100%;
+    opacity: 0.6;
+  }
+  .sk-card,
+  .sk-row,
+  .rr-section-loader.text .sk-line {
+    animation: none;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   button[aria-busy="true"]::after,
   .rr-spinner,

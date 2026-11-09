@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { ComingSoonStall } from '@/components/ComingSoonStall';
 import { LiveCatalog } from '@/components/LiveCatalog';
 import { JsonLd } from '@/components/JsonLd';
-import { listWorkshops } from '@/lib/catalog';
+import { SectionLoader } from '@/components/SectionLoader';
+import { hasAnyWorkshop, listWorkshops } from '@/lib/catalog';
 import { listActiveCities } from '@/lib/cities';
 import { hasFilters, parseFilters } from '@/lib/filters';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
@@ -51,12 +53,26 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   });
 }
 
+const pageHead = (
+  <div className="page-head">
+    <span className="eyebrow">OUT OF THE SCROLL, INTO THE STUDIO</span>
+    <h1>Creative workshops &amp; pop-ups</h1>
+    <p>Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.</p>
+  </div>
+);
+
+/** The catalog: filter bar and list. Streams in under the page head. */
+async function WorkshopsCatalog({ filters: f }: { filters: ReturnType<typeof parseFilters> }) {
+  const [workshops, cities] = await Promise.all([listWorkshops(f), listActiveCities()]);
+  return <LiveCatalog kind="workshops" initialItems={workshops} initialValues={f} cities={cities.map(c => ({ name: c.name, slug: c.slug, state: c.state }))} />;
+}
+
 export default async function WorkshopsPage({ searchParams }: Props) {
   const f = parseFilters(await searchParams);
-  const [workshops, cities] = await Promise.all([listWorkshops(f), listActiveCities()]);
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Workshops', path: '/workshops' }];
   // Nothing scheduled anywhere yet (and no filter narrowing the list): show the coming-soon stall instead of an empty catalog.
-  if (workshops.length === 0 && !hasFilters(f)) {
+  // A cheap one-row check decides this BEFORE the shell, so the page never swaps one heading for another; only the list streams.
+  if (!hasFilters(f) && !(await hasAnyWorkshop())) {
     const email = contactEmail();
     const HOST = `mailto:${email}?subject=${encodeURIComponent('Hosting a Craftofy workshop')}&body=${encodeURIComponent(HOST_BODY)}`;
     return (
@@ -85,12 +101,10 @@ export default async function WorkshopsPage({ searchParams }: Props) {
     <>
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
       <Breadcrumbs items={crumbs} />
-      <div className="page-head">
-        <span className="eyebrow">OUT OF THE SCROLL, INTO THE STUDIO</span>
-        <h1>Creative workshops &amp; pop-ups</h1>
-        <p>Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.</p>
-      </div>
-      <LiveCatalog kind="workshops" initialItems={workshops} initialValues={f} cities={cities.map(c => ({ name: c.name, slug: c.slug, state: c.state }))} />
+      {pageHead}
+      <Suspense fallback={<SectionLoader label="Loading workshops…" variant="list" withFilters />}>
+        <WorkshopsCatalog filters={f} />
+      </Suspense>
     </>
   );
 }
