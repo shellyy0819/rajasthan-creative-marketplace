@@ -25,6 +25,22 @@ export const STICKERS = {
   xsnow: s('Snowflakes', 'christmas', 14, 80, 572, 290),
   xstar: s('Hanging star', 'christmas', 274, 8, 52, 56),
   xsanta: s('Big Santa Claus', 'christmas', 396, 0, 100, 118),
+  gflags: s('Pennant garland', 'govardhan', 0, 0, 600, 70),
+  gmound: s('Hill of grain', 'govardhan', 62, 418, 60, 68),
+  gbowls: s('Bowls of food', 'govardhan', 56, 648, 294, 46),
+  bthread: s('Marigold strands', 'bhaidooj', 0, 0, 600, 70),
+  btika: s('Tika plate', 'bhaidooj', 60, 462, 56, 22),
+  bsweets: s('Box of laddus', 'bhaidooj', 452, 380, 60, 42),
+  csun: s('Rising sun', 'chhath', 408, 12, 104, 104),
+  ccane: s('Sugarcane', 'chhath', 6, 508, 70, 162),
+  csoop: s('Fruit basket', 'chhath', 60, 452, 64, 32),
+  nhanging: s('Hanging lamps', 'guru-nanak', 138, 0, 64, 112),
+  ncandles: s('Row of candles', 'guru-nanak', 62, 426, 100, 60),
+  nbowl: s('Bowl of prasad', 'guru-nanak', 66, 462, 44, 28),
+  tgarland: s('Leaf garland', 'thanksgiving', 0, 0, 600, 70),
+  tpumpkins: s('Pumpkins', 'thanksgiving', 40, 646, 160, 46),
+  tleaves: s('Falling leaves', 'thanksgiving', 14, 80, 572, 290),
+  tturkey: s('Turkey', 'thanksgiving', 514, 438, 56, 60),
 } as const;
 
 export type StickerId = keyof typeof STICKERS;
