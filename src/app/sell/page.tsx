@@ -6,8 +6,13 @@ import { InfoPage } from '@/components/InfoPage';
 import { SellerOnboarding } from '@/components/SellerOnboarding';
 import { SellerWelcome } from '@/components/SellerWelcome';
 import { dashboardPostsUrl } from '@/lib/hosts';
+import { pageMetadata } from '@/lib/meta';
 
-export const metadata: Metadata = { title: 'Sell on Craftofy', robots: { index: false, follow: false } };
+export const metadata: Metadata = pageMetadata({
+  title: 'Sell Your Handmade Crafts in India',
+  description: 'List your handmade crafts and reach customers in your city. Customers contact you directly, with no commission.',
+  path: '/sell',
+});
 
 const crumbs = [{ name: 'Home', path: '/' }, { name: 'Sell on Craftofy', path: '/sell' }];
 
