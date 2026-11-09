@@ -34,7 +34,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 async function openStep2() {
   sessionStorage.setItem(KEY, JSON.stringify({ email: 'c@x.co', step: 2, fullName: 'Meera Rao', mobile: '9876543210', craft }));
   render(<SellerOnboarding {...props} />);
-  await screen.findByText('Step 2 of 2: Your craft');
+  await screen.findByText('Step 2 of 2: Your business');
   await waitFor(() => expect(screen.getByRole('option', { name: 'Textiles' })).toBeTruthy());
 }
 const btn = () => screen.getByRole('button', { name: 'Finish and add my first product' }) as HTMLButtonElement;
@@ -78,7 +78,7 @@ describe('onboarding submit', () => {
     const input = await screen.findByLabelText('Business or brand name');
     await waitFor(() => expect(input.getAttribute('aria-invalid')).toBe('true'));
     expect(document.getElementById(input.getAttribute('aria-describedby')!.split(' ')[0])!.textContent).toBe('Brand taken.');
-    expect(screen.getByText('Step 2 of 2: Your craft')).toBeTruthy();
+    expect(screen.getByText('Step 2 of 2: Your business')).toBeTruthy();
     fireEvent.change(input, { target: { value: 'Other' } });
     expect(screen.queryByText('Brand taken.')).toBeNull();
   });
@@ -98,8 +98,8 @@ describe('onboarding submit', () => {
     expect(document.activeElement).toBe(document.body);
     fireEvent.change(screen.getByLabelText(/Mobile number/), { target: { value: '9876543210' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await screen.findByText('Step 2 of 2: Your craft');
-    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Tell customers about your craft' }));
+    await screen.findByText('Step 2 of 2: Your business');
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Tell customers about your business' }));
     fireEvent.click(screen.getByRole('button', { name: /Back/ }));
     await screen.findByText('Step 1 of 2: You');
     expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Tell us about you' }));
@@ -202,7 +202,7 @@ describe('onboarding submit', () => {
     onboarding = async () => reply(422, { errors: { [key]: `msg-${key}` } });
     sessionStorage.setItem(KEY, JSON.stringify({ email: 'c@x.co', step: 2, fullName: 'Meera Rao', mobile: '9876543210', craft: { ...craft, ...over } }));
     render(<SellerOnboarding {...props} />);
-    await screen.findByText('Step 2 of 2: Your craft');
+    await screen.findByText('Step 2 of 2: Your business');
     await waitFor(() => expect(screen.getByRole('option', { name: 'Textiles' })).toBeTruthy());
     finish();
     const msg = await screen.findByText(`msg-${key}`);

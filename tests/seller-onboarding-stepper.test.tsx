@@ -23,7 +23,7 @@ describe('onboarding stepper', () => {
     const items = steps();
     expect(items).toHaveLength(2);
     expect(items[0].textContent).toContain('You');
-    expect(items[1].textContent).toContain('Your craft');
+    expect(items[1].textContent).toContain('Your business');
   });
 
   it('step 1 is current (aria-current) and not a button; future step is not focusable', () => {
@@ -62,7 +62,7 @@ describe('onboarding stepper', () => {
     const t = screen.getByText('Step 1 of 2: You');
     expect(t.className).toContain('sr-only');
     toStep2();
-    expect(screen.getByText('Step 2 of 2: Your craft').className).toContain('sr-only');
+    expect(screen.getByText('Step 2 of 2: Your business').className).toContain('sr-only');
   });
 
   it('shows no stepper on the done screen', async () => {
@@ -75,7 +75,7 @@ describe('onboarding stepper', () => {
     sessionStorage.setItem('craftofy.onboarding', JSON.stringify({ email: 'c@x.co', step: 2, fullName: 'Meera Rao', mobile: '9876543210',
       craft: { brandName: 'Meera Pottery', category: 'Pottery', description: 'Hand-thrown mugs.', city: { ref: 'REF-KOTA', label: 'Kota, Rajasthan', state: 'Rajasthan' }, instagram: '@meerapottery', website: '', logoUrl: 'https://cdn.example/logos/u1/a.png', contactMethods: ['instagram'], sameAsMobile: true, whatsapp: '' } }));
     render(<SellerOnboarding {...props} />);
-    await screen.findByText('Step 2 of 2: Your craft');
+    await screen.findByText('Step 2 of 2: Your business');
     await waitFor(() => expect(screen.getByRole('option', { name: 'Pottery' })).toBeTruthy());
     expect(screen.getByRole('list', { name: 'Progress' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Finish and add my first product' }));

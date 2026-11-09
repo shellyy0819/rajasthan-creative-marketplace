@@ -34,7 +34,7 @@ afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 async function openStep2(city: unknown) {
   sessionStorage.setItem('craftofy.onboarding', JSON.stringify({ email: 'c@x.co', step: 2, fullName: 'Chai Maker', mobile: '9876543210', craft: craft(city) }));
   render(<SellerOnboarding {...props} />);
-  await screen.findByText('Step 2 of 2: Your craft');
+  await screen.findByText('Step 2 of 2: Your business');
 }
 const cityBox = () => screen.getByLabelText('City') as HTMLInputElement;
 const stateBox = () => screen.getByLabelText('State') as HTMLInputElement;
