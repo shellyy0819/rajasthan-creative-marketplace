@@ -46,6 +46,17 @@ describe('getArtist', () => {
       expect(await getArtist(slug)).not.toHaveProperty('logoUrl');                  // an unsafe stored value is never handed to the page
     }
   });
+  it('product listings carry the maker logo as sellerLogo only when it is safe to show', async () => {
+    const s = await makeSeller('card@x.co', 'Card Studio');
+    const p = await createProduct({ name: 'Cup', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 1, description: 'D', stock: 1, status: 'APPROVED', sellerId: s.id }, admin);
+    const mine = async () => (await listProducts()).find(x => x.id === p.id)!;
+    expect(await mine()).not.toHaveProperty('sellerLogo');
+    const db = await getTestDb();
+    await db.update(sellerProfiles).set({ logoUrl: 'https://bucket.example/logos/u/a.png' }).where(eq(sellerProfiles.userId, s.id));
+    expect((await mine()).sellerLogo).toBe('https://bucket.example/logos/u/a.png');
+    await db.update(sellerProfiles).set({ logoUrl: 'javascript:alert(1)' }).where(eq(sellerProfiles.userId, s.id));
+    expect(await mine()).not.toHaveProperty('sellerLogo');
+  });
   it('with uploads configured, only the maker\'s own stored file is shown as their logo', async () => {
     const saved = ['S3_BUCKET', 'S3_REGION', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'S3_PUBLIC_BASE_URL'].map(k => [k, process.env[k]] as const);
     Object.assign(process.env, { S3_BUCKET: 'b', S3_REGION: 'ap-south-1', AWS_ACCESS_KEY_ID: 'k', AWS_SECRET_ACCESS_KEY: 's' });

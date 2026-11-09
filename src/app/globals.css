@@ -3433,6 +3433,7 @@ body.modal-open {
 }
 .pc-av {
   flex: none;
+  overflow: hidden;
   display: inline-grid;
   place-items: center;
   width: 24px;
