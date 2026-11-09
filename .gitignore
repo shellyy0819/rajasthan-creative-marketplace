@@ -18,3 +18,7 @@ Billing and Cost Management _ Global_files/
 
 # brag video output
 brag-output/
+
+# playwright
+test-results/
+playwright-report/
