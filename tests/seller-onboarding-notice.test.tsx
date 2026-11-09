@@ -28,7 +28,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 async function openStep2(over: Record<string, unknown> = {}) {
   sessionStorage.setItem('craftofy.onboarding', JSON.stringify({ email: 'c@x.co', step: 2, fullName: 'Meera Rao', mobile: '9876543210', craft: { ...craft, ...over } }));
   render(<SellerOnboarding {...props} />);
-  await screen.findByText('Step 2 of 2: Your craft');
+  await screen.findByText('Step 2 of 2: Your business');
   await waitFor(() => expect(screen.getByRole('option', { name: 'Textiles' })).toBeTruthy());
 }
 const finishBtn = () => screen.getByRole('button', { name: 'Finish and add my first product' }) as HTMLButtonElement;

@@ -156,7 +156,7 @@ export function StepCraft({ value, onChange, fullName, mobile, onBack, onSubmit,
 
   return (
     <form ref={formRef} className="admin-form onboard-form" onSubmit={finish} noValidate>
-      <h1 tabIndex={-1}>Tell customers about your craft</h1>
+      <h1 tabIndex={-1}>Tell customers about your business</h1>
       <p className="onboard-lead">This is what people see on your public profile.</p>
 
       <label>

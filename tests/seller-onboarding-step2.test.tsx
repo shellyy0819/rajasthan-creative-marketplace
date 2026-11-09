@@ -31,7 +31,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 async function openStep2(over: Partial<Craft> = {}) {
   sessionStorage.setItem('craftofy.onboarding', JSON.stringify({ email: 'c@x.co', step: 2, fullName: 'Chai Maker', mobile: '9876543210', craft: { ...valid, ...over } }));
   render(<SellerOnboarding {...props} />);
-  await screen.findByText('Step 2 of 2: Your craft');
+  await screen.findByText('Step 2 of 2: Your business');
   await waitFor(() => expect(screen.getByRole('option', { name: 'Textiles' })).toBeTruthy());
   return onSubmit;
 }
@@ -226,7 +226,7 @@ describe('onboarding step 2 accessibility and drafts', () => {
       craft: { brandName: 42, contactMethods: 'whatsapp', city: 'Kota', description: null, sameAsMobile: 'yes', website: { a: 1 } },
     }));
     render(<SellerOnboarding {...props} />);
-    await screen.findByText('Step 2 of 2: Your craft');
+    await screen.findByText('Step 2 of 2: Your business');
     expect((screen.getByLabelText('Business or brand name') as HTMLInputElement).value).toBe('');
     expect(screen.getByRole('button', { name: 'Phone' }).getAttribute('aria-pressed')).toBe('false');
     expect((screen.getByLabelText('City') as HTMLInputElement).value).toBe('');
