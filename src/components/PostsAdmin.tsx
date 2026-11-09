@@ -268,11 +268,9 @@ export function PostsAdmin({
             >
               New post
             </button>
-            {myProfile && (
-              <button type="button" className="button" onClick={() => setEditingProfile(true)}>
-                My profile
-              </button>
-            )}
+            <button type="button" className="button" onClick={() => setEditingProfile(true)}>
+              My profile
+            </button>
           </div>
 
           {products.length === 0 ? (
