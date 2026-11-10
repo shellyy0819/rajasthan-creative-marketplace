@@ -211,6 +211,8 @@ export function PostsAdmin({
   }, [products, artist, status, q]);
 
   const total = artists.reduce((n, a) => n + a.total, 0);
+  // the selected artist's public page (it lists only published posts, so it needs one)
+  const artistPage = artist ? products.find((p) => artistKey(p.seller) === artist && p.status === "APPROVED")?.sellerSlug : undefined;
 
   return (
     <section className="admin-posts">
@@ -256,6 +258,11 @@ export function PostsAdmin({
         )}
 
         <div>
+          {!seller && artistPage && (
+            <p className="admin-artist-link">
+              <Link href={`/artists/${artistPage}`}>View {artists.find((x) => x.key === artist)?.name}’s public page ↗</Link>
+            </p>
+          )}
           <div className="admin-toolbar">
             <input
               aria-label="Search posts"
@@ -333,6 +340,11 @@ export function PostsAdmin({
                     {p.status === "APPROVED" && (
                       <Link href={`/products/${productSlug(p)}`}>
                         View public page ↗
+                      </Link>
+                    )}
+                    {!seller && p.status === "APPROVED" && p.sellerSlug && (
+                      <Link href={`/artists/${p.sellerSlug}`}>
+                        View artist page ↗
                       </Link>
                     )}
                   </p>

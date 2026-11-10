@@ -26,6 +26,7 @@ export async function Footer() {
   const makerMail = `mailto:${contactEmail()}?subject=Marketplace%20seller%20interest`;
   return (
     <footer className="site-footer">
+      <div className="footer-top"><Brand /></div>
       <div className="footer-grid">
         <Column title="Get to Know Us">
           <li><Link href="/about">About us</Link></li>
@@ -47,7 +48,6 @@ export async function Footer() {
         )} */}
       </div>
       <div className="footer-base">
-        <Brand />
         <p className="copyright">© {years} Craftofy. All rights reserved.</p>
       </div>
     </footer>
