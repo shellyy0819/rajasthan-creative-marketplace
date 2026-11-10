@@ -3871,6 +3871,29 @@ body.modal-open {
   }
 }
 
+.contact-hero {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 48px;
+  align-items: center;
+  padding: 24px 8.5% 56px;
+}
+.contact-hero .page-head,
+.contact-hero .info-body {
+  padding-left: 0;
+  padding-right: 0;
+}
+.contact-hero .info-body {
+  padding-bottom: 0;
+}
+@media (max-width: 800px) {
+  .contact-hero {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 16px 6% 40px;
+  }
+}
+
 .footer-base .copyright {
   font-size: 12px;
 }
