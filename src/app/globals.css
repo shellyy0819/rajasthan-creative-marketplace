@@ -1216,14 +1216,14 @@ form label select {
 }
 .detail {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6%;
-  padding: 40px 8.5% 80px;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 5%;
+  padding: 40px 6% 80px;
   align-items: start;
 }
 .detail .product-visual,
 .detail .detail-art {
-  height: 380px;
+  height: clamp(380px, 60vh, 560px);
 }
 .detail h1 {
   font: 500 clamp(30px, 4vw, 44px)/1.1 var(--font-display);
@@ -2712,6 +2712,10 @@ main {
 .gallery {
   min-width: 0;
   position: relative;
+}
+/* Photo frame matches the page background (dark green in dark mode), whichever colour variant the product got. */
+.gallery .product-visual {
+  background: var(--paper);
 }
 /* Amazon-style hover zoom: only for a real pointer on a wide screen. */
 .zoom-lens, .zoom-pane {
