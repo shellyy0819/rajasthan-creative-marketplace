@@ -40,14 +40,14 @@ export default function HelpPage() {
     },
     {
       id: 'makers', pill: 'Makers', eyebrow: 'FOR MAKERS', title: 'Open your own stall in minutes.',
-      intro: 'You create, we connect, you sell. You stay in charge of your products, prices and earnings.',
+      intro: 'You create, we connect, you sell. We do not collect payments: customers pay you directly. You stay in charge of your products, prices and earnings.',
       steps: [
         { head: 'Sign in.', text: 'Continue with Google. There is no approval to join.' },
         { head: 'Tell us about your craft.', text: 'Your brand name, city, category and how customers can reach you. A logo is optional.' },
         { head: 'Add your products.', text: 'Add photos, price and stock. Our team reviews each one before it goes live on the shop.' },
-        { head: 'Get contacted.', text: 'Customers contact you directly and you agree the sale between you.' },
+        { head: 'Get contacted and paid.', text: 'Customers contact you directly and you agree the sale between you. They pay you directly. Craftofy never collects payments.' },
       ],
-      benefits: ['No commission on your sales', 'You set the price and the stock', 'Your own artist page with all your work', 'Customers contact you directly'],
+      benefits: ['No commission on your sales', 'Customers pay you directly', 'You set the price and the stock', 'Your own artist page with all your work'],
       scene: <MakerScene />, cta: { label: 'Start selling', href: '/sell' },
     },
     {

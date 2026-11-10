@@ -65,8 +65,8 @@ export function MakerScene() {
       <path d="M200 168c-10-16-8-34 6-40h22c14 6 16 24 6 40z" className="st-f-indigo" />
       <rect x="236" y="144" width="28" height="24" rx="3" className="st-f-chalk" /><text x="250" y="161" textAnchor="middle" fontSize="12" fontWeight="700" className="st-t-terrad st-hand">₹</text>
       <g className="st-sway"><rect x="300" y="70" width="84" height="46" rx="12" className="st-f-chalk" /><path d="M324 116l-6 14 18-14z" className="st-f-chalk" />
-        <text x="342" y="90" textAnchor="middle" fontSize="11" fontWeight="700" className="st-t-ink st-hand">Interested!</text>
-        <text x="342" y="105" textAnchor="middle" fontSize="10" className="st-t-terrad st-hand">in your pot</text></g>
+        <text x="342" y="90" textAnchor="middle" fontSize="11" fontWeight="700" className="st-t-hair st-hand">Interested!</text>
+        <text x="342" y="105" textAnchor="middle" fontSize="10" className="st-t-terrad st-hand">Can I order?</text></g>
       <g className="st-twinkle"><circle cx="318" cy="52" r="3" className="st-f-mustard" /></g>
     </Svg>
   );
@@ -110,7 +110,7 @@ export function AttenderScene() {
       <circle cx="100" cy="170" r="10" className="st-f-sage" /><rect x="188" y="158" width="24" height="20" rx="3" className="st-f-indigo" /><path d="M290 178c-2-8 2-16 10-16s12 8 10 16z" className="st-f-terra" />
       <g className="st-sway b"><rect x="136" y="36" width="130" height="52" rx="8" className="st-f-chalk" /><rect x="136" y="36" width="130" height="52" rx="8" fill="none" strokeWidth="1.5" className="st-s-line" />
         <circle cx="136" cy="62" r="7" className="st-f-ground" /><circle cx="266" cy="62" r="7" className="st-f-ground" />
-        <text x="201" y="58" textAnchor="middle" fontSize="12" fontWeight="700" className="st-t-ink st-hand">Spot reserved</text>
+        <text x="201" y="58" textAnchor="middle" fontSize="12" fontWeight="700" className="st-t-hair st-hand">Spot reserved</text>
         <text x="201" y="76" textAnchor="middle" fontSize="11" className="st-t-terrad st-hand">Sat · 4 PM</text></g>
       <g className="st-twinkle"><circle cx="60" cy="70" r="3" className="st-f-mustard" /></g><g className="st-twinkle d2"><circle cx="340" cy="90" r="3" className="st-f-terra" /></g>
     </Svg>

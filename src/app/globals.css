@@ -456,6 +456,7 @@ h2 em {
 .st-t-chalk { fill: var(--stall-chalk); }
 .st-t-mustard { fill: var(--stall-mustard); }
 .st-t-terrad { fill: var(--stall-terra-d); }
+.st-t-hair { fill: var(--stall-hair); } /* dark text on the chalk speech bubbles, in both themes */
 .st-f-skin { fill: var(--stall-skin); } .st-f-skin2 { fill: var(--stall-skin-2); } .st-f-hair { fill: var(--stall-hair); }
 .st-s-skin { stroke: var(--stall-skin); } .st-s-skin2 { stroke: var(--stall-skin-2); } .st-s-hair { stroke: var(--stall-hair); }
 .st-bob { animation: st-bob 2.2s ease-in-out infinite alternate; }
