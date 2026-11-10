@@ -9,35 +9,10 @@ import { listActiveCities } from '@/lib/cities';
 import { hasFilters, parseFilters } from '@/lib/filters';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
+import { hostWorkshopMailto } from '@/lib/host-workshop';
 import { contactEmail } from '@/lib/site';
 
 export const dynamic = 'force-dynamic'; // read CONTACT_EMAIL when served
-
-// Pre-filled mail for hosts: fill in the blanks, or delete it all and write your own.
-const HOST_BODY = `Hi Craftofy team,
-
-I would like to host a workshop or pop-up on Craftofy. My details are below.
-
-Host / studio / cafe name:
-Your name:
-Phone:
-Email:
-City:
-Venue and address:
-
-Workshop title:
-Type (workshop / meetup / pop-up):
-What participants will do or make:
-Preferred date and time:
-Duration:
-Seats available:
-Free or paid (if paid, price per person in Rs.):
-Instagram / website (optional):
-
-Anything else we should know:
-
-Thank you!
-`;
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -58,7 +33,7 @@ export default async function WorkshopsPage({ searchParams }: Props) {
   // Nothing scheduled anywhere yet (and no filter narrowing the list): show the coming-soon stall instead of an empty catalog.
   if (workshops.length === 0 && !hasFilters(f)) {
     const email = contactEmail();
-    const HOST = `mailto:${email}?subject=${encodeURIComponent('Hosting a Craftofy workshop')}&body=${encodeURIComponent(HOST_BODY)}`;
+    const HOST = hostWorkshopMailto(email);
     return (
       <>
         <JsonLd data={breadcrumbJsonLd(crumbs)} />
