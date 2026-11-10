@@ -67,7 +67,7 @@ describe('/api/admin/users (admin only)', () => {
     expect((await postUser(req('POST', { email: 'ok@x.co', roles: ['root'] }))).status).toBe(400);
     expect((await postUser(new Request('http://x', { method: 'POST', body: 'email=a', headers: { 'content-type': 'text/plain' } }))).status).toBe(415);
   });
-  it('PATCH changes roles/active; DELETE blocked when the user owns data (409), allowed otherwise; bad ids are 404', async () => {
+  it('PATCH changes roles/active; DELETE is a soft delete, allowed even when the user owns data; bad ids are 404', async () => {
     asAdmin();
     expect((await (await patchUser(req('PATCH', { roles: ['seller', 'admin'] }), idCtx(A.id))).json()).roles).toEqual(['admin', 'seller']);
     expect((await (await patchUser(req('PATCH', { active: false }), idCtx(A.id))).json()).active).toBe(false);
@@ -76,9 +76,8 @@ describe('/api/admin/users (admin only)', () => {
     expect((await patchUser(req('PATCH', {}), idCtx('00000000-0000-0000-0000-000000000000'))).status).toBe(404);
     expect((await patchUser(req('PATCH', { active: false }), idCtx(rootId))).status).toBe(409);
     await createProduct(product, A.actor);
-    const blocked = await deleteUserRoute(req('DELETE'), idCtx(A.id));
-    expect(blocked.status).toBe(409);
-    expect((await blocked.json()).error).toContain('Deactivate');
+    expect((await deleteUserRoute(req('DELETE'), idCtx(A.id))).status).toBe(200); // owns a product: kept, not blocked
+    expect((await deleteUserRoute(req('DELETE'), idCtx(A.id))).status).toBe(404); // already deleted
     const fresh = await (await postUser(req('POST', { email: 'gone@x.co' }))).json();
     expect((await deleteUserRoute(req('DELETE'), idCtx(fresh.id))).status).toBe(200);
     expect((await deleteUserRoute(req('DELETE'), idCtx(rootId))).status).toBe(409);

@@ -16,7 +16,7 @@ export type AdminProductQuery = { artist?: string; status?: string; q?: string }
 /** A seller sees only their own products; admins are unscoped. Routes always pass scopeFor(user). */
 export type Scope = { sellerEmail?: string };
 export const scopeFor = (u: { email: string; role: Role }): Scope => (u.role === 'admin' ? {} : { sellerEmail: u.email });
-const scopeWhere = (s: Scope): SQL[] => (s.sellerEmail ? [sql`lower(${users.email}) = ${s.sellerEmail.toLowerCase()}`] : []);
+const scopeWhere = (s: Scope): SQL[] => (s.sellerEmail ? [sql`lower(${users.email}) = ${s.sellerEmail.toLowerCase()} and ${users.deletedAt} is null`] : []);
 
 // "Artist" = the seller's public name. Same normalisation as artistKey(): collapse whitespace, trim, lowercase.
 const cleanSeller = sql`btrim(regexp_replace(${sellerNameSql}, '\\s+', ' ', 'g'))`;

@@ -85,7 +85,7 @@ export async function createBooking(input: unknown, userEmail: string): Promise<
   });
 }
 
-const ownedBy = (u: SessionUser) => (u.role === 'admin' ? undefined : sql`lower(${users.email}) = ${u.email.toLowerCase()}`);
+const ownedBy = (u: SessionUser) => (u.role === 'admin' ? undefined : sql`lower(${users.email}) = ${u.email.toLowerCase()} and ${users.deletedAt} is null`);
 
 export async function listOrders(u: SessionUser): Promise<Order[]> {
   const db = getDb();

@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { Q } from './client';
 import { sellerProfiles, userRoles, users } from './schema';
 
@@ -9,11 +9,11 @@ export type StoredRole = keyof typeof ROLE_ID;
 export const normEmail = (e: string) => e.trim().toLowerCase();
 export const nameFromEmail = (email: string) => email.split('@')[0] || email;
 
-/** Find the user by email (case-insensitive) or create a role-less one. Returns the row. */
+/** Find the live user by email (case-insensitive; a soft-deleted user does not count) or create a role-less one. Returns the row. */
 export async function ensureUser(q: Q, email: string, name?: string) {
   const e = normEmail(email);
   await q.insert(users).values({ email: e, name: (name ?? '').trim() || nameFromEmail(e) }).onConflictDoNothing();
-  const [row] = await q.select().from(users).where(sql`lower(${users.email}) = ${e}`);
+  const [row] = await q.select().from(users).where(and(sql`lower(${users.email}) = ${e}`, isNull(users.deletedAt)));
   return row;
 }
 
@@ -27,8 +27,8 @@ export async function ensureSellerProfile(q: Q, userId: string, displayName: str
 }
 
 export async function userIdByEmail(q: Q, email: string): Promise<string | undefined> {
-  const [row] = await q.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${normEmail(email)}`);
+  const [row] = await q.select({ id: users.id }).from(users).where(and(sql`lower(${users.email}) = ${normEmail(email)}`, isNull(users.deletedAt)));
   return row?.id;
 }
 
-export const userById = async (q: Q, id: string) => (await q.select().from(users).where(eq(users.id, id)))[0];
+export const userById = async (q: Q, id: string) => (await q.select().from(users).where(and(eq(users.id, id), isNull(users.deletedAt))))[0];

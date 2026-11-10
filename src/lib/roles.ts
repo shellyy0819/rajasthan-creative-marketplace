@@ -1,10 +1,11 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { ROLE_ID, ensureUser, grantRole, normEmail } from '../db/people';
 import { userRoles, users } from '../db/schema';
 import { roleFor, type Role } from './authz';
 
-export type Access = { role: Role; active: boolean };
+/** `gone` is set when the person has no live user row (deleted): their session must end. */
+export type Access = { role: Role; active: boolean; gone?: true };
 
 /**
  * The highest role a person holds: admin (ADMIN_EMAILS, or an admin row in user_roles) > seller > customer.
@@ -14,8 +15,8 @@ export async function resolveAccess(email: string): Promise<Access> {
   const e = normEmail(email);
   if (roleFor(e) === 'admin') return { role: 'admin', active: true }; // the bootstrap admin can never be locked out
   try {
-    const [u] = await getDb().select({ id: users.id, active: users.active }).from(users).where(sql`lower(${users.email}) = ${e}`);
-    if (!u) return { role: 'customer', active: true };
+    const [u] = await getDb().select({ id: users.id, active: users.active }).from(users).where(and(sql`lower(${users.email}) = ${e}`, isNull(users.deletedAt)));
+    if (!u) return { role: 'customer', active: true, gone: true };
     if (!u.active) return { role: 'customer', active: false };
     const rows = await getDb().select({ roleId: userRoles.roleId }).from(userRoles).where(eq(userRoles.userId, u.id));
     const ids = rows.map(r => r.roleId);

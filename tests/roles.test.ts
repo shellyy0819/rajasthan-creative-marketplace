@@ -15,7 +15,7 @@ afterEach(() => { process.env.ADMIN_EMAILS = origAdmins; });
 
 describe('resolveAccess (users and roles are many-to-many)', () => {
   it('no row or no roles is a customer; seller row is a seller; admin row is an admin; email is case-insensitive', async () => {
-    expect(await resolveAccess('nobody@x.co')).toEqual({ role: 'customer', active: true });
+    expect(await resolveAccess('nobody@x.co')).toEqual({ role: 'customer', active: true, gone: true }); // no live row: the session must end
     await giveRole('plain@x.co', 'customer');
     expect((await resolveAccess('plain@x.co')).role).toBe('customer');
     await giveRole('s@x.co', 'seller');
@@ -146,5 +146,32 @@ describe('authz helpers and gates', () => {
     expect(staffGate({ user: { email: 's@x.co', role: 'seller', active: false } })).toBe('forbidden');
     expect(adminGate({ user: { email: 's@x.co', role: 'seller' } })).toBe('forbidden');
     expect(adminGate({ user: { email: 'a@x.co', role: 'admin', active: false } })).toBe('forbidden');
+  });
+});
+
+describe('session callbacks end the session of a deleted or deactivated user', () => {
+  const run = async (email: string) => {
+    const cb = authOptions.callbacks!;
+    const token = await cb.jwt!({ token: { email } } as any);
+    return cb.session!({ session: { user: { email }, expires: 'x' }, token } as any) as any;
+  };
+  it('deleted: no user on the session and revoked is set', async () => {
+    const u = await giveRole('gone@x.co', 'seller');
+    await (await getTestDb()).update(users).set({ deletedAt: new Date(), active: false }).where(eq(users.id, u.id));
+    const s = await run('gone@x.co');
+    expect(s.user).toBeUndefined();
+    expect(s.revoked).toBe(true);
+  });
+  it('deactivated: keeps the user (so the API answers 403) and sets revoked so the browser signs out', async () => {
+    const u = await giveRole('off@x.co', 'seller');
+    await (await getTestDb()).update(users).set({ active: false }).where(eq(users.id, u.id));
+    const s = await run('off@x.co');
+    expect(s.user.active).toBe(false);
+    expect(s.revoked).toBe(true);
+  });
+  it('a healthy user is untouched, and the bootstrap admin is never revoked', async () => {
+    await giveRole('ok@x.co', 'seller');
+    expect((await run('ok@x.co')).revoked).toBeUndefined();
+    expect((await run('boss@shop.com')).revoked).toBeUndefined();
   });
 });
