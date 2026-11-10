@@ -449,6 +449,7 @@ export function PostsAdmin({
       {editingProfile && myProfile && seller && myProfile.onboardedAt && (
         <ProfileView
           profile={myProfile}
+          publicPageHref={(() => { const slug = products.find((p) => p.status === "APPROVED")?.sellerSlug; return slug ? `/artists/${slug}` : undefined; })()}
           onLogoSaved={(p) => {
             setMyProfile(p);
             notify("success", "Logo saved.");

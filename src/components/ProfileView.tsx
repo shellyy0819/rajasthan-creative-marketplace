@@ -7,8 +7,8 @@ import { LogoUpload } from './onboarding/LogoUpload';
 const METHOD_LABEL = { whatsapp: 'WhatsApp', instagram: 'Instagram', website: 'Website', phone: 'Phone' } as const;
 
 /** A seller's own details after onboarding: read only, except that a missing logo can still be added. */
-export function ProfileView({ profile, onLogoSaved, onClose }: {
-  profile: SellerProfile; onLogoSaved: (p: SellerProfile) => void; onClose: () => void;
+export function ProfileView({ profile, publicPageHref, onLogoSaved, onClose }: {
+  profile: SellerProfile; publicPageHref?: string; onLogoSaved: (p: SellerProfile) => void; onClose: () => void;
 }) {
   const [logoUrl, setLogoUrl] = useState('');
   const [busy, setBusy] = useState(false);
@@ -32,10 +32,6 @@ export function ProfileView({ profile, onLogoSaved, onClose }: {
   }
 
   const rows: [string, string | undefined][] = [
-    ['Business name', profile.displayName],
-    ['Category', profile.category],
-    ['City', profile.city],
-    ['Short description', profile.bio],
     ['Email', profile.publicEmail],
     ['Mobile', profile.publicPhone],
     ['WhatsApp', profile.whatsapp],
@@ -43,6 +39,7 @@ export function ProfileView({ profile, onLogoSaved, onClose }: {
     ['Website', profile.website],
     ['Customers can reach you by', profile.contactMethods?.map(m => METHOD_LABEL[m]).join(', ')],
   ];
+  const shown = rows.filter(([, v]) => v);
   return (
     <div className="admin-modal">
       <div role="dialog" aria-modal="true" aria-labelledby="profile-view-title" className="admin-form-card">
@@ -51,15 +48,24 @@ export function ProfileView({ profile, onLogoSaved, onClose }: {
           <button type="button" className="icon-btn" aria-label="Close" onClick={onClose} disabled={saving}>✕</button>
         </div>
         <div className="admin-form">
-          <p className="form-note">Your details are locked. Contact Craftofy to change them.</p>
-          {profile.logoUrl ? (
-            <div className="logo-upload">
-              <div className="logo-preview has-photo">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+          <div className="profile-id">
+            <div className={`logo-preview${profile.logoUrl ? ' has-photo' : ''}`}>
+              {profile.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={profile.logoUrl} alt="Your logo" referrerPolicy="no-referrer" />
-              </div>
+              ) : <span aria-hidden="true">{profile.displayName.charAt(0).toUpperCase()}</span>}
             </div>
-          ) : (
+            <div className="profile-id-text">
+              <h3 className="profile-name">{profile.displayName}</h3>
+              {(profile.category || profile.city) && (
+                <p className="profile-tags">
+                  {profile.category && <span>{profile.category}</span>}
+                  {profile.city && <span>{profile.city}</span>}
+                </p>
+              )}
+            </div>
+          </div>
+          {!profile.logoUrl && (
             <fieldset className="profile-onboarding">
               <legend>Logo</legend>
               <p className="onboard-hint">You have not added a logo yet. Add one now; once saved it cannot be changed here.</p>
@@ -68,12 +74,28 @@ export function ProfileView({ profile, onLogoSaved, onClose }: {
               <button type="button" className="button primary" disabled={!logoUrl || busy || saving} aria-busy={saving} onClick={saveLogo}>{saving ? 'Saving…' : 'Save logo'}</button>
             </fieldset>
           )}
-          <dl className="profile-view">
-            {rows.filter(([, v]) => v).map(([k, v]) => (
-              <div key={k}><dt>{k}</dt><dd>{v}</dd></div>
-            ))}
-          </dl>
-          <div className="admin-actions"><button type="button" className="button" onClick={onClose} disabled={saving}>Close</button></div>
+          {profile.bio && (
+            <section className="profile-section">
+              <h4 className="profile-sub">About</h4>
+              <p className="profile-bio">{profile.bio}</p>
+            </section>
+          )}
+          {shown.length > 0 && (
+            <section className="profile-section">
+              <h4 className="profile-sub">Contact</h4>
+              <dl className="profile-view">
+                {shown.map(([k, v]) => (
+                  <div key={k} className={k === 'Customers can reach you by' ? 'wide' : undefined}><dt>{k}</dt><dd>{v}</dd></div>
+                ))}
+              </dl>
+            </section>
+          )}
+          <div className="admin-actions profile-actions">
+            {publicPageHref
+              ? <a className="button primary" href={publicPageHref} target="_blank" rel="noopener noreferrer">View my public page ↗</a>
+              : <p className="onboard-hint">Your public page appears once your first product is approved.</p>}
+            <button type="button" className="button" onClick={onClose} disabled={saving}>Close</button>
+          </div>
         </div>
       </div>
     </div>
