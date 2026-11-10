@@ -180,7 +180,7 @@ export const productEvents = pgTable('product_events', {
   day: date('day', { mode: 'string' }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }, t => [
-  check('product_events_type_valid', sql`${t.type} in ('view', 'contact', 'artist')`),
+  check('product_events_type_valid', sql`${t.type} in ('view', 'contact', 'artist', 'contact_call', 'contact_email', 'contact_instagram', 'contact_youtube', 'contact_copy')`),
   uniqueIndex('product_events_unique_idx').on(t.productId, t.type, t.actor, t.day),
   index('product_events_day_idx').on(t.day),
 ]);

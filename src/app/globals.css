@@ -3502,13 +3502,11 @@ body.modal-open {
 .pc-low {
   font-size: 11.5px;
   font-weight: 700;
-  line-height: 1;
+  line-height: 1.25;
   padding: 6px 11px;
-  border-radius: 999px;
+  border-radius: 14px;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere; /* wrap to a second line rather than cut the name with an ellipsis */
 }
 .pc-chip {
   background: #fffdf9e0;
@@ -3598,10 +3596,104 @@ body.modal-open {
   font-size: 13px;
   white-space: nowrap;
 }
+.product-card .contact-btn.contact-icon-btn {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+}
+.contact-handset {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .product-card .contact-btn:hover {
   background: #fff;
   color: #252a24;
   filter: none;
+}
+@media (max-width: 600px) {
+  /* Phones: photo on top, details in their own panel so nothing covers the picture */
+  .product-card {
+    aspect-ratio: auto;
+    justify-content: flex-start;
+    background: var(--white);
+    border: 1px solid var(--line-soft);
+    box-shadow: none;
+  }
+  .product-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .product-card::after {
+    display: none;
+  }
+  .product-card .product-visual {
+    position: relative;
+    inset: auto;
+    aspect-ratio: 1 / 1; /* reserve the photo's space up front so loading it never moves the page */
+    height: auto;
+    margin: 0;
+    transition: none;
+  }
+  .product-card:hover .product-visual {
+    transform: none;
+  }
+  .product-card .product-visual .symbol {
+    margin-bottom: 0;
+  }
+  .pc-chip {
+    display: none;
+  }
+  .pc-low {
+    font-size: 9px;
+    padding: 4px 8px;
+    white-space: nowrap;
+  }
+  .product-card .like-btn {
+    font-size: 12px; /* count hidden on phones, so the heart can be a little larger */
+    padding: 4px 8px;
+    gap: 0;
+  }
+  .product-card .like-btn .like-count {
+    display: none;
+  }
+  .product-card .product-info {
+    color: var(--ink);
+    padding: 12px;
+  }
+  .product-card .product-info h3 {
+    font-size: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .product-card .product-info p.pc-who {
+    color: var(--muted);
+  }
+  .product-card .price {
+    color: var(--ink);
+  }
+  .product-card .product-bottom {
+    margin-top: 10px;
+  }
+  .product-card .contact-btn.contact-icon-btn {
+    width: 40px;
+    height: 40px;
+    background: var(--green);
+    color: var(--on-green);
+  }
+  .contact-handset {
+    width: 18px;
+    height: 18px;
+  }
 }
 @media (max-width: 600px) {
   .product-card {
@@ -3614,17 +3706,13 @@ body.modal-open {
     padding: 12px;
   }
   .product-card .product-info h3 {
-    font-size: 15px;
+    font-size: 14px;
   }
   .product-card .product-info p.pc-who {
-    font-size: 12px;
+    font-size: 11px;
   }
   .product-card .price {
-    font-size: 17px;
-  }
-  .product-card .contact-btn {
-    padding: 8px 11px;
-    font-size: 12px;
+    font-size: 15px;
   }
   .pc-top {
     top: 10px;
