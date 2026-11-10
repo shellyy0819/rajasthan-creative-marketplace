@@ -3923,6 +3923,10 @@ body.modal-open {
   overflow: hidden;
   background: var(--sand-soft);
 }
+/* No "More pieces" section after it: keep the card off the footer */
+.artist-hero:not(:has(+ .section)) {
+  margin-bottom: 56px;
+}
 .ah-awning {
   height: 84px;
   overflow: hidden;
