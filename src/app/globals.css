@@ -648,6 +648,9 @@ h2 em {
 .workshop-list .empty {
   background: transparent;
 }
+.workshop-list .empty p {
+  margin: 0 0 18px;
+}
 .workshop-band {
   background: var(--band-2);
   padding: 72px 8.5%;
