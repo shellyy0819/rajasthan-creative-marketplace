@@ -2446,6 +2446,11 @@ main {
   font-weight: 400;
   color: var(--ink);
 }
+.footer-col .footer-ig {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
 .footer-col a:hover,
 .footer-col .cookie-settings:hover {
   color: var(--orange);
