@@ -15,7 +15,9 @@ export function contactEmail(): string {
   return EMAIL.test(v) ? v : DEFAULT_CONTACT_EMAIL;
 }
 
+/** Public site origin. A non-local http:// value is upgraded to https:// so sitemap, canonical and OG urls are always secure. */
 export function siteUrl(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
+  const url = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
+  return /^http:\/\/(?!localhost(:|\/|$)|127\.0\.0\.1(:|\/|$))/i.test(url) ? url.replace(/^http:/i, 'https:') : url;
 }
 export const abs = (p: string) => siteUrl() + (p.startsWith('/') ? p : `/${p}`);
