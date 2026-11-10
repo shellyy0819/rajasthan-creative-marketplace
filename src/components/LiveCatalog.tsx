@@ -85,7 +85,7 @@ export function LiveCatalog(props: Props) {
         aria-label={kind === 'products' ? 'Search products' : 'Search workshops'}
       />
       <select name="city" value={cityMatch?.slug ?? cityValue} onChange={e => set({ city: e.target.value }, 0)} aria-label="Filter by city">
-        <option value="">All India</option>
+        <option value="">All</option>
         {props.cities.map(c => <option key={c.slug} value={c.slug}>{labelOf(c)}</option>)}
         {cityValue && !cityMatch && <option value={cityValue}>{cityValue}</option>}
       </select>
