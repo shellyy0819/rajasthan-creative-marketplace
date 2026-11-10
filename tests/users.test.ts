@@ -3,8 +3,9 @@ import { eq } from 'drizzle-orm';
 import { createUser, deleteUser, getProfileByEmail, listUsers, saveProfile, updateUser } from '@/lib/users';
 import { createProduct, createWorkshop } from '@/lib/admin';
 import { createOrder } from '@/lib/orders';
-import { resolveRole } from '@/lib/roles';
-import { sellerProfiles, userRoles, users } from '@/db/schema';
+import { resolveAccess, resolveRole, upsertUserOnSignIn } from '@/lib/roles';
+import { listOrders } from '@/lib/orders';
+import { orders, products, sellerProfiles, userArchive, userRoles, users } from '@/db/schema';
 import { admin } from './helpers/actors';
 import { getTestDb, giveRole, makeSeller, resetTestDb } from './helpers/testdb';
 import { cityRef } from './helpers/cities';
@@ -82,26 +83,49 @@ describe('updateUser', () => {
   });
 });
 
-describe('deleteUser (admin only; blocked when the user owns anything)', () => {
-  it('deletes a user who owns nothing, with their roles and profile', async () => {
+describe('deleteUser (soft delete: the row is kept, marked deleted and deactivated)', () => {
+  it('hides the user from the list, keeps the row and all their data, and deactivates them', async () => {
     const u = await createUser({ email: 's@x.co', roles: ['seller'] }, admin.email);
     await deleteUser(u.id, admin.email);
     expect(await listUsers().then(l => l.some(x => x.id === u.id))).toBe(false);
-    expect(await (await getTestDb()).select().from(userRoles).where(eq(userRoles.userId, u.id))).toHaveLength(0);
-    expect(await (await getTestDb()).select().from(sellerProfiles).where(eq(sellerProfiles.userId, u.id))).toHaveLength(0);
+    const [row] = await (await getTestDb()).select().from(users).where(eq(users.id, u.id));
+    expect(row.deletedAt).toBeInstanceOf(Date);
+    expect(row.active).toBe(false);
+    expect(await (await getTestDb()).select().from(userRoles).where(eq(userRoles.userId, u.id))).toHaveLength(1);
+    expect(await (await getTestDb()).select().from(sellerProfiles).where(eq(sellerProfiles.userId, u.id))).toHaveLength(1);
+    expect(await resolveAccess('s@x.co')).toMatchObject({ gone: true }); // no live user any more: the session ends
   });
-  it('409 with a "deactivate instead" message when the user has products, workshops, orders or bookings', async () => {
+  it('works for users who own products, workshops, orders or bookings, and keeps that data linked', async () => {
     const s = await makeSeller('s@x.co', 'S');
-    await createProduct(base, s.actor);
-    await expect(deleteUser(s.id, admin.email)).rejects.toMatchObject({ status: 409, message: expect.stringContaining('Deactivate them instead') });
-    const host = await createUser({ email: 'host@x.co', roles: ['seller'] }, admin.email);
-    const w = await createWorkshop({ title: 'T', type: 'FREE', pricePaise: 0, cityRef: cityRef('Jaipur'), venue: 'V', date: '2026-12-01', time: '10:00', seats: 5, host: 'H', hostId: host.id, description: 'D' });
-    expect(w.hostId).toBe(host.id);
-    await expect(deleteUser(host.id, admin.email)).rejects.toMatchObject({ status: 409 });
+    const p = await createProduct(base, s.actor);
+    await deleteUser(s.id, admin.email);
+    const [prod] = await (await getTestDb()).select().from(products).where(eq(products.id, p.id));
+    expect(prod.sellerId).toBe(s.id);
     const buyer = await createUser({ email: 'buyer@x.co' }, admin.email);
     await createOrder({ items: [{ productId: 'p1', quantity: 1 }] }, 'buyer@x.co');
-    await expect(deleteUser(buyer.id, admin.email)).rejects.toMatchObject({ status: 409 });
-    expect((await byEmail('buyer@x.co')).orders).toBe(1);
+    await deleteUser(buyer.id, admin.email);
+    expect(await (await getTestDb()).select().from(orders).where(eq(orders.userId, buyer.id))).toHaveLength(1);
+  });
+  it('hides the deleted seller\'s live products (APPROVED -> ARCHIVED), leaves drafts and other sellers\' products alone', async () => {
+    const s = await makeSeller('s@x.co', 'S');
+    const other = await makeSeller('o@x.co', 'O');
+    const live = await createProduct({ ...base, status: 'APPROVED' }, admin);
+    const db = await getTestDb();
+    await db.update(products).set({ sellerId: s.id }).where(eq(products.id, live.id));
+    const draft = await createProduct(base, s.actor);
+    const theirs = await createProduct({ ...base, status: 'APPROVED' }, admin);
+    await db.update(products).set({ sellerId: other.id }).where(eq(products.id, theirs.id));
+    await deleteUser(s.id, admin.email);
+    const st = async (id: string) => (await db.select().from(products).where(eq(products.id, id)))[0].status;
+    expect(await st(live.id)).toBe('ARCHIVED');
+    expect(await st(draft.id)).toBe('DRAFT');
+    expect(await st(theirs.id)).toBe('APPROVED');
+  });
+  it('a deleted user can no longer be edited (404) or deleted twice (404)', async () => {
+    const u = await createUser({ email: 'gone@x.co' }, admin.email);
+    await deleteUser(u.id, admin.email);
+    await expect(updateUser(u.id, { active: true }, admin.email)).rejects.toMatchObject({ status: 404 });
+    await expect(deleteUser(u.id, admin.email)).rejects.toMatchObject({ status: 404 });
   });
   it('cannot delete yourself, unknown ids are 404, and the last admin cannot be deleted', async () => {
     const me = await byEmail(admin.email);
@@ -110,6 +134,53 @@ describe('deleteUser (admin only; blocked when the user owns anything)', () => {
     const other = await createUser({ email: 'second@x.co', roles: ['admin'] }, admin.email);
     await updateUser(me.id, { roles: ['seller'] }, other.email).catch(() => undefined);
     await expect(deleteUser(other.id, me.email)).rejects.toMatchObject({ status: 409 });
+  });
+});
+
+describe('backup and re-registration', () => {
+  it('delete writes a backup (user, roles, profile, products with status, Google id) and frees the email and Google id', async () => {
+    const s = await makeSeller('s@x.co', 'S');
+    await (await getTestDb()).update(users).set({ googleSub: 'g-old' }).where(eq(users.id, s.id));
+    const p = await createProduct(base, s.actor);
+    await deleteUser(s.id, admin.email);
+    const [a] = await (await getTestDb()).select().from(userArchive).where(eq(userArchive.userId, s.id));
+    expect(a).toMatchObject({ email: 's@x.co', googleSub: 'g-old', reason: 'deleted' });
+    const snap = a.snapshot as any;
+    expect(snap.user.id).toBe(s.id);
+    expect(snap.roles).toHaveLength(1);
+    expect(snap.sellerProfile.userId).toBe(s.id);
+    expect(snap.products).toEqual([{ id: p.id, status: 'DRAFT' }]);
+    const [row] = await (await getTestDb()).select().from(users).where(eq(users.id, s.id));
+    expect(row.googleSub).toBeNull();
+  });
+  it('deactivating writes a backup once (not when already inactive); reactivating writes none', async () => {
+    const u = await createUser({ email: 'd@x.co', roles: ['seller'] }, admin.email);
+    await updateUser(u.id, { active: false }, admin.email);
+    await updateUser(u.id, { active: false }, admin.email);
+    await updateUser(u.id, { active: true }, admin.email);
+    const rows = await (await getTestDb()).select().from(userArchive).where(eq(userArchive.userId, u.id));
+    expect(rows.map(r => r.reason)).toEqual(['deactivated']);
+  });
+  it('a deleted person signs in again as a brand-new user: new id, no roles, none of the old orders or products', async () => {
+    const old = await createUser({ email: 'again@x.co', roles: ['seller'] }, admin.email);
+    await (await getTestDb()).update(users).set({ googleSub: 'g-1' }).where(eq(users.id, old.id));
+    await createOrder({ items: [{ productId: 'p1', quantity: 1 }] }, 'again@x.co');
+    await deleteUser(old.id, admin.email);
+    expect(await upsertUserOnSignIn({ email: 'Again@X.co', name: 'Again', sub: 'g-1' })).toEqual({ active: true });
+    const fresh = await byEmail('again@x.co');
+    expect(fresh.id).not.toBe(old.id);
+    expect(fresh.roles).toEqual([]);
+    expect((await resolveAccess('again@x.co'))).toEqual({ role: 'customer', active: true });
+    expect(await listOrders({ email: 'again@x.co', role: 'customer' })).toHaveLength(0);
+    expect((await (await getTestDb()).select().from(users).where(eq(users.id, old.id)))[0].deletedAt).not.toBeNull(); // old row untouched
+  });
+  it('a deleted user is "gone" for session checks; a deactivated one is not', async () => {
+    const d = await createUser({ email: 'del@x.co' }, admin.email);
+    const off = await createUser({ email: 'off@x.co' }, admin.email);
+    await deleteUser(d.id, admin.email);
+    await updateUser(off.id, { active: false }, admin.email);
+    expect(await resolveAccess('del@x.co')).toMatchObject({ gone: true });
+    expect(await resolveAccess('off@x.co')).toEqual({ role: 'customer', active: false });
   });
 });
 
@@ -146,14 +217,15 @@ describe('seller profiles (public name and contact)', () => {
 });
 
 describe('bootstrap (ADMIN_EMAILS) admins are protected', () => {
-  it('cannot be deactivated or lose the admin role, even by another admin', async () => {
+  it('cannot be deactivated, lose the admin role or be deleted, even by another admin', async () => {
     process.env.ADMIN_EMAILS = 'boot@x.co';
     const boot = await createUser({ email: 'boot@x.co', roles: ['admin'] }, admin.email);
     await expect(updateUser(boot.id, { active: false }, admin.email)).rejects.toMatchObject({ status: 409, message: expect.stringContaining('ADMIN_EMAILS') });
     await expect(updateUser(boot.id, { roles: ['seller'] }, admin.email)).rejects.toMatchObject({ status: 409 });
     await expect(updateUser(boot.id, { roles: [] }, admin.email)).rejects.toMatchObject({ status: 409 });
     expect((await updateUser(boot.id, { roles: ['admin', 'seller'] }, admin.email)).roles).toEqual(['admin', 'seller']);
-    await expect(deleteUser(boot.id, admin.email)).resolves.toBeUndefined(); // owns nothing: deleting the row is harmless, they re-create at sign-in
+    // Soft delete would leave a hidden row that sign-in reactivates, so a bootstrap admin cannot be deleted either.
+    await expect(deleteUser(boot.id, admin.email)).rejects.toMatchObject({ status: 409, message: expect.stringContaining('ADMIN_EMAILS') });
   });
 });
 

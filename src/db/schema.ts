@@ -28,9 +28,30 @@ export const users = pgTable('users', {
   phone: text('phone'),
   cityId: integer('city_id').references(() => cities.id, { onDelete: 'set null' }),
   active: boolean('active').notNull().default(true),
+  /** Soft delete: the row and everything linked to it stay; a deleted user is hidden from the admin list and cannot sign in. */
+  deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'date' }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
-}, t => [uniqueIndex('users_email_lower_idx').on(sql`lower(${t.email})`), index('users_city_idx').on(t.cityId)]);
+  // Unique among live users only: a deleted user's email is free again, so they can sign up and onboard from scratch.
+}, t => [uniqueIndex('users_email_lower_idx').on(sql`lower(${t.email})`).where(sql`${t.deletedAt} is null`), index('users_city_idx').on(t.cityId)]);
+
+/**
+ * Backup of a user taken when they are deactivated or deleted. No foreign key on purpose: it must outlive the user.
+ * `snapshot` holds the user row, roles, seller profile and their products (id and status) as they were.
+ */
+export const userArchive = pgTable('user_archive', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  email: text('email').notNull(),
+  googleSub: text('google_sub'),
+  reason: text('reason').notNull(),
+  snapshot: jsonb('snapshot').notNull(),
+  archivedBy: uuid('archived_by'),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [
+  check('user_archive_reason_valid', sql`${t.reason} in ('deactivated', 'deleted')`),
+  index('user_archive_user_idx').on(t.userId),
+]);
 
 export const userRoles = pgTable('user_roles', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),

@@ -3,7 +3,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import { asRole, type AppSession } from '@/lib/authz';
 import { DEFAULT_CALLBACK, allowedCallbackHosts, onDashboardHost, safeCallback } from '@/lib/callback-url';
 import { hostConfig, normalizeHost } from '@/lib/hosts';
-import { resolveAccess, upsertUserOnSignIn } from '@/lib/roles';
+import { resolveAccess, upsertUserOnSignIn, type Access } from '@/lib/roles';
 
 /** Session cookie shared by the public and dashboard hosts. Only when COOKIE_DOMAIN is set and really covers both hosts. */
 function sharedCookies(): NextAuthOptions['cookies'] {
@@ -49,12 +49,16 @@ export const buildAuthOptions = (): NextAuthOptions => ({
     },
     // Re-resolved on every session read, so role changes and deactivation apply on the next request.
     async jwt({ token }) {
-      const access = token.email ? await resolveAccess(token.email) : { role: 'customer' as const, active: true };
+      const access: Access = token.email ? await resolveAccess(token.email) : { role: 'customer', active: true };
       token.role = access.role;
       token.active = access.active;
+      token.gone = access.gone === true;
       return token;
     },
     async session({ session, token }) {
+      // Deleted or deactivated: no user on the session (deleted) and a flag so the browser signs out and drops the cookie.
+      if (token.gone) { delete session.user; session.revoked = true; return session; }
+      if (token.active === false) session.revoked = true;
       if (session.user) {
         session.user.role = asRole(token.role);
         session.user.active = token.active !== false;

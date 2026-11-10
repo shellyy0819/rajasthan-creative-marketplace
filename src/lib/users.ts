@@ -1,7 +1,7 @@
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { getDb, type Q, type Tx } from '../db/client';
 import { ROLE_ID, ensureSellerProfile, ensureUser, normEmail, type StoredRole } from '../db/people';
-import { cities, sellerProfiles, userRoles, users } from '../db/schema';
+import { cities, products, sellerProfiles, userArchive, userRoles, users } from '../db/schema';
 import { roleFor } from './authz';
 import { canonicalCategory } from './categories';
 import { resolveCityInput } from './cities';
@@ -31,11 +31,11 @@ const toAdminUser = (r: { id: string; email: string; name: string; active: boole
   ({ ...r, roles: r.roles as AdminUser['roles'], createdAt: r.createdAt.toISOString() });
 
 export async function listUsers(): Promise<AdminUser[]> {
-  const rows = await getDb().select(cols).from(users).orderBy(sql`lower(${users.email})`);
+  const rows = await getDb().select(cols).from(users).where(isNull(users.deletedAt)).orderBy(sql`lower(${users.email})`);
   return rows.map(toAdminUser);
 }
 async function loadUser(tx: Tx | ReturnType<typeof getDb>, id: string): Promise<AdminUser> {
-  const [row] = await tx.select(cols).from(users).where(eq(users.id, id));
+  const [row] = await tx.select(cols).from(users).where(and(eq(users.id, id), isNull(users.deletedAt)));
   if (!row) throw new ApiError(404, 'User not found.');
   return toAdminUser(row);
 }
@@ -43,6 +43,15 @@ async function loadUser(tx: Tx | ReturnType<typeof getDb>, id: string): Promise<
 function parseRoles(v: unknown): StoredRole[] {
   if (!Array.isArray(v) || v.some(r => !ASSIGNABLE.includes(r as StoredRole))) throw bad(`roles must be a list of: ${ASSIGNABLE.join(', ')}.`);
   return [...new Set(v as StoredRole[])];
+}
+
+/** Back up a user (row, roles, seller profile, products) before they are deactivated or deleted. Kept forever, outside the live tables. */
+async function archiveUser(tx: Tx, id: string, reason: 'deactivated' | 'deleted', archivedBy: string) {
+  const [row] = await tx.select().from(users).where(eq(users.id, id));
+  const roles = await tx.select().from(userRoles).where(eq(userRoles.userId, id));
+  const [profile] = await tx.select().from(sellerProfiles).where(eq(sellerProfiles.userId, id));
+  const owned = await tx.select({ id: products.id, status: products.status }).from(products).where(eq(products.sellerId, id));
+  await tx.insert(userArchive).values({ userId: id, email: row.email, googleSub: row.googleSub, reason, archivedBy, snapshot: { user: row, roles, sellerProfile: profile ?? null, products: owned } });
 }
 
 /** Active admins after an operation: DB admin rows plus the ADMIN_EMAILS bootstrap admins (who can never be locked out). */
@@ -69,7 +78,7 @@ export async function createUser(input: unknown, actorEmail: string): Promise<Ad
   const name = optionalText(raw.name, 'name', 100);
   const roles = raw.roles === undefined ? [] : parseRoles(raw.roles);
   return getDb().transaction(async tx => {
-    const [exists] = await tx.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${normEmail(email)}`);
+    const [exists] = await tx.select({ id: users.id }).from(users).where(and(sql`lower(${users.email}) = ${normEmail(email)}`, isNull(users.deletedAt)));
     if (exists) throw new ApiError(409, 'User already exists.');
     const me = await ensureUser(tx, actorEmail);
     const u = await ensureUser(tx, email, name);
@@ -86,7 +95,7 @@ export async function updateUser(id: string, input: unknown, actorEmail: string)
   return getDb().transaction(async tx => {
     await lockAdmins(tx);
     const me = await ensureUser(tx, actorEmail);
-    const [u] = await tx.select().from(users).where(eq(users.id, id)).for('update');
+    const [u] = await tx.select().from(users).where(and(eq(users.id, id), isNull(users.deletedAt))).for('update');
     if (!u) throw new ApiError(404, 'User not found.');
     const wasAdmin = (await tx.select().from(userRoles).where(and(eq(userRoles.userId, id), eq(userRoles.roleId, ROLE_ID.admin)))).length > 0;
     const willBeAdmin = roles ? roles.includes('admin') : wasAdmin;
@@ -98,23 +107,32 @@ export async function updateUser(id: string, input: unknown, actorEmail: string)
     const patch: Partial<typeof users.$inferInsert> = { updatedAt: new Date() };
     if (raw.active !== undefined) patch.active = raw.active as boolean;
     if (name !== undefined) patch.name = name;
+    if (raw.active === false && u.active) await archiveUser(tx, id, 'deactivated', me.id);
     await tx.update(users).set(patch).where(eq(users.id, id));
     if (roles) await setRoles(tx, id, name ?? u.name, roles, me.id);
     return loadUser(tx, id);
   });
 }
 
-/** Only users who own nothing can be deleted; otherwise the admin deactivates them. */
+/**
+ * Soft delete: nothing is removed. The row is marked deleted and deactivated, so the user is hidden from the list and cannot sign in,
+ * while their products, orders, bookings, roles and profile stay linked to it. Their live products are archived (hidden from the shop).
+ * A backup goes to user_archive and the email and Google id are freed for a fresh sign-up.
+ */
 export async function deleteUser(id: string, actorEmail: string): Promise<void> {
   await getDb().transaction(async tx => {
     await lockAdmins(tx);
     const me = await ensureUser(tx, actorEmail);
     if (id === me.id) throw new ApiError(409, 'You cannot delete yourself.');
     const u = await loadUser(tx, id);
-    if (u.products + u.workshops + u.orders + u.bookings > 0)
-      throw new ApiError(409, 'This user has products, workshops, orders or bookings. Deactivate them instead.');
+    if (roleFor(u.email) === 'admin') throw new ApiError(409, 'Bootstrap admins (ADMIN_EMAILS) cannot be deleted.');
     if (u.roles.includes('admin') && (await adminsExcluding(tx, id)) === 0) throw LAST_ADMIN();
-    await tx.delete(users).where(eq(users.id, id));
+    await archiveUser(tx, id, 'deleted', me.id); // backup first: it also keeps the Google id and the products' statuses
+    const now = new Date();
+    // The Google id is released with the email, so the same person can sign in again and start onboarding from scratch.
+    await tx.update(users).set({ deletedAt: now, active: false, googleSub: null, updatedAt: now }).where(eq(users.id, id));
+    // Their live listings come off the shop. Drafts and already-archived products keep their status.
+    await tx.update(products).set({ status: 'ARCHIVED' }).where(and(eq(products.sellerId, id), eq(products.status, 'APPROVED')));
   });
 }
 

@@ -4,7 +4,7 @@ export type Role = 'customer' | 'seller' | 'admin';
 export type SessionUser = { email: string; role: Role; name?: string | null };
 export type StaffUser = SessionUser & { role: 'admin' | 'seller' };
 export type Actor = { email: string; role: 'admin' | 'seller' };
-export type AppSession = { user?: { email?: string | null; role?: Role; name?: string | null; active?: boolean } } | null;
+export type AppSession = { revoked?: boolean; user?: { email?: string | null; role?: Role; name?: string | null; active?: boolean } } | null;
 
 const ROLES: readonly unknown[] = ['customer', 'seller', 'admin'];
 export const asRole = (v: unknown): Role => (ROLES.includes(v) ? (v as Role) : 'customer');
