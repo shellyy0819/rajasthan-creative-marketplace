@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { workshopRequests } from '@/db/schema';
+import { ROLE_ID } from '@/db/people';
+import { userRoles, users, workshopRequests } from '@/db/schema';
 import { setMailSenderForTests, type Mail } from '@/lib/mailer';
-import { envMailConfig } from '@/lib/settings';
+import { envMailConfig, saveEmailSettings } from '@/lib/settings';
 import { submitErrorMessage } from '@/lib/workshop-requests-shared';
 import { createWorkshopRequest, listWorkshopRequests, resendWorkshopRequestCode, verifyWorkshopRequestCode } from '@/lib/workshop-requests';
 import { signCityRef } from '@/lib/city-ref';
@@ -55,6 +56,17 @@ describe('email verification', () => {
     const [row] = await (await getTestDb()).select().from(workshopRequests);
     expect(row).toMatchObject({ status: 'received', codeHash: null });
     expect(row.verifiedAt).toBeInstanceOf(Date);
+  });
+  it('always sends the code from no-reply@craftofy.online, with replies going to the Craftofy address', async () => {
+    process.env.CONTACT_EMAIL = 'hello@craftofy.test';
+    await createWorkshopRequest(ok);
+    expect(sent[0]).toMatchObject({ from: 'Craftofy <no-reply@craftofy.online>', replyTo: 'hello@craftofy.test' });
+    delete process.env.CONTACT_EMAIL;
+  });
+  it('sends the code from the verification sender saved in Settings', async () => {
+    await saveEmailSettings({ from: 'hello@craftofy.online', apiKey: 're_abcdefgh12345678', otpFrom: 'Craftofy Verify <verify@craftofy.online>' }, 'a@x.co');
+    await createWorkshopRequest(ok);
+    expect(sent[0].from).toBe('Craftofy Verify <verify@craftofy.online>');
   });
   it('stores only a hash of the code', async () => {
     await createWorkshopRequest(ok);
@@ -112,6 +124,13 @@ describe('email verification', () => {
     expect(r).toMatchObject({ status: 'received', emailVerified: false });
     expect(await listWorkshopRequests()).toHaveLength(1);
   });
+  it('keeps the request, with no errors, when email is not set up at all (any environment) and the admin sees it', async () => {
+    setMailSenderForTests(null);
+    delete process.env.RESEND_API_KEY; delete process.env.MAIL_FROM;
+    const r = await createWorkshopRequest(ok);
+    expect(r).toMatchObject({ status: 'received', emailVerified: false, title: 'Nomad of Winter' });
+    expect(await listWorkshopRequests()).toMatchObject([{ id: r.id, emailVerified: false, email: 'asha@flea.in', phone: '+919989898999' }]);
+  });
   it('marks a confirmed request as emailVerified', async () => {
     const r = await createWorkshopRequest(ok);
     expect(r).toMatchObject({ status: 'unverified', emailVerified: false });
@@ -136,7 +155,7 @@ describe('envMailConfig', () => {
     expect(envMailConfig({})).toBeNull();
     expect(envMailConfig({ RESEND_API_KEY: 're_x' })).toBeNull();
     expect(envMailConfig({ MAIL_FROM: 'Craftofy <hello@craftofy.online>' })).toBeNull();
-    expect(envMailConfig({ RESEND_API_KEY: ' re_x ', MAIL_FROM: ' Craftofy <hello@craftofy.online> ' })).toEqual({ apiKey: 're_x', from: 'Craftofy <hello@craftofy.online>' });
+    expect(envMailConfig({ RESEND_API_KEY: ' re_x ', MAIL_FROM: ' Craftofy <hello@craftofy.online> ' })).toEqual({ provider: 'resend', apiKey: 're_x', from: 'Craftofy <hello@craftofy.online>' });
   });
 });
 
@@ -153,5 +172,59 @@ describe('submitErrorMessage', () => {
   it('keeps the specific message for things the visitor can fix', () => {
     expect(submitErrorMessage(400, 'phone must be a 10-digit Indian mobile number.', MAIL)).toBe('phone must be a 10-digit Indian mobile number.');
     expect(submitErrorMessage(429, 'Too many requests.', MAIL)).toBe('Too many requests.');
+  });
+});
+
+describe('team notification', () => {
+  const admin = async (email: string, active = true) => {
+    const db = await getTestDb();
+    const [u] = await db.insert(users).values({ email, name: 'Admin', active }).returning();
+    await db.insert(userRoles).values({ userId: u.id, roleId: ROLE_ID.admin });
+  };
+  const confirm = async (extra: Record<string, unknown> = {}) => {
+    const r = await createWorkshopRequest({ ...ok, ...extra });
+    return verifyWorkshopRequestCode(r.id, lastCode());
+  };
+  const OLD_ENV = { ADMIN_EMAILS: process.env.ADMIN_EMAILS, CONTACT_EMAIL: process.env.CONTACT_EMAIL };
+  afterEach(() => { for (const [k, v] of Object.entries(OLD_ENV)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } });
+
+  it('emails the Craftofy address and every admin once, with all details, and replies go to the host', async () => {
+    process.env.CONTACT_EMAIL = 'hello@craftofy.test'; process.env.ADMIN_EMAILS = 'Boss@x.co, hello@craftofy.test';
+    await admin('db.admin@x.co'); await admin('boss@x.co'); await admin('gone@x.co', false);
+    const done = await confirm({ seats: 20, priceType: 'PAID', priceRupees: 350, startTime: '10:00', endTime: '12:30', instagram: 'urbanflea', website: 'https://flea.in', notes: 'Bring tables', hostName: 'Urban Flea' });
+    expect(done).toMatchObject({ status: 'received', emailVerified: true, notified: true });
+    expect(sent).toHaveLength(2); // the code, then the team email
+    const team = sent[1];
+    expect(team.to).toEqual(expect.arrayContaining(['hello@craftofy.test', 'Boss@x.co', 'db.admin@x.co']));
+    expect(team.to).toHaveLength(3); // no duplicates, and no inactive admin
+    expect(team.replyTo).toBe('asha@flea.in');
+    expect(team.from).toBeUndefined(); // the team email uses the sender saved in Settings
+    expect(team.subject).toBe('New workshop request: Nomad of Winter (Flea market, Ahmedabad, Gujarat)');
+    for (const part of ['Nomad of Winter', 'Flea market', 'Stalls and music', '2026-12-18', '10:00-12:30', 'Riverfront', 'Ahmedabad, Gujarat', 'Seats: 20', 'Rs. 350 per person', 'Urban Flea', 'Asha', '+919989898999', 'asha@flea.in', 'urbanflea', 'https://flea.in', 'Bring tables', 'Dashboard > Workshop requests']) {
+      expect(team.text).toContain(part);
+    }
+  });
+  it('sends nothing to the team until the host confirms the email code', async () => {
+    await createWorkshopRequest(ok);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].subject).toMatch(/verification code/i);
+  });
+  it('does not email the team again when the same request is confirmed twice', async () => {
+    const r = await createWorkshopRequest(ok);
+    const code = lastCode();
+    expect((await verifyWorkshopRequestCode(r.id, code)).notified).toBe(true);
+    expect((await verifyWorkshopRequestCode(r.id, code)).notified).toBe(false);
+    expect(sent).toHaveLength(2);
+  });
+  it('still confirms the request, without an error, when the team email cannot be sent', async () => {
+    const r = await createWorkshopRequest(ok);
+    const code = lastCode();
+    setMailSenderForTests(async () => { throw new Error('refused'); });
+    expect(await verifyWorkshopRequestCode(r.id, code)).toMatchObject({ status: 'received', emailVerified: true, notified: false });
+    expect(await listWorkshopRequests()).toHaveLength(1);
+  });
+  it('keeps one-line subjects even when the title has line breaks', async () => {
+    await confirm({ title: 'Line one\nBcc: x@y.in' });
+    expect(sent[1].subject).not.toMatch(/[\r\n]/);
   });
 });

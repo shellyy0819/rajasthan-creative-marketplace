@@ -6,6 +6,9 @@ import { verifyCityRef } from './city-ref';
 import { ApiError } from './errors';
 import { mailConfigured, sendMail } from './mailer';
 import { normalizePhone } from './phone';
+import { contactEmail } from './site';
+import { otpSender } from './settings';
+import { notifyTeam } from './workshop-notify';
 import { isRequestImageUrl, storageConfig } from './storage';
 import { EMAIL_RE, bad, int, obj, oneOf, optionalText, text } from './validate';
 
@@ -128,18 +131,18 @@ function secret(): string {
 }
 const hashCode = (id: string, code: string) => createHmac('sha256', secret()).update(`${id}:${code}`).digest('hex');
 
-/** Makes a fresh code for the request, stores only its hash and emails it. In production a missing email setup is a 503; elsewhere the code is logged. */
+/** Makes a fresh code for the request, stores only its hash and emails it. Email not set up, or not sendable, is a 503 (a new request is then kept without a code, see createWorkshopRequest). */
 async function issueCode(id: string, email: string): Promise<void> {
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
-  if (!(await mailConfigured()) && process.env.NODE_ENV === 'production') throw new ApiError(503, 'Email verification is not set up yet. Please try again later.');
+  if (!(await mailConfigured())) throw new ApiError(503, 'Email verification is not set up yet. Please try again later.');
   const now = new Date();
   await getDb().update(workshopRequests).set({
     codeHash: hashCode(id, code), codeExpiresAt: new Date(now.getTime() + CODE_TTL_MS), codeAttempts: 0, codeSentAt: now, codeSends: sql`${workshopRequests.codeSends} + 1`,
   }).where(eq(workshopRequests.id, id));
-  if (!(await mailConfigured())) { console.info(`[workshop-request] Email is not configured; verification code for ${email}: ${code}`); return; }
   try {
     await sendMail({
-      to: email, subject: 'Your Craftofy verification code',
+      to: email, from: await otpSender(), replyTo: contactEmail(), // a reply to the no-reply address would go nowhere, so it goes to the team
+      subject: 'Your Craftofy verification code',
       text: `Your Craftofy verification code is ${code}.\n\nIt expires in 10 minutes. If you did not ask to host a workshop on Craftofy, you can ignore this email.\n`,
     });
   } catch (e) {
@@ -165,9 +168,9 @@ export async function resendWorkshopRequestCode(id: unknown): Promise<void> {
 }
 
 /** Confirms the emailed code; the request then becomes visible to admins. Five wrong tries burn the code. */
-export async function verifyWorkshopRequestCode(id: unknown, code: unknown): Promise<WorkshopRequest> {
+export async function verifyWorkshopRequestCode(id: unknown, code: unknown): Promise<WorkshopRequest & { notified: boolean }> {
   const row = await loadUnverified(id);
-  if (row.status === 'received') return toRequest(row);
+  if (row.status === 'received') return { ...toRequest(row), notified: false };
   const given = typeof code === 'string' ? code.trim() : '';
   if (!/^\d{6}$/.test(given)) throw bad('code must be the 6 digits from the email.');
   if (!row.codeHash || !row.codeExpiresAt) throw new ApiError(400, 'Ask for a new code.');
@@ -181,7 +184,9 @@ export async function verifyWorkshopRequestCode(id: unknown, code: unknown): Pro
   }
   const [done] = await db.update(workshopRequests).set({ status: 'received', verifiedAt: new Date(), codeHash: null, codeExpiresAt: null })
     .where(and(eq(workshopRequests.id, row.id), eq(workshopRequests.status, 'unverified'))).returning();
-  return toRequest(done ?? { ...row, status: 'received' });
+  const confirmed = toRequest(done ?? { ...row, status: 'received', verifiedAt: new Date() });
+  // Only the call that confirmed it tells the team, so repeating the call never sends a second email.
+  return { ...confirmed, notified: done ? await notifyTeam(confirmed, KIND_LABEL[confirmed.kind]) : false };
 }
 
 /** Drops requests that never confirmed their email within a day. */

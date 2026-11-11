@@ -29,10 +29,19 @@ describe('/api/admin/settings/email', () => {
     const put = await PUT(req({ from: 'hello@craftofy.online', apiKey: 're_abcdefgh1234' }));
     expect(put.status).toBe(200);
     const got = await (await GET()).json();
-    expect(got).toEqual({ from: 'hello@craftofy.online', apiKeySet: true, apiKeyHint: '1234', source: 'saved' });
+    expect(got).toMatchObject({ provider: 'resend', from: 'hello@craftofy.online', apiKeySet: true, apiKeyHint: '1234', source: 'saved' });
     expect(JSON.stringify(got)).not.toContain('re_abcdefgh');
     expect((await PUT(req({ from: 'bad', apiKey: '' }))).status).toBe(400);
     expect((await (await DELETE()).json()).source).toBe('none');
+  });
+  it('saves SMTP settings through the API without ever returning the password', async () => {
+    as('admin');
+    const smtp = { provider: 'smtp', from: 'hello.craftofy@gmail.com', host: 'smtp.gmail.com', port: 465, secure: true, user: 'hello.craftofy@gmail.com', password: 'sup3r secret pass' };
+    expect((await PUT(req(smtp))).status).toBe(200);
+    const got = await (await GET()).json();
+    expect(got).toMatchObject({ provider: 'smtp', source: 'saved', smtp: { host: 'smtp.gmail.com', passwordSet: true } });
+    expect(JSON.stringify(got)).not.toContain('sup3r');
+    expect((await PUT(req({ ...smtp, port: 0 }))).status).toBe(400);
   });
   it('sends a test email to the admin by default and reports a sender failure', async () => {
     as('admin');
