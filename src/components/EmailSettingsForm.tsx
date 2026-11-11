@@ -2,6 +2,7 @@
 import { useCallback, useState } from 'react';
 import { Toast, type ToastState } from './Toast';
 import type { EmailSettingsView, MailProvider } from '@/lib/settings';
+import { OTP_FROM } from '@/lib/site';
 
 const SOURCE: Record<EmailSettingsView['source'], string> = {
   saved: 'Using the settings saved here.',
@@ -15,6 +16,7 @@ export function EmailSettingsForm({ initial, adminEmail }: { initial: EmailSetti
   const [provider, setProvider] = useState<MailProvider>(initial.provider);
   const [from, setFrom] = useState(initial.from);
   const [apiKey, setApiKey] = useState('');
+  const [otpFrom, setOtpFrom] = useState(initial.otpFrom);
   const [sFrom, setSFrom] = useState(initial.smtp.from);
   const [host, setHost] = useState(initial.smtp.host);
   const [port, setPort] = useState(String(initial.smtp.port));
@@ -33,7 +35,7 @@ export function EmailSettingsForm({ initial, adminEmail }: { initial: EmailSetti
 
   /** Shows what the server saved, so the boxes match it and the secret boxes are empty again. */
   function adopt(v: EmailSettingsView) {
-    setView(v); setProvider(v.provider); setFrom(v.from); setApiKey('');
+    setView(v); setProvider(v.provider); setFrom(v.from); setApiKey(''); setOtpFrom(v.otpFrom);
     setSFrom(v.smtp.from); setHost(v.smtp.host); setPort(String(v.smtp.port)); setSecure(v.smtp.secure); setUser(v.smtp.user); setPassword('');
   }
 
@@ -57,7 +59,7 @@ export function EmailSettingsForm({ initial, adminEmail }: { initial: EmailSetti
         <p className="settings-lead">Sends the confirmation code when someone asks to host a workshop. Send it with Resend (verify your domain there first) or with any SMTP mail account.</p>
       <form className="admin-form" onSubmit={async e => {
         e.preventDefault();
-        const body = provider === 'smtp' ? { provider, from: sFrom, host, port: Number(port), secure, user, password } : { provider, from, apiKey };
+        const body = provider === 'smtp' ? { provider, from: sFrom, host, port: Number(port), secure, user, password } : { provider, from, apiKey, otpFrom };
         const data = await call('save', '/api/admin/settings/email', 'PUT', body);
         if (data) { adopt(data as EmailSettingsView); notify('success', 'Email settings saved.'); }
       }}>
@@ -82,6 +84,10 @@ export function EmailSettingsForm({ initial, adminEmail }: { initial: EmailSetti
               <input name="apiKey" type="password" required={!view.apiKeySet || view.source !== 'saved'} maxLength={300} value={apiKey} onChange={e => setApiKey(e.target.value)}
                 placeholder={view.apiKeySet && view.source === 'saved' ? 'Leave empty to keep the saved key' : 're_...'} autoComplete="new-password" />
               <small>Stored encrypted. It is never shown again after you save.</small>
+            </label>
+            <label><span className="lbl">Email verification sender</span>
+              <input name="otpFrom" type="text" maxLength={200} value={otpFrom} onChange={e => setOtpFrom(e.target.value)} placeholder={OTP_FROM} autoComplete="off" />
+              <small>Optional. The email verification code that visitors get is sent from this address. Leave empty to use {OTP_FROM}. It must be on the domain you verified in Resend; nothing else needs setting up.</small>
             </label>
           </>
         ) : (

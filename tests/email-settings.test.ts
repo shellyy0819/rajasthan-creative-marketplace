@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { appSettings } from '@/db/schema';
 import { open, seal } from '@/lib/secret-box';
-import { clearEmailSettings, getEmailSettings, resolveMailConfig, saveEmailSettings } from '@/lib/settings';
+import { clearEmailSettings, getEmailSettings, otpSender, resolveMailConfig, saveEmailSettings } from '@/lib/settings';
 import { getTestDb, resetTestDb } from './helpers/testdb';
 
 process.env.NEXTAUTH_SECRET = 'test-secret';
@@ -25,7 +25,7 @@ describe('secret box', () => {
 
 describe('email settings', () => {
   it('starts empty, saves the sender and key, and only ever shows the last 4 characters', async () => {
-    expect(await getEmailSettings()).toEqual({ provider: 'resend', from: '', apiKeySet: false, smtp: { from: '', host: '', port: 465, secure: true, user: '', passwordSet: false }, source: 'none' });
+    expect(await getEmailSettings()).toEqual({ provider: 'resend', from: '', otpFrom: '', apiKeySet: false, smtp: { from: '', host: '', port: 465, secure: true, user: '', passwordSet: false }, source: 'none' });
     expect(await resolveMailConfig()).toBeNull();
     const v = await saveEmailSettings({ from: ' Craftofy <hello@craftofy.online> ', apiKey: KEY }, 'admin@x.co');
     expect(v).toMatchObject({ provider: 'resend', from: 'Craftofy <hello@craftofy.online>', apiKeySet: true, apiKeyHint: '5678', source: 'saved' });
@@ -118,5 +118,24 @@ describe('smtp provider', () => {
   it('accepts a numeric string for the port', async () => {
     await saveEmailSettings({ ...SMTP, port: '587', secure: false }, 'a@x.co');
     expect(await resolveMailConfig()).toMatchObject({ port: 587, secure: false });
+  });
+});
+
+describe('verification code sender', () => {
+  it('defaults to no-reply@craftofy.online until one is saved, and blank puts the default back', async () => {
+    expect(await otpSender()).toBe('Craftofy <no-reply@craftofy.online>');
+    const v = await saveEmailSettings({ from: 'hello@craftofy.online', apiKey: KEY, otpFrom: ' Craftofy Verify <verify@craftofy.online> ' }, 'a@x.co');
+    expect(v.otpFrom).toBe('Craftofy Verify <verify@craftofy.online>');
+    expect(await otpSender()).toBe('Craftofy Verify <verify@craftofy.online>');
+    expect((await saveEmailSettings({ from: 'hello@craftofy.online', apiKey: '', otpFrom: '' }, 'a@x.co')).otpFrom).toBe('');
+    expect(await otpSender()).toBe('Craftofy <no-reply@craftofy.online>');
+  });
+  it('is validated like the main sender, and survives a switch to SMTP', async () => {
+    for (const bad of ['nope', 'a@b', 'Evil <x@y.in>\nBcc: z@y.in', 5]) {
+      await expect(saveEmailSettings({ from: 'hello@craftofy.online', apiKey: KEY, otpFrom: bad }, 'a@x.co')).rejects.toMatchObject({ status: 400, message: expect.stringMatching(/otpFrom/) });
+    }
+    await saveEmailSettings({ from: 'hello@craftofy.online', apiKey: KEY, otpFrom: 'verify@craftofy.online' }, 'a@x.co');
+    await saveEmailSettings(SMTP, 'a@x.co');
+    expect(await otpSender()).toBe('verify@craftofy.online');
   });
 });

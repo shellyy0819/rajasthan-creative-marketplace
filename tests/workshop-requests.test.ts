@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { ROLE_ID } from '@/db/people';
 import { userRoles, users, workshopRequests } from '@/db/schema';
 import { setMailSenderForTests, type Mail } from '@/lib/mailer';
-import { envMailConfig } from '@/lib/settings';
+import { envMailConfig, saveEmailSettings } from '@/lib/settings';
 import { submitErrorMessage } from '@/lib/workshop-requests-shared';
 import { createWorkshopRequest, listWorkshopRequests, resendWorkshopRequestCode, verifyWorkshopRequestCode } from '@/lib/workshop-requests';
 import { signCityRef } from '@/lib/city-ref';
@@ -56,6 +56,17 @@ describe('email verification', () => {
     const [row] = await (await getTestDb()).select().from(workshopRequests);
     expect(row).toMatchObject({ status: 'received', codeHash: null });
     expect(row.verifiedAt).toBeInstanceOf(Date);
+  });
+  it('always sends the code from no-reply@craftofy.online, with replies going to the Craftofy address', async () => {
+    process.env.CONTACT_EMAIL = 'hello@craftofy.test';
+    await createWorkshopRequest(ok);
+    expect(sent[0]).toMatchObject({ from: 'Craftofy <no-reply@craftofy.online>', replyTo: 'hello@craftofy.test' });
+    delete process.env.CONTACT_EMAIL;
+  });
+  it('sends the code from the verification sender saved in Settings', async () => {
+    await saveEmailSettings({ from: 'hello@craftofy.online', apiKey: 're_abcdefgh12345678', otpFrom: 'Craftofy Verify <verify@craftofy.online>' }, 'a@x.co');
+    await createWorkshopRequest(ok);
+    expect(sent[0].from).toBe('Craftofy Verify <verify@craftofy.online>');
   });
   it('stores only a hash of the code', async () => {
     await createWorkshopRequest(ok);
@@ -187,6 +198,7 @@ describe('team notification', () => {
     expect(team.to).toEqual(expect.arrayContaining(['hello@craftofy.test', 'Boss@x.co', 'db.admin@x.co']));
     expect(team.to).toHaveLength(3); // no duplicates, and no inactive admin
     expect(team.replyTo).toBe('asha@flea.in');
+    expect(team.from).toBeUndefined(); // the team email uses the sender saved in Settings
     expect(team.subject).toBe('New workshop request: Nomad of Winter (Flea market, Ahmedabad, Gujarat)');
     for (const part of ['Nomad of Winter', 'Flea market', 'Stalls and music', '2026-12-18', '10:00-12:30', 'Riverfront', 'Ahmedabad, Gujarat', 'Seats: 20', 'Rs. 350 per person', 'Urban Flea', 'Asha', '+919989898999', 'asha@flea.in', 'urbanflea', 'https://flea.in', 'Bring tables', 'Dashboard > Workshop requests']) {
       expect(team.text).toContain(part);

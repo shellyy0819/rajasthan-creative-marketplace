@@ -67,4 +67,16 @@ describe('sendMail over SMTP', () => {
     expect(plain).not.toHaveProperty('reply_to');
     fetchMock.mockRestore();
   });
+  it('uses a per-mail sender over Resend, but SMTP always sends as the saved account', async () => {
+    await saveEmailSettings({ provider: 'resend', from: 'Craftofy <hello@craftofy.online>', apiKey: 're_abcdefgh12345678' }, 'a@x.co');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }));
+    await sendMail({ ...mail, from: 'Craftofy <no-reply@craftofy.online>' });
+    expect(JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body)).from).toBe('Craftofy <no-reply@craftofy.online>');
+    await sendMail(mail);
+    expect(JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body)).from).toBe('Craftofy <hello@craftofy.online>');
+    fetchMock.mockRestore();
+    await saveEmailSettings(SMTP, 'a@x.co');
+    await sendMail({ ...mail, from: 'Craftofy <no-reply@craftofy.online>' });
+    expect(sendMailMock).toHaveBeenCalledWith(expect.objectContaining({ from: SMTP.from }));
+  });
 });

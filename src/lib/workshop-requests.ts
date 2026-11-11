@@ -6,6 +6,8 @@ import { verifyCityRef } from './city-ref';
 import { ApiError } from './errors';
 import { mailConfigured, sendMail } from './mailer';
 import { normalizePhone } from './phone';
+import { contactEmail } from './site';
+import { otpSender } from './settings';
 import { notifyTeam } from './workshop-notify';
 import { isRequestImageUrl, storageConfig } from './storage';
 import { EMAIL_RE, bad, int, obj, oneOf, optionalText, text } from './validate';
@@ -139,7 +141,8 @@ async function issueCode(id: string, email: string): Promise<void> {
   }).where(eq(workshopRequests.id, id));
   try {
     await sendMail({
-      to: email, subject: 'Your Craftofy verification code',
+      to: email, from: await otpSender(), replyTo: contactEmail(), // a reply to the no-reply address would go nowhere, so it goes to the team
+      subject: 'Your Craftofy verification code',
       text: `Your Craftofy verification code is ${code}.\n\nIt expires in 10 minutes. If you did not ask to host a workshop on Craftofy, you can ignore this email.\n`,
     });
   } catch (e) {

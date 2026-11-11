@@ -1,7 +1,11 @@
 import { resolveMailConfig, type SmtpConfig } from './settings';
 
-/** `to` may be several addresses (all see each other: use it for the team only). `replyTo` makes Reply go to that person. */
-export type Mail = { to: string | string[]; subject: string; text: string; replyTo?: string };
+/**
+ * `to` may be several addresses (all see each other: use it for the team only). `replyTo` makes Reply go to that person.
+ * `from` overrides the saved sender for Resend only (the address must be on the verified domain). SMTP servers only send as the account
+ * that logged in, so over SMTP it is ignored and the saved sender is used.
+ */
+export type Mail = { to: string | string[]; subject: string; text: string; replyTo?: string; from?: string };
 type Send = (mail: Mail) => Promise<void>;
 
 let override: Send | null = null;
@@ -39,7 +43,7 @@ export async function sendMail(mail: Mail): Promise<void> {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { authorization: `Bearer ${cfg.apiKey}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ from: cfg.from, to: Array.isArray(mail.to) ? mail.to : [mail.to], subject: mail.subject, text: mail.text, ...(mail.replyTo ? { reply_to: mail.replyTo } : {}) }),
+    body: JSON.stringify({ from: mail.from ?? cfg.from, to: Array.isArray(mail.to) ? mail.to : [mail.to], subject: mail.subject, text: mail.text, ...(mail.replyTo ? { reply_to: mail.replyTo } : {}) }),
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) {

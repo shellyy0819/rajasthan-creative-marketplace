@@ -3,6 +3,7 @@ import { getDb } from '../db/client';
 import { appSettings } from '../db/schema';
 import { ApiError } from './errors';
 import { open, seal } from './secret-box';
+import { OTP_FROM } from './site';
 import { EMAIL_RE, bad, obj, optionalText } from './validate';
 
 export type MailProvider = 'resend' | 'smtp';
@@ -15,12 +16,13 @@ export type MailConfig = ResendConfig | SmtpConfig;
  * Rows saved before SMTP existed have no `provider` and only the Resend fields, and are read as Resend. Secrets are sealed.
  */
 type StoredSmtp = { from: string; host: string; port: number; secure: boolean; user: string; pass: string /* sealed */ };
-type StoredEmail = { provider?: MailProvider; from?: string; apiKey?: string /* sealed */; smtp?: StoredSmtp };
+type StoredEmail = { provider?: MailProvider; from?: string; apiKey?: string /* sealed */; otpFrom?: string; smtp?: StoredSmtp };
 
 /** What the admin screen may see: never a secret itself. For Resend only whether a key is saved and its last 4 characters; for SMTP only whether a password is saved. */
 export type EmailSettingsView = {
   provider: MailProvider;
   from: string; apiKeySet: boolean; apiKeyHint?: string; // the Resend details
+  otpFrom: string; // sender of verification codes over Resend; empty means the default (OTP_FROM)
   smtp: { from: string; host: string; port: number; secure: boolean; user: string; passwordSet: boolean };
   source: 'saved' | 'environment' | 'none';
 };
@@ -40,7 +42,8 @@ async function readStored(): Promise<StoredEmail | null> {
   const smtp = v.smtp && typeof v.smtp.host === 'string' && typeof v.smtp.pass === 'string' ? v.smtp : undefined;
   const resend = typeof v.from === 'string' && typeof v.apiKey === 'string';
   if (!smtp && !resend) return null;
-  return { provider: v.provider === 'smtp' ? 'smtp' : 'resend', ...(resend ? { from: v.from, apiKey: v.apiKey } : {}), ...(smtp ? { smtp } : {}) };
+  const otpFrom = typeof v.otpFrom === 'string' && v.otpFrom ? v.otpFrom : undefined;
+  return { provider: v.provider === 'smtp' ? 'smtp' : 'resend', ...(resend ? { from: v.from, apiKey: v.apiKey } : {}), ...(otpFrom ? { otpFrom } : {}), ...(smtp ? { smtp } : {}) };
 }
 
 function storedResend(stored: StoredEmail | null): ResendConfig | null {
@@ -63,7 +66,7 @@ export async function getEmailSettings(): Promise<EmailSettingsView> {
   const stored = await readStored();
   const resend = storedResend(stored), smtp = storedSmtp(stored);
   const view = {
-    from: stored?.from ?? '',
+    from: stored?.from ?? '', otpFrom: stored?.otpFrom ?? '',
     apiKeySet: !!resend, ...(resend ? { apiKeyHint: resend.apiKey.slice(-4) } : {}),
     smtp: stored?.smtp ? { from: stored.smtp.from, host: stored.smtp.host, port: stored.smtp.port, secure: stored.smtp.secure, user: stored.smtp.user, passwordSet: !!smtp } : EMPTY_SMTP,
   };
@@ -84,6 +87,14 @@ const cleanFrom = (v: unknown) => {
   if (!from || from.length > 200 || !FROM_RE.test(from)) throw bad('from must be an email address like hello@yourdomain.com or Craftofy <hello@yourdomain.com>.');
   return from;
 };
+
+/** The optional sender for verification codes. Blank clears it, so the default (OTP_FROM) applies. */
+function otpFromField(raw: Record<string, unknown>): { otpFrom?: string } {
+  const v = typeof raw.otpFrom === 'string' ? raw.otpFrom.trim() : '';
+  if (raw.otpFrom !== undefined && raw.otpFrom !== null && typeof raw.otpFrom !== 'string') throw bad('otpFrom must be text.');
+  if (!v) return {};
+  try { return { otpFrom: cleanFrom(v) }; } catch { throw bad('otpFrom must be an email address like no-reply@yourdomain.com or Craftofy <no-reply@yourdomain.com>.'); }
+}
 
 function resendFields(raw: Record<string, unknown>, stored: StoredEmail | null): { from: string; apiKey: string } {
   const from = cleanFrom(raw.from);
@@ -129,8 +140,8 @@ export async function saveEmailSettings(input: unknown, actorEmail: string): Pro
   if (provider !== 'resend' && provider !== 'smtp') throw bad('provider must be resend or smtp.');
   const stored = await readStored();
   const value: StoredEmail = provider === 'smtp'
-    ? { ...(stored?.from && stored.apiKey ? { from: stored.from, apiKey: stored.apiKey } : {}), provider, smtp: smtpFields(raw, stored) }
-    : { ...(stored?.smtp ? { smtp: stored.smtp } : {}), provider, ...resendFields(raw, stored) };
+    ? { ...(stored?.from && stored.apiKey ? { from: stored.from, apiKey: stored.apiKey } : {}), ...(stored?.otpFrom ? { otpFrom: stored.otpFrom } : {}), provider, smtp: smtpFields(raw, stored) }
+    : { ...(stored?.smtp ? { smtp: stored.smtp } : {}), provider, ...resendFields(raw, stored), ...otpFromField(raw) };
   await getDb().insert(appSettings).values({ key: 'email', value, updatedBy: actorEmail })
     .onConflictDoUpdate({ target: appSettings.key, set: { value, updatedBy: actorEmail, updatedAt: new Date() } });
   return getEmailSettings();
@@ -140,6 +151,12 @@ export async function saveEmailSettings(input: unknown, actorEmail: string): Pro
 export async function clearEmailSettings(): Promise<EmailSettingsView> {
   await getDb().delete(appSettings).where(eq(appSettings.key, 'email'));
   return getEmailSettings();
+}
+
+/** Who verification codes are sent from (over Resend; SMTP always sends as its own account): the saved sender, else no-reply@craftofy.online. */
+export async function otpSender(): Promise<string> {
+  const stored = await readStored().catch(() => null);
+  return stored?.otpFrom ?? OTP_FROM;
 }
 
 export function assertEmail(v: unknown): string {
