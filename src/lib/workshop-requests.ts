@@ -18,7 +18,7 @@ export const KIND_LABEL: Record<RequestKind, string> = { workshop: 'Workshop', m
 export type WorkshopRequest = {
   id: string; hostName: string; contactName: string; phone: string; email: string; city: string; venue: string; title: string;
   kind: RequestKind; description: string; startDate: string; endDate: string; startTime?: string; endTime?: string;
-  status: 'unverified' | 'received'; images: string[]; seats?: number; priceType: 'FREE' | 'PAID'; pricePaise?: number; instagram?: string; website?: string; notes?: string; createdAt: string;
+  status: 'unverified' | 'received'; emailVerified: boolean; images: string[]; seats?: number; priceType: 'FREE' | 'PAID'; pricePaise?: number; instagram?: string; website?: string; notes?: string; createdAt: string;
 };
 
 const toRequest = (r: typeof workshopRequests.$inferSelect): WorkshopRequest => ({
@@ -27,7 +27,7 @@ const toRequest = (r: typeof workshopRequests.$inferSelect): WorkshopRequest => 
   ...(r.startTime ? { startTime: r.startTime } : {}), ...(r.endTime ? { endTime: r.endTime } : {}),
   ...(r.seats != null ? { seats: r.seats } : {}), priceType: r.priceType as 'FREE' | 'PAID', ...(r.pricePaise != null ? { pricePaise: r.pricePaise } : {}),
   ...(r.instagram ? { instagram: r.instagram } : {}), ...(r.website ? { website: r.website } : {}), ...(r.notes ? { notes: r.notes } : {}),
-  status: r.status as 'unverified' | 'received', images: r.images ?? [], createdAt: r.createdAt.toISOString(),
+  status: r.status as 'unverified' | 'received', emailVerified: r.verifiedAt != null, images: r.images ?? [], createdAt: r.createdAt.toISOString(),
 });
 
 function isoDate(v: unknown, field: string): string {
@@ -95,13 +95,19 @@ export async function createWorkshopRequest(input: unknown): Promise<WorkshopReq
   try {
     await issueCode(row.id, row.email);
   } catch (e) {
-    await getDb().delete(workshopRequests).where(eq(workshopRequests.id, row.id)); // nothing was sent, so keep no half-finished request
+    if (e instanceof ApiError && e.status === 503) {
+      // Email cannot go out right now (not set up, or the provider refused). The visitor's details are good, so keep them for the admins
+      // as a received request whose email is not confirmed, instead of failing the visitor over something they cannot fix.
+      const [kept] = await getDb().update(workshopRequests).set({ status: 'received', codeHash: null, codeExpiresAt: null }).where(eq(workshopRequests.id, row.id)).returning();
+      return toRequest(kept ?? { ...row, status: 'received' });
+    }
+    await getDb().delete(workshopRequests).where(eq(workshopRequests.id, row.id)); // anything else went wrong: keep no half-finished request
     throw e;
   }
   return toRequest(row);
 }
 
-/** Only requests whose email was confirmed with the emailed code. */
+/** Requests whose email was confirmed with the emailed code, plus ones kept as received because the code email could not be sent (see emailVerified). */
 export async function listWorkshopRequests(): Promise<WorkshopRequest[]> {
   return (await getDb().select().from(workshopRequests).where(eq(workshopRequests.status, 'received'))
     .orderBy(desc(workshopRequests.createdAt), desc(workshopRequests.id))).map(toRequest);
@@ -138,7 +144,7 @@ async function issueCode(id: string, email: string): Promise<void> {
     });
   } catch (e) {
     console.error('could not send the verification email:', (e as Error)?.message ?? 'error');
-    throw new ApiError(502, 'We could not send the code. Check the email address and try again.');
+    throw new ApiError(503, 'We could not send the code right now. Please try again in a few minutes.');
   }
 }
 

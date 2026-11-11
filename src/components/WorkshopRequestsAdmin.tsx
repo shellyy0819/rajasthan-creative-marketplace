@@ -30,7 +30,7 @@ export function WorkshopRequestsAdmin({ requests }: { requests: WorkshopRequest[
                 <td>{r.seats ?? 'Open'} · {r.priceType === 'PAID' && r.pricePaise != null ? `Rs. ${r.pricePaise / 100}` : 'Free'}</td>
                 <td>{r.hostName}<br />{r.instagram && <a href={instagramUrl(r.instagram)} target="_blank" rel="noreferrer">{r.instagram}</a>}{site && <> <a href={site} target="_blank" rel="noreferrer">{site.replace(/^https?:\/\//i, '')}</a></>}</td>
                 <td>{r.images.length ? r.images.map((u, i) => <a key={u} href={u} target="_blank" rel="noreferrer">{i ? ', ' : ''}Photo {i + 1}</a>) : '—'}</td>
-                <td>{r.contactName}<br /><a href={`tel:${r.phone}`}>{r.phone}</a><br /><a href={`mailto:${r.email}`}>{r.email}</a></td>
+                <td>{r.contactName}<br /><a href={`tel:${r.phone}`}>{r.phone}</a><br /><a href={`mailto:${r.email}`}>{r.email}</a>{!r.emailVerified && <><br /><small className="muted">Email not confirmed (the code email could not be sent)</small></>}</td>
               </tr>
             );
           })}

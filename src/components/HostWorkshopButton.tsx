@@ -4,13 +4,14 @@ import { createPortal } from 'react-dom';
 import { CityInput } from './CityInput';
 import { ImageUploader } from './ImageUploader';
 import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
-import { MAX_REQUEST_IMAGES } from '@/lib/workshop-requests-shared';
+import { DEFAULT_CONTACT_EMAIL } from '@/lib/site';
+import { MAX_REQUEST_IMAGES, submitErrorMessage } from '@/lib/workshop-requests-shared';
 
 const field = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 const fmtDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
 /** "Host a workshop": opens a form that collects every detail we need to list a workshop, meetup, pop-up or flea market. */
-export function HostWorkshopButton({ className = 'button outline' }: { className?: string }) {
+export function HostWorkshopButton({ className = 'button outline', contactEmail = DEFAULT_CONTACT_EMAIL }: { className?: string; contactEmail?: string }) {
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -21,7 +22,7 @@ export function HostWorkshopButton({ className = 'button outline' }: { className
   const [pending, setPending] = useState<{ id: string; name: string; email: string; from: string; to: string } | null>(null);
   const [info, setInfo] = useState('');
   const [wait, setWait] = useState(0); // seconds until another code may be requested
-  const [done, setDone] = useState<{ name: string; email: string; from: string; to: string } | null>(null);
+  const [done, setDone] = useState<{ name: string; email: string; from: string; to: string; confirmed: boolean } | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
 
   const close = () => { setOpen(false); trigger.current?.focus(); };
@@ -38,27 +39,29 @@ export function HostWorkshopButton({ className = 'button outline' }: { className
     return () => clearTimeout(t);
   }, [wait]);
 
-  async function post(url: string, body: unknown): Promise<{ ok: boolean; data: Record<string, string> | null }> {
+  /** One POST to the workshop API. On failure `error` is the message to show the visitor. */
+  async function post(url: string, body: unknown): Promise<{ ok: boolean; data: Record<string, string> | null; error: string }> {
     try {
       const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-      return { ok: r.ok, data: await r.json().catch(() => null) };
-    } catch { return { ok: false, data: { error: 'Network error. Please try again.' } }; }
+      const data = await r.json().catch(() => null);
+      return { ok: r.ok, data, error: r.ok ? '' : submitErrorMessage(r.status, data?.error, contactEmail) };
+    } catch { return { ok: false, data: null, error: submitErrorMessage(0, null, contactEmail) }; }
   }
 
   async function verify(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (sending || !pending) return;
     setSending(true); setError(''); setInfo('');
-    const { ok, data } = await post('/api/workshop-requests/verify', { id: pending.id, code: field(new FormData(e.currentTarget), 'code') });
-    if (!ok) { setError(data?.error ?? 'Something went wrong. Please try again.'); setSending(false); return; }
-    setDone({ name: pending.name, email: pending.email, from: pending.from, to: pending.to }); setPending(null); setSending(false);
+    const { ok, error } = await post('/api/workshop-requests/verify', { id: pending.id, code: field(new FormData(e.currentTarget), 'code') });
+    if (!ok) { setError(error); setSending(false); return; }
+    setDone({ name: pending.name, email: pending.email, from: pending.from, to: pending.to, confirmed: true }); setPending(null); setSending(false);
   }
 
   async function resend() {
     if (sending || wait > 0 || !pending) return;
     setSending(true); setError(''); setInfo('');
-    const { ok, data } = await post('/api/workshop-requests/resend', { id: pending.id });
-    if (!ok) setError(data?.error ?? 'Something went wrong. Please try again.');
+    const { ok, error } = await post('/api/workshop-requests/resend', { id: pending.id });
+    if (!ok) setError(error);
     else { setInfo(`We sent a new code to ${pending.email}.`); setWait(60); }
     setSending(false);
   }
@@ -75,7 +78,8 @@ export function HostWorkshopButton({ className = 'button outline' }: { className
             </div>
             {done ? (
               <div>
-                <p>Thank you, {done.name}. Your email is confirmed and we have your details. We will write to you on {done.email} soon.</p>
+                <p><b>Your workshop details are submitted.</b></p>
+                <p>Thank you, {done.name}. {done.confirmed ? 'Your email is confirmed and we' : 'We'} have your details and will write to you on {done.email} soon.</p>
                 <p>Dates received: {done.from === done.to ? done.from : `${done.from} to ${done.to}`}.</p>
                 <div className="admin-actions"><button type="button" className="button primary" onClick={close}>Done</button></div>
               </div>
@@ -107,12 +111,13 @@ export function HostWorkshopButton({ className = 'button outline' }: { className
                   instagram: field(f, 'instagram'), website: field(f, 'website'), notes: field(f, 'notes'), images: f.getAll('images').map(v => String(v).trim()).filter(Boolean), companyWebsite: field(f, 'companyWebsite'),
                 };
                 try {
-                  const r = await fetch('/api/workshop-requests', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-                  const data = await r.json().catch(() => null);
-                  if (!r.ok) { setError(data?.error ?? 'Something went wrong. Please try again.'); setSending(false); return; }
-                  setPending({ id: data.id, name: body.contactName, email: data.email ?? body.email, from: fmtDate(body.startDate), to: fmtDate(body.endDate || body.startDate) });
+                  const { ok, data, error } = await post('/api/workshop-requests', body);
+                  if (!ok || !data) { setError(error || submitErrorMessage(0, null, contactEmail)); setSending(false); return; }
+                  const summary = { name: body.contactName, email: data.email ?? body.email, from: fmtDate(body.startDate), to: fmtDate(body.endDate || body.startDate) };
+                  if (data.status === 'received') { setDone({ ...summary, confirmed: false }); setSending(false); return; } // the code email could not be sent; we still have the details
+                  setPending({ id: data.id, ...summary });
                   setWait(60); setSending(false);
-                } catch { setError('Network error. Please try again.'); setSending(false); }
+                } catch { setError(submitErrorMessage(0, null, contactEmail)); setSending(false); }
               }}>
                 <p className="form-note">Tell us about your event. We will review it and get back to you.</p>
                 {error && <p role="alert" className="admin-error">{error}</p>}
