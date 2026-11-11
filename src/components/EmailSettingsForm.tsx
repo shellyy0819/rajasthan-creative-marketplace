@@ -28,6 +28,9 @@ export function EmailSettingsForm({ initial, adminEmail }: { initial: EmailSetti
   const notify = (kind: 'success' | 'error', text: string) => setToast({ id: Date.now() + Math.random(), kind, text });
   const closeToast = useCallback(() => setToast(null), []);
 
+  /** The saved SMTP password is kept only for the same server, port and username; changing any of them means typing it again. */
+  const keepsPassword = view.smtp.passwordSet && host.trim().toLowerCase() === view.smtp.host && Number(port) === view.smtp.port && user.trim() === view.smtp.user;
+
   /** Shows what the server saved, so the boxes match it and the secret boxes are empty again. */
   function adopt(v: EmailSettingsView) {
     setView(v); setProvider(v.provider); setFrom(v.from); setApiKey('');
@@ -102,8 +105,8 @@ export function EmailSettingsForm({ initial, adminEmail }: { initial: EmailSetti
               <input name="user" type="text" required maxLength={254} value={user} onChange={e => setUser(e.target.value)} placeholder="hello.craftofy@gmail.com" autoComplete="off" />
             </label>
             <label><span className="lbl">Password</span>
-              <input name="password" type="password" required={!view.smtp.passwordSet} maxLength={200} value={password} onChange={e => setPassword(e.target.value)}
-                placeholder={view.smtp.passwordSet ? 'Leave empty to keep the saved password' : 'Password or app password'} autoComplete="new-password" />
+              <input name="password" type="password" required={!keepsPassword} maxLength={200} value={password} onChange={e => setPassword(e.target.value)}
+                placeholder={keepsPassword ? 'Leave empty to keep the saved password' : 'Password or app password'} autoComplete="new-password" />
               <small>For Gmail, use an App Password (Google Account &gt; Security &gt; 2-Step Verification &gt; App passwords), not your normal password. Stored encrypted and never shown again.</small>
             </label>
           </>

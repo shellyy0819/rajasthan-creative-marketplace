@@ -72,10 +72,19 @@ describe('smtp provider', () => {
   });
   it('keeps the saved password when the box is left empty, and replaces it when one is typed', async () => {
     await saveEmailSettings(SMTP, 'a@x.co');
-    await saveEmailSettings({ ...SMTP, password: '', port: 587, secure: false }, 'a@x.co');
-    expect(await resolveMailConfig()).toMatchObject({ provider: 'smtp', port: 587, secure: false, pass: SMTP.password });
+    await saveEmailSettings({ ...SMTP, password: '', from: 'Craftofy <other@craftofy.online>' }, 'a@x.co');
+    expect(await resolveMailConfig()).toMatchObject({ provider: 'smtp', from: 'Craftofy <other@craftofy.online>', pass: SMTP.password });
     await saveEmailSettings({ ...SMTP, password: 'new-secret' }, 'a@x.co');
     expect(await resolveMailConfig()).toMatchObject({ pass: 'new-secret' });
+  });
+  it('never reuses the saved password for another server, port or username', async () => {
+    await saveEmailSettings(SMTP, 'a@x.co');
+    for (const change of [{ host: 'evil.example.com' }, { port: 587 }, { user: 'someone.else@gmail.com' }]) {
+      await expect(saveEmailSettings({ ...SMTP, password: '', ...change }, 'a@x.co')).rejects.toMatchObject({ status: 400, message: expect.stringMatching(/password is required again/) });
+    }
+    expect(await resolveMailConfig()).toMatchObject({ host: 'smtp.gmail.com', port: 465, pass: SMTP.password }); // nothing was overwritten
+    await saveEmailSettings({ ...SMTP, host: 'smtp.other.example', password: 'typed-again' }, 'a@x.co'); // typing it again is fine
+    expect(await resolveMailConfig()).toMatchObject({ host: 'smtp.other.example', pass: 'typed-again' });
   });
   it('keeps the other provider saved when switching, so nothing has to be typed again', async () => {
     await saveEmailSettings({ from: 'hello@craftofy.online', apiKey: KEY }, 'a@x.co');

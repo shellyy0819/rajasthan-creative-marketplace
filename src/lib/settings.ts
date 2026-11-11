@@ -108,9 +108,13 @@ function smtpFields(raw: Record<string, unknown>, stored: StoredEmail | null): S
   const typed = typeof raw.password === 'string' && raw.password !== '' ? raw.password : undefined;
   if (raw.password !== undefined && typeof raw.password !== 'string') throw bad('password must be text.');
   if (typed !== undefined && (typed.length > 200 || /[\r\n]/.test(typed))) throw bad('password is too long or has line breaks.');
+  // A saved password is only ever reused for the same login on the same server. Pointing the settings at another server, port or user
+  // must not make the app present the old password there, so it has to be typed again.
+  const sameTarget = !!stored?.smtp && stored.smtp.host === host && stored.smtp.port === port && stored.smtp.user === user;
   let pass: string;
   if (typed) pass = seal(typed);
-  else if (stored?.smtp && open(stored.smtp.pass)) pass = stored.smtp.pass;
+  else if (sameTarget && open(stored!.smtp!.pass)) pass = stored!.smtp!.pass;
+  else if (stored?.smtp) throw bad('password is required again when the server, port or username changes.');
   else throw bad('password is required the first time.');
   return { from, host, port, secure: raw.secure, user, pass };
 }
