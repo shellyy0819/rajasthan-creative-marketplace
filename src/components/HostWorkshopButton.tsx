@@ -73,7 +73,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
         <div className="contact-backdrop admin-modal" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
           <div role="dialog" aria-modal="true" aria-labelledby="host-title" className="contact-card">
             <div className="dialog-head">
-              <h2 id="host-title">{done ? 'Request received' : pending ? 'Confirm your email' : 'Host a workshop or pop-up'}</h2>
+              <h2 id="host-title">{done ? 'Request received' : pending ? 'Please verify your email' : 'Host a workshop or pop-up'}</h2>
               <button type="button" className="icon-btn" aria-label="Close" onClick={close} disabled={sending}>✕</button>
             </div>
             {done ? (
