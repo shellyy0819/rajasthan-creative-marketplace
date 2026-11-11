@@ -38,6 +38,7 @@ BASE_URL=http://localhost:3000 npm run seo:check   # against a running server
 | `ADMIN_EMAILS` | comma-separated Google emails that get the admin role |
 | `NEXT_PUBLIC_SITE_URL` | public origin for the sitemap, the robots.txt sitemap line, canonical and OG URLs, e.g. `https://craftofy.online` (the public host, not the API host) |
 | `MIGRATE_DATABASE_URL` | Docker backend only: direct (non-pooler) string for the migrate step |
+| `RESEND_API_KEY`, `MAIL_FROM` | optional fallback for outgoing email (the host-a-workshop verification code). Admins normally set the sender address and Resend API key under Dashboard → Settings → Email; what is saved there wins. Saved keys are encrypted with `NEXTAUTH_SECRET`, so changing that secret means entering the key again |
 | `API_PORT` | Docker backend only: host port (default 3001) |
 
 `.env.local` and `.env.backend` are git-ignored. Never commit them or paste connection strings that contain the password.

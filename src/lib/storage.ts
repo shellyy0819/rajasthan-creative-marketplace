@@ -22,7 +22,7 @@ export function storageConfig(env: Record<string, string | undefined> = process.
 
 const extOf = (contentType: unknown) => (typeof contentType === 'string' && Object.hasOwn(IMAGE_TYPES, contentType) ? IMAGE_TYPES[contentType as keyof typeof IMAGE_TYPES] : undefined);
 
-export type UploadArea = { folder: 'products' | 'logos'; types: readonly string[]; typeMessage: string; sizeMessage: string };
+export type UploadArea = { folder: 'products' | 'logos' | 'workshop-requests'; types: readonly string[]; typeMessage: string; sizeMessage: string };
 const PRODUCT_AREA: UploadArea = {
   folder: 'products', types: Object.keys(IMAGE_TYPES),
   typeMessage: 'Photos must be JPEG, PNG or WebP.', sizeMessage: 'Each photo must be between 1 byte and 5 MB.',
@@ -32,6 +32,14 @@ export const LOGO_AREA: UploadArea = {
   folder: 'logos', types: ['image/jpeg', 'image/png'],
   typeMessage: 'Your logo must be a JPG or PNG.', sizeMessage: 'Your logo must be between 1 byte and 5 MB.',
 };
+
+/** Photos sent with the public "host a workshop" form: their own folder, so they are never product photos or deleted with one. */
+export const REQUEST_AREA: UploadArea = {
+  folder: 'workshop-requests', types: Object.keys(IMAGE_TYPES),
+  typeMessage: 'Photos must be JPEG, PNG or WebP.', sizeMessage: 'Each photo must be between 1 byte and 5 MB.',
+};
+/** The folder id used for uploads by people who are not signed in. */
+export const ANON_UPLOADER = 'public';
 
 function newKey(cfg: StorageConfig, userId: string, contentType: string, area: UploadArea): string {
   const ext = area.types.includes(contentType) ? extOf(contentType) : undefined;
@@ -94,4 +102,12 @@ export async function deleteObjects(cfg: StorageConfig, keys: string[], send?: (
   } catch (e) {
     console.error('could not delete stored photos', (e as Error)?.name ?? 'error', keys.length);
   }
+}
+
+/** True when `url` is a public bucket url for a file directly inside the workshop-requests/ folder. */
+export function isRequestImageUrl(cfg: StorageConfig, url: string): boolean {
+  const head = `${cfg.publicBase}/${cfg.keyPrefix}${REQUEST_AREA.folder}/`;
+  if (typeof url !== 'string' || !url.startsWith(head)) return false;
+  const rest = url.slice(head.length).split('/');
+  return rest.length === 2 && rest.every(part => part.length > 0 && part !== '.' && part !== '..' && !/[?#%\\]/.test(part));
 }

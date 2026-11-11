@@ -9,6 +9,9 @@ export const SITE = {
 /** Craftofy's own Instagram account. */
 export const INSTAGRAM_HANDLE = 'craftofy_official';
 
+/** Verification codes (OTP) always come from this address when sending through Resend. Any address on the verified domain works; it needs no setup in Resend and no mailbox. */
+export const OTP_FROM = 'Craftofy <no-reply@craftofy.online>';
+
 const EMAIL = /^[^\s@,?]+@[^\s@,?]+\.[^\s@,?]+$/;
 /** The address used for all communication until a domain address replaces it (set CONTACT_EMAIL to override). */
 export const DEFAULT_CONTACT_EMAIL = 'hello.craftofy@gmail.com';

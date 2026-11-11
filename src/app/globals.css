@@ -1643,6 +1643,37 @@ form label select {
   font-weight: 700;
   padding: 0 6px;
 }
+.admin-form label.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.admin-form label.check input {
+  display: inline-block;
+  width: auto;
+  margin: 0;
+}
+/* Settings page: each group of options is a card inside the shared admin grid (see the skill's "Admin page layout"). */
+.settings-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 24px;
+  max-width: 640px;
+}
+.settings-card h2 {
+  font: 500 22px/1.2 var(--font-display);
+  margin: 0 0 8px;
+}
+.settings-lead {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0 0 16px;
+}
+.settings-card .admin-form label:first-of-type {
+  margin-top: 0;
+}
 .admin-form-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
