@@ -36,7 +36,7 @@ BASE_URL=http://localhost:3000 npm run seo:check   # against a running server
 | `NEXTAUTH_SECRET` | signs session cookies (required; generate with `openssl rand -base64 48`) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth credentials |
 | `ADMIN_EMAILS` | comma-separated Google emails that get the admin role |
-| `NEXT_PUBLIC_SITE_URL` | canonical URL for SEO, sitemap and OG images |
+| `NEXT_PUBLIC_SITE_URL` | public origin for the sitemap, the robots.txt sitemap line, canonical and OG URLs, e.g. `https://craftofy.online` (the public host, not the API host) |
 | `MIGRATE_DATABASE_URL` | Docker backend only: direct (non-pooler) string for the migrate step |
 | `API_PORT` | Docker backend only: host port (default 3001) |
 

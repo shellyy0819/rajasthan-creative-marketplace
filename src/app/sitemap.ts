@@ -1,11 +1,13 @@
 import type { MetadataRoute } from 'next';
-import { abs } from '@/lib/site';
+import { requestOrigin } from '@/lib/request-origin';
 import { listProducts, listWorkshops, productSlug, workshopSlug } from '@/lib/catalog';
 import { listActiveCities } from '@/lib/cities';
 
 export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const origin = await requestOrigin();
+  const abs = (p: string) => origin + p;
   const [products, workshops, cities] = await Promise.all([listProducts(), listWorkshops(), listActiveCities()]);
   return [
     { url: abs('/'), changeFrequency: 'weekly', priority: 1 },

@@ -42,8 +42,8 @@ describe('site', () => {
     expect(abs('shop')).toBe('https://example.com/shop');
   });
   it('upgrades a non-local http url to https but leaves localhost alone', () => {
-    process.env.NEXT_PUBLIC_SITE_URL = 'http://api.craftofy.online';
-    expect(abs('/shop')).toBe('https://api.craftofy.online/shop');
+    process.env.NEXT_PUBLIC_SITE_URL = 'http://old.example.com';
+    expect(abs('/shop')).toBe('https://old.example.com/shop');
     process.env.NEXT_PUBLIC_SITE_URL = 'http://localhost:3001';
     expect(siteUrl()).toBe('http://localhost:3001');
     process.env.NEXT_PUBLIC_SITE_URL = 'http://127.0.0.1:3000';
