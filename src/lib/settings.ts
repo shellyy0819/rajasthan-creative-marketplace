@@ -5,71 +5,134 @@ import { ApiError } from './errors';
 import { open, seal } from './secret-box';
 import { EMAIL_RE, bad, obj, optionalText } from './validate';
 
-export type MailConfig = { apiKey: string; from: string };
-type StoredEmail = { from: string; apiKey: string /* sealed */ };
+export type MailProvider = 'resend' | 'smtp';
+export type ResendConfig = { provider: 'resend'; apiKey: string; from: string };
+export type SmtpConfig = { provider: 'smtp'; host: string; port: number; secure: boolean; user: string; pass: string; from: string };
+export type MailConfig = ResendConfig | SmtpConfig;
 
-/** What the admin screen may see: never the key itself, only whether one is saved and its last 4 characters. */
+/**
+ * The saved row. Both providers can be kept at once so switching never loses the other one's details; `provider` says which is used.
+ * Rows saved before SMTP existed have no `provider` and only the Resend fields, and are read as Resend. Secrets are sealed.
+ */
+type StoredSmtp = { from: string; host: string; port: number; secure: boolean; user: string; pass: string /* sealed */ };
+type StoredEmail = { provider?: MailProvider; from?: string; apiKey?: string /* sealed */; smtp?: StoredSmtp };
+
+/** What the admin screen may see: never a secret itself. For Resend only whether a key is saved and its last 4 characters; for SMTP only whether a password is saved. */
 export type EmailSettingsView = {
-  from: string; apiKeySet: boolean; apiKeyHint?: string; source: 'saved' | 'environment' | 'none';
+  provider: MailProvider;
+  from: string; apiKeySet: boolean; apiKeyHint?: string; // the Resend details
+  smtp: { from: string; host: string; port: number; secure: boolean; user: string; passwordSet: boolean };
+  source: 'saved' | 'environment' | 'none';
 };
 
 const clean = (v: string | undefined) => (v ?? '').trim();
+const EMPTY_SMTP: EmailSettingsView['smtp'] = { from: '', host: '', port: 465, secure: true, user: '', passwordSet: false };
 
-export function envMailConfig(env: Record<string, string | undefined> = process.env): MailConfig | null {
+export function envMailConfig(env: Record<string, string | undefined> = process.env): ResendConfig | null {
   const apiKey = clean(env.RESEND_API_KEY), from = clean(env.MAIL_FROM);
-  return apiKey && from ? { apiKey, from } : null;
+  return apiKey && from ? { provider: 'resend', apiKey, from } : null;
 }
 
 async function readStored(): Promise<StoredEmail | null> {
   const [row] = await getDb().select().from(appSettings).where(eq(appSettings.key, 'email'));
-  const v = row?.value as Partial<StoredEmail> | undefined;
-  return v && typeof v.from === 'string' && typeof v.apiKey === 'string' ? { from: v.from, apiKey: v.apiKey } : null;
+  const v = row?.value as StoredEmail | undefined;
+  if (!v || typeof v !== 'object') return null;
+  const smtp = v.smtp && typeof v.smtp.host === 'string' && typeof v.smtp.pass === 'string' ? v.smtp : undefined;
+  const resend = typeof v.from === 'string' && typeof v.apiKey === 'string';
+  if (!smtp && !resend) return null;
+  return { provider: v.provider === 'smtp' ? 'smtp' : 'resend', ...(resend ? { from: v.from, apiKey: v.apiKey } : {}), ...(smtp ? { smtp } : {}) };
 }
 
-/** The mail settings in use: what an admin saved on the Settings page, otherwise the RESEND_API_KEY / MAIL_FROM environment variables. */
+function storedResend(stored: StoredEmail | null): ResendConfig | null {
+  const apiKey = stored?.apiKey ? open(stored.apiKey) : null;
+  return stored?.from && apiKey ? { provider: 'resend', apiKey, from: stored.from } : null;
+}
+function storedSmtp(stored: StoredEmail | null): SmtpConfig | null {
+  const s = stored?.smtp, pass = s ? open(s.pass) : null;
+  return s && pass ? { provider: 'smtp', host: s.host, port: s.port, secure: s.secure, user: s.user, pass, from: s.from } : null;
+}
+
+/** The mail settings in use: the provider an admin saved on the Settings page, otherwise the RESEND_API_KEY / MAIL_FROM environment variables. */
 export async function resolveMailConfig(): Promise<MailConfig | null> {
   const stored = await readStored().catch(() => null); // a database hiccup must not stop the env fallback
-  const apiKey = stored ? open(stored.apiKey) : null;
-  if (stored && apiKey) return { apiKey, from: stored.from };
-  return envMailConfig();
+  const saved = stored?.provider === 'smtp' ? storedSmtp(stored) : storedResend(stored);
+  return saved ?? envMailConfig();
 }
 
 export async function getEmailSettings(): Promise<EmailSettingsView> {
   const stored = await readStored();
-  const apiKey = stored ? open(stored.apiKey) : null;
-  if (stored && apiKey) return { from: stored.from, apiKeySet: true, apiKeyHint: apiKey.slice(-4), source: 'saved' };
+  const resend = storedResend(stored), smtp = storedSmtp(stored);
+  const view = {
+    from: stored?.from ?? '',
+    apiKeySet: !!resend, ...(resend ? { apiKeyHint: resend.apiKey.slice(-4) } : {}),
+    smtp: stored?.smtp ? { from: stored.smtp.from, host: stored.smtp.host, port: stored.smtp.port, secure: stored.smtp.secure, user: stored.smtp.user, passwordSet: !!smtp } : EMPTY_SMTP,
+  };
+  const provider = stored?.provider ?? 'resend';
+  if (provider === 'smtp' ? smtp : resend) return { provider, ...view, source: 'saved' };
   const env = envMailConfig();
-  if (env) return { from: env.from, apiKeySet: true, apiKeyHint: env.apiKey.slice(-4), source: 'environment' };
-  return { from: stored?.from ?? '', apiKeySet: false, source: 'none' };
+  if (env) return { provider: 'resend', ...view, from: env.from, apiKeySet: true, apiKeyHint: env.apiKey.slice(-4), source: 'environment' };
+  return { provider, ...view, source: 'none' };
 }
 
 /** "hello@craftofy.online" or "Craftofy <hello@craftofy.online>". */
 const FROM_RE = /^(?:[^<>@\r\n]{1,80}<[^\s@<>,]+@[^\s@<>,]+\.[^\s@<>,]+>|[^\s@<>,]+@[^\s@<>,]+\.[^\s@<>,]+)$/;
 const KEY_RE = /^re_[A-Za-z0-9_-]{8,200}$/;
+const HOST_RE = /^(?=.{1,253}$)[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$/;
 
-/** Saves the sender address and, when a new one is typed, the Resend API key (blank keeps the saved key). */
-export async function saveEmailSettings(input: unknown, actorEmail: string): Promise<EmailSettingsView> {
-  const raw = obj(input);
-  const from = typeof raw.from === 'string' ? raw.from.trim() : '';
+const cleanFrom = (v: unknown) => {
+  const from = typeof v === 'string' ? v.trim() : '';
   if (!from || from.length > 200 || !FROM_RE.test(from)) throw bad('from must be an email address like hello@yourdomain.com or Craftofy <hello@yourdomain.com>.');
+  return from;
+};
+
+function resendFields(raw: Record<string, unknown>, stored: StoredEmail | null): { from: string; apiKey: string } {
+  const from = cleanFrom(raw.from);
   const typed = optionalText(raw.apiKey, 'apiKey', 300);
-  const stored = await readStored();
-  let sealed: string;
   if (typed) {
     if (!KEY_RE.test(typed)) throw bad('apiKey must be a Resend API key that starts with re_.');
-    sealed = seal(typed);
-  } else if (stored && open(stored.apiKey)) {
-    sealed = stored.apiKey;
-  } else {
-    throw bad('apiKey is required the first time.');
+    return { from, apiKey: seal(typed) };
   }
-  const value: StoredEmail = { from, apiKey: sealed };
+  if (stored?.apiKey && open(stored.apiKey)) return { from, apiKey: stored.apiKey };
+  throw bad('apiKey is required the first time.');
+}
+
+function smtpFields(raw: Record<string, unknown>, stored: StoredEmail | null): StoredSmtp {
+  const from = cleanFrom(raw.from);
+  const host = typeof raw.host === 'string' ? raw.host.trim().toLowerCase() : '';
+  if (!HOST_RE.test(host)) throw bad('host must be a server name like smtp.gmail.com.');
+  const port = typeof raw.port === 'number' ? raw.port : typeof raw.port === 'string' && /^\d{1,5}$/.test(raw.port.trim()) ? Number(raw.port) : NaN;
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw bad('port must be a number from 1 to 65535.');
+  if (typeof raw.secure !== 'boolean') throw bad('secure must be true (SSL, usually port 465) or false (STARTTLS, usually port 587).');
+  const user = typeof raw.user === 'string' ? raw.user.trim() : '';
+  if (!user || user.length > 254 || /[\r\n]/.test(user)) throw bad('user is required (usually the full email address).');
+  const typed = typeof raw.password === 'string' && raw.password !== '' ? raw.password : undefined;
+  if (raw.password !== undefined && typeof raw.password !== 'string') throw bad('password must be text.');
+  if (typed !== undefined && (typed.length > 200 || /[\r\n]/.test(typed))) throw bad('password is too long or has line breaks.');
+  let pass: string;
+  if (typed) pass = seal(typed);
+  else if (stored?.smtp && open(stored.smtp.pass)) pass = stored.smtp.pass;
+  else throw bad('password is required the first time.');
+  return { from, host, port, secure: raw.secure, user, pass };
+}
+
+/**
+ * Saves the chosen provider's details and makes it the one in use. The other provider's saved details are kept.
+ * Blank secrets (Resend key, SMTP password) keep the ones already saved.
+ */
+export async function saveEmailSettings(input: unknown, actorEmail: string): Promise<EmailSettingsView> {
+  const raw = obj(input);
+  const provider = raw.provider === undefined ? 'resend' : raw.provider; // callers from before SMTP existed send no provider
+  if (provider !== 'resend' && provider !== 'smtp') throw bad('provider must be resend or smtp.');
+  const stored = await readStored();
+  const value: StoredEmail = provider === 'smtp'
+    ? { ...(stored?.from && stored.apiKey ? { from: stored.from, apiKey: stored.apiKey } : {}), provider, smtp: smtpFields(raw, stored) }
+    : { ...(stored?.smtp ? { smtp: stored.smtp } : {}), provider, ...resendFields(raw, stored) };
   await getDb().insert(appSettings).values({ key: 'email', value, updatedBy: actorEmail })
     .onConflictDoUpdate({ target: appSettings.key, set: { value, updatedBy: actorEmail, updatedAt: new Date() } });
   return getEmailSettings();
 }
 
-/** Forgets the saved settings; mail then falls back to the environment variables, if any. */
+/** Forgets everything saved here (both providers); mail then falls back to the environment variables, if any. */
 export async function clearEmailSettings(): Promise<EmailSettingsView> {
   await getDb().delete(appSettings).where(eq(appSettings.key, 'email'));
   return getEmailSettings();

@@ -109,6 +109,6 @@ describe('envMailConfig', () => {
     expect(envMailConfig({})).toBeNull();
     expect(envMailConfig({ RESEND_API_KEY: 're_x' })).toBeNull();
     expect(envMailConfig({ MAIL_FROM: 'Craftofy <hello@craftofy.online>' })).toBeNull();
-    expect(envMailConfig({ RESEND_API_KEY: ' re_x ', MAIL_FROM: ' Craftofy <hello@craftofy.online> ' })).toEqual({ apiKey: 're_x', from: 'Craftofy <hello@craftofy.online>' });
+    expect(envMailConfig({ RESEND_API_KEY: ' re_x ', MAIL_FROM: ' Craftofy <hello@craftofy.online> ' })).toEqual({ provider: 'resend', apiKey: 're_x', from: 'Craftofy <hello@craftofy.online>' });
   });
 });

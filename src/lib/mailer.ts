@@ -1,4 +1,4 @@
-import { resolveMailConfig } from './settings';
+import { resolveMailConfig, type SmtpConfig } from './settings';
 
 export type Mail = { to: string; subject: string; text: string };
 type Send = (mail: Mail) => Promise<void>;
@@ -10,11 +10,31 @@ export const setMailSenderForTests = (fn: Send | null) => { override = fn; };
 /** True when mail can be sent (settings saved by an admin or the environment variables, or a test sender is installed). */
 export const mailConfigured = async () => override !== null || (await resolveMailConfig()) !== null;
 
-/** Sends one plain-text email through the Resend API. Throws when it is not configured or Resend refuses the message. */
+const TIMEOUT_MS = 10_000;
+
+/** One plain-text email over SMTP. Port 465 uses SSL; otherwise STARTTLS is required, so the password never travels in the clear. */
+async function sendSmtp(cfg: SmtpConfig, mail: Mail): Promise<void> {
+  const { default: nodemailer } = await import('nodemailer');
+  const transport = nodemailer.createTransport({
+    host: cfg.host, port: cfg.port, secure: cfg.secure, requireTLS: !cfg.secure, auth: { user: cfg.user, pass: cfg.pass },
+    connectionTimeout: TIMEOUT_MS, greetingTimeout: TIMEOUT_MS, socketTimeout: TIMEOUT_MS,
+  });
+  try {
+    await transport.sendMail({ from: cfg.from, to: mail.to, subject: mail.subject, text: mail.text });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'no details';
+    throw new Error(`SMTP server refused the email: ${msg.split(cfg.pass).join('***')}`); // never echo the password back
+  } finally {
+    transport.close();
+  }
+}
+
+/** Sends one plain-text email through the saved provider (Resend API or SMTP). Throws when it is not configured or the provider refuses the message. */
 export async function sendMail(mail: Mail): Promise<void> {
   if (override) return override(mail);
   const cfg = await resolveMailConfig();
   if (!cfg) throw new Error('Email is not configured.');
+  if (cfg.provider === 'smtp') return sendSmtp(cfg, mail);
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { authorization: `Bearer ${cfg.apiKey}`, 'content-type': 'application/json' },
