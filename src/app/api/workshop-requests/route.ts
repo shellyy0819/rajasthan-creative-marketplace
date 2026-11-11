@@ -13,7 +13,7 @@ export const POST = (req: Request) => handle(async () => {
   // hidden "company website" field: people never fill it, form-spamming bots do. Pretend success, store nothing.
   if (body && typeof body === 'object' && !Array.isArray(body) && (body as Record<string, unknown>).companyWebsite) return json({ ok: true }, 201);
   const created = await createWorkshopRequest(body);
-  return json({ ok: true, id: created.id, email: created.email }, 201); // the id lets the form confirm the emailed code
+  return json({ ok: true, id: created.id, email: created.email, status: created.status }, 201); // 'unverified': the form asks for the emailed code; 'received': nothing more to do
 });
 
 export const GET = () => handle(async () => {

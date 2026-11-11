@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { workshopRequests } from '@/db/schema';
 import { setMailSenderForTests, type Mail } from '@/lib/mailer';
 import { envMailConfig } from '@/lib/settings';
+import { submitErrorMessage } from '@/lib/workshop-requests-shared';
 import { createWorkshopRequest, listWorkshopRequests, resendWorkshopRequestCode, verifyWorkshopRequestCode } from '@/lib/workshop-requests';
 import { signCityRef } from '@/lib/city-ref';
 import { getTestDb, resetTestDb } from './helpers/testdb';
@@ -10,6 +11,7 @@ import { getTestDb, resetTestDb } from './helpers/testdb';
 process.env.NEXTAUTH_SECRET = 'test-secret';
 let sent: Mail[] = [];
 const lastCode = () => /is (\d{6})\./.exec(sent.at(-1)?.text ?? '')?.[1] ?? '';
+afterEach(() => { vi.unstubAllEnvs(); });
 beforeEach(async () => { await resetTestDb(); sent = []; setMailSenderForTests(async m => { sent.push(m); }); });
 const ok = {
   hostName: 'Urban Flea', contactName: 'Asha', phone: '+91 99898 98999', email: 'asha@flea.in', cityRef: signCityRef({ osmType: 'R', osmId: 1, name: 'Ahmedabad', state: 'Gujarat', lat: 23, lng: 72.5 }), venue: 'Riverfront',
@@ -91,10 +93,35 @@ describe('email verification', () => {
     expect((await verifyWorkshopRequestCode(r.id, lastCode())).status).toBe('received');
     await expect(resendWorkshopRequestCode(r.id)).rejects.toMatchObject({ status: 409 });
   });
-  it('keeps no request when the email cannot be sent', async () => {
+  it('keeps the request, as received but with an unconfirmed email, when the code email cannot be sent', async () => {
     setMailSenderForTests(async () => { throw new Error('refused'); });
-    await expect(createWorkshopRequest(ok)).rejects.toMatchObject({ status: 502 });
-    expect(await (await getTestDb()).select().from(workshopRequests)).toHaveLength(0);
+    const r = await createWorkshopRequest(ok); // no error for the visitor
+    expect(r).toMatchObject({ status: 'received', emailVerified: false });
+    const [row] = await (await getTestDb()).select().from(workshopRequests);
+    expect(row).toMatchObject({ status: 'received', codeHash: null, verifiedAt: null });
+    expect(await listWorkshopRequests()).toMatchObject([{ id: r.id, emailVerified: false }]);
+    await (await getTestDb()).update(workshopRequests).set({ createdAt: new Date(Date.now() - 25 * 3_600_000) }).where(eq(workshopRequests.id, r.id));
+    await createWorkshopRequest(ok); // the next submit purges old unconfirmed ones, but this one is received so it stays
+    expect(await (await getTestDb()).select().from(workshopRequests)).toHaveLength(2);
+  });
+  it('also keeps the request when email is not set up at all in production', async () => {
+    setMailSenderForTests(null);
+    delete process.env.RESEND_API_KEY; delete process.env.MAIL_FROM;
+    vi.stubEnv('NODE_ENV', 'production');
+    const r = await createWorkshopRequest(ok);
+    expect(r).toMatchObject({ status: 'received', emailVerified: false });
+    expect(await listWorkshopRequests()).toHaveLength(1);
+  });
+  it('marks a confirmed request as emailVerified', async () => {
+    const r = await createWorkshopRequest(ok);
+    expect(r).toMatchObject({ status: 'unverified', emailVerified: false });
+    expect(await verifyWorkshopRequestCode(r.id, lastCode())).toMatchObject({ status: 'received', emailVerified: true });
+  });
+  it('answers 503, not 502, when a requested resend cannot be emailed', async () => {
+    const r = await createWorkshopRequest(ok);
+    await (await getTestDb()).update(workshopRequests).set({ codeSentAt: new Date(Date.now() - 61_000) }).where(eq(workshopRequests.id, r.id));
+    setMailSenderForTests(async () => { throw new Error('refused'); });
+    await expect(resendWorkshopRequestCode(r.id)).rejects.toMatchObject({ status: 503, message: expect.stringMatching(/could not send the code/) });
   });
   it('drops unverified requests older than a day when the next one arrives', async () => {
     const old = await createWorkshopRequest(ok);
@@ -110,5 +137,21 @@ describe('envMailConfig', () => {
     expect(envMailConfig({ RESEND_API_KEY: 're_x' })).toBeNull();
     expect(envMailConfig({ MAIL_FROM: 'Craftofy <hello@craftofy.online>' })).toBeNull();
     expect(envMailConfig({ RESEND_API_KEY: ' re_x ', MAIL_FROM: ' Craftofy <hello@craftofy.online> ' })).toEqual({ apiKey: 're_x', from: 'Craftofy <hello@craftofy.online>' });
+  });
+});
+
+describe('submitErrorMessage', () => {
+  const MAIL = 'hello.craftofy@gmail.com';
+  const FALLBACK = 'Something went wrong. Please mail us at hello.craftofy@gmail.com.';
+  it('tells the visitor to mail us for server errors, network failures and unreadable answers', () => {
+    expect(submitErrorMessage(500, 'boom', MAIL)).toBe(FALLBACK);
+    expect(submitErrorMessage(503, 'We could not send the code right now.', MAIL)).toBe(FALLBACK);
+    expect(submitErrorMessage(0, null, MAIL)).toBe(FALLBACK);
+    expect(submitErrorMessage(400, undefined, MAIL)).toBe(FALLBACK);
+    expect(submitErrorMessage(400, 42, MAIL)).toBe(FALLBACK);
+  });
+  it('keeps the specific message for things the visitor can fix', () => {
+    expect(submitErrorMessage(400, 'phone must be a 10-digit Indian mobile number.', MAIL)).toBe('phone must be a 10-digit Indian mobile number.');
+    expect(submitErrorMessage(429, 'Too many requests.', MAIL)).toBe('Too many requests.');
   });
 });
