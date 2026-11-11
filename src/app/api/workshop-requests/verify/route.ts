@@ -9,6 +9,6 @@ export const POST = (req: Request) => handle(async () => {
   if (!limits.workshopVerifyLimiter.hit(clientIp(req.headers))) throw new ApiError(429, 'Too many requests.');
   const body = await readJson(req);
   const b = body && typeof body === 'object' && !Array.isArray(body) ? (body as Record<string, unknown>) : {};
-  await verifyWorkshopRequestCode(b.id, b.code);
-  return json({ ok: true });
+  const { notified } = await verifyWorkshopRequestCode(b.id, b.code);
+  return json({ ok: true, notified }); // notified: the Craftofy team was emailed the details
 });

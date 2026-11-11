@@ -22,7 +22,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   const [pending, setPending] = useState<{ id: string; name: string; email: string; from: string; to: string } | null>(null);
   const [info, setInfo] = useState('');
   const [wait, setWait] = useState(0); // seconds until another code may be requested
-  const [done, setDone] = useState<{ name: string; email: string; from: string; to: string; confirmed: boolean } | null>(null);
+  const [done, setDone] = useState<{ name: string; email: string; from: string; to: string; confirmed: boolean; notified: boolean } | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
 
   const close = () => { setOpen(false); trigger.current?.focus(); };
@@ -40,7 +40,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   }, [wait]);
 
   /** One POST to the workshop API. On failure `error` is the message to show the visitor. */
-  async function post(url: string, body: unknown): Promise<{ ok: boolean; data: Record<string, string> | null; error: string }> {
+  async function post(url: string, body: unknown): Promise<{ ok: boolean; data: { id?: string; email?: string; status?: string; notified?: boolean } | null; error: string }> {
     try {
       const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
       const data = await r.json().catch(() => null);
@@ -52,9 +52,9 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     e.preventDefault();
     if (sending || !pending) return;
     setSending(true); setError(''); setInfo('');
-    const { ok, error } = await post('/api/workshop-requests/verify', { id: pending.id, code: field(new FormData(e.currentTarget), 'code') });
+    const { ok, data, error } = await post('/api/workshop-requests/verify', { id: pending.id, code: field(new FormData(e.currentTarget), 'code') });
     if (!ok) { setError(error); setSending(false); return; }
-    setDone({ name: pending.name, email: pending.email, from: pending.from, to: pending.to, confirmed: true }); setPending(null); setSending(false);
+    setDone({ name: pending.name, email: pending.email, from: pending.from, to: pending.to, confirmed: true, notified: data?.notified === true }); setPending(null); setSending(false);
   }
 
   async function resend() {
@@ -78,7 +78,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
             </div>
             {done ? (
               <div>
-                <p><b>Your workshop details are submitted.</b></p>
+                <p><b>{done.notified ? 'Your workshop details are submitted successfully and the Craftofy team has been notified.' : 'Your workshop details are submitted.'}</b></p>
                 <p>Thank you, {done.name}. {done.confirmed ? 'Your email is confirmed and we' : 'We'} have your details and will write to you on {done.email} soon.</p>
                 <p>Dates received: {done.from === done.to ? done.from : `${done.from} to ${done.to}`}.</p>
                 <div className="admin-actions"><button type="button" className="button primary" onClick={close}>Done</button></div>
@@ -114,8 +114,8 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                   const { ok, data, error } = await post('/api/workshop-requests', body);
                   if (!ok || !data) { setError(error || submitErrorMessage(0, null, contactEmail)); setSending(false); return; }
                   const summary = { name: body.contactName, email: data.email ?? body.email, from: fmtDate(body.startDate), to: fmtDate(body.endDate || body.startDate) };
-                  if (data.status === 'received') { setDone({ ...summary, confirmed: false }); setSending(false); return; } // the code email could not be sent; we still have the details
-                  setPending({ id: data.id, ...summary });
+                  if (data.status === 'received') { setDone({ ...summary, confirmed: false, notified: false }); setSending(false); return; } // the code email could not be sent; we still have the details
+                  setPending({ id: data.id ?? '', ...summary });
                   setWait(60); setSending(false);
                 } catch { setError(submitErrorMessage(0, null, contactEmail)); setSending(false); }
               }}>

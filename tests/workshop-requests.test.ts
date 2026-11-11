@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { workshopRequests } from '@/db/schema';
+import { ROLE_ID } from '@/db/people';
+import { userRoles, users, workshopRequests } from '@/db/schema';
 import { setMailSenderForTests, type Mail } from '@/lib/mailer';
 import { envMailConfig } from '@/lib/settings';
 import { submitErrorMessage } from '@/lib/workshop-requests-shared';
@@ -112,6 +113,13 @@ describe('email verification', () => {
     expect(r).toMatchObject({ status: 'received', emailVerified: false });
     expect(await listWorkshopRequests()).toHaveLength(1);
   });
+  it('keeps the request, with no errors, when email is not set up at all (any environment) and the admin sees it', async () => {
+    setMailSenderForTests(null);
+    delete process.env.RESEND_API_KEY; delete process.env.MAIL_FROM;
+    const r = await createWorkshopRequest(ok);
+    expect(r).toMatchObject({ status: 'received', emailVerified: false, title: 'Nomad of Winter' });
+    expect(await listWorkshopRequests()).toMatchObject([{ id: r.id, emailVerified: false, email: 'asha@flea.in', phone: '+919989898999' }]);
+  });
   it('marks a confirmed request as emailVerified', async () => {
     const r = await createWorkshopRequest(ok);
     expect(r).toMatchObject({ status: 'unverified', emailVerified: false });
@@ -153,5 +161,58 @@ describe('submitErrorMessage', () => {
   it('keeps the specific message for things the visitor can fix', () => {
     expect(submitErrorMessage(400, 'phone must be a 10-digit Indian mobile number.', MAIL)).toBe('phone must be a 10-digit Indian mobile number.');
     expect(submitErrorMessage(429, 'Too many requests.', MAIL)).toBe('Too many requests.');
+  });
+});
+
+describe('team notification', () => {
+  const admin = async (email: string, active = true) => {
+    const db = await getTestDb();
+    const [u] = await db.insert(users).values({ email, name: 'Admin', active }).returning();
+    await db.insert(userRoles).values({ userId: u.id, roleId: ROLE_ID.admin });
+  };
+  const confirm = async (extra: Record<string, unknown> = {}) => {
+    const r = await createWorkshopRequest({ ...ok, ...extra });
+    return verifyWorkshopRequestCode(r.id, lastCode());
+  };
+  const OLD_ENV = { ADMIN_EMAILS: process.env.ADMIN_EMAILS, CONTACT_EMAIL: process.env.CONTACT_EMAIL };
+  afterEach(() => { for (const [k, v] of Object.entries(OLD_ENV)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } });
+
+  it('emails the Craftofy address and every admin once, with all details, and replies go to the host', async () => {
+    process.env.CONTACT_EMAIL = 'hello@craftofy.test'; process.env.ADMIN_EMAILS = 'Boss@x.co, hello@craftofy.test';
+    await admin('db.admin@x.co'); await admin('boss@x.co'); await admin('gone@x.co', false);
+    const done = await confirm({ seats: 20, priceType: 'PAID', priceRupees: 350, startTime: '10:00', endTime: '12:30', instagram: 'urbanflea', website: 'https://flea.in', notes: 'Bring tables', hostName: 'Urban Flea' });
+    expect(done).toMatchObject({ status: 'received', emailVerified: true, notified: true });
+    expect(sent).toHaveLength(2); // the code, then the team email
+    const team = sent[1];
+    expect(team.to).toEqual(expect.arrayContaining(['hello@craftofy.test', 'Boss@x.co', 'db.admin@x.co']));
+    expect(team.to).toHaveLength(3); // no duplicates, and no inactive admin
+    expect(team.replyTo).toBe('asha@flea.in');
+    expect(team.subject).toBe('New workshop request: Nomad of Winter (Flea market, Ahmedabad, Gujarat)');
+    for (const part of ['Nomad of Winter', 'Flea market', 'Stalls and music', '2026-12-18', '10:00-12:30', 'Riverfront', 'Ahmedabad, Gujarat', 'Seats: 20', 'Rs. 350 per person', 'Urban Flea', 'Asha', '+919989898999', 'asha@flea.in', 'urbanflea', 'https://flea.in', 'Bring tables', 'Dashboard > Workshop requests']) {
+      expect(team.text).toContain(part);
+    }
+  });
+  it('sends nothing to the team until the host confirms the email code', async () => {
+    await createWorkshopRequest(ok);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].subject).toMatch(/verification code/i);
+  });
+  it('does not email the team again when the same request is confirmed twice', async () => {
+    const r = await createWorkshopRequest(ok);
+    const code = lastCode();
+    expect((await verifyWorkshopRequestCode(r.id, code)).notified).toBe(true);
+    expect((await verifyWorkshopRequestCode(r.id, code)).notified).toBe(false);
+    expect(sent).toHaveLength(2);
+  });
+  it('still confirms the request, without an error, when the team email cannot be sent', async () => {
+    const r = await createWorkshopRequest(ok);
+    const code = lastCode();
+    setMailSenderForTests(async () => { throw new Error('refused'); });
+    expect(await verifyWorkshopRequestCode(r.id, code)).toMatchObject({ status: 'received', emailVerified: true, notified: false });
+    expect(await listWorkshopRequests()).toHaveLength(1);
+  });
+  it('keeps one-line subjects even when the title has line breaks', async () => {
+    await confirm({ title: 'Line one\nBcc: x@y.in' });
+    expect(sent[1].subject).not.toMatch(/[\r\n]/);
   });
 });

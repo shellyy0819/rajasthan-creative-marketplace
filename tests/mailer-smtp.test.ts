@@ -51,4 +51,20 @@ describe('sendMail over SMTP', () => {
     expect(createTransportMock).not.toHaveBeenCalled();
     fetchMock.mockRestore();
   });
+  it('passes several recipients and a Reply-To to SMTP', async () => {
+    await saveEmailSettings(SMTP, 'a@x.co');
+    await sendMail({ ...mail, to: ['team@x.in', 'admin@x.in'], replyTo: 'host@x.in' });
+    expect(sendMailMock).toHaveBeenCalledWith(expect.objectContaining({ to: ['team@x.in', 'admin@x.in'], replyTo: 'host@x.in' }));
+  });
+  it('passes several recipients and a Reply-To to Resend, and adds neither when not given', async () => {
+    await saveEmailSettings({ provider: 'resend', from: 'hello@craftofy.online', apiKey: 're_abcdefgh12345678' }, 'a@x.co');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }));
+    await sendMail({ ...mail, to: ['team@x.in', 'admin@x.in'], replyTo: 'host@x.in' });
+    expect(JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))).toMatchObject({ to: ['team@x.in', 'admin@x.in'], reply_to: 'host@x.in' });
+    await sendMail(mail);
+    const plain = JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body));
+    expect(plain.to).toEqual(['asha@x.in']);
+    expect(plain).not.toHaveProperty('reply_to');
+    fetchMock.mockRestore();
+  });
 });
