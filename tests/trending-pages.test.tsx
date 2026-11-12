@@ -63,7 +63,7 @@ describe('/artists/[slug] page', () => {
     const Page = (await import('@/app/artists/[slug]/page')).default;
     render(await Page({ params: Promise.resolve({ slug }), searchParams: Promise.resolve({ from: 'p1' }) }));
     expect(screen.getByRole('heading', { level: 1, name: 'Shauk and Stuff' })).toBeTruthy();
-    expect(document.querySelectorAll('.product-card')).toHaveLength(1);
+    expect(document.querySelectorAll('a.ah-card')).toHaveLength(1);        // the hero shows the piece; no repeated grid for 3 or fewer
     expect(document.querySelector('[data-track="artist:p1"]')).toBeTruthy();
     cleanup();
     render(await Page({ params: Promise.resolve({ slug }), searchParams: Promise.resolve({ from: 'p3' }) }));   // another artist's product: no credit
@@ -151,7 +151,7 @@ describe('city listings come from active cities', () => {
   it('shop and workshops pages pass the active cities to the filter and no longer name the three launch cities', async () => {
     const Shop = await import('@/app/shop/page');
     render(await Shop.default({ searchParams: Promise.resolve({}) }));
-    expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All India', 'Jaipur', 'Jodhpur', 'Udaipur']);
+    expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All', 'Jaipur', 'Jodhpur', 'Udaipur']);
     const shopMeta = await Shop.generateMetadata({ searchParams: Promise.resolve({}) });
     expect(String(shopMeta.description)).not.toMatch(/Udaipur|Jaipur|Jodhpur/);
     expect(document.querySelector('.page-head')!.textContent).not.toMatch(/Udaipur|Jaipur|Jodhpur/);
@@ -159,7 +159,7 @@ describe('city listings come from active cities', () => {
     await archiveJaipur();
     const Ws = await import('@/app/workshops/page');
     render(await Ws.default({ searchParams: Promise.resolve({}) }));
-    expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All India', 'Jodhpur', 'Udaipur']);
+    expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All', 'Jodhpur', 'Udaipur']);
     expect(String((await Ws.generateMetadata({ searchParams: Promise.resolve({}) })).description)).not.toMatch(/Udaipur|Jaipur|Jodhpur/);
   });
 });

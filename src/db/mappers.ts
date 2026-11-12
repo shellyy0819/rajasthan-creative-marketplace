@@ -2,6 +2,7 @@ import { eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { AdminProduct, Booking, Order, OrderItem, Product, Workshop } from '../lib/types';
 import { artistSlug } from '../lib/artist-slug';
+import { publicLogo } from '../lib/public-logo';
 import type { Q } from './client';
 import { bookings, cities, orderItems, orders, products, sellerProfiles, users, workshops } from './schema';
 
@@ -31,6 +32,7 @@ export const productSelect = {
   instagram: sellerProfiles.instagram,
   youtube: sellerProfiles.youtube,
   artistBio: sellerProfiles.bio,
+  sellerLogo: sellerProfiles.logoUrl,
   artistCityName: artistCities.name,
   images: sql<string[] | string>`coalesce((select json_agg(pim.url order by pim.position) from product_images pim where pim.product_id = ${products.id}), '[]'::json)`,
   likeCount: sql<number>`(select count(*) from product_likes pl where pl.product_id = ${products.id})`.mapWith(Number),
@@ -39,7 +41,7 @@ export const productSelect = {
 };
 export type ProductJoinRow = {
   p: ProductRow; cityName: string; citySlug: string; cityState: string | null; sellerName: string; sellerEmail: string;
-  publicPhone: string | null; publicEmail: string | null; instagram: string | null; youtube: string | null; artistBio: string | null; artistCityName: string | null;
+  publicPhone: string | null; publicEmail: string | null; instagram: string | null; youtube: string | null; artistBio: string | null; sellerLogo?: string | null; artistCityName: string | null;
   publishedByEmail: string | null; workshopTitle: string | null; likeCount: number; images: string[] | string;
 };
 /** SELECT products + seller + profile. Add .where(...) / .orderBy(...) / .for('update', { of: products }) as needed. */
@@ -60,6 +62,7 @@ export const toProduct = (r: ProductJoinRow): Product => ({
   ...opt('email', r.publicEmail), ...opt('workshopId', r.p.workshopId),
   ...(imagesOf(r.images).length ? { images: imagesOf(r.images), imageUrl: imagesOf(r.images)[0] } : {}),
   likeCount: r.likeCount, sellerSlug: artistSlug(r.sellerName, r.p.sellerId),
+  ...(r.sellerLogo && publicLogo(r.p.sellerId, r.sellerLogo) ? { sellerLogo: r.sellerLogo } : {}),
   ...opt('artistBio', r.artistBio), ...opt('artistCity', r.artistCityName),
 });
 

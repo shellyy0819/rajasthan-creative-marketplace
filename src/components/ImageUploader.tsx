@@ -14,7 +14,9 @@ const canPreview = () => typeof URL !== 'undefined' && typeof URL.createObjectUR
  * Photos of a product: thumbnails with a Cover badge, "Make cover" and "Remove", and an "Add photos" picker that sends
  * each file straight to S3 with a signed form. The kept photos travel with the form as hidden `images` inputs, in order.
  */
-export function ImageUploader({ initial, onBusyChange, uploadTimeoutMs = 60_000 }: { initial: string[]; onBusyChange?: (busy: boolean) => void; uploadTimeoutMs?: number }) {
+export function ImageUploader({ initial, onBusyChange, uploadTimeoutMs = 60_000, max = MAX_IMAGES, endpoint = '/api/uploads/product-image', legend = 'Photos' }: {
+  initial: string[]; onBusyChange?: (busy: boolean) => void; uploadTimeoutMs?: number; max?: number; endpoint?: string; legend?: string;
+}) {
   const next = useRef(0);
   const [items, setItems] = useState<Item[]>(() => initial.map(url => ({ id: next.current++, name: url, url, status: 'done' as const })));
   const [messages, setMessages] = useState<string[]>([]);
@@ -39,7 +41,7 @@ export function ImageUploader({ initial, onBusyChange, uploadTimeoutMs = 60_000 
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, uploadTimeoutMs);
     try {
-      const perm = await fetch('/api/uploads/product-image', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contentType: file.type, size: file.size }), signal: ctrl.signal });
+      const perm = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contentType: file.type, size: file.size }), signal: ctrl.signal });
       const body = await perm.json().catch(() => null) as { url?: string; fields?: Record<string, string>; publicUrl?: string; error?: string } | null;
       if (!perm.ok || !body?.url || !body.fields || !body.publicUrl) {
         if (perm.status === 503) setNotSetUp(true);
@@ -68,7 +70,7 @@ export function ImageUploader({ initial, onBusyChange, uploadTimeoutMs = 60_000 
     const picked = Array.from(files ?? []);
     if (!picked.length) return;
     const problems: string[] = [];
-    let room = MAX_IMAGES - items.length;
+    let room = max - items.length;
     const accepted: { id: number; file: File }[] = [];
     for (const file of picked) {
       if (!Object.hasOwn(IMAGE_TYPES, file.type)) { problems.push(`${file.name}: only JPEG, PNG or WebP photos are allowed.`); continue; }
@@ -82,7 +84,7 @@ export function ImageUploader({ initial, onBusyChange, uploadTimeoutMs = 60_000 
       accepted.push({ id, file });
     }
     const skipped = picked.filter(f => Object.hasOwn(IMAGE_TYPES, f.type) && f.size >= 1 && f.size <= MAX_IMAGE_BYTES && !seen.current.has(signature(f))).length;
-    if (skipped > 0) problems.push(`Only ${MAX_IMAGES - items.length} more photo${MAX_IMAGES - items.length === 1 ? '' : 's'} fit (limit ${MAX_IMAGES}).`);
+    if (skipped > 0) problems.push(`Only ${max - items.length} more photo${max - items.length === 1 ? '' : 's'} fit (limit ${max}).`);
     setMessages(problems);
     setItems(list => [...list, ...accepted.map(({ id, file }) => ({
       id, name: file.name, status: 'uploading' as const,
@@ -99,11 +101,11 @@ export function ImageUploader({ initial, onBusyChange, uploadTimeoutMs = 60_000 
   };
   const makeCover = (id: number) => setItems(list => { const it = list.find(i => i.id === id); return it ? [it, ...list.filter(i => i.id !== id)] : list; });
   const kept = items.filter(i => i.status === 'done' && i.url);
-  const full = items.length >= MAX_IMAGES;
+  const full = items.length >= max;
 
   return (
     <fieldset className="uploader">
-      <legend>Photos</legend>
+      <legend>{legend}</legend>
       {kept.map(i => <input key={i.id} type="hidden" name="images" value={i.url} />)}
       <ul className="uploader-grid">
         {items.map((i, index) => (
@@ -128,7 +130,7 @@ export function ImageUploader({ initial, onBusyChange, uploadTimeoutMs = 60_000 
         Add photos
         <input type="file" multiple accept="image/jpeg,image/png,image/webp" disabled={full || notSetUp} onChange={e => { onPick(e.target.files); e.target.value = ''; }} />
       </label>
-      <p role="status" className="uploader-count">{items.length} of {MAX_IMAGES} photos. The first is the cover. JPEG, PNG or WebP, up to 5 MB each.</p>
+      <p role="status" className="uploader-count">{items.length} of {max} photos. The first is the cover. JPEG, PNG or WebP, up to 5 MB each.</p>
       {(messages.length > 0 || notSetUp) && (
         <div role="alert" className="admin-error">
           {notSetUp && <p>{NOT_SET_UP}</p>}

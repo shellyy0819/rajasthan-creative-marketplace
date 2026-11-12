@@ -12,9 +12,13 @@ export default async function ListingRequestsPage() {
   return (
     <>
       <Breadcrumbs items={crumbs} />
-      <h1>Listing requests</h1>
-      <p className="muted">People who asked to sell on Craftofy. Phone numbers are not verified: call the owner, then press Confirm. Confirming lets them sign in with Google using their email and list products.</p>
-      <ListingRequestsAdmin initial={await listListingRequests()} />
+      <section className="admin-posts">
+        <div className="page-head">
+          <h1>Listing requests</h1>
+          <p>People who asked to sell on Craftofy. Phone numbers are not verified: call the owner, then press Confirm. Confirming lets them sign in with Google using their email and list products.</p>
+        </div>
+        <ListingRequestsAdmin initial={await listListingRequests()} />
+      </section>
     </>
   );
 }

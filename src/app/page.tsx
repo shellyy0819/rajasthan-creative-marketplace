@@ -9,8 +9,9 @@ import { ValueProps } from '@/components/ValueProps';
 import { listProducts, listWorkshops } from '@/lib/catalog';
 import { listActiveCities } from '@/lib/cities';
 import { cityLabeller } from '@/lib/city-label';
+import { HostWorkshopButton } from '@/components/HostWorkshopButton';
 import { pageMetadata } from '@/lib/meta';
-import { SITE } from '@/lib/site';
+import { SITE, contactEmail } from '@/lib/site';
 import { getRenderTheme } from '@/lib/themes/render';
 
 export const dynamic = 'force-dynamic';
@@ -49,7 +50,7 @@ export default async function Home() {
           <p>Find friendly workshops, creative meetups and pop-up experiences hosted by local makers and venues.</p>
           <p><Link className="text-link" href="/workshops">Browse &amp; filter all →</Link></p>
         </div>
-        <WorkshopList workshops={workshops} emptyMessage="No workshops are scheduled yet. Check back soon." />
+        <WorkshopList workshops={workshops} emptyMessage="No workshops are scheduled yet. Check back soon." emptyAction={<HostWorkshopButton contactEmail={contactEmail()} />} />
       </section>
       <section className="maker-cta" id="makers">
         <div className="cta-flower" aria-hidden="true">✿</div>

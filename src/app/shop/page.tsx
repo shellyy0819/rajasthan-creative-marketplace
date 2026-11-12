@@ -32,7 +32,7 @@ export default async function ShopPage({ searchParams }: Props) {
       <div className="page-head">
         <span className="eyebrow">THE MAKERS&apos; SHELF</span>
         <h1>Handmade products</h1>
-        <p>Handmade finds from independent makers, made with care and sold directly by the people who craft them.</p>
+        <p>Craftofy is an online marketplace for handmade products from independent artisans across India. Browse by category or city, then contact the maker directly to order. Craftofy charges makers no commission.</p>
       </div>
       <LiveCatalog kind="products" initialItems={products} initialValues={f} categories={categories} cities={cities.map(c => ({ name: c.name, slug: c.slug, state: c.state }))} />
     </>

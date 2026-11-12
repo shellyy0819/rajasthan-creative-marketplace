@@ -114,6 +114,22 @@ describe('POST /api/events', () => {
     expect(rows[0].actor).toMatch(/^h:[0-9a-f]{32}$/);
     expect(JSON.stringify(rows)).not.toContain('1.2.3.4');
   });
+  it('an artist-level contact (source=artist) answers 204 but is not counted against the product; other sources are rejected', async () => {
+    expect((await event({ type: 'contact', productId: 'p1', source: 'artist' })).status).toBe(204);
+    expect(await (await getTestDb()).select().from(productEvents)).toHaveLength(0);
+    expect((await event({ type: 'contact', productId: 'p1' })).status).toBe(204);
+    expect(await (await getTestDb()).select().from(productEvents)).toHaveLength(1);
+    expect((await event({ type: 'contact', productId: 'p1', source: 'x' })).status).toBe(400);
+  });
+  it('contact-sheet method clicks are stored once per visitor, product, method and day; artist-level ones are not counted', async () => {
+    for (const type of ['contact_call', 'contact_email', 'contact_instagram', 'contact_youtube', 'contact_copy']) expect((await event({ type, productId: 'p1' })).status).toBe(204);
+    expect((await event({ type: 'contact_call', productId: 'p1' })).status).toBe(204); // same visitor, same method, same day
+    const rows = await (await getTestDb()).select().from(productEvents);
+    expect(rows.map(r => r.type).sort()).toEqual(['contact_call', 'contact_copy', 'contact_email', 'contact_instagram', 'contact_youtube']);
+    expect((await event({ type: 'contact_call', productId: 'p1', source: 'artist' })).status).toBe(204);
+    expect(await (await getTestDb()).select().from(productEvents)).toHaveLength(5);
+    expect((await event({ type: 'contact_whatsapp', productId: 'p1' })).status).toBe(400);
+  });
   it('different visitors (ip or user agent) are different people', async () => {
     await event({ type: 'view', productId: 'p1' });
     await event({ type: 'view', productId: 'p1' }, { ...JSON_H, 'user-agent': BROWSER, 'x-forwarded-for': '9.9.9.9' });
