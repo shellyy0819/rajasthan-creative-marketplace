@@ -3,7 +3,7 @@ import { LOOKS } from '@/lib/fair-characters';
 import { LOOK_IDS } from '@/lib/fair-constants';
 import { avatarSvg, makerAvatar, visitorAvatar } from '@/components/fair/avatar';
 import { artDataUri, artInner, artSvg } from '@/components/fair/art';
-import { CRAFT_BOX, CRAFT_LABEL, CRAFT_SECONDS, drawCraft } from '@/components/fair/crafts';
+import { CRAFT_LABEL, CRAFT_SECONDS, drawCounterCraft, drawHand, FLAT, GRIP, PINCH } from '@/components/fair/crafts';
 import { isWearable, wearFor } from '@/components/fair/wear';
 import { SAMPLE_MAKERS } from '@/lib/fair-sample';
 import type { ArtKind, CraftKind } from '@/lib/fair-types';
@@ -65,24 +65,33 @@ describe('watching a seller work', () => {
   const colors = { ink: '#252a24', muted: '#77796f', paper: '#f8f4ee', cream: '#eee5d8', white: '#fffdf9', line: '#e5ddd1', green: '#405746', greenInk: '#fff', orange: '#c66b43', sage: '#a8b39a', indigo: '#35506f', mustard: '#d9a441', wood: '#b98458', woodD: '#8a5f3c', terraD: '#9e4e2a', chalk: '#fbf7ef', board: '#2b3a31', ground: '#d8c6a8', skin: '#c98b62', skin2: '#8e5b3c', hair: '#2a211c' };
   it('has a label for every craft and takes ten seconds', () => {
     for (const k of KINDS) expect(CRAFT_LABEL[k], k).toBeTruthy();
-    expect(CRAFT_SECONDS).toBe(10); expect(CRAFT_BOX.w).toBeGreaterThan(200);
+    expect(CRAFT_SECONDS).toBe(10);
   });
-  it('draws every craft at every stage without failing, and the seller\'s hands are in it', () => {
+  it('puts every craft on the counter at every stage and says where the maker\'s two hands go', () => {
     for (const k of KINDS) for (const p of [0, .2, .5, .8, .95, 1]) {
       const { proxy, calls } = ctx();
-      expect(() => drawCraft(proxy, k, p, 1.3, colors, false, { skin: '#8e5b3c', sleeve: '#c66b43', bangle: '#d9a441' }), `${k} at ${p}`).not.toThrow();
-      expect(calls.filter(c => c === 'roundRect').length, `${k} hands`).toBeGreaterThan(2);
+      let job!: ReturnType<typeof drawCounterCraft>;
+      expect(() => { job = drawCounterCraft(proxy, k, p, 1.3, colors, false); }, `${k} at ${p}`).not.toThrow();
+      expect(calls.length, k).toBeGreaterThan(5);
+      for (const h of [job.left, job.right]) { expect(Number.isFinite(h.x) && Number.isFinite(h.y) && Number.isFinite(h.ang), `${k} hand`).toBe(true); expect(h.curl).toHaveLength(5); expect(h.y, `${k} hand is above the ground`).toBeLessThan(0); expect(Math.abs(h.x), `${k} hand is on the counter`).toBeLessThan(80); }
     }
   });
-  it('uses the seller\'s own skin, sleeve and bangle colours', () => {
-    const fills: string[] = [];
-    const { proxy } = ctx(); Object.defineProperty(proxy as object, 'fillStyle', { set: (v: string) => { fills.push(String(v)); }, get: () => '' });
-    drawCraft(proxy, 'crochet', .5, 0, colors, true, { skin: '#112233', sleeve: '#445566', bangle: '#778899' });
-    expect(fills).toEqual(expect.arrayContaining(['#112233', '#445566']));
+  it('keeps the work on the counter, in front of the maker', () => {
+    for (const k of KINDS) { const { proxy } = ctx(); const j = drawCounterCraft(proxy, k, .5, 1, colors, false); expect(j.left.x, k).toBeLessThan(j.right.x + 70); expect(Math.max(j.left.y, j.right.y), k).toBeLessThan(-30); }
   });
   it('holds still for people who prefer reduced motion', () => {
-    const run = (t: number) => { const { proxy, calls } = ctx(); drawCraft(proxy, 'pottery', .5, t, colors, true); return calls.join(); };
+    const run = (t: number) => { const { proxy, calls } = ctx(); const j = drawCounterCraft(proxy, 'pottery', .5, t, colors, true); return calls.join() + JSON.stringify(j); };
     expect(run(0)).toBe(run(7.3));
-    void vi;
+  });
+  it('draws a hand with its fingers, bangles and the maker\'s own skin', () => {
+    const fills: string[] = [], { proxy, calls } = ctx();
+    Object.defineProperty(proxy as object, 'fillStyle', { set: (v: string) => { fills.push(String(v)); }, get: () => '' });
+    drawHand(proxy, 10, -50, 1, '#112233', '#778899', PINCH, true, .8);
+    expect(fills).toContain('#112233');
+    expect(calls.filter(c => c === 'stroke').length).toBeGreaterThan(8);
+    expect(calls).toContain('roundRect');
+    drawHand(proxy, 0, 0, 0, '#112233', '#778899', GRIP, false, 1, '#445566'); // with the sleeve
+    expect(fills).toContain('#445566');
+    drawHand(proxy, 0, 0, 0, '#112233', '#778899', FLAT);
   });
 });

@@ -2,7 +2,7 @@ import { characterFor, formatCode, hash32, type Character, type HairStyle, type 
 import { isLookId, type LookId } from '@/lib/fair-constants';
 import type { CraftKind, Emote, Facing, FairData, FairVisitor } from '@/lib/fair-types';
 import { artDataUri } from './art';
-import { CRAFT_BOX, CRAFT_LABEL, CRAFT_SECONDS, drawCraft } from './crafts';
+import { CRAFT_LABEL, CRAFT_SECONDS, drawCounterCraft, drawHand, type HandPose, type Job } from './crafts';
 import type { GameEvent } from './quests';
 import { canvasFamily, readColors, type Colors } from './theme';
 import { MAX_CROWD, crowdAt, hourOf, phaseAt, skyAt, type DayPhase } from './daytime';
@@ -98,6 +98,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
   let W = 800, H = 600, DPR = 1, S = 1, Z = 1, focusV = 0, focusRef: Slot | null = null, cam = { x: 0, y: 0 };
   let fill = false, overview = false, zoomMix = 1, snapCam = true, mini: { x: number; y: number; w: number; h: number; k: number } | null = null;
   const camF = { x: START.x, y: START.y };
+  let craftV = 0;
   let me: Character = characterFor('AAAAAA'), meCode = 'AAAAAA', paused = false, raf = 0, last = 0, moved = false;
   let st: EngineState = { wear: null, notes: 0, lit: 0, garland: false };
   const player: Walker & { path: Pt[]; arrive: (() => void) | null } = { x: START.x, y: START.y, facing: 'up', moving: false, seed: 0, top: '', pants: '', path: [], arrive: null };
@@ -171,20 +172,33 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
   }
 
   /* ---------- drawing: maker, mirror, stall ---------- */
-  function drawMaker(slot: Slot, att: number, t: number) {
+  function drawMaker(slot: Slot, att: number, t: number, work?: (c: CanvasRenderingContext2D) => Job) {
     const m = slot.maker!, L = m.look, seed = hash32(m.id) % 7, look = slot.look;
     const bob = reduce ? 0 : Math.sin(t * 2 + seed) * 1.1, nod = reduce ? 0 : att * Math.sin(t * 5) * 1.6, skin = L.skin === 'skin' ? C.skin : C.skin2, hairC = C.hair;
     ctx.fillStyle = col(L.top); ctx.beginPath(); ctx.moveTo(-27, -36); ctx.lineTo(-23, -64); ctx.quadraticCurveTo(0, -74, 23, -64); ctx.lineTo(27, -36); ctx.closePath(); ctx.fill();
     ctx.fillStyle = col(L.acc); ctx.beginPath(); ctx.moveTo(-23, -64); ctx.quadraticCurveTo(-6, -58, 10, -40); ctx.lineTo(18, -40); ctx.quadraticCurveTo(0, -62, -12, -69); ctx.closePath(); ctx.fill();
     ctx.fillStyle = skin; ctx.fillRect(-4, -76, 8, 9);
-    const wx = 30 + (reduce ? 0 : Math.sin(t * 9) * 5), wy = -104 + (reduce ? 0 : Math.sin(t * 9 + 1) * 2);
-    const wkx = 14 + (reduce ? 0 : Math.sin(t * 3 + seed) * 4), wky = -46 + (reduce ? 0 : Math.cos(t * 3 + seed) * 2);
-    const ax = wkx + (wx - wkx) * att, ay = wky + (wy - wky) * att, lx = -17 + (reduce ? 0 : Math.sin(t * 3 + 2) * 3);
-    ctx.strokeStyle = skin; ctx.lineWidth = 5.5; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(22, -60); ctx.lineTo(ax, ay); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-22, -60); ctx.lineTo(lx, -46); ctx.stroke();
-    ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(ax, ay, 4, 0, TAU); ctx.arc(lx, -46, 4, 0, TAU); ctx.fill();
-    if (m.craft === 'crochet') { ctx.fillStyle = C.sage; ctx.beginPath(); ctx.arc(-34, -44, 8, 0, TAU); ctx.fill(); ctx.strokeStyle = C.chalk; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(-34, -44, 4, 0, Math.PI * 1.5); ctx.stroke(); ctx.strokeStyle = C.woodD; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ax - 2, ay + 2); ctx.lineTo(ax - 14, ay - 8); ctx.stroke(); }
-    else if (att > .2) { const sp = reduce ? 1 : .6 + .4 * Math.sin(t * 8); ctx.fillStyle = C.mustard; ctx.globalAlpha = att; ctx.beginPath(); ctx.arc(ax + 7, ay - 6, 2.4 * sp, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
+    if (work) {
+      // at work: the craft sits on the counter in front of them, and both arms reach down to it with proper hands
+      const RAISE = 8;   // the work sits on top of the counter edge, not behind it
+      ctx.save(); ctx.translate(0, -RAISE); const j0 = work(ctx); ctx.restore();
+      const job: Job = { left: { ...j0.left, y: j0.left.y - RAISE }, right: { ...j0.right, y: j0.right.y - RAISE } }, bangle = col(L.acc);
+      const arm = (sx: number, hp: HandPose) => {
+        const ex = (sx + hp.x) / 2 + (sx < 0 ? -5 : 5), ey = (-60 + hp.y) / 2 + 10;
+        ctx.strokeStyle = skin; ctx.lineWidth = 5.5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(sx, -60); ctx.quadraticCurveTo(ex, ey, hp.x, hp.y); ctx.stroke();
+        drawHand(ctx, hp.x, hp.y, hp.ang, skin, bangle, hp.curl, hp.mirror ?? false, .8);
+      };
+      arm(-22, job.left); arm(22, job.right);
+    } else {
+      const wx = 30 + (reduce ? 0 : Math.sin(t * 9) * 5), wy = -104 + (reduce ? 0 : Math.sin(t * 9 + 1) * 2);
+      const wkx = 14 + (reduce ? 0 : Math.sin(t * 3 + seed) * 4), wky = -46 + (reduce ? 0 : Math.cos(t * 3 + seed) * 2);
+      const ax = wkx + (wx - wkx) * att, ay = wky + (wy - wky) * att, lx = -17 + (reduce ? 0 : Math.sin(t * 3 + 2) * 3);
+      ctx.strokeStyle = skin; ctx.lineWidth = 5.5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(22, -60); ctx.lineTo(ax, ay); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-22, -60); ctx.lineTo(lx, -46); ctx.stroke();
+      ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(ax, ay, 4, 0, TAU); ctx.arc(lx, -46, 4, 0, TAU); ctx.fill();
+      if (m.craft === 'crochet') { ctx.fillStyle = C.sage; ctx.beginPath(); ctx.arc(-34, -44, 8, 0, TAU); ctx.fill(); ctx.strokeStyle = C.chalk; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(-34, -44, 4, 0, Math.PI * 1.5); ctx.stroke(); ctx.strokeStyle = C.woodD; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ax - 2, ay + 2); ctx.lineTo(ax - 14, ay - 8); ctx.stroke(); }
+      else if (att > .2) { const sp = reduce ? 1 : .6 + .4 * Math.sin(t * 8); ctx.fillStyle = C.mustard; ctx.globalAlpha = att; ctx.beginPath(); ctx.arc(ax + 7, ay - 6, 2.4 * sp, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
+    }
     ctx.save(); ctx.translate(0, -90 + bob + nod);
     if (L.long) { ctx.fillStyle = hairC; ctx.beginPath(); ctx.roundRect(-14, -6, 28, 34, 10); ctx.fill(); }
     ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(0, 0, 12.5, 0, TAU); ctx.fill();
@@ -259,7 +273,8 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
       const its = m.items, n = its.length, sz = 38, gap = 14, tot = n * sz + (n - 1) * gap;
       its.forEach((it, i) => { const im = imgs[it.key]; if (im && im.complete && im.naturalWidth) ctx.drawImage(im, -tot / 2 + i * (sz + gap), -112 - sz, sz, sz); });
       if (m.mirror) { drawMirror(slot); drawNotes(); }
-      drawMaker(slot, slot.att, nowT);
+      const working = craft && craft.slot === slot ? craft : null;
+      drawMaker(slot, slot.att, nowT, working ? c2 => drawCounterCraft(c2, m.craft, Math.min(1, (nowMs - working.start) / 1000 / CRAFT_SECONDS), nowT, C, reduce) : undefined);
     }
     ctx.fillStyle = C.chalk; ctx.beginPath(); ctx.roundRect(-110, -44, 220, 10, 3); ctx.fill();
     ctx.fillStyle = open ? C.cream : C.green; ctx.fillRect(-104, -34, 208, 34);
@@ -432,19 +447,18 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     ctx.restore(); ctx.restore();
     if (ptr.inside && !paused && ptr.x >= x && ptr.x <= x + mw && ptr.y >= y && ptr.y <= y + mh) canvas.style.cursor = 'pointer';
   }
-  /** The "watch them work" card above a stall: a ten second animation of the maker's craft. */
-  function drawCraftCard(now: number, t: number, sx: (x: number) => number, sy: (y: number) => number) {
+  /** A slim caption at the top of the screen while a maker works: who, what, and how far along (the work itself happens on their counter). */
+  function drawCraftCaption(now: number) {
     if (!craft) return;
     const m = craft.slot.maker!, el = (now - craft.start) / 1000, p = Math.min(1, el / CRAFT_SECONDS);
     if (el > CRAFT_SECONDS + 2.2) { endCraft(); return; }
-    const w = CRAFT_BOX.w + 28, h = CRAFT_BOX.h + 74, fade = el > CRAFT_SECONDS + 1.4 ? Math.max(0, 1 - (el - CRAFT_SECONDS - 1.4) / .8) : Math.min(1, el / .25);
-    const x = Math.max(8, Math.min(W - w - 8, sx(craft.slot.cx) - w / 2)), y = Math.max(8, Math.min(H - h - 8, sy(craft.slot.base - 296 * SS) - h - 6));
-    ctx.save(); ctx.globalAlpha = fade; ctx.translate(x, y);
-    ctx.fillStyle = C.white; ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.shadowColor = 'rgba(0,0,0,.25)'; ctx.shadowBlur = 16; ctx.beginPath(); ctx.roundRect(0, 0, w, h, 10); ctx.fill(); ctx.shadowBlur = 0; ctx.stroke();
-    ctx.fillStyle = C.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.font = F(600, 13); ctx.fillText(m.name.length > 28 ? m.name.slice(0, 27) + '…' : m.name, 14, 24);
-    ctx.fillStyle = C.muted; ctx.font = F(500, 11); ctx.fillText(p >= 1 ? `Made by hand in ${m.city}` : CRAFT_LABEL[m.craft], 14, 40);
-    ctx.save(); ctx.translate(14, 48); ctx.beginPath(); ctx.rect(0, 0, CRAFT_BOX.w, CRAFT_BOX.h); ctx.clip(); drawCraft(ctx, m.craft, p, t, C, reduce, { skin: m.look.skin === 'skin' ? C.skin : C.skin2, sleeve: col(m.look.top), bangle: col(m.look.acc) }); ctx.restore();
-    ctx.fillStyle = C.cream; ctx.beginPath(); ctx.roundRect(14, h - 16, w - 28, 5, 3); ctx.fill(); ctx.fillStyle = C.orange; ctx.beginPath(); ctx.roundRect(14, h - 16, Math.max(5, (w - 28) * p), 5, 3); ctx.fill();
+    const text = p >= 1 ? `${m.name} · made by hand in ${m.city}` : `${m.name} · ${CRAFT_LABEL[m.craft]}`, fade = el > CRAFT_SECONDS + 1.4 ? Math.max(0, 1 - (el - CRAFT_SECONDS - 1.4) / .8) : Math.min(1, el / .25);
+    ctx.save(); ctx.globalAlpha = fade; ctx.font = F(600, 13);
+    const w = Math.max(230, Math.min(W - 24, ctx.measureText(text).width + 36)), x = W / 2 - w / 2, y = 10;
+    ctx.fillStyle = C.board; ctx.beginPath(); ctx.roundRect(x, y, w, 40, 12); ctx.fill();
+    ctx.fillStyle = C.chalk; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, W / 2, y + 15);
+    ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.beginPath(); ctx.roundRect(x + 14, y + 28, w - 28, 4, 2); ctx.fill();
+    ctx.fillStyle = C.orange; ctx.beginPath(); ctx.roundRect(x + 14, y + 28, Math.max(4, (w - 28) * p), 4, 2); ctx.fill();
     ctx.restore();
   }
   /** Fade a whole entity as one solid layer, so parts of it never show through each other. */
@@ -535,11 +549,11 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
   const walkTo = (p: Pt, arrive?: () => void) => { player.path = route({ x: player.x, y: player.y }, clampWalk(p)); player.arrive = arrive ?? null; if (!moved) { moved = true; cb.onMoved(); } };
 
   /* ---------- frame ---------- */
-  let nowT = 0, stepClock = 0;
+  let nowT = 0, nowMs = 0, stepClock = 0;
   function frame(now: number) {
     raf = requestAnimationFrame(frame);
     if (document.hidden) return;
-    const t = now / 1000, dt = Math.min(.05, (now - (last || now)) / 1000); last = now; nowT = t;
+    const t = now / 1000, dt = Math.min(.05, (now - (last || now)) / 1000); last = now; nowT = t; nowMs = now;
     if (clock.fixed === null && now - clock.at > 10_000) { clock.at = now; clock.hour = hourOf(new Date()); }
     sky = skyAt(clock.hour);
     const ph = phaseAt(clock.hour); if (ph !== phase) { phase = ph; cb.onPhase(ph); }
@@ -556,9 +570,10 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     // A close camera that eases after you, like a third-person game: you always see the area around you. Overview pulls back to the whole fair.
     zoomMix += ((overview ? 0 : 1) - zoomMix) * Math.min(1, dt * 5);
     const fit = S, follow = Math.max(S * 1.45, .9), base = fit + (follow - fit) * zoomMix;
-    Z = base * (1 + .5 * focusV);
+    craftV += ((craft && focusRef === craft.slot ? 1 : 0) - craftV) * Math.min(1, dt * 3.5);   // while a maker works, move in on their counter
+    Z = base * (1 + .5 * focusV) * (1 + .6 * craftV);
     const ahead = player.moving && !focusRef ? 34 * zoomMix : 0, vx = player.facing === 'left' ? -1 : player.facing === 'right' ? 1 : 0, vy = player.facing === 'up' ? -1 : player.facing === 'down' ? 1 : 0;
-    const tx = (focusRef ? player.x + (focusRef.cx - player.x) * focusV : player.x) + vx * ahead, ty = (focusRef ? player.y + (focusRef.base - 100 - player.y) * focusV : player.y) + vy * ahead * .6;
+    const tx = (focusRef ? player.x + (focusRef.cx - player.x) * focusV : player.x) + vx * ahead, ty = (focusRef ? player.y + (focusRef.base - 100 + 46 * craftV - player.y) * focusV : player.y) + vy * ahead * .6;
     const k = snapCam ? 1 : Math.min(1, dt * 6); snapCam = false;
     camF.x += (tx - camF.x) * k; camF.y += (ty - camF.y) * k;
     cam.x = cameraAxis(camF.x * Z - W / 2, WORLD_W * Z, W); cam.y = cameraAxis(camF.y * Z - H / 2, WORLD_H * Z, H);
@@ -616,7 +631,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     if (mySayUntil > now) bubble(sx(player.x), sy(player.y - 148 * .98), mySay, false);
     drawBadges(t, sx, sy, mirrorNear);
     drawMinimap();
-    drawCraftCard(now, t, sx, sy);
+    drawCraftCaption(now);
     if ((nearSlot || mirrorNear) && !paused && !craft) {
       const sl = nearSlot ?? mirrorSlot!, mouse = ptr.type === 'mouse';
       const txt = mirrorNear ? (mouse ? (nearSlot ? 'Enter to shop · M for the mirror' : 'Press M for the mirror') : 'Tap the stall or the mirror') : nearSlot!.open ? (mouse ? 'Open stall · press Enter' : 'Open stall · tap it') : mouse ? 'Enter to shop · click the maker to watch' : 'Tap the stall, or the maker';
