@@ -18,6 +18,7 @@ export async function GET() {
     '## Key pages',
     `- [Shop](${origin}/shop): handmade products from independent makers, filterable by category and city`,
     `- [Workshops](${origin}/workshops): creative workshops, meetups and pop-up experiences hosted by local makers`,
+    `- [Fair](${origin}/fair): a walk-around exhibition of handmade stalls where visitors meet makers, watch crafts being made and shortlist products`,
     `- [About](${origin}/about): who ${SITE.name} is and how it works`,
     `- [Help](${origin}/help): ordering, selling and account questions`,
     `- [Contact](${origin}/contact): reach the ${SITE.name} team (${contactEmail()})`,

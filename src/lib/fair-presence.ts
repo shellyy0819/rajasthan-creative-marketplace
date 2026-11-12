@@ -2,15 +2,11 @@ import { and, count, desc, gt, lt, ne, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { fairVisitors } from '../db/schema';
 import type { Emote, Facing, FairVisitor } from './fair-types';
+import { CODE_RE, EMOTES, FACINGS, FAIR_WORLD } from './fair-constants';
 import { bad, obj } from './validate';
 
-/** Size of the fair floor in world units. The client draws the same floor; positions outside it are clamped. */
-export const FAIR_WORLD = { w: 1050, h: 780 } as const;
-/** Visitor codes: six characters, no O, I, L, 0 or 1 (they are easy to misread). */
-export const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-export const CODE_RE = new RegExp(`^[${CODE_ALPHABET}]{6}$`);
-export const FACINGS: readonly Facing[] = ['up', 'down', 'left', 'right'];
-export const EMOTES: readonly Emote[] = ['wave', 'namaste', 'hello'];
+export { CODE_ALPHABET, CODE_RE, EMOTES, FACINGS, FAIR_WORLD } from './fair-constants';
+
 /** A visitor counts as "here now" if their last heartbeat is newer than this; rows older than KEEP_MS are deleted. */
 export const ACTIVE_MS = 10_000;
 export const KEEP_MS = 60_000;

@@ -56,3 +56,11 @@ export const breadcrumbJsonLd = (items: { name: string; path: string }[]) => ({
   '@context': CTX, '@type': 'BreadcrumbList',
   itemListElement: items.map((it, i) => ({ '@type': 'ListItem', position: i + 1, name: it.name, item: abs(it.path) })),
 });
+
+/** The exhibition page (/fair): a walk-around of handmade stalls. */
+export const fairJsonLd = (description: string) => ({
+  '@context': CTX, '@type': 'WebPage',
+  name: 'Craftofy Fair', description, url: abs('/fair'), inLanguage: 'en-IN',
+  isPartOf: { '@type': 'WebSite', name: SITE.name, url: siteUrl() },
+  about: 'Handmade products and creative workshops from independent makers in India',
+});
