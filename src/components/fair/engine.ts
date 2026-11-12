@@ -28,7 +28,7 @@ export type EngineCallbacks = {
   /** A craft moment started (with its kind) or ended (null). */
   onCraft(kind: CraftKind | null): void;
 };
-export type EngineState = { wear: Wear | null; notes: number; lit: number; garland: boolean };
+export type EngineState = { wear: Wear | null; notes: number; lit: number; garland: boolean; diyas: boolean };
 export type SelfiePose = 'smile' | 'wave';
 export type FairEngine = {
   destroy(): void;
@@ -104,7 +104,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
   const camF = { x: START.x, y: START.y };
   let craftV = 0;
   let me: Character = characterFor('AAAAAA'), meCode = 'AAAAAA', paused = false, raf = 0, last = 0, moved = false;
-  let st: EngineState = { wear: null, notes: 0, lit: 0, garland: false };
+  let st: EngineState = { wear: null, notes: 0, lit: 0, garland: false, diyas: true };
   const player: Walker & { path: Pt[]; arrive: (() => void) | null } = { x: START.x, y: START.y, facing: 'up', moving: false, seed: 0, top: '', pants: '', path: [], arrive: null };
   const ptr = { x: -1, y: -1, inside: false, type: 'mouse', down: false };
   const keys = { l: 0, r: 0, u: 0, d: 0 };
@@ -156,6 +156,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
   }
   /** One diya on the rangoli per quest done today. */
   function drawDiyas(t: number) {
+    if (!st.diyas) return;   // Diwali is over: the diyas are put away
     [[-96, 354], [0, 392], [96, 354]].forEach(([dx, dy], i) => {
       const x = 525 + dx, y = dy, lit = i < st.lit;
       ctx.fillStyle = C.terraD; ctx.beginPath(); ctx.ellipse(x, y, 13, 6, 0, 0, Math.PI); ctx.fill(); ctx.fillStyle = C.orange; ctx.beginPath(); ctx.ellipse(x, y, 13, 4, 0, 0, TAU); ctx.fill();
@@ -429,7 +430,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
       ctx.globalCompositeOperation = 'lighter';
       const glow = (x: number, y: number, r: number, a: number) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(255,178,88,${a})`); g.addColorStop(1, 'rgba(255,178,88,0)'); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); };
       for (const sl of slots) glow(sx(sl.cx), sy(sl.base - 120 * SS), 190 * SS * Z, .3 * sky.lamps * (sl.maker ? 1 : .4));
-      for (let i = 0; i < st.lit; i++) glow(sx(525 + [-96, 0, 96][i]), sy([354, 392, 354][i] - 10), 46 * Z, .42 * sky.lamps);
+      for (let i = 0; i < (st.diyas ? st.lit : 0); i++) glow(sx(525 + [-96, 0, 96][i]), sy([354, 392, 354][i] - 10), 46 * Z, .42 * sky.lamps);
       for (let i = 0, x = 20; x < WORLD_W; i++, x += 36) { const u = x / WORLD_W; glow(sx(x), sy(8 + (1 - Math.pow(2 * u - 1, 2)) * 14 + 6), 13 * Z, .5 * sky.lamps * (.75 + .25 * Math.sin(t * 2 + i))); }
       ctx.globalCompositeOperation = 'source-over';
     }

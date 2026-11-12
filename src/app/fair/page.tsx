@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { FairGame } from '@/components/fair/FairGame';
 import { JsonLd } from '@/components/JsonLd';
+import { diwaliOver } from '@/lib/fair-festival';
 import { getFairData } from '@/lib/fair-data';
 import { breadcrumbJsonLd, fairJsonLd } from '@/lib/jsonld';
 import { money } from '@/lib/money';
@@ -27,7 +28,7 @@ export default async function FairPage() {
         <p>Two rows of stalls and one lane between them. Walk with the arrow keys or click where you want to go, meet the makers, watch them work and shortlist what you love.</p>
       </div>
       <section className="section">
-        <FairGame data={data} />
+        <FairGame data={data} diyas={!diwaliOver(new Date())} />
       </section>
       <section className="section fair-index" aria-labelledby="fair-index-h">
         <h2 id="fair-index-h">Stalls in the fair</h2>

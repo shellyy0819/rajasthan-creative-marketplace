@@ -22,7 +22,7 @@ type SheetState = { kind: 'stall'; idx: number } | { kind: 'open'; label: string
 const EMOTE_LABEL: Record<Emote, string> = { wave: 'Wave', namaste: 'Namaste', hello: 'Say hello' };
 
 /** The walk-around exhibition: the canvas on the left, the maker you are nearest, your player code, quests and other visitors on the right. */
-export function FairGame({ data }: { data: FairData }) {
+export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boolean }) {
   const real = data.source === 'real';
   const makerIds = useMemo(() => new Set(data.makers.map(m => m.id)), [data]);
   const items = useMemo(() => new Map<string, { item: FairItem; maker: typeof data.makers[number] }>(data.makers.flatMap(m => m.items.map(i => [i.key, { item: i, maker: m }] as const))), [data]);
@@ -205,8 +205,8 @@ export function FairGame({ data }: { data: FairData }) {
     return key ? items.get(key)?.item ?? null : null;
   }, [tryOn, wearables, profile.shortlist, items]);
   useEffect(() => {
-    engineRef.current?.setState({ wear: wearFor(wearItem), notes: profile.notes.length, lit, garland: allDone });
-  }, [wearItem, profile.notes.length, lit, allDone, ready]);
+    engineRef.current?.setState({ wear: wearFor(wearItem), notes: profile.notes.length, lit, garland: allDone, diyas });
+  }, [wearItem, profile.notes.length, lit, allDone, diyas, ready]);
 
   useEffect(() => { if (phase) soundRef.current?.ambience(phase, crowd + Math.max(0, here - 1)); }, [phase, crowd, here]);
   useEffect(() => { if (sheet) play('open'); }, [sheet, play]);
@@ -346,7 +346,7 @@ export function FairGame({ data }: { data: FairData }) {
                 </li>
               ); })}
             </ul>
-            <p className="fair-note">{allDone ? 'All done. You are wearing a marigold garland today.' : 'Each quest lights a diya on the rangoli. Finish all three for a marigold garland.'} Your progress is saved under your code, so come back with the same code to see it any day.</p>
+            <p className="fair-note">{allDone ? 'All done. You are wearing a marigold garland today.' : (diyas ? 'Each quest lights a diya on the rangoli. Finish all three for a marigold garland.' : 'Finish all three for a marigold garland.')} Your progress is saved under your code, so come back with the same code to see it any day.</p>
             {history.length > 0 && (
               <details className="fair-history">
                 <summary>Earlier days ({history.length}) · {history.reduce((n, d) => n + d.quests.filter(q => (d.progress[q.id]?.length ?? 0) >= q.target).length, 0)} quests done in all</summary>
