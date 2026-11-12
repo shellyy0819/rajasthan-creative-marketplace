@@ -246,6 +246,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
       const x = cx + ox, front = player.facing !== 'down', wave = front && slot.att > .5, hy = cy - 16;
       ctx.save(); ctx.translate(x, cy + 10); ctx.scale(sc, sc); ctx.translate(-x, -(cy + 10)); ctx.globalAlpha = vis;
       ctx.fillStyle = me.pants; ctx.fillRect(x - 17, cy + 32, 34, ry);
+      if (front) hairBack(me, x, hy, 12.5, 'front', C.hair);   // hair hangs behind the body
       ctx.fillStyle = topOf(); ctx.beginPath(); ctx.moveTo(x - 30, cy + 44); ctx.quadraticCurveTo(x - 28, cy - 2, x, cy - 3); ctx.quadraticCurveTo(x + 28, cy - 2, x + 30, cy + 44); ctx.closePath(); ctx.fill();
       if (front) { ctx.fillStyle = accOf(); ctx.beginPath(); ctx.moveTo(x - 24, cy + 2); ctx.quadraticCurveTo(x - 6, cy + 6, x + 10, cy + 40); ctx.lineTo(x + 21, cy + 40); ctx.quadraticCurveTo(x + 2, cy + 2, x - 16, cy - 2); ctx.closePath(); ctx.fill(); }
       ctx.strokeStyle = me.skin; ctx.lineWidth = 5; ctx.lineCap = 'round';
@@ -253,7 +254,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
       else { ctx.beginPath(); ctx.moveTo(x + 27, cy + 6); ctx.lineTo(x + 31, cy + 40); ctx.stroke(); }
       ctx.beginPath(); ctx.moveTo(x - 27, cy + 6); ctx.lineTo(x - 31, cy + 40); ctx.stroke();
       ctx.fillStyle = me.skin; ctx.fillRect(x - 4, hy + 8, 8, 12);
-      hairBack(me, x, hy, 12.5, front ? 'front' : 'back', C.hair);
+      if (!front) hairBack(me, x, hy, 12.5, 'back', C.hair);
       ctx.fillStyle = me.skin; ctx.beginPath(); ctx.arc(x, hy, 12.5, 0, TAU); ctx.fill();
       ctx.fillStyle = C.hair; ctx.beginPath();
       if (front) { ctx.arc(x, hy - 1, 13, Math.PI * 1.02, Math.PI * 1.98); ctx.quadraticCurveTo(x + 6, hy - 6, x, hy - 5); ctx.quadraticCurveTo(x - 6, hy - 6, x - 13, hy - 1); } else ctx.arc(x, hy, 13, 0, TAU);
@@ -345,6 +346,9 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     if (side) { ctx.fillRect(-5 + sw * 6, -46, 8, 46); ctx.fillRect(-3 - sw * 6, -46, 8, 46); }
     else { const lh = 46 - Math.max(0, sw) * 4, rh = 46 - Math.max(0, -sw) * 4; ctx.fillRect(-9, -lh, 8, lh); ctx.fillRect(1, -rh, 8, rh); }
     ctx.fillStyle = C.board; ctx.beginPath(); if (side) { ctx.ellipse(-1 + sw * 6, 0, 7, 3.5, 0, 0, TAU); ctx.ellipse(1 - sw * 6, 0, 7, 3.5, 0, 0, TAU); } else { ctx.ellipse(-5, 0, 6, 3.5, 0, 0, TAU); ctx.ellipse(5, 0, 6, 3.5, 0, 0, TAU); } ctx.fill();
+    // Hair that hangs down is drawn behind the body; seen from behind it falls over the back, so it stays in front there.
+    const view: View = f === 'up' ? 'back' : side ? 'side' : 'front';
+    if (view !== 'back') hairBack(p, side ? 1 : 0, -106, 12, view, hair);
     const tw = side ? 11 : 15; ctx.fillStyle = top; ctx.beginPath(); ctx.moveTo(-tw, -46); ctx.lineTo(-tw + 3, -88); ctx.quadraticCurveTo(0, -95, tw - 3, -88); ctx.lineTo(tw, -46); ctx.closePath(); ctx.fill();
     if (p.acc && f !== 'up') { ctx.fillStyle = p.acc; ctx.beginPath(); ctx.moveTo(-tw + 3, -88); ctx.quadraticCurveTo(-2, -80, 6, -50); ctx.lineTo(tw, -50); ctx.quadraticCurveTo(2, -84, -tw + 8, -91); ctx.closePath(); ctx.fill(); }
     ctx.strokeStyle = skin; ctx.lineWidth = 5; ctx.lineCap = 'round';
@@ -357,8 +361,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     if (p.bag && !browse) { const bx = side ? 4 : 14; ctx.fillStyle = C.chalk; ctx.fillRect(bx, -58, 15, 17); ctx.fillStyle = C.orange; ctx.fillRect(bx, -52, 15, 4); ctx.strokeStyle = C.woodD; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(bx + 7.5, -58, 5, Math.PI, 0); ctx.stroke(); }
     if (p.garland && f !== 'up') { for (let i = 0; i <= 8; i++) { const u = i / 8, gx = -tw + 4 + (tw * 2 - 8) * u, gy = -88 + 12 * Math.sin(Math.PI * u) + 6; ctx.fillStyle = i % 2 ? '#f29a1f' : '#e8b02e'; ctx.beginPath(); ctx.arc(gx, gy, 3.2, 0, TAU); ctx.fill(); } }
     ctx.fillStyle = skin; ctx.fillRect(-3, -98, 6, 8);
-    const view: View = f === 'up' ? 'back' : side ? 'side' : 'front';
-    hairBack(p, side ? 1 : 0, -106, 12, view, hair);
+    if (view === 'back') hairBack(p, 0, -106, 12, view, hair);
     ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(side ? 1 : 0, -106, 12, 0, TAU); ctx.fill();
     ctx.fillStyle = hair; ctx.beginPath();
     if (f === 'up') ctx.arc(0, -106, 12.6, 0, TAU);
