@@ -26,7 +26,8 @@ export default async function FairPage() {
         <div className="page-head">
           <span className="eyebrow">WALK THE EXHIBITION</span>
           <h1>The Craftofy Fair is closed for now</h1>
-          <p>The exhibition is not open at the moment. Please check back soon, or <Link href="/shop">shop handmade</Link> from our makers in the meantime.</p>
+          <p>The exhibition is not open at the moment. Please check back soon. In the meantime you can shop handmade from our makers.</p>
+          <p><Link className="button primary" href="/shop">Shop handmade</Link></p>
         </div>
       </>
     );

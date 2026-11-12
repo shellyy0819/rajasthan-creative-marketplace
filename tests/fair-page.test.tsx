@@ -72,5 +72,8 @@ describe('/fair while an admin has closed it', () => {
     expect(getFairData).not.toHaveBeenCalled();
     expect(document.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex');
     expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toBeTruthy();
+    const back = screen.getByRole('link', { name: 'Shop handmade' });
+    expect(back.getAttribute('href')).toBe('/shop');
+    expect(back.className).toContain('primary');
   });
 });
