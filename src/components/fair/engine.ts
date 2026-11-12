@@ -191,14 +191,15 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
   function drawMaker(slot: Slot, att: number, t: number, work?: (c: CanvasRenderingContext2D) => Job) {
     const m = slot.maker!, L = m.look, seed = hash32(m.id) % 7, look = slot.look;
     const bob = reduce ? 0 : Math.sin(t * 2 + seed) * 1.1, nod = work ? 3.5 + (reduce ? 0 : Math.sin(t * 3) * .8) : reduce ? 0 : att * Math.sin(t * 5) * 1.6, skin = L.skin === 'skin' ? C.skin : C.skin2, hairC = C.hair;
+    // Long hair hangs at the back: behind the neck and the shoulders, so it is drawn before the body.
+    if (L.long) { ctx.save(); ctx.translate(0, -90 + bob + nod); ctx.fillStyle = hairC; ctx.beginPath(); ctx.roundRect(-14, -6, 28, 34, 10); ctx.fill(); ctx.restore(); }
     ctx.fillStyle = col(L.top); ctx.beginPath(); ctx.moveTo(-27, -36); ctx.lineTo(-23, -64); ctx.quadraticCurveTo(0, -74, 23, -64); ctx.lineTo(27, -36); ctx.closePath(); ctx.fill();
     ctx.fillStyle = col(L.acc); ctx.beginPath(); ctx.moveTo(-23, -64); ctx.quadraticCurveTo(-6, -58, 10, -40); ctx.lineTo(18, -40); ctx.quadraticCurveTo(0, -62, -12, -69); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = skin; ctx.fillRect(-4, -76, 8, 9);
     // The head (and the hair that hangs behind it) is drawn before the work, so hair never covers what the maker is making.
     const head = () => {
       ctx.save(); ctx.translate(0, -90 + bob + nod);
-      if (L.long) { ctx.fillStyle = hairC; ctx.beginPath(); ctx.roundRect(-14, -6, 28, 34, 10); ctx.fill(); }
-      ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(0, 0, 12.5, 0, TAU); ctx.fill();
+      ctx.fillStyle = skin; ctx.fillRect(-4, 0, 8, 28 - bob - nod);   // the neck moves with the head, so there is never a gap under the chin
+      ctx.beginPath(); ctx.arc(0, 0, 12.5, 0, TAU); ctx.fill();
       ctx.fillStyle = hairC; ctx.beginPath(); ctx.arc(0, -1, 13, Math.PI * 1.02, Math.PI * 1.98); ctx.quadraticCurveTo(7, -6, 0, -5); ctx.quadraticCurveTo(-7, -6, -13, -1); ctx.fill();
       if (L.bun) { ctx.beginPath(); ctx.arc(0, -15, 6, 0, TAU); ctx.fill(); }
       if (work) { ctx.strokeStyle = C.hair; ctx.lineWidth = 1.5; ctx.lineCap = 'round'; for (const dx of [-4.3, 4.3]) { ctx.beginPath(); ctx.arc(dx, .4, 1.9, .12 * Math.PI, .88 * Math.PI); ctx.stroke(); } }   // eyes down on the work
