@@ -33,6 +33,11 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
+// The toolbar buttons live in a burger menu that is closed by default; opening it (if needed) first.
+const menuBtn = (name: string | RegExp) => {
+  if (!document.getElementById('fair-menu')) fireEvent.click(screen.getByRole('button', { name: 'Menu' }));
+  return screen.getByRole('button', { name });
+};
 const play = async (data: FairData = sampleFairData()) => { render(<FairGame data={data} />); await screen.findByRole('heading', { name: 'Your player' }); };
 const shownCode = () => screen.getByText(/^[A-Z2-9]{3}-[A-Z2-9]{3}$/).textContent!;
 const claims = () => fetchMock.mock.calls.filter(c => c[0] === '/api/fair/claim').map(c => JSON.parse(c[1].body));
@@ -141,7 +146,7 @@ describe('FairGame: the fair', () => {
   });
   it('opens the shortlist, empty at first', async () => {
     await play();
-    fireEvent.click(screen.getByRole('button', { name: /shortlist/i }));
+    fireEvent.click(menuBtn(/shortlist/i));
     expect(await screen.findByText(/nothing here yet/i)).toBeTruthy();
   });
   it('brings back earlier days of quests saved under the code', async () => {
@@ -180,38 +185,39 @@ describe('FairGame: look, sound, full screen and panel', () => {
   });
   it('turns the sound off and remembers it', async () => {
     await play();
-    const btn = screen.getByRole('button', { name: 'Sound on' });
+    const btn = menuBtn('Sound on');
     fireEvent.click(btn);
-    expect(await screen.findByRole('button', { name: 'Sound off' })).toBeTruthy();
+    await waitFor(() => expect(localStorage.getItem(MUTE_KEY)).toBe('1'));
+    expect(menuBtn('Sound off')).toBeTruthy();
     expect(localStorage.getItem(MUTE_KEY)).toBe('1');
     cleanup(); await play();
-    expect(screen.getByRole('button', { name: 'Sound off' })).toBeTruthy();
+    expect(menuBtn('Sound off')).toBeTruthy();
   });
   it('hides and shows the side panel', async () => {
     await play();
     const panel = document.getElementById('fair-panel')!;
     expect(panel.hidden).toBe(false);
-    fireEvent.click(screen.getByRole('button', { name: 'Hide panel' }));
+    fireEvent.click(menuBtn('Hide panel'));
     expect(panel.hidden).toBe(true);
-    fireEvent.click(screen.getByRole('button', { name: 'Show panel' }));
+    fireEvent.click(menuBtn('Show panel'));
     expect(panel.hidden).toBe(false);
   });
   it('switches between following you and the overview', async () => {
     await play();
-    fireEvent.click(screen.getByRole('button', { name: 'Overview' }));
-    expect(screen.getByRole('button', { name: 'Follow me' }).getAttribute('aria-pressed')).toBe('true');
-    fireEvent.click(screen.getByRole('button', { name: 'Follow me' }));
-    expect(screen.getByRole('button', { name: 'Overview' })).toBeTruthy();
+    fireEvent.click(menuBtn('Overview'));
+    expect(menuBtn('Follow me').getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(menuBtn('Follow me'));
+    expect(menuBtn('Overview')).toBeTruthy();
   });
   it('goes full screen with the panel folded away, and Escape leaves it', async () => {
     await play();
     const fair = document.querySelector('.fair')!;
     expect(fair.classList.contains('is-full')).toBe(false);
-    fireEvent.click(screen.getByRole('button', { name: 'Full screen' }));
+    fireEvent.click(menuBtn('Full screen'));
     await waitFor(() => expect(fair.classList.contains('is-full')).toBe(true));
-    expect(screen.getByRole('button', { name: 'Exit full screen' })).toBeTruthy();
+    expect(menuBtn('Exit full screen')).toBeTruthy();
     expect(document.getElementById('fair-panel')!.hidden).toBe(true);
-    fireEvent.click(screen.getByRole('button', { name: 'Show panel' }));
+    fireEvent.click(menuBtn('Show panel'));
     expect(document.getElementById('fair-panel')!.hidden).toBe(false);
     fireEvent.keyDown(window, { key: 'Escape' });
     await waitFor(() => expect(fair.classList.contains('is-full')).toBe(false));
@@ -221,9 +227,9 @@ describe('FairGame: look, sound, full screen and panel', () => {
   it('the Exit button also leaves full screen', async () => {
     await play();
     const fair = document.querySelector('.fair')!;
-    fireEvent.click(screen.getByRole('button', { name: 'Full screen' }));
+    fireEvent.click(menuBtn('Full screen'));
     await waitFor(() => expect(fair.classList.contains('is-full')).toBe(true));
-    fireEvent.click(screen.getByRole('button', { name: 'Exit full screen' }));
+    fireEvent.click(menuBtn('Exit full screen'));
     await waitFor(() => expect(fair.classList.contains('is-full')).toBe(false));
   });
 });

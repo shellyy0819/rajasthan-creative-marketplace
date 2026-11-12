@@ -2,7 +2,7 @@ import { characterFor, formatCode, hash32, type Character, type HairStyle, type 
 import { isLookId, type LookId } from '@/lib/fair-constants';
 import type { CraftKind, Emote, Facing, FairData, FairVisitor } from '@/lib/fair-types';
 import { artDataUri } from './art';
-import { CRAFT_LABEL, CRAFT_SECONDS, drawCounterCraft, drawHand, type HandPose, type Job } from './crafts';
+import { CRAFT_LABEL, CRAFT_SECONDS, HOLD, drawCounterCraft, drawHand, type HandPose, type Job } from './crafts';
 import type { GameEvent } from './quests';
 import { canvasFamily, readColors, type Colors } from './theme';
 import { MAX_CROWD, crowdAt, hourOf, phaseAt, skyAt, type DayPhase } from './daytime';
@@ -176,6 +176,17 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
   }
 
   /* ---------- drawing: maker, mirror, stall ---------- */
+  /**
+   * An arm from the shoulder at sx to a hand whose fingertips touch hp. The elbow stays by the body, the wrist sits one hand-length back from the fingertips,
+   * and the fingers always carry on in the direction the forearm is going: if the pose would have them point back the way the arm came, the hand is turned round.
+   */
+  function drawArm(sx: number, hp: HandPose, skin: string, bangle: string) {
+    const place = (ang: number) => { const wx = hp.x - Math.cos(ang) * REACH, wy = hp.y - Math.sin(ang) * REACH; return { wx, wy, ex: sx * 1.25, ey: Math.min(-47, (-60 + wy) / 2 + 5) }; };
+    let ang = hp.ang, g = place(ang);
+    if ((g.wx - g.ex) * Math.cos(ang) + (g.wy - g.ey) * Math.sin(ang) < 0) { ang = Math.atan2(g.wy - g.ey, g.wx - g.ex); g = place(ang); }
+    ctx.strokeStyle = skin; ctx.lineWidth = 4.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(sx, -60); ctx.quadraticCurveTo(g.ex, g.ey, g.wx, g.wy); ctx.stroke();
+    drawHand(ctx, g.wx, g.wy, ang, skin, bangle, hp.curl, hp.mirror ?? false, HAND_SCALE);
+  }
   function drawMaker(slot: Slot, att: number, t: number, work?: (c: CanvasRenderingContext2D) => Job) {
     const m = slot.maker!, L = m.look, seed = hash32(m.id) % 7, look = slot.look;
     const bob = reduce ? 0 : Math.sin(t * 2 + seed) * 1.1, nod = work ? 3.5 + (reduce ? 0 : Math.sin(t * 3) * .8) : reduce ? 0 : att * Math.sin(t * 5) * 1.6, skin = L.skin === 'skin' ? C.skin : C.skin2, hairC = C.hair;
@@ -200,20 +211,15 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
       const RAISE = 8;   // the work sits on top of the counter edge, not behind it
       ctx.save(); ctx.translate(0, -RAISE); const j0 = work(ctx); ctx.restore();
       const job: Job = { left: { ...j0.left, y: j0.left.y - RAISE }, right: { ...j0.right, y: j0.right.y - RAISE } }, bangle = col(L.acc);
-      const arm = (sx: number, hp: HandPose) => {
-        // the pose is where the fingertips touch the work; the wrist sits one hand-length back along the fingers, and the elbow stays by the body
-        const wx = hp.x - Math.cos(hp.ang) * REACH, wy = hp.y - Math.sin(hp.ang) * REACH, ex = sx * 1.25, ey = Math.min(-47, (-60 + wy) / 2 + 5);
-        ctx.strokeStyle = skin; ctx.lineWidth = 4.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(sx, -60); ctx.quadraticCurveTo(ex, ey, wx, wy); ctx.stroke();
-        drawHand(ctx, wx, wy, hp.ang, skin, bangle, hp.curl, hp.mirror ?? false, HAND_SCALE);
-      };
-      arm(-22, job.left); arm(22, job.right);
+      drawArm(-22, job.left, skin, bangle); drawArm(22, job.right, skin, bangle);
     } else {
       const wx = 30 + (reduce ? 0 : Math.sin(t * 9) * 5), wy = -104 + (reduce ? 0 : Math.sin(t * 9 + 1) * 2);
       const wkx = 14 + (reduce ? 0 : Math.sin(t * 3 + seed) * 4), wky = -46 + (reduce ? 0 : Math.cos(t * 3 + seed) * 2);
       const ax = wkx + (wx - wkx) * att, ay = wky + (wy - wky) * att, lx = -17 + (reduce ? 0 : Math.sin(t * 3 + 2) * 3);
-      ctx.strokeStyle = skin; ctx.lineWidth = 5.5; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(22, -60); ctx.lineTo(ax, ay); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-22, -60); ctx.lineTo(lx, -46); ctx.stroke();
-      ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(ax, ay, 4, 0, TAU); ctx.arc(lx, -46, 4, 0, TAU); ctx.fill();
+      // the right hand rests on the counter and lifts into a wave when you are near; the left hand rests on the counter
+      const bangle = col(L.acc), WAVE: HandPose = { x: ax, y: ay - 3, ang: -1.45 + (reduce ? 0 : Math.sin(t * 9) * .3) * att, curl: [.08, .08, .14, .2, .12], mirror: true };
+      drawArm(22, att > .08 ? WAVE : { x: ax, y: ay, ang: 1.9, curl: HOLD, mirror: true }, skin, bangle);
+      drawArm(-22, { x: lx, y: -46, ang: 1.2, curl: HOLD }, skin, bangle);
       if (m.craft === 'crochet') { ctx.fillStyle = C.sage; ctx.beginPath(); ctx.arc(-34, -44, 8, 0, TAU); ctx.fill(); ctx.strokeStyle = C.chalk; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(-34, -44, 4, 0, Math.PI * 1.5); ctx.stroke(); ctx.strokeStyle = C.woodD; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ax - 2, ay + 2); ctx.lineTo(ax - 14, ay - 8); ctx.stroke(); }
       else if (att > .2) { const sp = reduce ? 1 : .6 + .4 * Math.sin(t * 8); ctx.fillStyle = C.mustard; ctx.globalAlpha = att; ctx.beginPath(); ctx.arc(ax + 7, ay - 6, 2.4 * sp, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
     }
@@ -702,7 +708,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
   const pick = (w: Pt): Ent | null => { for (let i = hits.length - 1; i >= 0; i--) if (inBox(w, hits[i].box)) return hits[i]; return null; };
   const startCraft = (s: Slot) => { if (!s.maker) return; craft = { slot: s, start: performance.now() }; cb.onEvent({ type: 'craft', makerId: s.maker.id }); cb.onCraft(s.maker.craft); };
   const endCraft = () => { if (craft) { craft = null; cb.onCraft(null); } };
-  const mirrorAction = (view: 'menu' | 'selfie' | 'note') => { badgeSeen = true; if (!MIRROR) return; if (nearInfo().mirrorNear) cb.onOpenMirror(view); else walkTo({ x: MIRROR.x, y: mirrorSlot!.base + 34 }, () => cb.onOpenMirror(view)); };
+  const mirrorAction = (view: 'menu' | 'selfie' | 'note') => { badgeSeen = true; if (!MIRROR) return; endCraft(); if (nearInfo().mirrorNear) cb.onOpenMirror(view); else walkTo({ x: MIRROR.x, y: mirrorSlot!.base + 34 }, () => { endCraft(); cb.onOpenMirror(view); }); };
   const onDown = (e: PointerEvent) => {
     canvas.focus({ preventScroll: true }); try { canvas.setPointerCapture(e.pointerId); } catch { /* pointer already gone */ }
     setPtr(e); ptr.down = true; holdT = performance.now();

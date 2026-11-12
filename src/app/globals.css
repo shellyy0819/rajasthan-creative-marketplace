@@ -4454,6 +4454,11 @@ button.fair-opt:hover { background: var(--cream); }
 /* Fair: toolbar, time of day, full screen, collapsible panel, My look */
 .fair-toolbar { position: absolute; top: 10px; right: 10px; z-index: 2; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: calc(100% - 150px); }
 .fair-toolbar .button { background: var(--white); }
+.fair-toolbar { flex-direction: column; align-items: flex-end; flex-wrap: nowrap; }
+.fair-burger { display: inline-flex; align-items: center; gap: 8px; }
+.fair-burger-bars { width: 14px; height: 2px; background: currentColor; box-shadow: 0 -4px 0 currentColor, 0 4px 0 currentColor; }
+.fair-menu { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); box-shadow: 0 10px 30px #0000004d; }
+.fair-menu .button { justify-content: space-between; }
 .fair-toolbar .button[aria-pressed="true"] { border-color: var(--green); }
 .fair-time { position: absolute; left: 10px; top: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px 7px 10px; border-radius: 30px; background: var(--stall-board); color: var(--stall-chalk); font: 600 11px var(--font-sans); pointer-events: none; }
 .fair-time-icon { width: 12px; height: 12px; border-radius: 50%; background: #ffd27a; box-shadow: 0 0 9px #ffd27a; }
@@ -4464,7 +4469,7 @@ button.fair-opt:hover { background: var(--cream); }
 .fair-layout.panel-hidden { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 700px) {
   .fair-stage { display: flex; flex-direction: column; }
-  .fair-toolbar { position: static; order: -1; max-width: none; justify-content: flex-start; padding: 8px; background: var(--paper); border-bottom: 1px solid var(--line); }
+  .fair-toolbar { position: static; order: -1; max-width: none; align-items: stretch; padding: 8px; background: var(--paper); border-bottom: 1px solid var(--line); }
   .fair-time { top: 58px; }
 }
 .fair.is-full { position: fixed; inset: 0; z-index: 70; background: var(--paper); gap: 0; }

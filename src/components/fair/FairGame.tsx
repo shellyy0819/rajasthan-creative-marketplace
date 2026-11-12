@@ -52,7 +52,7 @@ export function FairGame({ data }: { data: FairData }) {
   const [history, setHistory] = useState<QuestDay[]>([]);
   const fairRef = useRef<HTMLDivElement>(null);
   const [full, setFull] = useState(false), [fakeFull, setFakeFull] = useState(false);
-  const [panel, setPanel] = useState(true), [overview, setOverview] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false), [panel, setPanel] = useState(true), [overview, setOverview] = useState(false);
   const [phase, setPhase] = useState<DayPhase | null>(null);
   const lookRef = useRef<LookId | null>(null);
   const soundRef = useRef<Sound | null>(null);
@@ -297,12 +297,19 @@ export function FairGame({ data }: { data: FairData }) {
           <canvas ref={canvasRef} className="fair-canvas" tabIndex={0} role="application" aria-label="The fair. Use the arrow keys or W A S D to walk. Press Enter next to a stall to shop there, or M next to the mirror." />
           {hint && <div className="fair-hint">Click the fair, then walk with the arrow keys · or click where to go</div>}
           {phase && <span className={`fair-time ${phase}`} role="status"><span className="fair-time-icon" aria-hidden="true" />{PHASE_LABEL[phase]}</span>}
-          <div className="fair-toolbar" role="toolbar" aria-label="Fair controls">
-            <button type="button" className="button" onClick={() => setSheet({ kind: 'shortlist' })} aria-haspopup="dialog">Shortlist <span className="fair-count" aria-label={`${total} items`}>{total}</span></button>
-            <button type="button" className="button" aria-pressed={overview} onClick={() => setOverview(o => !o)}>{overview ? 'Follow me' : 'Overview'}</button>
-            <button type="button" className="button" aria-pressed={panel} aria-controls="fair-panel" onClick={() => setPanel(p => !p)}>{panel ? 'Hide panel' : 'Show panel'}</button>
-            <button type="button" className="button" aria-pressed={!muted} onClick={toggleSound}>{muted ? 'Sound off' : 'Sound on'}</button>
-            <button type="button" className="button" aria-pressed={isFull} onClick={() => { void toggleFull(); }}>{isFull ? 'Exit full screen' : 'Full screen'}</button>
+          <div className="fair-toolbar" role="toolbar" aria-label="Fair controls" onKeyDown={e => { if (e.key === 'Escape') setMenuOpen(false); }}>
+            <button type="button" className="button fair-burger" aria-expanded={menuOpen} aria-controls="fair-menu" aria-label="Menu" onClick={() => setMenuOpen(o => !o)}>
+              <span className="fair-burger-bars" aria-hidden="true" /> Menu{total > 0 && <span className="fair-count" aria-label={`${total} items in shortlist`}>{total}</span>}
+            </button>
+            {menuOpen && (
+              <div id="fair-menu" className="fair-menu" onClick={() => setMenuOpen(false)}>
+                <button type="button" className="button" onClick={() => setSheet({ kind: 'shortlist' })} aria-haspopup="dialog">Shortlist <span className="fair-count" aria-label={`${total} items`}>{total}</span></button>
+                <button type="button" className="button" aria-pressed={overview} onClick={() => setOverview(o => !o)}>{overview ? 'Follow me' : 'Overview'}</button>
+                <button type="button" className="button" aria-pressed={panel} aria-controls="fair-panel" onClick={() => setPanel(p => !p)}>{panel ? 'Hide panel' : 'Show panel'}</button>
+                <button type="button" className="button" aria-pressed={!muted} onClick={toggleSound}>{muted ? 'Sound off' : 'Sound on'}</button>
+                <button type="button" className="button" aria-pressed={isFull} onClick={() => { void toggleFull(); }}>{isFull ? 'Exit full screen' : 'Full screen'}</button>
+              </div>
+            )}
           </div>
         </section>
 

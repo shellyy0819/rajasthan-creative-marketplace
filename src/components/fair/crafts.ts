@@ -100,10 +100,10 @@ export function drawCounterCraft(ctx: CanvasRenderingContext2D, kind: CraftKind,
     if (p > .92) { ctx.strokeStyle = '#fff'; ctx.globalAlpha = .6; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.ellipse(0, top - 4, 16, 4, 0, 3.6, 4.7); ctx.stroke(); ctx.globalAlpha = 1; }
     const pouring = p < .92;
     if (pouring) {
-      ctx.save(); ctx.translate(26, top - 40); ctx.rotate(-.9 - Math.sin(t * 2) * .03 * wob); ctx.fillStyle = c.chalk; ctx.strokeStyle = c.woodD; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.roundRect(-8, -10, 17, 22, 3); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#4fb6b8'; ctx.fillRect(-6, -3, 13, 13); ctx.restore();
-      ctx.strokeStyle = '#4fb6b8'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(14, top - 28); ctx.quadraticCurveTo(10 + Math.sin(t * 6) * wob, top - 16, 2, top - 6); ctx.stroke();
+      ctx.save(); ctx.translate(30, top - 22); ctx.rotate(-.9 - Math.sin(t * 2) * .03 * wob); ctx.fillStyle = c.chalk; ctx.strokeStyle = c.woodD; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.roundRect(-8, -10, 17, 22, 3); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#4fb6b8'; ctx.fillRect(-6, -3, 13, 13); ctx.restore();
+      ctx.strokeStyle = '#4fb6b8'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(18, top - 14); ctx.quadraticCurveTo(13 + Math.sin(t * 6) * wob, top - 8, 6, top - 5); ctx.stroke();
     }
-    job = { left: { x: -17, y: top - 6, ang: .55, curl: FLAT }, right: { x: pouring ? 22 : 28, y: pouring ? top - 32 : top - 10, ang: 2.3, curl: GRIP, mirror: true } };
+    job = { left: { x: -17, y: top - 6, ang: .55, curl: FLAT }, right: { x: pouring ? 30 : 30, y: pouring ? top - 18 : top - 8, ang: 2.5, curl: GRIP, mirror: true } };
   } else if (kind === 'jewellery') {
     const N = 11, sx = (i: number) => -36 + i * 7.2, sy = (i: number) => top - 12 + 6 * Math.sin(Math.PI * (i + .5) / N);
     ctx.strokeStyle = c.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-46, top - 14); for (let i = 0; i <= N; i++) ctx.lineTo(sx(i - .5), sy(i - .5)); ctx.lineTo(46, top - 14); ctx.stroke();
