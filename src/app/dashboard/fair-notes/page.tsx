@@ -12,9 +12,13 @@ export default async function FairNotesPage() {
   return (
     <>
       <Breadcrumbs items={crumbs} />
-      <h1>Fair feedback</h1>
-      <p className="muted">Notes visitors left at the mirror in the exhibition. Each one comes with a random visitor code, not a name, so you can tell notes apart without knowing who wrote them.</p>
-      <FairNotesAdmin initial={await listNotes()} />
+      <section className="admin-posts">
+        <div className="page-head">
+          <h1>Fair feedback</h1>
+          <p>Notes visitors left at the mirror in the exhibition. Each one comes with a random visitor code, not a name, so you can tell notes apart without knowing who wrote them.</p>
+        </div>
+        <FairNotesAdmin initial={await listNotes()} />
+      </section>
     </>
   );
 }
