@@ -4,6 +4,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { FairGame } from '@/components/fair/FairGame';
 import { JsonLd } from '@/components/JsonLd';
 import { diwaliOver } from '@/lib/fair-festival';
+import { isFairOpen } from '@/lib/fair-settings';
 import { getFairData } from '@/lib/fair-data';
 import { breadcrumbJsonLd, fairJsonLd } from '@/lib/jsonld';
 import { money } from '@/lib/money';
@@ -15,8 +16,22 @@ const DESCRIPTION = 'Walk through a virtual exhibition of handmade stalls. Meet 
 export const metadata: Metadata = pageMetadata({ title: 'Craftofy Fair: a walk-around handmade exhibition', description: DESCRIPTION, path: '/fair' });
 
 export default async function FairPage() {
-  const data = await getFairData();
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Fair', path: '/fair' }];
+  if (!(await isFairOpen())) {
+    // An admin has closed the exhibition: say so plainly and keep the page out of search results until it opens again.
+    return (
+      <>
+        <meta name="robots" content="noindex" />
+        <Breadcrumbs items={crumbs} />
+        <div className="page-head">
+          <span className="eyebrow">WALK THE EXHIBITION</span>
+          <h1>The Craftofy Fair is closed for now</h1>
+          <p>The exhibition is not open at the moment. Please check back soon, or <Link href="/shop">shop handmade</Link> from our makers in the meantime.</p>
+        </div>
+      </>
+    );
+  }
+  const data = await getFairData();
   return (
     <>
       <JsonLd data={breadcrumbJsonLd(crumbs)} />

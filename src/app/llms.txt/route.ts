@@ -1,6 +1,7 @@
 import { requestOrigin } from '@/lib/request-origin';
 import { listActiveCities } from '@/lib/cities';
 import { cityLabeller } from '@/lib/city-label';
+import { isFairOpen } from '@/lib/fair-settings';
 import { SITE, contactEmail } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
@@ -9,6 +10,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const origin = await requestOrigin();
   const cities = await listActiveCities().catch(() => []);
+  const fairOpen = await isFairOpen();
   const label = cityLabeller(cities);
   const body = [
     `# ${SITE.name}`,
@@ -18,7 +20,7 @@ export async function GET() {
     '## Key pages',
     `- [Shop](${origin}/shop): handmade products from independent makers, filterable by category and city`,
     `- [Workshops](${origin}/workshops): creative workshops, meetups and pop-up experiences hosted by local makers`,
-    `- [Fair](${origin}/fair): a walk-around exhibition of handmade stalls where visitors meet makers, watch crafts being made and shortlist products`,
+    ...(fairOpen ? [`- [Fair](${origin}/fair): a walk-around exhibition of handmade stalls where visitors meet makers, watch crafts being made and shortlist products`] : []),
     `- [About](${origin}/about): who ${SITE.name} is and how it works`,
     `- [Help](${origin}/help): ordering, selling and account questions`,
     `- [Contact](${origin}/contact): reach the ${SITE.name} team (${contactEmail()})`,

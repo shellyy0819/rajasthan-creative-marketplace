@@ -1,16 +1,19 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { render, screen, cleanup, within } from '@testing-library/react';
 
 const getFairData = vi.hoisted(() => vi.fn());
+const isFairOpen = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/fair-data', () => ({ getFairData }));
+vi.mock('@/lib/fair-settings', () => ({ isFairOpen }));
 vi.mock('@/components/fair/FairGame', () => ({ FairGame: ({ data }: { data: { source: string } }) => <div data-testid="game">{data.source}</div> }));
 
 import FairPage, { metadata } from '@/app/fair/page';
 import { SAMPLE_MAKERS, sampleFairData } from '@/lib/fair-sample';
 
 afterEach(cleanup);
+beforeEach(() => { isFairOpen.mockReset(); isFairOpen.mockResolvedValue(true); });
 const ld = () => [...document.querySelectorAll('script[type="application/ld+json"]')].map(s => JSON.parse(s.textContent!));
 
 describe('/fair metadata', () => {
@@ -56,5 +59,18 @@ describe('/fair page', () => {
     getFairData.mockResolvedValue({ source: 'real', stalls: [], makers: [] });
     render(await FairPage());
     expect(screen.getByText('No stalls are open yet.')).toBeTruthy();
+  });
+});
+
+describe('/fair while an admin has closed it', () => {
+  it('shows a closed notice, no game, no data fetch, and asks search engines to skip it', async () => {
+    isFairOpen.mockResolvedValue(false);
+    getFairData.mockClear();
+    render(await FairPage());
+    expect(screen.getByRole('heading', { level: 1, name: /closed for now/i })).toBeTruthy();
+    expect(screen.queryByTestId('game')).toBeNull();
+    expect(getFairData).not.toHaveBeenCalled();
+    expect(document.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex');
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toBeTruthy();
   });
 });
