@@ -943,6 +943,9 @@ form label select {
   nav > a {
     display: none;
   }
+  nav > a.nav-fair {
+    display: inline-flex;
+  }
   .seller-prompt {
     display: none;
   }
@@ -4336,3 +4339,156 @@ body.modal-open {
 .footer-base .copyright {
   text-align: center;
 }
+
+/* ---------- The exhibition (/fair) ---------- */
+.fair { display: grid; gap: 14px; }
+.fair-loading { min-height: 320px; position: relative; }
+.fair-layout { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 920px) { .fair-layout { grid-template-columns: minmax(0, 1fr) 316px; align-items: start; } }
+.fair-stage { position: relative; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--paper); }
+.fair-canvas { display: block; width: 100%; cursor: crosshair; touch-action: pan-y; outline-offset: -3px; }
+.fair-hint { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); padding: 8px 14px; border-radius: 30px; background: var(--stall-board); color: var(--stall-chalk); font: 500 12px var(--font-sans); pointer-events: none; white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; }
+.fair-count, .fair-qty-badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 30px; background: var(--orange); color: #fffdf9; font: 700 11px var(--font-sans); line-height: 20px; text-align: center; font-variant-numeric: tabular-nums; }
+.fair-side { display: grid; gap: 14px; min-width: 0; }
+.fair-card { border: 1px solid var(--line); border-radius: 6px; background: var(--white); padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.fair-card h2 { margin: 0; font: 600 18px var(--font-display); overflow-wrap: anywhere; }
+.fair-card h3 { margin: 0; font: 600 11px var(--font-sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.fair-card p { margin: 0; }
+.fair-who { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.fair-avatar { flex: none; display: block; width: 58px; height: 58px; border-radius: 50%; overflow: hidden; border: 1px solid var(--line); background: var(--cream); }
+.fair-avatar svg { display: block; width: 100%; height: 100%; }
+.fair-meta { color: var(--muted); font-size: 13px; }
+.fair-tag { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 30px; background: var(--sel-green); color: var(--green-d); font: 600 10px var(--font-sans); letter-spacing: 0.04em; text-transform: uppercase; vertical-align: 2px; }
+.fair-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.fair-here { color: var(--ink-soft); font-size: 14px; }
+.fair-note, .fair-foot { color: var(--muted); font-size: 12px; margin: 0; }
+.fair-foot { max-width: 78ch; }
+.fair-name { display: block; font: 600 17px var(--font-sans); }
+.fair-codeline { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.fair-codeline code { font: 700 15px var(--font-sans); letter-spacing: 0.12em; padding: 7px 10px; border-radius: 4px; background: var(--cream); color: var(--ink); font-variant-numeric: tabular-nums; }
+.fair-row { display: flex; gap: 8px; }
+.fair-row input { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
+.fair-codeform { gap: 6px; }
+.fair-codeform .admin-error:empty { display: none; }
+.fair-quests { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.fair-quests li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
+.fair-quests small { display: block; color: var(--muted); font-size: 12px; }
+.fair-check { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px dashed var(--control-border); display: grid; place-items: center; font-size: 12px; color: var(--white); }
+.fair-quests .done .fair-check { border: 1.5px solid var(--green); background: var(--green); }
+.fair-chips { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.fair-chip { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 4px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; text-align: left; font: 500 13px var(--font-sans); min-height: 44px; }
+.fair-chip:hover { background: var(--cream); }
+.fair-chip[aria-current="true"] { border-color: var(--green); background: var(--sel-green); }
+.fair-chip small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
+.fair-dot { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px dashed var(--control-border); display: grid; place-items: center; font-size: 12px; color: transparent; }
+.fair-chip.open .fair-dot { border-style: dotted; }
+.fair-chip.met .fair-dot { border: 1.5px solid var(--green); background: var(--green); color: var(--white); }
+.fair-track { height: 8px; border-radius: 8px; background: var(--cream); overflow: hidden; }
+.fair-track div { height: 100%; background: var(--orange); transition: width 0.5s; }
+
+.fair-sheet { max-width: min(680px, calc(100vw - 24px)); width: 100%; padding: 0; }
+.fair-sheet-body { position: relative; padding: 22px; max-height: 88vh; overflow: auto; display: grid; gap: 14px; }
+.fair-x { position: absolute; right: 12px; top: 12px; }
+.fair-sheet h2 { margin: 0; font: 500 24px var(--font-display); overflow-wrap: anywhere; }
+.fair-sheet-head { display: flex; gap: 14px; align-items: center; padding-right: 36px; }
+.fair-sheet-head .fair-avatar { width: 72px; height: 72px; }
+.fair-say { margin: 0; padding: 10px 14px; border-radius: 8px; background: var(--paper); border: 1px solid var(--line); font-size: 14px; color: var(--ink-soft); font-style: italic; }
+.fair-items { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); margin: 0; padding: 0; list-style: none; }
+.fair-item { display: grid; gap: 6px; align-content: start; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); min-width: 0; }
+.fair-item h3 { margin: 0; font: 600 14px var(--font-sans); letter-spacing: 0; text-transform: none; color: var(--ink); }
+.fair-item-pic, .fair-line-pic { position: relative; aspect-ratio: 1; border-radius: 4px; background: var(--cream); display: grid; place-items: center; overflow: hidden; }
+.fair-item-pic .product-photo, .fair-line-pic .product-photo { width: 100%; height: 100%; object-fit: cover; }
+.fair-art { display: grid; width: 62%; height: 62%; }
+.fair-art svg { width: 100%; height: 100%; }
+.fair-qty-badge { position: absolute; right: 8px; top: 8px; }
+.fair-price { margin: 0; font: 600 15px var(--font-sans); font-variant-numeric: tabular-nums; }
+.fair-item-actions { display: grid; gap: 6px; }
+.fair-sheet-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px; }
+.fair-empty { padding: 24px 12px; text-align: center; color: var(--muted); margin: 0; }
+.fair-lines { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.fair-lines li { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: 6px; }
+.fair-line-pic { width: 44px; height: 44px; }
+.fair-line-pic .fair-art { width: 70%; height: 70%; }
+.fair-lines b { display: block; font-weight: 600; font-size: 14px; }
+.fair-lines small { color: var(--muted); font-size: 12px; }
+.fair-stepper { display: flex; align-items: center; gap: 6px; }
+.fair-stepper button { width: 30px; height: 30px; border-radius: 4px; border: 1px solid var(--control-border); background: transparent; color: var(--ink); cursor: pointer; font-size: 15px; line-height: 1; }
+.fair-stepper output { min-width: 18px; text-align: center; font: 600 13px var(--font-sans); font-variant-numeric: tabular-nums; }
+.fair-total { display: flex; justify-content: space-between; margin: 0; font: 600 16px var(--font-sans); font-variant-numeric: tabular-nums; }
+.fair-opts { display: grid; gap: 10px; }
+.fair-opt { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: center; text-align: left; padding: 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); color: var(--ink); font: 400 14px var(--font-sans); cursor: pointer; width: 100%; }
+button.fair-opt:hover { background: var(--cream); }
+.fair-opt-static { cursor: default; align-items: start; }
+.fair-opt > svg { width: 44px; height: 44px; padding: 10px; border-radius: 50%; background: var(--cream); stroke: var(--green); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.fair-opt b { display: block; font: 600 15px var(--font-sans); }
+.fair-opt small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.fair-opt .button { margin-top: 8px; }
+.fair-seg { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.fair-seg button { flex: 1 1 auto; min-height: 34px; padding: 6px 10px; border: 1px solid var(--control-border); border-radius: 3px; background: transparent; color: var(--ink); cursor: pointer; font: 600 11px var(--font-sans); }
+.fair-seg button[aria-pressed="true"] { background: var(--green); border-color: var(--green); color: var(--white); }
+.fair-selfie { position: relative; width: min(100%, 360px); margin: 0 auto; }
+.fair-selfie canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 4px; }
+.fair-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; border-radius: 4px; animation: fair-flash 0.45s ease-out; }
+@keyframes fair-flash { 0% { opacity: 0.9; } 100% { opacity: 0; } }
+.fair-rate { display: flex; gap: 4px; }
+.fair-rate button { width: 38px; height: 38px; border: 1px solid var(--control-border); border-radius: 3px; background: transparent; color: var(--muted); font-size: 18px; cursor: pointer; }
+.fair-rate button[data-on="1"] { color: #fffdf9; background: var(--orange); border-color: var(--orange); }
+.fair-notes { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 13px; color: var(--ink-soft); }
+.fair-notes li { padding: 8px 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; overflow-wrap: anywhere; }
+.fair-sheet textarea { width: 100%; min-height: 96px; resize: vertical; }
+.fair-index ul { margin: 12px 0 0; padding-left: 18px; }
+.fair-index h3 { margin: 12px 0 2px; font: 600 16px var(--font-display); }
+.fair-index p { margin: 0; color: var(--muted); }
+@media (max-width: 420px) { .fair-lines li { grid-template-columns: 44px minmax(0, 1fr); } .fair-stepper { grid-column: 1 / -1; } }
+@media (prefers-reduced-motion: reduce) { .fair-flash { animation: none; } .fair-track div { transition: none; } }
+
+/* The Fair link in the header: a soft glow that pulses around the whole label, a small dot, and a little wiggle every few seconds. */
+.nav-fair { position: relative; display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 30px; border: 1.5px solid color-mix(in srgb, var(--orange) 55%, transparent); animation: nav-fair-glow 2.4s ease-out infinite, nav-fair-nudge 6s ease-in-out infinite; transform-origin: 40% 80%; }
+.nav-fair-spark { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--orange); }
+.nav-fair-spark::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--orange); animation: nav-fair-ping 2.4s ease-out infinite; }
+@keyframes nav-fair-glow { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--orange) 40%, transparent); } 70%, 100% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--orange) 0%, transparent); } }
+@keyframes nav-fair-ping { 0% { transform: scale(1); opacity: 0.7; } 70%, 100% { transform: scale(2.2); opacity: 0; } }
+@keyframes nav-fair-nudge { 0%, 86%, 100% { transform: none; } 89% { transform: rotate(-4deg) translateY(-1px); } 92% { transform: rotate(4deg); } 95% { transform: rotate(-2deg); } 98% { transform: rotate(1deg); } }
+@media (prefers-reduced-motion: reduce) { .nav-fair { animation: none; } .nav-fair-spark::after { display: none; } }
+
+/* Fair: toolbar, time of day, full screen, collapsible panel, My look */
+.fair-toolbar { position: absolute; top: 10px; right: 10px; z-index: 2; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: calc(100% - 150px); }
+.fair-toolbar .button { background: var(--white); }
+.fair-toolbar { flex-direction: column; align-items: flex-end; flex-wrap: nowrap; }
+.fair-burger { display: inline-flex; align-items: center; gap: 8px; }
+.fair-burger-bars { width: 14px; height: 2px; background: currentColor; box-shadow: 0 -4px 0 currentColor, 0 4px 0 currentColor; }
+.fair-fs { position: absolute; right: 10px; bottom: 10px; z-index: 2; width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 1px solid var(--control-border); border-radius: 3px; background: var(--white); color: var(--ink); cursor: pointer; }
+.fair-fs:hover { border-color: var(--green); }
+.fair-menu { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); box-shadow: 0 10px 30px #0000004d; }
+.fair-menu .button { justify-content: space-between; }
+.fair-toolbar .button[aria-pressed="true"] { border-color: var(--green); }
+.fair-time { position: absolute; left: 10px; top: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px 7px 10px; border-radius: 30px; background: var(--stall-board); color: var(--stall-chalk); font: 600 11px var(--font-sans); pointer-events: none; }
+.fair-time-icon { width: 12px; height: 12px; border-radius: 50%; background: #ffd27a; box-shadow: 0 0 9px #ffd27a; }
+.fair-time.afternoon .fair-time-icon { background: #ffe27a; box-shadow: 0 0 12px #ffd24a; }
+.fair-time.evening .fair-time-icon { background: #ff9a4a; box-shadow: 0 0 9px #ff9a4a; }
+.fair-time.night .fair-time-icon { background: transparent; box-shadow: inset -4px -2px 0 0 #dfe8ff; }
+.fair-side[hidden] { display: none; }
+.fair-layout.panel-hidden { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 700px) {
+  .fair-stage { display: flex; flex-direction: column; }
+  .fair-toolbar { position: static; order: -1; max-width: none; align-items: stretch; padding: 8px; background: var(--paper); border-bottom: 1px solid var(--line); }
+  .fair-time { top: 58px; }
+}
+.fair.is-full { position: fixed; inset: 0; z-index: 70; background: var(--paper); gap: 0; }
+.fair:fullscreen { background: var(--paper); }
+.fair.is-full .fair-layout { display: block; position: relative; height: 100%; }
+.fair.is-full .fair-stage { height: 100%; border: 0; border-radius: 0; }
+.fair.is-full .fair-foot { display: none; }
+.fair.is-full .fair-side { position: absolute; top: 58px; right: 10px; bottom: 10px; z-index: 3; width: min(360px, calc(100% - 20px)); overflow: auto; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); box-shadow: 0 12px 40px #0000005c; align-content: start; }
+@media (max-width: 700px) { .fair.is-full .fair-side { top: 108px; } }
+.fair-looks-group { border: 0; padding: 0; margin: 0; min-width: 0; }
+.fair-looks-group legend { padding: 0; margin-bottom: 8px; font: 600 11px var(--font-sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.fair-looks { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 520px) { .fair-looks { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.fair-look { display: grid; justify-items: center; gap: 6px; padding: 10px 4px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--ink); cursor: pointer; font: 600 12px var(--font-sans); }
+.fair-look:hover { background: var(--cream); }
+.fair-look[aria-pressed="true"] { border-color: var(--green); background: var(--sel-green); box-shadow: 0 0 0 1px var(--green) inset; }
+.fair-look .fair-avatar { width: 56px; height: 56px; }
+.fair-history summary { cursor: pointer; font: 600 12px var(--font-sans); color: var(--ink-soft); }
+.fair-history ul { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 13px; }
+.fair-history small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }

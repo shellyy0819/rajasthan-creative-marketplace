@@ -1,0 +1,1 @@
+ALTER TABLE "fair_visitors" ADD COLUMN "look" text;
