@@ -14,9 +14,10 @@ import type { SelfiePose } from './engine';
 /** A modal sheet on the native <dialog>: it traps focus, closes on Escape and hands focus back. */
 export function Sheet({ labelId, onClose, children }: { labelId: string; onClose: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
+  // A 'close' event from an earlier close() can arrive after the dialog was opened again (React re-runs effects in development); only a dialog that is really closed counts.
   useEffect(() => { const d = ref.current; if (d && !d.open) d.showModal(); return () => { if (d?.open) d.close(); }; }, []);
   return (
-    <dialog ref={ref} className="fair-sheet" aria-labelledby={labelId} onClose={onClose} onClick={e => { if (e.target === ref.current) onClose(); }}>
+    <dialog ref={ref} className="fair-sheet" aria-labelledby={labelId} onClose={() => { if (!ref.current?.open) onClose(); }} onClick={e => { if (e.target === ref.current) onClose(); }}>
       <div className="fair-sheet-body">
         <button type="button" className="icon-btn fair-x" aria-label="Close" onClick={onClose}>✕</button>
         {children}
