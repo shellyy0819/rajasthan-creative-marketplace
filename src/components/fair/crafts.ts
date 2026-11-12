@@ -17,10 +17,15 @@ const OUTLINE = 'rgba(52,28,14,.22)';
 export type Curl = [number, number, number, number, number];
 export const PINCH: Curl = [.55, .5, .55, .65, .6], GRIP: Curl = [.62, .68, .72, .74, .5], FLAT: Curl = [.12, .12, .18, .24, .2], HOLD: Curl = [.4, .45, .5, .55, .35];
 
-/** Where a hand ends up while it works: the wrist spot on the counter, which way the fingers point, and how they are curled. */
+/**
+ * Where a hand works: the point its fingertips touch, which way the fingers point (down and inward toward the work, as when someone makes something
+ * in front of their chest), and how they are curled. The wrist is worked out from the fingertips, so the hand always reaches the work.
+ */
 export type HandPose = { x: number; y: number; ang: number; curl: Curl; mirror?: boolean };
 /** What a craft puts on the counter and where the maker's two hands go. Positions are in the stall's own units: x across the counter, y up from the ground. */
 export type Job = { left: HandPose; right: HandPose };
+/** The work is drawn at this fraction of its drawn size, so it fits between the maker's hands in front of their chest. */
+export const WORK_SCALE = 1.1;
 
 /**
  * A hand seen from the front, pointing along +x from (x, y) and turned by `rot`. Fingers bend at the knuckle by `curl`; `mirror` swaps the thumb side.
@@ -55,21 +60,22 @@ export function drawHand(ctx: CanvasRenderingContext2D, x: number, y: number, ro
  * The maker's own arms and hands are drawn by the caller, on top of what is drawn here.
  */
 export function drawCounterCraft(ctx: CanvasRenderingContext2D, kind: CraftKind, p: number, t: number, c: Colors, reduced = false): Job {
-  const wob = reduced ? 0 : 1, top = -44;
+  const wob = reduced ? 0 : 1, top = -44, K = WORK_SCALE;
   ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.translate(0, top); ctx.scale(K, K); ctx.translate(0, -top);   // a maker's work is small: it sits close in front of them, under their chin
   let job: Job;
   if (kind === 'crochet') {
     const n = Math.floor(p * 18) + 1, per = 9, x0 = -22, step = 7.2;
-    dot(ctx, -48, top - 8, 9, c.sage); ctx.strokeStyle = c.chalk; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(-48, top - 8, 5.5, .3, 4.4); ctx.stroke(); ctx.beginPath(); ctx.arc(-48, top - 8, 2.8, 1, 5); ctx.stroke();
-    ctx.strokeStyle = c.orange; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-42, top - 4); ctx.quadraticCurveTo(-34, top + 2, x0 - 4, top - 5); ctx.stroke();
+    dot(ctx, -58, top - 8, 9, '#e58aa6'); ctx.strokeStyle = c.chalk; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(-58, top - 8, 5.5, .3, 4.4); ctx.stroke(); ctx.beginPath(); ctx.arc(-58, top - 8, 2.8, 1, 5); ctx.stroke();
+    ctx.strokeStyle = '#e58aa6'; ctx.lineWidth = 1.7; ctx.beginPath(); ctx.moveTo(-52, top - 5); ctx.quadraticCurveTo(-40, top + 3, x0 - 4, top - 5); ctx.stroke();
     let lx = x0, ly = top - 5;
-    for (let i = 0; i < n; i++) { const r = Math.floor(i / per), cl = i % per; lx = x0 + cl * step; ly = top - 5 - r * 8; ctx.strokeStyle = r ? c.mustard : c.orange; ctx.lineWidth = 1.9; ctx.beginPath(); ctx.ellipse(lx, ly, 4.2, 3, 0, 0, TAU); ctx.stroke(); }
+    for (let i = 0; i < n; i++) { const r = Math.floor(i / per), cl = i % per; lx = x0 + cl * step; ly = top - 5 - r * 8; ctx.strokeStyle = r ? c.chalk : '#e58aa6'; ctx.lineWidth = 2.1; ctx.beginPath(); ctx.ellipse(lx, ly, 4.2, 3, 0, 0, TAU); ctx.stroke(); }
     const jig = Math.sin(t * 9) * 2.2 * wob;
     ctx.strokeStyle = c.woodD; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(lx + 2, ly - 2 + jig * .3); ctx.lineTo(lx + 22, ly - 16 + jig); ctx.stroke();
-    job = { left: { x: x0 + 18, y: top - 18, ang: 2.1, curl: PINCH, mirror: true }, right: { x: lx + 22 + jig * .2, y: ly - 18 + jig, ang: 2.5, curl: PINCH } };
+    job = { left: { x: x0 - 2, y: top - 7, ang: .85, curl: PINCH }, right: { x: lx + 12 + jig * .2, y: ly - 9 + jig, ang: 2.35, curl: PINCH, mirror: true } };
     if (p > .9) { const s = ease((p - .9) / .1); ctx.save(); ctx.translate(48, top - 12); ctx.scale(s, s); for (let i = 0; i < 5; i++) dot(ctx, Math.cos(i * TAU / 5 - 1.57) * 6, Math.sin(i * TAU / 5 - 1.57) * 6, 4.6, '#e58aa6'); dot(ctx, 0, 0, 3.4, c.mustard); ctx.restore(); }
   } else if (kind === 'pottery') {
-    const e = ease(p / .75), Hh = 8 + 40 * e;
+    const e = ease(p / .75), Hh = 6 + 18 * e;
     const prof = (y: number) => 9 + 9 * Math.sin(Math.PI * Math.min(1, y * 1.08)) * (.55 + .45 * e) - (y > .62 ? (y - .62) * 26 * e : 0);
     ctx.fillStyle = c.woodD; ctx.beginPath(); ctx.ellipse(0, top - 1, 36, 6, 0, 0, TAU); ctx.fill(); ctx.fillStyle = c.wood; ctx.fillRect(-36, top - 6, 72, 6); ctx.beginPath(); ctx.ellipse(0, top - 6, 36, 6, 0, 0, TAU); ctx.fill();
     dot(ctx, Math.cos(t * 7 * wob) * 30, top - 6 + Math.sin(t * 7 * wob) * 4, 1.6, c.chalk);
@@ -82,7 +88,7 @@ export function drawCounterCraft(ctx: CanvasRenderingContext2D, kind: CraftKind,
     ctx.globalAlpha = 1;
     if (p > .8) { const g = ease((p - .8) / .2); ctx.fillStyle = c.mustard; ctx.globalAlpha = g; ctx.fillRect(-prof(.9) - .5, top - 6 - Hh * .93, prof(.9) * 2 + 1, 3); ctx.fillStyle = c.indigo; ctx.fillRect(-prof(.3), top - 6 - Hh * .34, prof(.3) * 2, 2.4); ctx.globalAlpha = 1; }
     const press = Math.sin(t * 3) * 1.6 * wob, hy = top - 6 - Hh * .45, r = prof(.45);
-    job = { left: { x: -r - 14 + press, y: hy, ang: .02, curl: GRIP }, right: { x: r + 14 - press, y: hy, ang: Math.PI - .02, curl: GRIP, mirror: true } };
+    job = { left: { x: -r + 1 + press, y: hy, ang: .45, curl: GRIP }, right: { x: r - 1 - press, y: hy, ang: Math.PI - .45, curl: GRIP, mirror: true } };
   } else if (kind === 'resin') {
     const level = ease(p / .9);
     ctx.fillStyle = c.chalk; ctx.beginPath(); ctx.ellipse(0, top - 4, 25, 8, 0, 0, TAU); ctx.fill(); ctx.strokeStyle = c.woodD; ctx.lineWidth = 1.8; ctx.stroke();
@@ -97,7 +103,7 @@ export function drawCounterCraft(ctx: CanvasRenderingContext2D, kind: CraftKind,
       ctx.save(); ctx.translate(26, top - 40); ctx.rotate(-.9 - Math.sin(t * 2) * .03 * wob); ctx.fillStyle = c.chalk; ctx.strokeStyle = c.woodD; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.roundRect(-8, -10, 17, 22, 3); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#4fb6b8'; ctx.fillRect(-6, -3, 13, 13); ctx.restore();
       ctx.strokeStyle = '#4fb6b8'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(14, top - 28); ctx.quadraticCurveTo(10 + Math.sin(t * 6) * wob, top - 16, 2, top - 6); ctx.stroke();
     }
-    job = { left: { x: -34, y: top - 12, ang: .15, curl: FLAT, mirror: true }, right: { x: pouring ? 38 : 40, y: pouring ? top - 36 : top - 14, ang: Math.PI + .35, curl: GRIP, mirror: true } };
+    job = { left: { x: -17, y: top - 6, ang: .55, curl: FLAT }, right: { x: pouring ? 22 : 28, y: pouring ? top - 32 : top - 10, ang: 2.3, curl: GRIP, mirror: true } };
   } else if (kind === 'jewellery') {
     const N = 11, sx = (i: number) => -36 + i * 7.2, sy = (i: number) => top - 12 + 6 * Math.sin(Math.PI * (i + .5) / N);
     ctx.strokeStyle = c.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-46, top - 14); for (let i = 0; i <= N; i++) ctx.lineTo(sx(i - .5), sy(i - .5)); ctx.lineTo(46, top - 14); ctx.stroke();
@@ -106,7 +112,7 @@ export function drawCounterCraft(ctx: CanvasRenderingContext2D, kind: CraftKind,
     let rx = 46, ry = top - 34;
     if (done < N) { const f = ease((p * (N + 1)) % 1), bx = sx(done) + 20 * (1 - f), by = sy(done) - 18 * (1 - f); dot(ctx, bx, by, 3.6, cols[done % cols.length]); dot(ctx, bx - 1, by - 1, 1, 'rgba(255,255,255,.7)'); rx = bx + 6; ry = by - 8; }
     if (p > .88) { const g = ease((p - .88) / .12), x = sx(5), y = sy(5); ctx.save(); ctx.translate(x, y + 3); ctx.scale(g, g); ctx.fillStyle = c.mustard; ctx.beginPath(); ctx.moveTo(-9, 0); ctx.quadraticCurveTo(0, 16, 9, 0); ctx.quadraticCurveTo(0, 8, -9, 0); ctx.fill(); dot(ctx, 0, 2, 2.2, '#b3262e'); ctx.restore(); }
-    job = { left: { x: -52, y: top - 14, ang: .1, curl: PINCH, mirror: true }, right: { x: rx, y: ry, ang: 2.4, curl: PINCH } };
+    job = { left: { x: -44, y: top - 14, ang: .4, curl: PINCH }, right: { x: rx - 6, y: ry + 8, ang: 2.2, curl: PINCH, mirror: true } };
   } else if (kind === 'print') {
     ctx.fillStyle = c.chalk; ctx.strokeStyle = c.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-58, top); ctx.lineTo(-50, top - 16); ctx.lineTo(50, top - 16); ctx.lineTo(58, top); ctx.closePath(); ctx.fill(); ctx.stroke();
     const cols = 5, total = cols * 2, n = Math.min(total, Math.floor(p * (total + 1)));
@@ -114,13 +120,13 @@ export function drawCounterCraft(ctx: CanvasRenderingContext2D, kind: CraftKind,
     for (let i = 0; i < n; i++) { const q = at(i), col = i % 2 ? c.indigo : c.orange; for (let k = 0; k < 4; k++) dot(ctx, q.x + Math.cos(k * TAU / 4) * 2.8, q.y + Math.sin(k * TAU / 4) * 2.2, 2, col); dot(ctx, q.x, q.y, 1.2, c.chalk); }
     let rx = 40, ry = top - 34;
     if (n < total) { const q = at(n), press = (Math.sin(t * 5) + 1) / 2, lift = press * 9 * wob; ctx.fillStyle = c.wood; ctx.beginPath(); ctx.roundRect(q.x - 7, q.y - 9 - lift, 14, 11, 2); ctx.fill(); ctx.strokeStyle = c.woodD; ctx.lineWidth = .8; ctx.stroke(); rx = q.x + 8; ry = q.y - 22 - lift; }
-    job = { left: { x: -62, y: top - 16, ang: .5, curl: HOLD, mirror: true }, right: { x: rx, y: ry, ang: 2.0, curl: FLAT } };
+    job = { left: { x: -46, y: top - 8, ang: .6, curl: HOLD }, right: { x: rx - 8, y: ry + 10, ang: 1.7, curl: FLAT, mirror: true } };
   } else if (kind === 'wood') {
-    const x0 = -34, x1 = 30, y0 = top - 36, y1 = top, reveal = x0 + (x1 - x0) * ease(p / .92);
+    const x0 = -34, x1 = 30, y0 = top - 27, y1 = top, reveal = x0 + (x1 - x0) * ease(p / .92);
     ctx.fillStyle = c.wood; ctx.beginPath(); ctx.roundRect(x0, y0, x1 - x0, y1 - y0, 3); ctx.fill();
     ctx.save(); ctx.beginPath(); ctx.rect(x0, y0 - 4, reveal - x0, y1 - y0 + 8); ctx.clip();
     ctx.fillStyle = c.cream; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-    ctx.fillStyle = c.woodD; ctx.beginPath(); ctx.ellipse(x0 + 38, top - 14, 24, 13, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(x0 + 12, top - 20, 10, 0, TAU); ctx.fill();
+    ctx.fillStyle = c.woodD; ctx.beginPath(); ctx.ellipse(x0 + 38, top - 11, 24, 11, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(x0 + 12, top - 16, 9, 0, TAU); ctx.fill();
     ctx.lineWidth = 4.4; ctx.strokeStyle = c.woodD; ctx.beginPath(); ctx.moveTo(x0 + 4, top - 18); ctx.quadraticCurveTo(x0 - 2, top - 6, x0 + 4, top - 2); ctx.stroke();
     ctx.fillRect(x0 + 24, top - 8, 6, 8); ctx.fillRect(x0 + 48, top - 8, 6, 8);
     ctx.restore();
@@ -129,24 +135,25 @@ export function drawCounterCraft(ctx: CanvasRenderingContext2D, kind: CraftKind,
     const swing = (Math.sin(t * 13 * wob) + 1) / 2;
     ctx.save(); ctx.translate(tipx - 14, tipy - 22 - swing * 8); ctx.rotate(.3 - swing * .5); ctx.fillStyle = c.woodD; ctx.beginPath(); ctx.roundRect(-5, -5, 11, 8, 2); ctx.fill(); ctx.strokeStyle = c.woodD; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(5, 0); ctx.lineTo(22, 5); ctx.stroke(); ctx.restore();
     if (p < .94) for (let i = 0; i < 4; i++) { const a = (t * 3 + i * .7) % 1; ctx.save(); ctx.globalAlpha = 1 - a; ctx.translate(tipx + 2 + a * 12 + i * 2, tipy - a * 12 + a * a * 22); ctx.rotate(a * 6 + i); ctx.fillStyle = c.wood; ctx.fillRect(-1.4, -.9, 2.8, 1.8); ctx.restore(); }
-    job = { left: { x: tipx - 18, y: tipy - 18, ang: .78, curl: PINCH, mirror: true }, right: { x: tipx + 12, y: tipy - 26 - swing * 8, ang: Math.PI - .15, curl: GRIP, mirror: true } };
+    job = { left: { x: tipx - 8, y: tipy - 8, ang: .8, curl: PINCH }, right: { x: tipx + 6, y: tipy - 17 - swing * 8, ang: 2.5, curl: GRIP, mirror: true } };
   } else if (kind === 'christmas') {
-    const cx = -4, n = Math.floor(p * 9);
-    ctx.fillStyle = '#3f6b3a'; [[-92, 24, 22], [-78, 20, 18], [-64, 15, 14]].forEach(([tp, half, hh]) => { ctx.beginPath(); ctx.moveTo(cx, tp); ctx.lineTo(cx - half, tp + hh + 8); ctx.lineTo(cx + half, tp + hh + 8); ctx.closePath(); ctx.fill(); });
+    const cx = -30, n = Math.floor(p * 9);
+    ctx.fillStyle = '#3f6b3a'; [[-80, 22, 20], [-69, 18, 16], [-58, 14, 12]].forEach(([tp, half, hh]) => { ctx.beginPath(); ctx.moveTo(cx, tp); ctx.lineTo(cx - half, tp + hh + 8); ctx.lineTo(cx + half, tp + hh + 8); ctx.closePath(); ctx.fill(); });
     ctx.fillStyle = c.woodD; ctx.fillRect(cx - 3, top - 6, 6, 6);
-    const spots: Array<[number, number, string]> = [[-7, -84, '#b3262e'], [8, -74, c.mustard], [-12, -68, '#4fb6b8'], [4, -62, '#b3262e'], [14, -56, c.mustard], [-6, -54, '#e58aa6'], [10, -49, '#4fb6b8'], [-16, -50, c.mustard], [0, -72, '#e58aa6']];
+    const spots: Array<[number, number, string]> = [[-7, -76, '#b3262e'], [8, -68, c.mustard], [-12, -62, '#4fb6b8'], [4, -58, '#b3262e'], [14, -54, c.mustard], [-6, -52, '#e58aa6'], [10, -49, '#4fb6b8'], [-16, -50, c.mustard], [0, -66, '#e58aa6']];
     spots.slice(0, n).forEach(([dx, y, col]) => { dot(ctx, cx + dx, y, 2.8, col); dot(ctx, cx + dx - .8, y - .8, .8, 'rgba(255,255,255,.7)'); });
     let rx = 42, ry = -80;
     if (n < 9) { const f = ease((p * 9) % 1), [dx, y, col] = spots[n], ox = cx + dx + 30 * (1 - f), oy = y - 16 * (1 - f); dot(ctx, ox, oy, 2.8, col); rx = ox + 6; ry = oy - 6; }
-    else { const g = ease((p - .9) / .1); ctx.save(); ctx.translate(cx, -96); ctx.scale(g, g); ctx.fillStyle = '#e8b02e'; ctx.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 2.4 : 6, a = i * Math.PI / 5 - Math.PI / 2; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); } ctx.closePath(); ctx.fill(); ctx.restore(); }
-    job = { left: { x: cx - 26, y: top - 14, ang: -.6, curl: HOLD, mirror: true }, right: { x: rx, y: ry, ang: 2.6, curl: PINCH } };
+    else { const g = ease((p - .9) / .1); ctx.save(); ctx.translate(cx, -82); ctx.scale(g, g); ctx.fillStyle = '#e8b02e'; ctx.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 2.4 : 6, a = i * Math.PI / 5 - Math.PI / 2; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); } ctx.closePath(); ctx.fill(); ctx.restore(); }
+    job = { left: { x: cx - 12, y: top - 8, ang: .6, curl: HOLD }, right: { x: rx - 6, y: ry + 6, ang: 2.3, curl: PINCH, mirror: true } };
   } else {
     const f = ease(p), cx = 0;
     ctx.fillStyle = c.orange; ctx.beginPath(); ctx.roundRect(cx - 22, top - 24, 44, 24, 2); ctx.fill(); ctx.fillStyle = c.terraD; ctx.beginPath(); ctx.roundRect(cx - 25, top - 31, 50, 9, 2); ctx.fill();
     ctx.strokeStyle = c.chalk; ctx.lineWidth = 3.4 * f; ctx.beginPath(); ctx.moveTo(cx, top - 31); ctx.lineTo(cx, top); ctx.stroke();
     ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx, top - 31); ctx.quadraticCurveTo(cx - 16 * f, top - 46, cx - 7 * f, top - 33); ctx.moveTo(cx, top - 31); ctx.quadraticCurveTo(cx + 16 * f, top - 46, cx + 7 * f, top - 33); ctx.stroke();
-    job = { left: { x: cx - 28, y: top - 14, ang: -.2, curl: HOLD, mirror: true }, right: { x: cx + 10 + Math.sin(t * 4) * 2 * wob, y: top - 40, ang: 2.4, curl: PINCH } };
+    job = { left: { x: cx - 24, y: top - 8, ang: .5, curl: HOLD }, right: { x: cx + 6 + Math.sin(t * 4) * 2 * wob, y: top - 32, ang: 2.3, curl: PINCH, mirror: true } };
   }
   ctx.restore();
-  return job;
+  const at = (h: HandPose): HandPose => ({ ...h, x: h.x * K, y: top + (h.y - top) * K });
+  return { left: at(job.left), right: at(job.right) };
 }

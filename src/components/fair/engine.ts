@@ -66,6 +66,10 @@ type Ent =
   | { type: 'me'; x: number; y: number; box: number[] };
 type Badge = { i: number; x: number; y: number; r: number };
 
+/** How big a maker's hands are drawn next to their face (the head is 25 units across). */
+const HAND_SCALE = .36;
+/** Wrist to fingertips at that size. */
+const REACH = 13;
 const TAU = Math.PI * 2, SPEED = 190, KEY: Record<string, 'l' | 'r' | 'u' | 'd'> = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd', a: 'l', d: 'r', w: 'u', s: 'd', A: 'l', D: 'r', W: 'u', S: 'd' };
 const SAY: Record<Emote, string> = { wave: 'Hi!', namaste: 'Namaste', hello: 'Hello!' };
 const NPC: Array<Pick<Shopper, 'name' | 'top' | 'pants' | 'skin' | 'bag' | 'acc' | 'hairStyle' | 'headwear' | 'beard' | 'bindi' | 'x' | 'y'>> = [
@@ -174,7 +178,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
   /* ---------- drawing: maker, mirror, stall ---------- */
   function drawMaker(slot: Slot, att: number, t: number, work?: (c: CanvasRenderingContext2D) => Job) {
     const m = slot.maker!, L = m.look, seed = hash32(m.id) % 7, look = slot.look;
-    const bob = reduce ? 0 : Math.sin(t * 2 + seed) * 1.1, nod = reduce ? 0 : att * Math.sin(t * 5) * 1.6, skin = L.skin === 'skin' ? C.skin : C.skin2, hairC = C.hair;
+    const bob = reduce ? 0 : Math.sin(t * 2 + seed) * 1.1, nod = work ? 3.5 + (reduce ? 0 : Math.sin(t * 3) * .8) : reduce ? 0 : att * Math.sin(t * 5) * 1.6, skin = L.skin === 'skin' ? C.skin : C.skin2, hairC = C.hair;
     ctx.fillStyle = col(L.top); ctx.beginPath(); ctx.moveTo(-27, -36); ctx.lineTo(-23, -64); ctx.quadraticCurveTo(0, -74, 23, -64); ctx.lineTo(27, -36); ctx.closePath(); ctx.fill();
     ctx.fillStyle = col(L.acc); ctx.beginPath(); ctx.moveTo(-23, -64); ctx.quadraticCurveTo(-6, -58, 10, -40); ctx.lineTo(18, -40); ctx.quadraticCurveTo(0, -62, -12, -69); ctx.closePath(); ctx.fill();
     ctx.fillStyle = skin; ctx.fillRect(-4, -76, 8, 9);
@@ -184,9 +188,10 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
       ctx.save(); ctx.translate(0, -RAISE); const j0 = work(ctx); ctx.restore();
       const job: Job = { left: { ...j0.left, y: j0.left.y - RAISE }, right: { ...j0.right, y: j0.right.y - RAISE } }, bangle = col(L.acc);
       const arm = (sx: number, hp: HandPose) => {
-        const ex = (sx + hp.x) / 2 + (sx < 0 ? -5 : 5), ey = (-60 + hp.y) / 2 + 10;
-        ctx.strokeStyle = skin; ctx.lineWidth = 5.5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(sx, -60); ctx.quadraticCurveTo(ex, ey, hp.x, hp.y); ctx.stroke();
-        drawHand(ctx, hp.x, hp.y, hp.ang, skin, bangle, hp.curl, hp.mirror ?? false, .8);
+        // the pose is where the fingertips touch the work; the wrist sits one hand-length back along the fingers, and the elbow stays by the body
+        const wx = hp.x - Math.cos(hp.ang) * REACH, wy = hp.y - Math.sin(hp.ang) * REACH, ex = sx * 1.25, ey = Math.min(-47, (-60 + wy) / 2 + 5);
+        ctx.strokeStyle = skin; ctx.lineWidth = 4.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(sx, -60); ctx.quadraticCurveTo(ex, ey, wx, wy); ctx.stroke();
+        drawHand(ctx, wx, wy, hp.ang, skin, bangle, hp.curl, hp.mirror ?? false, HAND_SCALE);
       };
       arm(-22, job.left); arm(22, job.right);
     } else {
@@ -204,8 +209,9 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(0, 0, 12.5, 0, TAU); ctx.fill();
     ctx.fillStyle = hairC; ctx.beginPath(); ctx.arc(0, -1, 13, Math.PI * 1.02, Math.PI * 1.98); ctx.quadraticCurveTo(7, -6, 0, -5); ctx.quadraticCurveTo(-7, -6, -13, -1); ctx.fill();
     if (L.bun) { ctx.beginPath(); ctx.arc(0, -15, 6, 0, TAU); ctx.fill(); }
-    eyes(0, 1, 4.3, 1.3, look * 1.6);
-    ctx.strokeStyle = C.terraD; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(look, 4 + att, 3.6, .15 * Math.PI, .85 * Math.PI); ctx.stroke();
+    if (work) { ctx.strokeStyle = C.hair; ctx.lineWidth = 1.5; ctx.lineCap = 'round'; for (const dx of [-4.3, 4.3]) { ctx.beginPath(); ctx.arc(dx, .4, 1.9, .12 * Math.PI, .88 * Math.PI); ctx.stroke(); } }   // eyes down on the work
+    else eyes(0, 1, 4.3, 1.3, look * 1.6);
+    ctx.strokeStyle = C.terraD; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(work ? 0 : look, 4 + (work ? 0 : att), work ? 2.8 : 3.6, .15 * Math.PI, .85 * Math.PI); ctx.stroke();
     ctx.fillStyle = C.orange; ctx.beginPath(); ctx.arc(0, -5, 1.3, 0, TAU); ctx.fill(); ctx.restore();
   }
   const earOn = () => (st.wear?.kind === 'ear' ? st.wear : null);
@@ -571,9 +577,9 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     zoomMix += ((overview ? 0 : 1) - zoomMix) * Math.min(1, dt * 5);
     const fit = S, follow = Math.max(S * 1.45, .9), base = fit + (follow - fit) * zoomMix;
     craftV += ((craft && focusRef === craft.slot ? 1 : 0) - craftV) * Math.min(1, dt * 3.5);   // while a maker works, move in on their counter
-    Z = base * (1 + .5 * focusV) * (1 + .6 * craftV);
+    Z = base * (1 + .5 * focusV) * (1 + 1.0 * craftV);
     const ahead = player.moving && !focusRef ? 34 * zoomMix : 0, vx = player.facing === 'left' ? -1 : player.facing === 'right' ? 1 : 0, vy = player.facing === 'up' ? -1 : player.facing === 'down' ? 1 : 0;
-    const tx = (focusRef ? player.x + (focusRef.cx - player.x) * focusV : player.x) + vx * ahead, ty = (focusRef ? player.y + (focusRef.base - 100 + 46 * craftV - player.y) * focusV : player.y) + vy * ahead * .6;
+    const tx = (focusRef ? player.x + (focusRef.cx - player.x) * focusV : player.x) + vx * ahead, ty = (focusRef ? player.y + (focusRef.base - 100 + 56 * craftV - player.y) * focusV : player.y) + vy * ahead * .6;
     const k = snapCam ? 1 : Math.min(1, dt * 6); snapCam = false;
     camF.x += (tx - camF.x) * k; camF.y += (ty - camF.y) * k;
     cam.x = cameraAxis(camF.x * Z - W / 2, WORLD_W * Z, W); cam.y = cameraAxis(camF.y * Z - H / 2, WORLD_H * Z, H);
