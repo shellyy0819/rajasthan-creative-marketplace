@@ -3,7 +3,9 @@ import { getDb } from '../db/client';
 import { productEvents, productLikes, products } from '../db/schema';
 import { ApiError } from './errors';
 
-export type EventType = 'view' | 'contact' | 'artist';
+import type { TrackType } from './track';
+
+export type EventType = TrackType;
 const NOT_FOUND = () => new ApiError(404, 'Product not found.');
 const MAX_IDS = 60;
 

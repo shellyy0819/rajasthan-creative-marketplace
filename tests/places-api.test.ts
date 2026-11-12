@@ -21,6 +21,14 @@ describe('GET /api/places', () => {
     expect((await get('udai')).status).toBe(200);
     expect(searchMock).toHaveBeenCalledTimes(1);
   });
+  it('city search is open to visitors but limited per address; other searches still need sign-in', async () => {
+    const anon = () => GET(new Request('http://x/api/places?q=udai&type=city', { headers: { 'x-forwarded-for': '9.9.9.9' } }));
+    expect((await anon()).status).toBe(200);
+    expect(searchMock).toHaveBeenCalledWith('udai', undefined, { cityOnly: true });
+    for (let i = 0; i < 59; i++) await anon();
+    expect((await anon()).status).toBe(429);
+    expect((await get('udai')).status).toBe(401);
+  });
   it('403 deactivated users; upstream is never called', async () => {
     authMock.mockResolvedValue({ user: { email: 's@x.co', role: 'seller', active: false } });
     expect((await get('udai')).status).toBe(403);

@@ -1,4 +1,7 @@
-export type TrackType = 'view' | 'contact' | 'artist';
+/** What a visitor did inside the contact sheet, one event type per method (each counts once per visitor, product and day). */
+export const METHOD_EVENTS = ['contact_call', 'contact_email', 'contact_instagram', 'contact_youtube', 'contact_copy'] as const;
+export type MethodEvent = (typeof METHOD_EVENTS)[number];
+export type TrackType = 'view' | 'contact' | 'artist' | MethodEvent;
 
 /** `source: 'artist'` marks a contact made from the artist page (not about one product): the server does not count it against that product. */
 /** Fire-and-forget first-party engagement event. Never throws and never delays navigation. */

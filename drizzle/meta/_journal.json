@@ -99,6 +99,34 @@
       "when": 1794050095718,
       "tag": "0013_secret_vertigo",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794308380604,
+      "tag": "0014_busy_frightful_four",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1794372997204,
+      "tag": "0015_workshop_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794373441312,
+      "tag": "0016_workshop_request_email_verification",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794374926794,
+      "tag": "0017_app_settings",
+      "breakpoints": true
     }
   ]
 }

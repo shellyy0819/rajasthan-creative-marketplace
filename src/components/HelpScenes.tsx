@@ -65,8 +65,8 @@ export function MakerScene() {
       <path d="M200 168c-10-16-8-34 6-40h22c14 6 16 24 6 40z" className="st-f-indigo" />
       <rect x="236" y="144" width="28" height="24" rx="3" className="st-f-chalk" /><text x="250" y="161" textAnchor="middle" fontSize="12" fontWeight="700" className="st-t-terrad st-hand">₹</text>
       <g className="st-sway"><rect x="300" y="70" width="84" height="46" rx="12" className="st-f-chalk" /><path d="M324 116l-6 14 18-14z" className="st-f-chalk" />
-        <text x="342" y="90" textAnchor="middle" fontSize="11" fontWeight="700" className="st-t-ink st-hand">Interested!</text>
-        <text x="342" y="105" textAnchor="middle" fontSize="10" className="st-t-terrad st-hand">in your pot</text></g>
+        <text x="342" y="90" textAnchor="middle" fontSize="11" fontWeight="700" className="st-t-hair st-hand">Interested!</text>
+        <text x="342" y="105" textAnchor="middle" fontSize="10" className="st-t-terrad st-hand">Can I order?</text></g>
       <g className="st-twinkle"><circle cx="318" cy="52" r="3" className="st-f-mustard" /></g>
     </Svg>
   );
@@ -110,9 +110,36 @@ export function AttenderScene() {
       <circle cx="100" cy="170" r="10" className="st-f-sage" /><rect x="188" y="158" width="24" height="20" rx="3" className="st-f-indigo" /><path d="M290 178c-2-8 2-16 10-16s12 8 10 16z" className="st-f-terra" />
       <g className="st-sway b"><rect x="136" y="36" width="130" height="52" rx="8" className="st-f-chalk" /><rect x="136" y="36" width="130" height="52" rx="8" fill="none" strokeWidth="1.5" className="st-s-line" />
         <circle cx="136" cy="62" r="7" className="st-f-ground" /><circle cx="266" cy="62" r="7" className="st-f-ground" />
-        <text x="201" y="58" textAnchor="middle" fontSize="12" fontWeight="700" className="st-t-ink st-hand">Spot reserved</text>
+        <text x="201" y="58" textAnchor="middle" fontSize="12" fontWeight="700" className="st-t-hair st-hand">Spot reserved</text>
         <text x="201" y="76" textAnchor="middle" fontSize="11" className="st-t-terrad st-hand">Sat · 4 PM</text></g>
       <g className="st-twinkle"><circle cx="60" cy="70" r="3" className="st-f-mustard" /></g><g className="st-twinkle d2"><circle cx="340" cy="90" r="3" className="st-f-terra" /></g>
+    </Svg>
+  );
+}
+
+/** The maker waves from the stall while a letter flies to a mailbox: for the Contact page. */
+export function ContactScene() {
+  return (
+    <Svg label="A maker waves from a small stall while a letter flies to a mailbox">
+      <Ground />
+      <rect x="30" y="170" width="196" height="9" className="st-f-wood" />
+      <rect x="42" y="179" width="7" height="57" className="st-f-woodd" /><rect x="207" y="179" width="7" height="57" className="st-f-woodd" />
+      <Person x={120} y={-4} shirt="terra" />
+      <g className="st-wave" style={{ transformOrigin: '134px 120px' }}><path d="M134 120l24-30" strokeWidth="6" strokeLinecap="round" fill="none" className="st-s-skin" /></g>
+      <rect x="30" y="170" width="196" height="9" className="st-f-wood" />
+      <path d="M52 170c-4-10-3-20 4-24h14c7 4 8 14 4 24z" className="st-f-indigo" />
+      <circle cx="176" cy="160" r="11" className="st-f-sage" /><circle cx="198" cy="164" r="7" className="st-f-mustard" />
+      <rect x="326" y="160" width="8" height="76" className="st-f-woodd" />
+      <path d="M292 164v-22a22 22 0 0 1 22-22h32a22 22 0 0 1 22 22v22z" className="st-f-indigo" />
+      <rect x="312" y="140" width="36" height="5" rx="2.5" className="st-f-ground" />
+      <rect x="372" y="124" width="5" height="26" className="st-f-woodd" /><rect x="360" y="124" width="17" height="10" rx="2" className="st-f-mustard" />
+      <path d="M150 96C190 56 230 56 268 88" fill="none" strokeWidth="2" strokeDasharray="3 5" strokeLinecap="round" className="st-s-chalk" opacity=".55" />
+      <g className="st-bob">
+        <rect x="232" y="68" width="46" height="32" rx="4" className="st-f-chalk" transform="rotate(-8 255 84)" />
+        <path d="M234 71l21 15 21-15" fill="none" strokeWidth="2" strokeLinejoin="round" className="st-s-terrad" transform="rotate(-8 255 84)" />
+      </g>
+      <Heart x={284} y={58} d="b2" />
+      <g className="st-twinkle"><circle cx="60" cy="70" r="3" className="st-f-mustard" /></g><g className="st-twinkle d1"><circle cx="92" cy="42" r="2.5" className="st-f-terra" /></g>
     </Svg>
   );
 }
