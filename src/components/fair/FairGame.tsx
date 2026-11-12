@@ -296,6 +296,11 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
         <section className="fair-stage" aria-label="The fair">
           <canvas ref={canvasRef} className="fair-canvas" tabIndex={0} role="application" aria-label="The fair. Use the arrow keys or W A S D to walk. Press Enter next to a stall to shop there, or M next to the mirror." />
           {hint && <div className="fair-hint">Click the fair, then walk with the arrow keys · or click where to go</div>}
+          <button type="button" className="fair-fs" aria-pressed={isFull} aria-label={isFull ? 'Exit full screen' : 'Full screen'} title={isFull ? 'Exit full screen' : 'Full screen'} onClick={() => { void toggleFull(); }}>
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              {isFull ? <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /> : <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />}
+            </svg>
+          </button>
           {phase && <span className={`fair-time ${phase}`} role="status"><span className="fair-time-icon" aria-hidden="true" />{PHASE_LABEL[phase]}</span>}
           <div className="fair-toolbar" role="toolbar" aria-label="Fair controls" onKeyDown={e => { if (e.key === 'Escape') setMenuOpen(false); }}>
             <button type="button" className="button fair-burger" aria-expanded={menuOpen} aria-controls="fair-menu" aria-label="Menu" onClick={() => setMenuOpen(o => !o)}>
@@ -307,7 +312,6 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
                 <button type="button" className="button" aria-pressed={overview} onClick={() => setOverview(o => !o)}>{overview ? 'Follow me' : 'Overview'}</button>
                 <button type="button" className="button" aria-pressed={panel} aria-controls="fair-panel" onClick={() => setPanel(p => !p)}>{panel ? 'Hide panel' : 'Show panel'}</button>
                 <button type="button" className="button" aria-pressed={!muted} onClick={toggleSound}>{muted ? 'Sound off' : 'Sound on'}</button>
-                <button type="button" className="button" aria-pressed={isFull} onClick={() => { void toggleFull(); }}>{isFull ? 'Exit full screen' : 'Full screen'}</button>
               </div>
             )}
           </div>
