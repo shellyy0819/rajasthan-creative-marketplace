@@ -1,10 +1,13 @@
-import { characterFor, formatCode, hash32, type Character } from '@/lib/fair-characters';
-import type { Emote, Facing, FairData, FairVisitor } from '@/lib/fair-types';
+import { characterFor, formatCode, hash32, type Character, type HairStyle, type Headwear } from '@/lib/fair-characters';
+import { isLookId, type LookId } from '@/lib/fair-constants';
+import type { CraftKind, Emote, Facing, FairData, FairVisitor } from '@/lib/fair-types';
 import { artDataUri } from './art';
 import { CRAFT_BOX, CRAFT_LABEL, CRAFT_SECONDS, drawCraft } from './crafts';
 import type { GameEvent } from './quests';
 import { canvasFamily, readColors, type Colors } from './theme';
-import { NODES, RECTS, START, STALL_SCALE as SS, WORLD_H, WORLD_W, buildSlots, clampWalk, route, walkable, type Pt, type Slot } from './world';
+import { MAX_CROWD, crowdAt, hourOf, phaseAt, skyAt, type DayPhase } from './daytime';
+import type { Wear } from './wear';
+import { NODES, RECTS, START, STALL_SCALE as SS, WORLD_H, WORLD_W, buildSlots, cameraAxis, clampWalk, route, walkable, type Pt, type Slot } from './world';
 
 /** Everything the fair does on the canvas: drawing, walking, shoppers, other visitors, craft moments, the mirror. React owns the panels around it. */
 export type EngineCallbacks = {
@@ -16,13 +19,26 @@ export type EngineCallbacks = {
   onEvent(e: GameEvent): void;
   /** You started moving for the first time. */
   onMoved(): void;
+  /** The time of day changed (from the visitor's own clock). */
+  onPhase(p: DayPhase): void;
+  /** How many shoppers are wandering the fair right now. */
+  onCrowd(n: number): void;
+  /** Something happened in the fair that has a sound: your footsteps, someone arriving, someone else's emote. */
+  onSfx(e: 'step' | 'join' | 'emote' | 'crowd'): void;
+  /** A craft moment started (with its kind) or ended (null). */
+  onCraft(kind: CraftKind | null): void;
 };
-export type EarOn = { art: 'drop' | 'chandbali'; color: string } | null;
-export type EngineState = { ear: EarOn; notes: number; lit: number; garland: boolean };
+export type EngineState = { wear: Wear | null; notes: number; lit: number; garland: boolean };
 export type SelfiePose = 'smile' | 'wave';
 export type FairEngine = {
   destroy(): void;
-  setIdentity(code: string): void;
+  setIdentity(code: string, look?: LookId | null): void;
+  /** Change how you look (one of the ten looks), or null for the look your code starts with. */
+  setLook(look: LookId | null): void;
+  /** The whole fair at once (true), or the close camera that follows you (false, the default). */
+  setOverview(on: boolean): void;
+  /** Full screen: use the whole height of the stage instead of the shape of the fair. */
+  setFill(on: boolean): void;
   setState(s: Partial<EngineState>): void;
   /** Ids of the makers this visitor has met today; their flags light up on the bunting. */
   setMet(ids: string[]): void;
@@ -36,10 +52,11 @@ export type FairEngine = {
   slots: Slot[];
 };
 
-type Look = { top: string; skinHex?: string; skin?: string; pants: string; long?: boolean; bag?: boolean; acc?: string };
-type Walker = Look & { x: number; y: number; facing: Facing; moving: boolean; seed: number; state?: 'walk' | 'browse'; garland?: boolean; ear?: EarOn; phone?: boolean; waveL?: boolean };
-type Shopper = Walker & { name: string; timer: number; path: Pt[]; say: string; sayUntil: number; stall: Slot | null };
-type Sprite = Walker & { code: string; name: string; tx: number; ty: number; seq: number; say: string; sayUntil: number; seen: number };
+type Look = { top: string; skinHex?: string; skin?: string; pants: string; hairStyle?: HairStyle; headwear?: Headwear; beard?: boolean; bindi?: boolean; bag?: boolean; acc?: string };
+type View = 'front' | 'back' | 'side';
+type Walker = Look & { x: number; y: number; facing: Facing; moving: boolean; seed: number; state?: 'walk' | 'browse'; garland?: boolean; ear?: { art: 'drop' | 'chandbali'; color: string } | null; phone?: boolean; waveL?: boolean };
+type Shopper = Walker & { name: string; timer: number; path: Pt[]; say: string; sayUntil: number; stall: Slot | null; active: boolean; alpha: number; leaving: boolean };
+type Sprite = Walker & { code: string; name: string; lookId: string | null; tx: number; ty: number; seq: number; say: string; sayUntil: number; seen: number };
 type Ent =
   | { type: 'stall'; slot: Slot; x: number; y: number; box: number[] }
   | { type: 'maker'; slot: Slot; x: number; y: number; box: number[] }
@@ -51,19 +68,23 @@ type Badge = { i: number; x: number; y: number; r: number };
 
 const TAU = Math.PI * 2, SPEED = 190, KEY: Record<string, 'l' | 'r' | 'u' | 'd'> = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd', a: 'l', d: 'r', w: 'u', s: 'd', A: 'l', D: 'r', W: 'u', S: 'd' };
 const SAY: Record<Emote, string> = { wave: 'Hi!', namaste: 'Namaste', hello: 'Hello!' };
-const NPC: Array<Pick<Shopper, 'name' | 'top' | 'pants' | 'skin' | 'bag' | 'acc' | 'long' | 'x' | 'y'>> = [
+const NPC: Array<Pick<Shopper, 'name' | 'top' | 'pants' | 'skin' | 'bag' | 'acc' | 'hairStyle' | 'headwear' | 'beard' | 'bindi' | 'x' | 'y'>> = [
   { name: 'Meera', top: '#c66b43', pants: '#35506f', skin: 'skin', bag: true, acc: '#d9a441', x: 300, y: 310 },
   { name: 'Aarav', top: '#405746', pants: '#575a4d', skin: 'skin2', x: 760, y: 352 },
-  { name: 'Kavya', top: '#d9a441', pants: '#35506f', skin: 'skin', long: true, acc: '#fbf7ef', x: 540, y: 690 },
+  { name: 'Kavya', top: '#d9a441', pants: '#35506f', skin: 'skin', hairStyle: 'long', acc: '#fbf7ef', x: 540, y: 690 },
   { name: 'Rohan', top: '#35506f', pants: '#8a5f3c', skin: 'skin2', bag: true, x: 200, y: 700 },
-  { name: 'Isha', top: '#b3262e', pants: '#2b3a31', skin: 'skin', long: true, acc: '#d9a441', x: 880, y: 300 },
+  { name: 'Isha', top: '#b3262e', pants: '#2b3a31', skin: 'skin', hairStyle: 'braid', acc: '#d9a441', x: 880, y: 300 },
+  { name: 'Priya', top: '#7a4e8f', pants: '#35506f', skin: 'skin', hairStyle: 'bun', acc: '#e58aa6', bindi: true, x: 420, y: 700 },
+  { name: 'Arjun', top: '#fbf7ef', pants: '#575a4d', skin: 'skin2', headwear: { kind: 'pagdi', color: '#d9a441' }, beard: true, x: 660, y: 330 },
+  { name: 'Sana', top: '#4fb6b8', pants: '#8a5f3c', skin: 'skin', hairStyle: 'bob', bag: true, x: 120, y: 330 },
+  { name: 'Dev', top: '#405746', pants: '#2b3a31', skin: 'skin2', headwear: { kind: 'cap', color: '#c66b43' }, x: 960, y: 690 },
 ];
 
-export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: EngineCallbacks, opts: { reducedMotion?: boolean } = {}): FairEngine {
+export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: EngineCallbacks, opts: { reducedMotion?: boolean; hour?: number | null } = {}): FairEngine {
   const main = canvas.getContext('2d');
   const reduce = !!opts.reducedMotion;
-  const slots = buildSlots(data.makers);
-  if (!main) return { destroy() {}, setIdentity() {}, setState() {}, setMet() {}, setVisitors() {}, setPaused() {}, walkToSlot() {}, watchCraft() {}, emote() {}, pose: () => ({ x: START.x, y: START.y, facing: 'up' }), paintSelfie() {}, slots };
+  const slots = buildSlots(data.stalls);
+  if (!main) return { destroy() {}, setIdentity() {}, setLook() {}, setOverview() {}, setFill() {}, setState() {}, setMet() {}, setVisitors() {}, setPaused() {}, walkToSlot() {}, watchCraft() {}, emote() {}, pose: () => ({ x: START.x, y: START.y, facing: 'up' }), paintSelfie() {}, slots };
   const mainCtx: CanvasRenderingContext2D = main;
   let ctx: CanvasRenderingContext2D = mainCtx, OFF: HTMLCanvasElement | null = null;
   let C: Colors = readColors(), fam = canvasFamily();
@@ -75,8 +96,10 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
 
   /* ---------- state ---------- */
   let W = 800, H = 600, DPR = 1, S = 1, Z = 1, focusV = 0, focusRef: Slot | null = null, cam = { x: 0, y: 0 };
+  let fill = false, overview = false, zoomMix = 1, snapCam = true, mini: { x: number; y: number; w: number; h: number; k: number } | null = null;
+  const camF = { x: START.x, y: START.y };
   let me: Character = characterFor('AAAAAA'), meCode = 'AAAAAA', paused = false, raf = 0, last = 0, moved = false;
-  let st: EngineState = { ear: null, notes: 0, lit: 0, garland: false };
+  let st: EngineState = { wear: null, notes: 0, lit: 0, garland: false };
   const player: Walker & { path: Pt[]; arrive: (() => void) | null } = { x: START.x, y: START.y, facing: 'up', moving: false, seed: 0, top: '', pants: '', path: [], arrive: null };
   const ptr = { x: -1, y: -1, inside: false, type: 'mouse', down: false };
   const keys = { l: 0, r: 0, u: 0, d: 0 };
@@ -91,7 +114,9 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
   const imgs: Record<string, HTMLImageElement> = {};
   for (const m of data.makers) for (const it of m.items) { const im = new Image(); im.src = artDataUri(it.art, it.color); imgs[it.key] = im; }
 
-  const shoppers: Shopper[] = NPC.map((n, i) => ({ ...n, seed: i * 1.7, facing: 'down' as Facing, moving: false, state: 'browse' as const, timer: 1 + i, path: [], say: '', sayUntil: 0, stall: null }));
+  const clock = { fixed: opts.hour ?? null, hour: opts.hour ?? hourOf(new Date()), at: 0 };
+  const startCrowd = crowdAt(clock.hour);
+  const shoppers: Shopper[] = NPC.map((n, i) => ({ ...n, active: i < startCrowd, alpha: i < startCrowd ? 1 : 0, leaving: false, seed: i * 1.7, facing: 'down' as Facing, moving: false, state: 'browse' as const, timer: 1 + i, path: [], say: '', sayUntil: 0, stall: null }));
   const stocked = slots.filter(s => s.maker);
 
   /* ---------- helpers ---------- */
@@ -169,7 +194,10 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     ctx.strokeStyle = C.terraD; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(look, 4 + att, 3.6, .15 * Math.PI, .85 * Math.PI); ctx.stroke();
     ctx.fillStyle = C.orange; ctx.beginPath(); ctx.arc(0, -5, 1.3, 0, TAU); ctx.fill(); ctx.restore();
   }
-  const earrings = (x: number, y: number, ear: NonNullable<EarOn>, d: number, k = 1) => [-d, d].forEach(dx => {
+  const earOn = () => (st.wear?.kind === 'ear' ? st.wear : null);
+  const outfit = () => (st.wear?.kind === 'outfit' ? st.wear : null);
+  const topOf = () => outfit()?.top ?? me.top, accOf = () => outfit()?.acc ?? me.acc;
+  const earrings = (x: number, y: number, ear: { art: 'drop' | 'chandbali'; color: string }, d: number, k = 1) => [-d, d].forEach(dx => {
     ctx.fillStyle = '#d9a441'; ctx.beginPath(); ctx.arc(x + dx, y, 1.7 * k, 0, TAU); ctx.fill();
     ctx.fillStyle = ear.art === 'drop' ? ear.color : '#b3262e'; ctx.beginPath(); ctx.arc(x + dx, y + 6 * k, 3.1 * k, 0, TAU); ctx.fill();
     ctx.fillStyle = '#fbf7ef'; ctx.beginPath(); ctx.arc(x + dx, y + 12 * k, 2.2 * k, 0, TAU); ctx.fill();
@@ -186,20 +214,21 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
       const x = cx + ox, front = player.facing !== 'down', wave = front && slot.att > .5, hy = cy - 16;
       ctx.save(); ctx.translate(x, cy + 10); ctx.scale(sc, sc); ctx.translate(-x, -(cy + 10)); ctx.globalAlpha = vis;
       ctx.fillStyle = me.pants; ctx.fillRect(x - 17, cy + 32, 34, ry);
-      ctx.fillStyle = me.top; ctx.beginPath(); ctx.moveTo(x - 30, cy + 44); ctx.quadraticCurveTo(x - 28, cy - 2, x, cy - 3); ctx.quadraticCurveTo(x + 28, cy - 2, x + 30, cy + 44); ctx.closePath(); ctx.fill();
-      if (front) { ctx.fillStyle = me.acc; ctx.beginPath(); ctx.moveTo(x - 24, cy + 2); ctx.quadraticCurveTo(x - 6, cy + 6, x + 10, cy + 40); ctx.lineTo(x + 21, cy + 40); ctx.quadraticCurveTo(x + 2, cy + 2, x - 16, cy - 2); ctx.closePath(); ctx.fill(); }
+      ctx.fillStyle = topOf(); ctx.beginPath(); ctx.moveTo(x - 30, cy + 44); ctx.quadraticCurveTo(x - 28, cy - 2, x, cy - 3); ctx.quadraticCurveTo(x + 28, cy - 2, x + 30, cy + 44); ctx.closePath(); ctx.fill();
+      if (front) { ctx.fillStyle = accOf(); ctx.beginPath(); ctx.moveTo(x - 24, cy + 2); ctx.quadraticCurveTo(x - 6, cy + 6, x + 10, cy + 40); ctx.lineTo(x + 21, cy + 40); ctx.quadraticCurveTo(x + 2, cy + 2, x - 16, cy - 2); ctx.closePath(); ctx.fill(); }
       ctx.strokeStyle = me.skin; ctx.lineWidth = 5; ctx.lineCap = 'round';
       if (wave) { ctx.beginPath(); ctx.moveTo(x + 26, cy + 6); ctx.lineTo(x + 35 + (reduce ? 0 : Math.sin(Date.now() / 110) * 4), hy - 8); ctx.stroke(); }
       else { ctx.beginPath(); ctx.moveTo(x + 27, cy + 6); ctx.lineTo(x + 31, cy + 40); ctx.stroke(); }
       ctx.beginPath(); ctx.moveTo(x - 27, cy + 6); ctx.lineTo(x - 31, cy + 40); ctx.stroke();
       ctx.fillStyle = me.skin; ctx.fillRect(x - 4, hy + 8, 8, 12);
-      if (me.long) { ctx.fillStyle = C.hair; ctx.beginPath(); ctx.roundRect(x - 14, hy - 12, 28, 42, 9); ctx.fill(); }
+      hairBack(me, x, hy, 12.5, front ? 'front' : 'back', C.hair);
       ctx.fillStyle = me.skin; ctx.beginPath(); ctx.arc(x, hy, 12.5, 0, TAU); ctx.fill();
       ctx.fillStyle = C.hair; ctx.beginPath();
       if (front) { ctx.arc(x, hy - 1, 13, Math.PI * 1.02, Math.PI * 1.98); ctx.quadraticCurveTo(x + 6, hy - 6, x, hy - 5); ctx.quadraticCurveTo(x - 6, hy - 6, x - 13, hy - 1); } else ctx.arc(x, hy, 13, 0, TAU);
       ctx.fill();
+      hairFront(me, x, hy, 12.5, front ? 'front' : 'back', C.hair);
       if (front) { eyes(x, hy + 1, 4.2, 1.2, 0); ctx.strokeStyle = C.terraD; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, hy + 4, 3.4, .15 * Math.PI, .85 * Math.PI); ctx.stroke(); }
-      if (st.ear) earrings(x, hy + 3, st.ear, 12.8, 1.05);
+      const ear = earOn(); if (ear) earrings(x, hy + 3, ear, 12.8, 1.05);
       ctx.restore();
     }
     const gx = cx + Math.sin(player.x * .01) * rx * 1.1; ctx.fillStyle = '#ffffff'; ctx.globalAlpha = .28;
@@ -241,13 +270,39 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     ctx.strokeStyle = C.woodD; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-50, -248); ctx.lineTo(-50, -256); ctx.moveTo(50, -248); ctx.lineTo(50, -256); ctx.stroke();
     ctx.fillStyle = C.board; ctx.beginPath(); ctx.roundRect(-84, -286, 168, 32, 5); ctx.fill();
     ctx.strokeStyle = C.mustard; ctx.globalAlpha = .6; ctx.lineWidth = 1; ctx.beginPath(); ctx.roundRect(-80, -282, 160, 24, 3); ctx.stroke(); ctx.globalAlpha = 1;
-    const label = open || !m ? 'Open stall' : m.name; let fs = 14; ctx.font = F(600, fs);
+    const label = open || !m ? (slot.label === 'Open stall' ? 'Open stall' : `${slot.label} · open`) : m.name; let fs = 14; ctx.font = F(600, fs);
     const tw = ctx.measureText(label).width; if (tw > 150) { fs = Math.max(8, fs * 150 / tw); ctx.font = F(600, fs); }
     ctx.fillStyle = C.chalk; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, 0, -269); ctx.textBaseline = 'alphabetic';
     ctx.restore();
   }
 
   /* ---------- drawing: people ---------- */
+  /** Hair that sits behind the face: long hair, a bob, or the braid seen from behind. cx, cy and r are the head's centre and radius. */
+  function hairBack(p: Look, cx: number, cy: number, r: number, view: View, hair: string) {
+    const k = r / 12; ctx.fillStyle = hair;
+    if (p.hairStyle === 'long') { ctx.beginPath(); ctx.roundRect(cx - 13 * k, cy - 8 * k, (view === 'side' ? 20 : 26) * k, 34 * k, 9 * k); ctx.fill(); }
+    else if (p.hairStyle === 'bob') { ctx.beginPath(); ctx.roundRect(cx - 13 * k, cy - 8 * k, (view === 'side' ? 20 : 26) * k, 20 * k, 8 * k); ctx.fill(); }
+    else if (p.hairStyle === 'braid' && view === 'back') { ctx.beginPath(); ctx.roundRect(cx - 3.5 * k, cy + 2 * k, 7 * k, 38 * k, 3.5 * k); ctx.fill(); ctx.fillStyle = C.orange; ctx.beginPath(); ctx.arc(cx, cy + 38 * k, 3 * k, 0, TAU); ctx.fill(); }
+  }
+  /** What sits on top of and in front of the face: a bun, a turban or cap, a beard, a bindi, a braid over the shoulder. */
+  function hairFront(p: Look, cx: number, cy: number, r: number, view: View, hair: string) {
+    const k = r / 12, hw = p.headwear;
+    if (p.hairStyle === 'bun' && !hw) { ctx.fillStyle = hair; ctx.beginPath(); ctx.arc(cx, cy - 15 * k, 6 * k, 0, TAU); ctx.fill(); }
+    if (p.hairStyle === 'braid' && view !== 'back') { ctx.fillStyle = hair; for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(cx + (10 + i * .6) * k, cy + (8 + i * 8) * k, 3.2 * k, 0, TAU); ctx.fill(); } ctx.fillStyle = C.orange; ctx.beginPath(); ctx.arc(cx + 12.2 * k, cy + 34 * k, 2.4 * k, 0, TAU); ctx.fill(); }
+    if (p.beard && view === 'front') {
+      ctx.fillStyle = hair; ctx.beginPath(); ctx.moveTo(cx - 10 * k, cy + 1 * k); ctx.quadraticCurveTo(cx, cy + 17 * k, cx + 10 * k, cy + 1 * k); ctx.quadraticCurveTo(cx, cy + 7 * k, cx - 10 * k, cy + 1 * k); ctx.fill();
+      ctx.strokeStyle = hair; ctx.lineWidth = 2 * k; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(cx - 5 * k, cy + 5 * k); ctx.quadraticCurveTo(cx, cy + 3 * k, cx + 5 * k, cy + 5 * k); ctx.stroke();
+    } else if (p.beard && view === 'side') { ctx.fillStyle = hair; ctx.beginPath(); ctx.ellipse(cx + 6 * k, cy + 6 * k, 6 * k, 5 * k, 0, 0, TAU); ctx.fill(); }
+    if (hw?.kind === 'pagdi') {
+      ctx.fillStyle = hw.color; ctx.beginPath(); ctx.ellipse(cx, cy - 8 * k, 15 * k, 10 * k, 0, 0, TAU); ctx.fill(); ctx.fillRect(cx - 13.5 * k, cy - 7 * k, 27 * k, 4.5 * k);
+      ctx.strokeStyle = 'rgba(0,0,0,.28)'; ctx.lineWidth = 1.2 * k; ctx.beginPath(); ctx.arc(cx, cy - 5 * k, 13 * k, 0.2, Math.PI - 0.2); ctx.moveTo(cx - 11 * k, cy - 12 * k); ctx.quadraticCurveTo(cx, cy - 17 * k, cx + 11 * k, cy - 12 * k); ctx.stroke();
+      if (view !== 'back') { ctx.fillStyle = '#fbf7ef'; ctx.beginPath(); ctx.arc(cx, cy - 10 * k, 2 * k, 0, TAU); ctx.fill(); }
+    } else if (hw?.kind === 'cap') {
+      ctx.fillStyle = hw.color; ctx.beginPath(); ctx.arc(cx, cy - 4 * k, 13 * k, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fillRect(cx - 14 * k, cy - 5.5 * k, 28 * k, 3 * k);
+    }
+    if (p.bindi && view === 'front') { ctx.fillStyle = '#b3262e'; ctx.beginPath(); ctx.arc(cx, cy - 5 * k, 1.5 * k, 0, TAU); ctx.fill(); }
+  }
   function drawPerson(p: Walker, t: number, look: number) {
     const f = p.facing, side = f === 'left' || f === 'right', mv = p.moving, ph = t * 8 + p.seed, sw = mv && !reduce ? Math.sin(ph) : 0, bob = mv && !reduce ? -Math.abs(Math.cos(ph)) * 2.2 : 0;
     const skin = p.skinHex ?? col(p.skin ?? 'skin'), hair = '#2a211c', top = p.top, pants = p.pants;
@@ -269,20 +324,22 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     if (p.bag && !browse) { const bx = side ? 4 : 14; ctx.fillStyle = C.chalk; ctx.fillRect(bx, -58, 15, 17); ctx.fillStyle = C.orange; ctx.fillRect(bx, -52, 15, 4); ctx.strokeStyle = C.woodD; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(bx + 7.5, -58, 5, Math.PI, 0); ctx.stroke(); }
     if (p.garland && f !== 'up') { for (let i = 0; i <= 8; i++) { const u = i / 8, gx = -tw + 4 + (tw * 2 - 8) * u, gy = -88 + 12 * Math.sin(Math.PI * u) + 6; ctx.fillStyle = i % 2 ? '#f29a1f' : '#e8b02e'; ctx.beginPath(); ctx.arc(gx, gy, 3.2, 0, TAU); ctx.fill(); } }
     ctx.fillStyle = skin; ctx.fillRect(-3, -98, 6, 8);
-    if (p.long) { ctx.fillStyle = hair; ctx.beginPath(); ctx.roundRect(side ? -12 : -13, -114, side ? 20 : 26, 34, 9); ctx.fill(); }
+    const view: View = f === 'up' ? 'back' : side ? 'side' : 'front';
+    hairBack(p, side ? 1 : 0, -106, 12, view, hair);
     ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(side ? 1 : 0, -106, 12, 0, TAU); ctx.fill();
     ctx.fillStyle = hair; ctx.beginPath();
     if (f === 'up') ctx.arc(0, -106, 12.6, 0, TAU);
     else if (side) { ctx.arc(1, -107, 12.6, Math.PI * .85, Math.PI * 1.95); ctx.lineTo(-10, -100); ctx.closePath(); }
     else { ctx.arc(0, -107, 12.6, Math.PI * 1.02, Math.PI * 1.98); ctx.quadraticCurveTo(6, -112, 0, -111); ctx.quadraticCurveTo(-6, -112, -12.6, -107); }
     ctx.fill();
+    hairFront(p, side ? 1 : 0, -106, 12, view, hair);
     if (p.ear && f === 'down') earrings(0, -103, p.ear, 12.8, .5);
     if (f === 'down') eyes(0, -105, 4.2, 1.3, look * 2);
     else if (side) { ctx.fillStyle = C.hair; ctx.beginPath(); ctx.arc(7, -105, 1.3, 0, TAU); ctx.fill(); ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(13, -103, 2.2, 0, TAU); ctx.fill(); }
     if (p.phone && f === 'down') { ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(19, -93, 4, 0, TAU); ctx.fill(); ctx.save(); ctx.translate(20, -100); ctx.rotate(.16); ctx.fillStyle = '#1d241e'; ctx.beginPath(); ctx.roundRect(-6, -13, 12, 25, 2.5); ctx.fill(); ctx.fillStyle = '#5b645c'; ctx.beginPath(); ctx.arc(-2.5, -9, 2, 0, TAU); ctx.fill(); ctx.restore(); }
     ctx.restore();
   }
-  const meWalker = (): Walker => ({ x: player.x, y: player.y, facing: player.facing, moving: player.moving, seed: player.seed, top: me.top, skinHex: me.skin, pants: me.pants, long: me.long, bag: me.bag, acc: me.acc, ear: st.ear, garland: st.garland });
+  const meWalker = (): Walker => ({ x: player.x, y: player.y, facing: player.facing, moving: player.moving, seed: player.seed, top: topOf(), skinHex: me.skin, pants: me.pants, hairStyle: me.hairStyle, headwear: me.headwear, beard: me.beard, bindi: me.bindi, bag: me.bag, acc: accOf(), ear: earOn(), garland: st.garland });
 
   /* ---------- screen-space overlays ---------- */
   function pill(x: number, y: number, text: string, fill: string, ink: string, size = 11) {
@@ -321,18 +378,72 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     });
     ctx.restore();
   }
+  /* ---------- time of day: morning sun, afternoon crowds, evening gold, chilly nights ---------- */
+  let sky = skyAt(clock.hour), phase: DayPhase | null = null, lastCrowd = -1, breathT = 0;
+  const puffs: Array<{ x: number; y: number; vx: number; age: number }> = [];
+  function drawAtmosphere(t: number, dt: number, sx: (x: number) => number, sy: (y: number) => number) {
+    ctx.save();
+    if (sky.beams > .02) { // low morning sun: a glow in the corner and slanting beams across the fair
+      const g = ctx.createRadialGradient(W * .06, -10, 10, W * .06, -10, W * .6); g.addColorStop(0, `rgba(255,232,170,${.38 * sky.beams})`); g.addColorStop(1, 'rgba(255,232,170,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      for (let i = 0; i < 4; i++) {
+        const x0 = W * (.04 + i * .2) + (reduce ? 0 : Math.sin(t * .25 + i * 1.7) * 14), bw = 30 + i * 12, run = H * .55, lg = ctx.createLinearGradient(x0, 0, x0 + run, H);
+        lg.addColorStop(0, `rgba(255,236,176,${.2 * sky.beams})`); lg.addColorStop(1, 'rgba(255,236,176,0)'); ctx.fillStyle = lg;
+        ctx.beginPath(); ctx.moveTo(x0, 0); ctx.lineTo(x0 + bw, 0); ctx.lineTo(x0 + bw + run, H); ctx.lineTo(x0 + run, H); ctx.closePath(); ctx.fill();
+      }
+    }
+    if (sky.warm > .01) { ctx.fillStyle = `rgba(255,168,72,${sky.warm * .55})`; ctx.fillRect(0, 0, W, H); }
+    if (sky.dark > .01) { ctx.fillStyle = `rgba(14,26,64,${sky.dark})`; ctx.fillRect(0, 0, W, H); }
+    if (sky.lamps > .02) { // the lamps come on: a warm glow at every stall, on the diyas and along the bunting
+      ctx.globalCompositeOperation = 'lighter';
+      const glow = (x: number, y: number, r: number, a: number) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(255,178,88,${a})`); g.addColorStop(1, 'rgba(255,178,88,0)'); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); };
+      for (const sl of slots) glow(sx(sl.cx), sy(sl.base - 120 * SS), 190 * SS * Z, .3 * sky.lamps * (sl.maker ? 1 : .4));
+      for (let i = 0; i < st.lit; i++) glow(sx(525 + [-96, 0, 96][i]), sy([354, 392, 354][i] - 10), 46 * Z, .42 * sky.lamps);
+      for (let i = 0, x = 20; x < WORLD_W; i++, x += 36) { const u = x / WORLD_W; glow(sx(x), sy(8 + (1 - Math.pow(2 * u - 1, 2)) * 14 + 6), 13 * Z, .5 * sky.lamps * (.75 + .25 * Math.sin(t * 2 + i))); }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    if (sky.chill > .05) { // cold air: mist drifting along the ground and visible breath
+      for (let i = 0; i < 7; i++) {
+        const dir = i % 2 ? 1 : -1, x = ((i * 331 + (reduce ? 0 : t * 9 * dir) + W * 4) % (W + 460)) - 230, y = H * (.5 + (i % 4) * .13), r = 150 + (i % 3) * 60;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(196,214,238,${.15 * sky.chill})`); g.addColorStop(1, 'rgba(196,214,238,0)'); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      }
+      if (!reduce) {
+        breathT += dt; if (breathT > 1.5 && sky.chill > .3) { breathT = 0; puffs.push({ x: player.x + (player.facing === 'left' ? -9 : player.facing === 'right' ? 9 : 0), y: player.y - 104, vx: player.facing === 'left' ? -9 : player.facing === 'right' ? 9 : 0, age: 0 }); }
+        for (let i = puffs.length - 1; i >= 0; i--) { const q = puffs[i]; q.age += dt; if (q.age > 1.4) { puffs.splice(i, 1); continue; } const u = q.age / 1.4; ctx.fillStyle = `rgba(232,242,255,${.45 * (1 - u) * sky.chill})`; ctx.beginPath(); ctx.arc(sx(q.x + q.vx * u * 2), sy(q.y - u * 16), (3 + u * 8) * Z * .9, 0, TAU); ctx.fill(); }
+      }
+    }
+    ctx.restore();
+  }
+  /** A small map in the corner, like a game radar: the lanes, the stalls, you, the other visitors and what the camera can see. Click it to walk there. */
+  function drawMinimap() {
+    if (zoomMix < .25) { mini = null; return; }
+    const mw = Math.round(Math.min(176, Math.max(108, W * .24))), mh = Math.round(mw * WORLD_H / WORLD_W), k = mw / WORLD_W, x = 10, y = H - mh - 10;
+    mini = { x, y, w: mw, h: mh, k };
+    ctx.save(); ctx.globalAlpha = Math.min(1, (zoomMix - .25) / .5);
+    ctx.fillStyle = C.paper; ctx.strokeStyle = C.line; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect(x, y, mw, mh, 8); ctx.fill(); ctx.stroke();
+    ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, mw, mh, 8); ctx.clip(); ctx.translate(x, y);
+    ctx.fillStyle = C.ground; ctx.fillRect(0, 0, mw, mh);
+    ctx.fillStyle = C.cream; RECTS.forEach(r => ctx.fillRect(r.x * k, r.y * k, r.w * k, r.h * k));
+    for (const sl of slots) { ctx.fillStyle = sl.maker ? C.green : C.line; ctx.fillRect((sl.cx - 80) * k, (sl.base - 150) * k, 160 * k, 140 * k); if (sl.maker?.mirror) { ctx.fillStyle = C.mustard; ctx.fillRect((sl.cx + 36) * k, (sl.base - 110) * k, 14 * k, 60 * k); } }
+    ctx.fillStyle = C.muted; shoppers.forEach(sh => { if (!sh.active) return; ctx.beginPath(); ctx.arc(sh.x * k, sh.y * k, 1.8, 0, TAU); ctx.fill(); });
+    ctx.fillStyle = C.indigo; sprites.forEach(sp => { ctx.beginPath(); ctx.arc(sp.x * k, sp.y * k, 2.6, 0, TAU); ctx.fill(); });
+    ctx.strokeStyle = C.ink; ctx.globalAlpha *= .55; ctx.lineWidth = 1.2; ctx.strokeRect(Math.max(0, cam.x / Z * k), Math.max(0, cam.y / Z * k), Math.min(mw, W / Z * k), Math.min(mh, H / Z * k));
+    ctx.globalAlpha = Math.min(1, (zoomMix - .25) / .5);
+    ctx.fillStyle = C.orange; ctx.strokeStyle = '#fffdf9'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(player.x * k, player.y * k, 4, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.restore(); ctx.restore();
+    if (ptr.inside && !paused && ptr.x >= x && ptr.x <= x + mw && ptr.y >= y && ptr.y <= y + mh) canvas.style.cursor = 'pointer';
+  }
   /** The "watch them work" card above a stall: a ten second animation of the maker's craft. */
   function drawCraftCard(now: number, t: number, sx: (x: number) => number, sy: (y: number) => number) {
     if (!craft) return;
     const m = craft.slot.maker!, el = (now - craft.start) / 1000, p = Math.min(1, el / CRAFT_SECONDS);
-    if (el > CRAFT_SECONDS + 2.2) { craft = null; return; }
+    if (el > CRAFT_SECONDS + 2.2) { endCraft(); return; }
     const w = CRAFT_BOX.w + 28, h = CRAFT_BOX.h + 74, fade = el > CRAFT_SECONDS + 1.4 ? Math.max(0, 1 - (el - CRAFT_SECONDS - 1.4) / .8) : Math.min(1, el / .25);
     const x = Math.max(8, Math.min(W - w - 8, sx(craft.slot.cx) - w / 2)), y = Math.max(8, Math.min(H - h - 8, sy(craft.slot.base - 296 * SS) - h - 6));
     ctx.save(); ctx.globalAlpha = fade; ctx.translate(x, y);
     ctx.fillStyle = C.white; ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.shadowColor = 'rgba(0,0,0,.25)'; ctx.shadowBlur = 16; ctx.beginPath(); ctx.roundRect(0, 0, w, h, 10); ctx.fill(); ctx.shadowBlur = 0; ctx.stroke();
     ctx.fillStyle = C.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.font = F(600, 13); ctx.fillText(m.name.length > 28 ? m.name.slice(0, 27) + '…' : m.name, 14, 24);
     ctx.fillStyle = C.muted; ctx.font = F(500, 11); ctx.fillText(p >= 1 ? `Made by hand in ${m.city}` : CRAFT_LABEL[m.craft], 14, 40);
-    ctx.save(); ctx.translate(14, 48); ctx.beginPath(); ctx.rect(0, 0, CRAFT_BOX.w, CRAFT_BOX.h); ctx.clip(); drawCraft(ctx, m.craft, p, t, C, reduce); ctx.restore();
+    ctx.save(); ctx.translate(14, 48); ctx.beginPath(); ctx.rect(0, 0, CRAFT_BOX.w, CRAFT_BOX.h); ctx.clip(); drawCraft(ctx, m.craft, p, t, C, reduce, { skin: m.look.skin === 'skin' ? C.skin : C.skin2, sleeve: col(m.look.top), bangle: col(m.look.acc) }); ctx.restore();
     ctx.fillStyle = C.cream; ctx.beginPath(); ctx.roundRect(14, h - 16, w - 28, 5, 3); ctx.fill(); ctx.fillStyle = C.orange; ctx.beginPath(); ctx.roundRect(14, h - 16, Math.max(5, (w - 28) * p), 5, 3); ctx.fill();
     ctx.restore();
   }
@@ -350,8 +461,25 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
 
   /* ---------- simulation ---------- */
   const faceOf = (dx: number, dy: number): Facing => (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up');
+  /** Shoppers arrive through the corridor in the afternoon and leave again at night, following the visitor's clock. */
+  function manageCrowd(want: number, announce: boolean) {
+    let joined = 0;
+    shoppers.forEach((sh, i) => {
+      if (i < want && (!sh.active || sh.leaving)) {
+        if (!sh.active) { const left = Math.random() < .5, from = left ? NODES[0] : NODES[1]; sh.x = from.x; sh.y = from.y; sh.path = []; sh.state = 'browse'; sh.timer = .2; sh.alpha = 0; joined++; }
+        sh.active = true; sh.leaving = false;
+      } else if (i >= want && sh.active && !sh.leaving) {
+        sh.leaving = true; const exit = sh.x < WORLD_W / 2 ? NODES[0] : NODES[1]; sh.path = route({ x: sh.x, y: sh.y }, { x: exit.x, y: exit.y }); sh.state = 'walk';
+      }
+    });
+    if (announce && joined >= 2) { cb.onToast('More visitors are joining the fair.'); cb.onSfx('crowd'); }
+    cb.onCrowd(shoppers.filter(sh => sh.active && !sh.leaving).length);
+  }
   function updateShoppers(dt: number) {
     for (const sh of shoppers) {
+      sh.alpha += ((sh.active ? 1 : 0) - sh.alpha) * Math.min(1, dt * 3);
+      if (!sh.active) continue;
+      if (sh.leaving && sh.state === 'browse') { sh.active = false; sh.leaving = false; continue; }
       if (sh.state === 'walk') {
         const tgt = sh.path[0];
         if (!tgt) { sh.state = 'browse'; sh.timer = 2.4 + Math.random() * 2.6; sh.moving = false; sh.facing = 'up'; continue; }
@@ -389,28 +517,51 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
       else { dx = ex / d; dy = ey / d; player.x += dx * step; player.y += dy * step; }
     }
     player.moving = !!(dx || dy);
+    if (!player.moving && !(kx || ky) && !player.path.length) settleBesideMaker(dt);
     if (player.moving) { player.facing = faceOf(dx, dy); if (!moved) { moved = true; cb.onMoved(); } }
+  }
+  /** Stopping right in front of a maker would hide them, so when you stand still at a counter you step to the side and stay solid. */
+  function settleBesideMaker(dt: number) {
+    for (const s of slots) {
+      if (!s.maker) continue;
+      const dx = player.x - s.cx, dy = player.y - s.base;
+      if (dy > 0 && dy < 100 && Math.abs(dx) < 62) {
+        const goal = s.cx + (s.maker.mirror ? -1 : dx === 0 ? 1 : Math.sign(dx)) * 72, nx = player.x + Math.sign(goal - player.x) * Math.min(Math.abs(goal - player.x), 150 * dt);
+        if (walkable({ x: nx, y: player.y })) player.x = nx;
+        return;
+      }
+    }
   }
   const walkTo = (p: Pt, arrive?: () => void) => { player.path = route({ x: player.x, y: player.y }, clampWalk(p)); player.arrive = arrive ?? null; if (!moved) { moved = true; cb.onMoved(); } };
 
   /* ---------- frame ---------- */
-  let nowT = 0;
+  let nowT = 0, stepClock = 0;
   function frame(now: number) {
     raf = requestAnimationFrame(frame);
     if (document.hidden) return;
     const t = now / 1000, dt = Math.min(.05, (now - (last || now)) / 1000); last = now; nowT = t;
+    if (clock.fixed === null && now - clock.at > 10_000) { clock.at = now; clock.hour = hourOf(new Date()); }
+    sky = skyAt(clock.hour);
+    const ph = phaseAt(clock.hour); if (ph !== phase) { phase = ph; cb.onPhase(ph); }
+    const want = Math.min(MAX_CROWD, crowdAt(clock.hour)); if (want !== lastCrowd) { manageCrowd(want, lastCrowd >= 0); lastCrowd = want; }
     if (!paused) updatePlayer(dt);
+    if (player.moving && !paused) { stepClock += dt; if (stepClock > .34) { stepClock = 0; cb.onSfx('step'); } } else stepClock = .26;
     updateShoppers(dt); updateSprites(dt, now);
     if (ptr.down && !press && badgePress < 0 && !paused && now - holdT > 110) { holdT = now; player.path = route({ x: player.x, y: player.y }, clampWalk(toWorld(ptr.x, ptr.y))); player.arrive = null; }
     const { nearSlot, nearest: nr, mirrorNear } = nearInfo();
     if (nr && nr.idx !== nearest) { nearest = nr.idx; cb.onNearest(nr.idx); }
-    const fs = slots.find(s => Math.abs(player.x - s.cx) < 74 && player.y - s.base > 0 && player.y - s.base < 84) ?? null;
+    const fs = slots.find(s => Math.abs(player.x - s.cx) < 84 && player.y - s.base > 0 && player.y - s.base < 84) ?? null;
     if (fs) focusRef = fs;
     focusV += ((fs ? 1 : 0) - focusV) * Math.min(1, dt * (reduce ? 20 : 3.2)); if (focusV < .005 && !fs) { focusV = 0; focusRef = null; }
-    Z = S * (1 + .5 * focusV);
-    const tcx = focusRef ? player.x + (focusRef.cx - player.x) * focusV : player.x, tcy = focusRef ? player.y + (focusRef.base - 100 - player.y) * focusV : player.y;
-    cam.x = Math.max(0, Math.min(Math.max(0, WORLD_W * Z - W), tcx * Z - W / 2));
-    cam.y = Math.max(0, Math.min(Math.max(0, WORLD_H * Z - H), tcy * Z - H / 2));
+    // A close camera that eases after you, like a third-person game: you always see the area around you. Overview pulls back to the whole fair.
+    zoomMix += ((overview ? 0 : 1) - zoomMix) * Math.min(1, dt * 5);
+    const fit = S, follow = Math.max(S * 1.45, .9), base = fit + (follow - fit) * zoomMix;
+    Z = base * (1 + .5 * focusV);
+    const ahead = player.moving && !focusRef ? 34 * zoomMix : 0, vx = player.facing === 'left' ? -1 : player.facing === 'right' ? 1 : 0, vy = player.facing === 'up' ? -1 : player.facing === 'down' ? 1 : 0;
+    const tx = (focusRef ? player.x + (focusRef.cx - player.x) * focusV : player.x) + vx * ahead, ty = (focusRef ? player.y + (focusRef.base - 100 - player.y) * focusV : player.y) + vy * ahead * .6;
+    const k = snapCam ? 1 : Math.min(1, dt * 6); snapCam = false;
+    camF.x += (tx - camF.x) * k; camF.y += (ty - camF.y) * k;
+    cam.x = cameraAxis(camF.x * Z - W / 2, WORLD_W * Z, W); cam.y = cameraAxis(camF.y * Z - H / 2, WORLD_H * Z, H);
     const w = toWorld(ptr.x, ptr.y);
 
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.fillStyle = C.paper; ctx.fillRect(0, 0, W, H);
@@ -422,11 +573,11 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     }
     const ents: Ent[] = [];
     slots.forEach(s => ents.push({ type: 'stall', slot: s, y: s.base, x: s.cx, box: [s.cx - 118 * SS, s.base - 290 * SS, 236 * SS, 296 * SS] }));
-    shoppers.forEach(sh => ents.push({ type: 'shopper', sh, y: sh.y, x: sh.x, box: [sh.x - 20, sh.y - 120, 40, 126] }));
+    shoppers.forEach(sh => { if (sh.alpha > .02) ents.push({ type: 'shopper', sh, y: sh.y, x: sh.x, box: [sh.x - 20, sh.y - 120, 40, 126] }); });
     sprites.forEach(sp => ents.push({ type: 'sprite', sp, y: sp.y, x: sp.x, box: [sp.x - 20, sp.y - 120, 40, 126] }));
-    ents.push({ type: 'me', y: player.y, x: player.x, box: [0, 0, 0, 0] });
+    ents.push({ type: 'me', y: player.y, x: player.x, box: [player.x - 24, player.y - 126, 48, 134] });
     ents.sort((a, b) => a.y - b.y);
-    hits = ents.filter(e => e.type === 'stall' || e.type === 'shopper');
+    hits = ents.filter(e => e.type === 'stall' || (e.type === 'shopper' && e.sh.alpha > .6));
     for (const s of slots) if (s.maker) hits.push({ type: 'maker', slot: s, x: s.cx, y: s.base, box: [s.cx - 30 * SS, s.base - 112 * SS, 66 * SS, 78 * SS] });
     if (MIRROR) hits.push({ type: 'mirror', x: MIRROR.x, y: MIRROR.y, box: [MIRROR.x - 22, MIRROR.y - 50, 44, 100] });
     hovered = null; if (ptr.inside && !paused) for (let i = hits.length - 1; i >= 0; i--) if (inBox(w, hits[i].box)) { hovered = hits[i]; break; }
@@ -451,17 +602,20 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
         const lit = e.type === 'me' || (e.type === 'stall' && e.slot === focusRef) || ((e.type === 'shopper' || e.type === 'sprite') && near(e.x, e.y));
         if (!lit) a = 1 - (e.type === 'stall' ? .8 : .72) * focusV;
       }
+      if (e.type === 'shopper') a = Math.min(a, e.sh.alpha);
       if (a < .98) layerDraw(e, a, draw); else draw(e);
     }
     drawBunting(t);
 
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     const sx = (x: number) => x * Z - cam.x, sy = (y: number) => y * Z - cam.y;
-    shoppers.forEach(sh => { if (sh.sayUntil > now) bubble(sx(sh.x), sy(sh.y - 124 * .95), sh.say, false); });
+    drawAtmosphere(t, dt, sx, sy);
+    shoppers.forEach(sh => { if (sh.alpha > .5 && sh.sayUntil > now) bubble(sx(sh.x), sy(sh.y - 124 * .95), sh.say, false); });
     sprites.forEach(sp => { pill(sx(sp.x), sy(sp.y - 128 * .95), sp.name, C.cream, C.ink, 10); if (sp.sayUntil > now) bubble(sx(sp.x), sy(sp.y - 146 * .95), sp.say, false); });
     pill(sx(player.x), sy(player.y - 128 * .98), `${me.name} · ${formatCode(meCode)}`, C.board, C.chalk);
     if (mySayUntil > now) bubble(sx(player.x), sy(player.y - 148 * .98), mySay, false);
     drawBadges(t, sx, sy, mirrorNear);
+    drawMinimap();
     drawCraftCard(now, t, sx, sy);
     if ((nearSlot || mirrorNear) && !paused && !craft) {
       const sl = nearSlot ?? mirrorSlot!, mouse = ptr.type === 'mouse';
@@ -520,12 +674,16 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
   const onBlur = () => { keys.l = keys.r = keys.u = keys.d = 0; ptr.down = false; };
   const setPtr = (e: PointerEvent) => { const r = canvas.getBoundingClientRect(); ptr.x = e.clientX - r.left; ptr.y = e.clientY - r.top; ptr.type = e.pointerType; ptr.inside = true; };
   const pick = (w: Pt): Ent | null => { for (let i = hits.length - 1; i >= 0; i--) if (inBox(w, hits[i].box)) return hits[i]; return null; };
-  const startCraft = (s: Slot) => { if (!s.maker) return; craft = { slot: s, start: performance.now() }; cb.onEvent({ type: 'craft', makerId: s.maker.id }); };
+  const startCraft = (s: Slot) => { if (!s.maker) return; craft = { slot: s, start: performance.now() }; cb.onEvent({ type: 'craft', makerId: s.maker.id }); cb.onCraft(s.maker.craft); };
+  const endCraft = () => { if (craft) { craft = null; cb.onCraft(null); } };
   const mirrorAction = (view: 'menu' | 'selfie' | 'note') => { badgeSeen = true; if (!MIRROR) return; if (nearInfo().mirrorNear) cb.onOpenMirror(view); else walkTo({ x: MIRROR.x, y: mirrorSlot!.base + 34 }, () => cb.onOpenMirror(view)); };
   const onDown = (e: PointerEvent) => {
     canvas.focus({ preventScroll: true }); try { canvas.setPointerCapture(e.pointerId); } catch { /* pointer already gone */ }
     setPtr(e); ptr.down = true; holdT = performance.now();
     if (paused) return;
+    if (mini && ptr.x >= mini.x && ptr.x <= mini.x + mini.w && ptr.y >= mini.y && ptr.y <= mini.y + mini.h) {
+      press = { type: 'me', x: 0, y: 0, box: [0, 0, 0, 0] }; walkTo({ x: (ptr.x - mini.x) / mini.k, y: (ptr.y - mini.y) / mini.k }); return;
+    }
     badgePress = badgeAt(ptr.x, ptr.y);
     press = badgePress >= 0 ? { type: 'me', x: 0, y: 0, box: [0, 0, 0, 0] } : pick(toWorld(ptr.x, ptr.y));
     if (!press) { player.path = route({ x: player.x, y: player.y }, clampWalk(toWorld(ptr.x, ptr.y))); player.arrive = null; if (!moved) { moved = true; cb.onMoved(); } }
@@ -537,7 +695,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     if (e.pointerType !== 'mouse') ptr.inside = false;
   };
   function activate(e: Ent) {
-    if (craft) craft = null;
+    endCraft();
     if (e.type === 'mirror') mirrorAction('menu');
     else if (e.type === 'maker') { const s = e.slot; if (nearInfo().nearSlot === s) startCraft(s); else walkTo({ x: s.fx, y: s.fy }, () => startCraft(s)); }
     else if (e.type === 'stall') { const s = e.slot; if (nearInfo().nearSlot === s) cb.onOpenStall(s); else walkTo({ x: s.fx, y: s.fy }, () => cb.onOpenStall(s)); }
@@ -553,21 +711,25 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
 
   function resize() {
     const box = canvas.parentElement ?? canvas; W = Math.max(300, box.clientWidth); DPR = Math.min(2, window.devicePixelRatio || 1);
-    S = Math.max(W / WORLD_W, .62); H = Math.round(Math.min(WORLD_H * S, 640));
+    if (fill && box.clientHeight > 200) { H = Math.round(box.clientHeight); S = Math.max(Math.min(W / WORLD_W, H / WORLD_H), .45); }   // full screen: the whole stage
+    else { S = Math.max(W / WORLD_W, .62); H = Math.round(Math.min(WORLD_H * S, 640)); }
     canvas.width = W * DPR; canvas.height = H * DPR; canvas.style.height = H + 'px';
   }
   const ro = new ResizeObserver(resize); ro.observe(canvas.parentElement ?? canvas); resize();
   raf = requestAnimationFrame(frame);
 
-  const setIdentity = (code: string) => {
-    meCode = code; me = characterFor(code); const keep = player.seed;
+  const setIdentity = (code: string, look: LookId | null = null) => {
+    meCode = code; me = characterFor(code, look); const keep = player.seed;
     Object.assign(player, { x: START.x, y: START.y, facing: 'up' as Facing, path: [], arrive: null, moving: false, seed: hash32(code) % 100 || keep });
-    craft = null;
+    endCraft(); snapCam = true;
   };
   return {
     slots,
     destroy() { cancelAnimationFrame(raf); ro.disconnect(); mo.disconnect(); mq.removeEventListener('change', refreshTheme); canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointermove', setPtr); canvas.removeEventListener('pointerup', onUp); canvas.removeEventListener('pointercancel', onCancel); canvas.removeEventListener('pointerleave', onLeave); window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); window.removeEventListener('blur', onBlur); },
     setIdentity,
+    setLook(look) { me = characterFor(meCode, look); },
+    setOverview(on) { overview = on; },
+    setFill(on) { fill = on; resize(); },
     setState(s) { st = { ...st, ...s }; },
     setMet(ids) { metIds = new Set(ids); },
     setVisitors(list) {
@@ -575,9 +737,14 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
       for (const v of list) {
         if (v.code === meCode) continue; seen.add(v.code);
         let sp = sprites.get(v.code);
-        if (!sp) { const ch = characterFor(v.code); sp = { code: v.code, name: ch.name, x: v.x, y: v.y, tx: v.x, ty: v.y, facing: v.facing, moving: false, seed: hash32(v.code) % 100, top: ch.top, skinHex: ch.skin, pants: ch.pants, long: ch.long, bag: ch.bag, acc: ch.acc, seq: v.emoteSeq, say: '', sayUntil: 0, seen: now }; sprites.set(v.code, sp); }
+        const lookId = isLookId(v.look) ? v.look : null;
+        if (!sp || sp.lookId !== lookId) {
+          const ch = characterFor(v.code, lookId), base = { name: ch.name, lookId, seed: hash32(v.code) % 100, top: ch.top, skinHex: ch.skin, pants: ch.pants, hairStyle: ch.hairStyle, headwear: ch.headwear, beard: ch.beard, bindi: ch.bindi, bag: ch.bag, acc: ch.acc };
+          if (sp) Object.assign(sp, base);
+          else { cb.onSfx('join'); sp = { code: v.code, x: v.x, y: v.y, tx: v.x, ty: v.y, facing: v.facing, moving: false, seq: v.emoteSeq, say: '', sayUntil: 0, seen: now, ...base }; sprites.set(v.code, sp); }
+        }
         sp.tx = v.x; sp.ty = v.y; sp.facing = v.facing; sp.seen = now;
-        if (v.emoteSeq > sp.seq && v.emote) { sp.say = SAY[v.emote]; sp.sayUntil = now + 3200; }
+        if (v.emoteSeq > sp.seq && v.emote) { sp.say = SAY[v.emote]; sp.sayUntil = now + 3200; cb.onSfx('emote'); }
         sp.seq = v.emoteSeq;
       }
       for (const code of [...sprites.keys()]) if (!seen.has(code)) sprites.delete(code);

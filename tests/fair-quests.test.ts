@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { GIFT_LIMIT_PAISE, applyEvent, availableQuests, countOf, dayKey, emptyState, isDone, questsFor, restoreState } from '@/components/fair/quests';
+import { GIFT_LIMIT_PAISE, applyEvent, availableQuests, countOf, dayKey, emptyState, isDone, mergeProgress, questsFor, restoreState } from '@/components/fair/quests';
+import { makersOf, stallsOf } from '@/lib/fair-stalls';
 import { sampleFairData } from '@/lib/fair-sample';
 import type { FairData } from '@/lib/fair-types';
 
 const sample = sampleFairData();
-const noMirror: FairData = { source: 'real', makers: sample.makers.map(m => ({ ...m, mirror: false })) };
+const mk = (makers: FairData['makers']): FairData => ({ source: 'real', stalls: stallsOf(makers), makers: makersOf(stallsOf(makers)) });
+const noMirror = mk(sample.makers.map(m => ({ ...m, mirror: false })));
 const ids = (d: FairData) => availableQuests(d).map(q => q.id);
 
 describe('dayKey', () => {
@@ -15,19 +17,19 @@ describe('dayKey', () => {
 });
 
 describe('availableQuests', () => {
-  it('offers the mirror quests only when a stall has a mirror, and try-on only with earrings', () => {
+  it('offers the mirror quests only when a stall has a mirror, and try-on only when it has something to wear', () => {
     expect(ids(sample)).toEqual(expect.arrayContaining(['meet3', 'gift500', 'tryon', 'selfie', 'craft', 'note', 'emote']));
     expect(ids(noMirror)).not.toEqual(expect.arrayContaining(['selfie']));
     expect(ids(noMirror)).not.toContain('note');
     expect(ids(noMirror)).not.toContain('tryon');
   });
   it('offers the gift quest only when something costs ₹500 or less', () => {
-    const dear: FairData = { source: 'real', makers: sample.makers.map(m => ({ ...m, items: m.items.map(i => ({ ...i, pricePaise: GIFT_LIMIT_PAISE + 100 })) })) };
+    const dear = mk(sample.makers.map(m => ({ ...m, items: m.items.map(i => ({ ...i, pricePaise: GIFT_LIMIT_PAISE + 100 })) })));
     expect(ids(dear)).not.toContain('gift500');
   });
   it('shrinks the meet quest to the number of makers', () => {
-    expect(availableQuests({ source: 'real', makers: sample.makers.slice(0, 2) }).find(q => q.id === 'meet3')!.target).toBe(2);
-    expect(availableQuests({ source: 'real', makers: [] })).toEqual([expect.objectContaining({ id: 'emote' })]);
+    expect(availableQuests(mk(sample.makers.slice(0, 2))).find(q => q.id === 'meet3')!.target).toBe(2);
+    expect(availableQuests(mk([]))).toEqual([expect.objectContaining({ id: 'emote' })]);
   });
 });
 
@@ -42,7 +44,7 @@ describe('questsFor', () => {
     const seen = new Set(Array.from({ length: 12 }, (_, i) => questsFor(sample, `2026-11-${10 + i}`).map(q => q.id).join()));
     expect(seen.size).toBeGreaterThan(3);
   });
-  it('never offers more quests than exist', () => { expect(questsFor({ source: 'real', makers: [] }, '2026-11-12')).toHaveLength(1); });
+  it('never offers more quests than exist', () => { expect(questsFor(mk([]), '2026-11-12')).toHaveLength(1); });
 });
 
 describe('applyEvent', () => {
@@ -78,5 +80,19 @@ describe('restoreState', () => {
     expect(restoreState({ day: 'd', progress: { meet3: ['a', 'b', 5] } }, 'd')).toEqual({ day: 'd', progress: { meet3: ['a', 'b'] } });
     expect(restoreState({ day: 'old', progress: { meet3: ['a'] } }, 'd')).toEqual(emptyState('d'));
     for (const junk of [null, 'x', 3, {}, { day: 'd' }, { day: 'd', progress: 5 }]) expect(restoreState(junk, 'd')).toEqual(emptyState('d'));
+  });
+});
+
+describe('mergeProgress', () => {
+  it('keeps what both this browser and the server remember', () => {
+    const local = { day: 'd', progress: { meet3: ['a'], craft: ['x'] } };
+    const merged = mergeProgress(local, { meet3: ['a', 'b'], note: ['note'] });
+    expect(merged.progress).toEqual({ meet3: ['a', 'b'], craft: ['x'], note: ['note'] });
+    expect(local.progress).toEqual({ meet3: ['a'], craft: ['x'] });
+  });
+  it('does nothing without saved progress, and ignores junk', () => {
+    const s = emptyState('d');
+    expect(mergeProgress(s, undefined)).toBe(s);
+    expect(mergeProgress(s, { meet3: [5, 'a'] as unknown as string[] }).progress).toEqual({ meet3: ['a'] });
   });
 });

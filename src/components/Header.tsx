@@ -22,6 +22,7 @@ export function Header() {
       <nav aria-label="Primary">
         <Link href="/shop">Shop handmade</Link>
         <Link href="/workshops">Workshops &amp; pop-ups</Link>
+        <Link href="/fair" className="nav-fair">Fair<span className="nav-fair-spark" aria-hidden="true" /></Link>
         <AuthButton dashboardUrl={hostConfig().dashboardOrigin ?? ''} />
         {/* <CartButton /> */}
         <ThemeToggle />

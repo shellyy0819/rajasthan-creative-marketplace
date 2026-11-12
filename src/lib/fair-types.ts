@@ -4,9 +4,9 @@
 export type FairSource = 'real' | 'sample';
 
 /** Artwork drawn for a product on the shelf and on its card. */
-export type ArtKind = 'frock' | 'lily' | 'rose' | 'tulip' | 'drop' | 'chandbali' | 'bands' | 'pot' | 'bowls' | 'coaster' | 'tray' | 'stole' | 'box';
+export type ArtKind = 'frock' | 'lily' | 'rose' | 'tulip' | 'drop' | 'chandbali' | 'bands' | 'pot' | 'bowls' | 'coaster' | 'tray' | 'stole' | 'saree' | 'suit' | 'woodtoy' | 'woodbox' | 'tree' | 'ornament' | 'stocking' | 'box';
 /** Which craft a maker's "watch them work" moment shows. */
-export type CraftKind = 'crochet' | 'pottery' | 'resin' | 'jewellery' | 'print' | 'handmade';
+export type CraftKind = 'crochet' | 'pottery' | 'resin' | 'jewellery' | 'print' | 'wood' | 'christmas' | 'handmade';
 /** Colours a maker is drawn in; the names are design tokens (see globals.css). */
 export type MakerLook = { skin: 'skin' | 'skin-2'; top: string; acc: string; long?: boolean; bun?: boolean };
 
@@ -23,9 +23,12 @@ export type FairMaker = {
   /** The stall that has the full-length mirror (exactly one). */
   mirror?: boolean;
 };
-export type FairData = { source: FairSource; makers: FairMaker[] };
+/** One of the eight places on the fair floor: a maker's stall, or an open stall (named for the category it is waiting for). */
+export type FairStall = { maker: FairMaker | null; label: string };
+/** `stalls` is the floor plan (always 8, row by row); `makers` is just the stalls that have one. */
+export type FairData = { source: FairSource; stalls: FairStall[]; makers: FairMaker[] };
 
 export type Facing = 'up' | 'down' | 'left' | 'right';
 export type Emote = 'wave' | 'namaste' | 'hello';
 /** Another visitor, as the presence endpoint reports them. The character is derived from `code` on the client. */
-export type FairVisitor = { code: string; x: number; y: number; facing: Facing; emote: Emote | null; emoteSeq: number };
+export type FairVisitor = { code: string; x: number; y: number; facing: Facing; look: string | null; emote: Emote | null; emoteSeq: number };

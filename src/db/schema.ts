@@ -295,6 +295,8 @@ export const fairVisitors = pgTable('fair_visitors', {
   x: doublePrecision('x').notNull(),
   y: doublePrecision('y').notNull(),
   facing: text('facing').notNull().default('down'),
+  /** One of the ten looks (f1 to m5); null means the look the code starts with. */
+  look: text('look'),
   emote: text('emote'),
   emoteSeq: integer('emote_seq').notNull().default(0),
   seenAt: timestamp('seen_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
@@ -302,3 +304,42 @@ export const fairVisitors = pgTable('fair_visitors', {
   check('fair_visitors_facing_valid', sql`${t.facing} in ('up', 'down', 'left', 'right')`),
   index('fair_visitors_seen_idx').on(t.seenAt),
 ]);
+
+/**
+ * Who owns which exhibition code. The first visitor to use a code owns it; only the browser that holds the matching secret can keep using it.
+ * Only a hash of the secret is stored. A code that has not been used for 30 days is released.
+ */
+export const fairCodes = pgTable('fair_codes', {
+  code: text('code').primaryKey(),
+  tokenHash: text('token_hash').notNull(),
+  claimedAt: timestamp('claimed_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  seenAt: timestamp('seen_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [index('fair_codes_seen_idx').on(t.seenAt)]);
+
+/** Feedback notes left at the exhibition's mirror, for admins to read. `code` is the visitor's random code, not a person; `source` says whether the fair showed real or sample makers at the time. */
+export const fairNotes = pgTable('fair_notes', {
+  id: serial('id').primaryKey(),
+  code: text('code').notNull(),
+  stall: text('stall').notNull(),
+  text: text('text').notNull(),
+  rating: smallint('rating').notNull().default(0),
+  source: text('source').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [
+  check('fair_notes_rating_valid', sql`${t.rating} between 0 and 5`),
+  check('fair_notes_text_length', sql`char_length(${t.text}) between 1 and 280`),
+  check('fair_notes_source_valid', sql`${t.source} in ('real', 'sample')`),
+  index('fair_notes_created_idx').on(t.createdAt),
+]);
+
+/**
+ * A visitor code's quests for one day, so progress survives clearing the browser and can be looked back on any day.
+ * `quests` is a snapshot of the three quests offered that day (their wording can change later); `progress` holds what was done for each.
+ */
+export const fairQuestDays = pgTable('fair_quest_days', {
+  code: text('code').notNull(),
+  day: text('day').notNull(),
+  quests: jsonb('quests').notNull(),
+  progress: jsonb('progress').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [primaryKey({ columns: [t.code, t.day] })]);

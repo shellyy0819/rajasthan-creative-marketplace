@@ -1,14 +1,17 @@
+import { isLookId, type LookId } from '@/lib/fair-constants';
+
 /**
  * What the fair remembers about a visitor code on this device: makers met, the shortlist, notes left, quest progress.
  * Several codes can live in one browser; `current` is the one playing.
  */
 export type Note = { text: string; rating: number; t: number };
-export type Profile = { met: string[]; shortlist: Record<string, number>; notes: Note[]; quests: unknown };
+/** `look` is the character the visitor picked in My look; null means the look their code starts with. */
+export type Profile = { met: string[]; shortlist: Record<string, number>; notes: Note[]; quests: unknown; look: LookId | null };
 export type Store = { current: string; profiles: Record<string, Profile> };
 export const STORE_KEY = 'cf-fair-v1';
 export const MAX_NOTES = 12, MAX_QTY = 9, NOTE_MAX = 280;
 
-export const emptyProfile = (): Profile => ({ met: [], shortlist: {}, notes: [], quests: null });
+export const emptyProfile = (): Profile => ({ met: [], shortlist: {}, notes: [], quests: null, look: null });
 export const emptyStore = (): Store => ({ current: '', profiles: {} });
 
 /** Keeps only what is still valid for this fair: unknown makers and items are dropped (the real stalls can change between visits). */
@@ -17,7 +20,7 @@ export function cleanProfile(raw: unknown, makerIds: ReadonlySet<string>, itemKe
   const shortlist: Record<string, number> = {};
   if (r.shortlist && typeof r.shortlist === 'object') for (const [k, q] of Object.entries(r.shortlist)) if (itemKeys.has(k) && Number.isInteger(q) && q > 0) shortlist[k] = Math.min(MAX_QTY, q);
   const notes = Array.isArray(r.notes) ? r.notes.filter((n): n is Note => !!n && typeof n.text === 'string' && n.text.trim() !== '').map(n => ({ text: n.text.slice(0, NOTE_MAX), rating: Number.isInteger(n.rating) && n.rating >= 0 && n.rating <= 5 ? n.rating : 0, t: Number(n.t) || 0 })).slice(-MAX_NOTES) : [];
-  return { met: Array.isArray(r.met) ? [...new Set(r.met.filter((id): id is string => typeof id === 'string' && makerIds.has(id)))] : [], shortlist, notes, quests: r.quests ?? null };
+  return { met: Array.isArray(r.met) ? [...new Set(r.met.filter((id): id is string => typeof id === 'string' && makerIds.has(id)))] : [], shortlist, notes, quests: r.quests ?? null, look: isLookId(r.look) ? r.look : null };
 }
 export function loadStore(storage: Pick<Storage, 'getItem'> | null): Store {
   try {

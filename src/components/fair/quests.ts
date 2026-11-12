@@ -1,11 +1,13 @@
 import { hash32, rng } from '@/lib/fair-characters';
+import type { QuestId } from '@/lib/fair-constants';
 import type { FairData } from '@/lib/fair-types';
+import { isWearable } from './wear';
 
 /**
  * Daily quests. Three a day, chosen from the ones this fair can actually offer (a quest about the mirror only appears when a stall has one).
  * Progress is kept per visitor code per day. Rewards are cosmetic: a lit diya for each quest, and a marigold garland for all three.
  */
-export type QuestId = 'meet3' | 'gift500' | 'tryon' | 'selfie' | 'craft' | 'note' | 'emote';
+export type { QuestId };
 export type Quest = { id: QuestId; title: string; hint: string; target: number };
 export type GameEvent =
   | { type: 'visit'; makerId: string } | { type: 'shortlist'; itemKey: string; pricePaise: number } | { type: 'tryon'; itemKey: string }
@@ -22,11 +24,11 @@ export const dayKey = (now = new Date()) => new Date(now.getTime() + 5.5 * 3_600
 export function availableQuests(data: FairData): Quest[] {
   const makers = data.makers, mirror = makers.find(m => m.mirror);
   const hasGift = makers.some(m => m.items.some(i => i.pricePaise <= GIFT_LIMIT_PAISE));
-  const hasEarrings = !!mirror && mirror.items.some(i => i.art === 'drop' || i.art === 'chandbali');
+  const hasWearable = !!mirror && mirror.items.some(isWearable);
   const out: Quest[] = [];
   if (makers.length >= 1) out.push({ id: 'meet3', title: `Meet ${Math.min(3, makers.length)} ${Math.min(3, makers.length) === 1 ? 'maker' : 'makers'}`, hint: 'Walk up to a counter to get a stamp.', target: Math.min(3, makers.length) });
   if (hasGift) out.push({ id: 'gift500', title: 'Find a gift under ₹500', hint: 'Add something that costs ₹500 or less to your shortlist.', target: 1 });
-  if (hasEarrings) out.push({ id: 'tryon', title: 'Try on earrings', hint: 'Use the mirror to try a pair on.', target: 1 });
+  if (hasWearable) out.push({ id: 'tryon', title: 'Try something on', hint: 'Use the mirror to try on a saree, a suit or earrings.', target: 1 });
   if (mirror) out.push({ id: 'selfie', title: 'Take a mirror selfie', hint: 'Tap the camera icon by the mirror.', target: 1 });
   if (makers.length >= 1) out.push({ id: 'craft', title: 'Watch a maker at work', hint: 'Tap a maker to see their craft.', target: 1 });
   if (mirror) out.push({ id: 'note', title: 'Leave a note on the mirror wall', hint: 'Tap the note icon by the mirror.', target: 1 });
@@ -76,4 +78,11 @@ export function restoreState(raw: unknown, day: string): QuestState {
   const progress: QuestState['progress'] = {};
   for (const [k, v] of Object.entries(r.progress)) if (Array.isArray(v)) progress[k as QuestId] = v.filter((x): x is string => typeof x === 'string').slice(0, 12);
   return { day, progress };
+}
+/** Adds what the server remembers for today to what this browser has, so nothing done on either side is lost. */
+export function mergeProgress(state: QuestState, saved: Record<string, string[]> | undefined): QuestState {
+  if (!saved) return state;
+  const progress = { ...state.progress };
+  for (const [k, v] of Object.entries(saved)) if (Array.isArray(v)) progress[k as QuestId] = [...new Set([...(progress[k as QuestId] ?? []), ...v.filter((x): x is string => typeof x === 'string')])].slice(0, 12);
+  return { ...state, progress };
 }

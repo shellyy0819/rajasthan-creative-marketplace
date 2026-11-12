@@ -45,14 +45,15 @@ describe('/fair page', () => {
     expect(within(index).queryAllByRole('link')).toEqual([]); // sample makers have nothing to link to
   });
   it('links real makers and products to their pages', async () => {
-    getFairData.mockResolvedValue({ source: 'real', makers: [{ ...SAMPLE_MAKERS[0], href: '/artists/rangili-1', items: [{ ...SAMPLE_MAKERS[0].items[0], href: '/products/dress-p1' }] }] });
+    const maker = { ...SAMPLE_MAKERS[0], href: '/artists/rangili-1', items: [{ ...SAMPLE_MAKERS[0].items[0], href: '/products/dress-p1' }] };
+    getFairData.mockResolvedValue({ source: 'real', stalls: [{ maker, label: 'Handmade crochet' }], makers: [maker] });
     render(await FairPage());
     const index = screen.getByRole('heading', { name: 'Stalls in the fair' }).closest('section')!;
     expect(within(index).getByRole('link', { name: 'Rangili Dhaga' }).getAttribute('href')).toBe('/artists/rangili-1');
     expect(within(index).getByRole('link', { name: 'Cotton Crochet Dress' }).getAttribute('href')).toBe('/products/dress-p1');
   });
   it('says so when no stall is open', async () => {
-    getFairData.mockResolvedValue({ source: 'real', makers: [] });
+    getFairData.mockResolvedValue({ source: 'real', stalls: [], makers: [] });
     render(await FairPage());
     expect(screen.getByText('No stalls are open yet.')).toBeTruthy();
   });

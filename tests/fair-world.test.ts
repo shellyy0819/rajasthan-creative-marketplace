@@ -1,20 +1,24 @@
 import { describe, it, expect } from 'vitest';
 import { COL_X, NODES, RECTS, ROW_BASE, START, WORLD_H, WORLD_W, buildSlots, clampWalk, route, segOK, walkable } from '@/components/fair/world';
-import { SAMPLE_MAKERS } from '@/lib/fair-sample';
+import { SAMPLE_MAKERS, sampleFairData } from '@/lib/fair-sample';
+import { cameraAxis } from '@/components/fair/world';
 
 describe('buildSlots', () => {
   it('makes eight slots in two rows of four, makers first and open stalls after', () => {
-    const slots = buildSlots(SAMPLE_MAKERS);
+    const slots = buildSlots(sampleFairData().stalls);
     expect(slots).toHaveLength(8);
     expect(slots.slice(0, 4).every(s => s.row === 0 && s.base === ROW_BASE[0])).toBe(true);
     expect(slots.slice(4).every(s => s.row === 1 && s.base === ROW_BASE[1])).toBe(true);
     expect(slots.map(s => s.cx)).toEqual([...COL_X, ...COL_X]);
+    // you stand beside the maker, so the maker stays visible; on the mirror stall, on the side away from the mirror
+    for (const sl of slots) expect(sl.fx).toBe(sl.cx + (sl.maker?.mirror ? -72 : 72));
     expect(slots.filter(s => !s.open).map(s => s.maker!.id)).toEqual(SAMPLE_MAKERS.map(m => m.id));
+    expect(slots.slice(0, 5).map(s => s.label)).toEqual(['Handmade crochet', 'Resin Art', 'Wood craft', 'Sarees and suits', 'Christmas items']);
     expect(slots.filter(s => s.open)).toHaveLength(8 - SAMPLE_MAKERS.length);
   });
   it('all stalls are open when there are no makers', () => { expect(buildSlots([]).every(s => s.open && !s.maker)).toBe(true); });
   it('the counter spot of every stall is on the walkable floor', () => {
-    for (const s of buildSlots(SAMPLE_MAKERS)) expect(walkable({ x: s.fx, y: s.fy })).toBe(true);
+    for (const s of buildSlots(sampleFairData().stalls)) expect(walkable({ x: s.fx, y: s.fy })).toBe(true);
   });
 });
 
@@ -52,6 +56,15 @@ describe('route', () => {
     expect(right.some(p => p.x > 950)).toBe(true);
   });
   it('every stall counter can be reached from the start', () => {
-    for (const s of buildSlots(SAMPLE_MAKERS)) { const pts = route(START, { x: s.fx, y: s.fy }); expect(stays(START, pts)).toBe(true); expect(pts.at(-1)).toEqual({ x: s.fx, y: s.fy }); }
+    for (const s of buildSlots(sampleFairData().stalls)) { const pts = route(START, { x: s.fx, y: s.fy }); expect(stays(START, pts)).toBe(true); expect(pts.at(-1)).toEqual({ x: s.fx, y: s.fy }); }
+  });
+});
+
+describe('cameraAxis', () => {
+  it('centres a world that is smaller than the view', () => { expect(cameraAxis(0, 600, 1000)).toBe(-200); });
+  it('keeps the camera inside a world that is bigger than the view', () => {
+    expect(cameraAxis(-50, 2000, 1000)).toBe(0);
+    expect(cameraAxis(500, 2000, 1000)).toBe(500);
+    expect(cameraAxis(5000, 2000, 1000)).toBe(1000);
   });
 });

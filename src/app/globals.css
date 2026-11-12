@@ -943,6 +943,9 @@ form label select {
   nav > a {
     display: none;
   }
+  nav > a.nav-fair {
+    display: inline-flex;
+  }
   .seller-prompt {
     display: none;
   }
@@ -4345,7 +4348,6 @@ body.modal-open {
 .fair-stage { position: relative; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--paper); }
 .fair-canvas { display: block; width: 100%; cursor: crosshair; touch-action: pan-y; outline-offset: -3px; }
 .fair-hint { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); padding: 8px 14px; border-radius: 30px; background: var(--stall-board); color: var(--stall-chalk); font: 500 12px var(--font-sans); pointer-events: none; white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; }
-.fair-shortlist { position: absolute; top: 10px; right: 10px; background: var(--white); }
 .fair-count, .fair-qty-badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 30px; background: var(--orange); color: #fffdf9; font: 700 11px var(--font-sans); line-height: 20px; text-align: center; font-variant-numeric: tabular-nums; }
 .fair-side { display: grid; gap: 14px; min-width: 0; }
 .fair-card { border: 1px solid var(--line); border-radius: 6px; background: var(--white); padding: 16px; display: grid; gap: 12px; min-width: 0; }
@@ -4439,3 +4441,47 @@ button.fair-opt:hover { background: var(--cream); }
 .fair-index p { margin: 0; color: var(--muted); }
 @media (max-width: 420px) { .fair-lines li { grid-template-columns: 44px minmax(0, 1fr); } .fair-stepper { grid-column: 1 / -1; } }
 @media (prefers-reduced-motion: reduce) { .fair-flash { animation: none; } .fair-track div { transition: none; } }
+
+/* The Fair link in the header: a soft glow that pulses around the whole label, a small dot, and a little wiggle every few seconds. */
+.nav-fair { position: relative; display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 30px; border: 1.5px solid color-mix(in srgb, var(--orange) 55%, transparent); animation: nav-fair-glow 2.4s ease-out infinite, nav-fair-nudge 6s ease-in-out infinite; transform-origin: 40% 80%; }
+.nav-fair-spark { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--orange); }
+.nav-fair-spark::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--orange); animation: nav-fair-ping 2.4s ease-out infinite; }
+@keyframes nav-fair-glow { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--orange) 40%, transparent); } 70%, 100% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--orange) 0%, transparent); } }
+@keyframes nav-fair-ping { 0% { transform: scale(1); opacity: 0.7; } 70%, 100% { transform: scale(2.2); opacity: 0; } }
+@keyframes nav-fair-nudge { 0%, 86%, 100% { transform: none; } 89% { transform: rotate(-4deg) translateY(-1px); } 92% { transform: rotate(4deg); } 95% { transform: rotate(-2deg); } 98% { transform: rotate(1deg); } }
+@media (prefers-reduced-motion: reduce) { .nav-fair { animation: none; } .nav-fair-spark::after { display: none; } }
+
+/* Fair: toolbar, time of day, full screen, collapsible panel, My look */
+.fair-toolbar { position: absolute; top: 10px; right: 10px; z-index: 2; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: calc(100% - 150px); }
+.fair-toolbar .button { background: var(--white); }
+.fair-toolbar .button[aria-pressed="true"] { border-color: var(--green); }
+.fair-time { position: absolute; left: 10px; top: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px 7px 10px; border-radius: 30px; background: var(--stall-board); color: var(--stall-chalk); font: 600 11px var(--font-sans); pointer-events: none; }
+.fair-time-icon { width: 12px; height: 12px; border-radius: 50%; background: #ffd27a; box-shadow: 0 0 9px #ffd27a; }
+.fair-time.afternoon .fair-time-icon { background: #ffe27a; box-shadow: 0 0 12px #ffd24a; }
+.fair-time.evening .fair-time-icon { background: #ff9a4a; box-shadow: 0 0 9px #ff9a4a; }
+.fair-time.night .fair-time-icon { background: transparent; box-shadow: inset -4px -2px 0 0 #dfe8ff; }
+.fair-side[hidden] { display: none; }
+.fair-layout.panel-hidden { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 700px) {
+  .fair-stage { display: flex; flex-direction: column; }
+  .fair-toolbar { position: static; order: -1; max-width: none; justify-content: flex-start; padding: 8px; background: var(--paper); border-bottom: 1px solid var(--line); }
+  .fair-time { top: 58px; }
+}
+.fair.is-full { position: fixed; inset: 0; z-index: 70; background: var(--paper); gap: 0; }
+.fair:fullscreen { background: var(--paper); }
+.fair.is-full .fair-layout { display: block; position: relative; height: 100%; }
+.fair.is-full .fair-stage { height: 100%; border: 0; border-radius: 0; }
+.fair.is-full .fair-foot { display: none; }
+.fair.is-full .fair-side { position: absolute; top: 58px; right: 10px; bottom: 10px; z-index: 3; width: min(360px, calc(100% - 20px)); overflow: auto; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); box-shadow: 0 12px 40px #0000005c; align-content: start; }
+@media (max-width: 700px) { .fair.is-full .fair-side { top: 108px; } }
+.fair-looks-group { border: 0; padding: 0; margin: 0; min-width: 0; }
+.fair-looks-group legend { padding: 0; margin-bottom: 8px; font: 600 11px var(--font-sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.fair-looks { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 520px) { .fair-looks { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.fair-look { display: grid; justify-items: center; gap: 6px; padding: 10px 4px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--ink); cursor: pointer; font: 600 12px var(--font-sans); }
+.fair-look:hover { background: var(--cream); }
+.fair-look[aria-pressed="true"] { border-color: var(--green); background: var(--sel-green); box-shadow: 0 0 0 1px var(--green) inset; }
+.fair-look .fair-avatar { width: 56px; height: 56px; }
+.fair-history summary { cursor: pointer; font: 600 12px var(--font-sans); color: var(--ink-soft); }
+.fair-history ul { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 13px; }
+.fair-history small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }

@@ -6,7 +6,7 @@ const makers = new Set(['dhaga', 'kundan']), items = new Set(['dhaga:0', 'kundan
 describe('cleanProfile', () => {
   it('keeps valid data and drops makers and items that are gone', () => {
     const p = cleanProfile({ met: ['dhaga', 'gone', 'dhaga', 5], shortlist: { 'dhaga:0': 2, 'gone:0': 1, 'kundan:1': 0, 'x': 'y' }, notes: [{ text: 'Lovely', rating: 4, t: 1 }, { text: '  ', rating: 1, t: 2 }, null], quests: { a: 1 } }, makers, items);
-    expect(p).toEqual({ met: ['dhaga'], shortlist: { 'dhaga:0': 2 }, notes: [{ text: 'Lovely', rating: 4, t: 1 }], quests: { a: 1 } });
+    expect(p).toEqual({ met: ['dhaga'], shortlist: { 'dhaga:0': 2 }, notes: [{ text: 'Lovely', rating: 4, t: 1 }], quests: { a: 1 }, look: null });
   });
   it('caps quantities, note length and the number of notes, and fixes ratings', () => {
     const notes = Array.from({ length: MAX_NOTES + 5 }, (_, i) => ({ text: 'x'.repeat(NOTE_MAX + 50), rating: 9, t: i }));
@@ -15,6 +15,10 @@ describe('cleanProfile', () => {
     expect(p.notes).toHaveLength(MAX_NOTES);
     expect(p.notes[0].text).toHaveLength(NOTE_MAX);
     expect(p.notes.every(n => n.rating === 0)).toBe(true);
+  });
+  it('keeps a valid look and drops an unknown one', () => {
+    expect(cleanProfile({ look: 'f3' }, makers, items).look).toBe('f3');
+    expect(cleanProfile({ look: 'zz' }, makers, items).look).toBeNull();
   });
   it('turns anything unreadable into an empty profile', () => {
     for (const junk of [null, undefined, 'x', 4, [], { met: 'no', shortlist: 5, notes: {} }]) expect(cleanProfile(junk, makers, items)).toEqual(emptyProfile());

@@ -1,5 +1,5 @@
 import { FAIR_WORLD } from '@/lib/fair-constants';
-import type { FairMaker } from '@/lib/fair-types';
+import type { FairMaker, FairStall } from '@/lib/fair-types';
 
 /**
  * The fair floor: two parallel rows of four stalls, a lane between them and another along the front, joined by a corridor at each end.
@@ -19,16 +19,22 @@ export type Slot = {
   /** Where a visitor stands at the counter. */
   fx: number; fy: number;
   maker: FairMaker | null; open: boolean;
+  /** The category an open stall is waiting for ("Wood craft"), or "Open stall". */
+  label: string;
   att: number; hov: number; look: number;
 };
 
-/** Eight slots, row by row; makers fill them in order and the rest are open stalls. */
-export function buildSlots(makers: FairMaker[]): Slot[] {
+/** Eight slots, row by row, from the floor plan: a maker's stall or an open one named for its category. */
+export function buildSlots(stalls: FairStall[]): Slot[] {
   return Array.from({ length: 8 }, (_, i) => {
-    const row = (i < 4 ? 0 : 1) as 0 | 1, col = i % 4, maker = makers[i] ?? null;
-    return { idx: i, row, col, cx: COL_X[col], base: ROW_BASE[row], fx: COL_X[col], fy: ROW_BASE[row] + 30, maker, open: !maker, att: 0, hov: 0, look: 0 };
+    const row = (i < 4 ? 0 : 1) as 0 | 1, col = i % 4, st: FairStall = stalls[i] ?? { maker: null, label: 'Open stall' };
+    // you stand beside the maker, not in front, so the maker (and the mirror) stay in view; the mirror stall's side is the left
+    const stand = COL_X[col] + (st.maker?.mirror ? -72 : 72);
+    return { idx: i, row, col, cx: COL_X[col], base: ROW_BASE[row], fx: stand, fy: ROW_BASE[row] + 30, maker: st.maker, open: !st.maker, label: st.label, att: 0, hov: 0, look: 0 };
   });
 }
+/** Where a camera of this size should sit along one axis: centred when the world is smaller than the view, otherwise kept inside the world. */
+export const cameraAxis = (want: number, worldPx: number, viewPx: number) => (worldPx <= viewPx ? -(viewPx - worldPx) / 2 : Math.max(0, Math.min(worldPx - viewPx, want)));
 /** The floor you can walk on: the lane, the front lane and the two side corridors. */
 export const RECTS: Rect[] = [
   { x: 0, y: 262, w: WORLD_W, h: 156 }, { x: 0, y: 646, w: WORLD_W, h: 118 },

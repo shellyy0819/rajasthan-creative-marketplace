@@ -5,7 +5,9 @@ import { money } from '@/lib/money';
 import type { FairData, FairItem, FairMaker } from '@/lib/fair-types';
 import { ProductImage } from '../ProductImage';
 import { artSvg } from './art';
-import { makerAvatar } from './avatar';
+import { FEMALE_LOOKS, LOOKS, MALE_LOOKS } from '@/lib/fair-characters';
+import type { LookId } from '@/lib/fair-constants';
+import { makerAvatar, visitorAvatar } from './avatar';
 import { NOTE_MAX, type Note } from './profile';
 import type { SelfiePose } from './engine';
 
@@ -99,16 +101,17 @@ const ICONS = {
 };
 const stars = (n: number) => '★'.repeat(n) + '☆'.repeat(5 - n);
 
-export function MirrorSheet({ maker, view, setView, tryOn, onTry, earrings, onAdd, shortlist, notes, onNote, onSelfie, paint, onClose }: {
+export function MirrorSheet({ maker, view, setView, tryOn, onTry, wearables, onAdd, shortlist, notes, onNote, onSelfie, onShutter, paint, onClose }: {
   maker: FairMaker; view: 'menu' | 'selfie' | 'note'; setView: (v: 'menu' | 'selfie' | 'note') => void;
-  tryOn: string | null; onTry: (key: string | null) => void; earrings: FairItem[]; onAdd: (item: FairItem) => void; shortlist: Record<string, number>;
-  notes: Note[]; onNote: (text: string, rating: number) => void; onSelfie: () => void; paint: (cv: HTMLCanvasElement, pose: SelfiePose) => void; onClose: () => void;
+  tryOn: string | null; onTry: (key: string | null) => void; wearables: FairItem[]; onAdd: (item: FairItem) => void; shortlist: Record<string, number>;
+  notes: Note[]; onNote: (text: string, rating: number) => Promise<string | null>; onSelfie: () => void; onShutter: () => void; paint: (cv: HTMLCanvasElement, pose: SelfiePose) => void; onClose: () => void;
 }) {
-  const [pose, setPose] = useState<SelfiePose>('smile'), [shot, setShot] = useState(0), [rating, setRating] = useState(0), [error, setError] = useState('');
+  const [pose, setPose] = useState<SelfiePose>('smile'), [shot, setShot] = useState(0), [rating, setRating] = useState(0), [error, setError] = useState(''), [sending, setSending] = useState(false);
   const cv = useRef<HTMLCanvasElement>(null);
-  const tried = earrings.find(e => e.key === tryOn);
+  const tried = wearables.find(e => e.key === tryOn);
   useEffect(() => { if (view === 'selfie' && cv.current) paint(cv.current, pose); }, [view, pose, shot, paint]);
   useEffect(() => { if (view === 'selfie') onSelfie(); }, [view, onSelfie]);
+  useEffect(() => { if (view === 'selfie') onShutter(); }, [view, shot, onShutter]);
   return (
     <Sheet labelId="fair-mirror-h" onClose={onClose}>
       {view === 'menu' && (
@@ -118,11 +121,11 @@ export function MirrorSheet({ maker, view, setView, tryOn, onTry, earrings, onAd
           <div className="fair-opts">
             <button type="button" className="fair-opt" onClick={() => setView('selfie')}>{ICONS.cam}<span><b>Take a mirror selfie</b><small>A photo of you with the fair behind you{tried ? `, wearing ${tried.name}` : ''}.</small></span></button>
             <button type="button" className="fair-opt" onClick={() => setView('note')}>{ICONS.note}<span><b>Leave a feedback note</b><small>Pin a note on the stall wall. {notes.length ? `${notes.length} pinned so far.` : 'Be the first.'}</small></span></button>
-            {earrings.length > 0 && (
-              <div className="fair-opt fair-opt-static">{ICONS.ear}<span><b>Try on earrings</b><small>Your reflection wears them.</small>
-                <span className="fair-seg" role="group" aria-label="Earrings to try on">
+            {wearables.length > 0 && (
+              <div className="fair-opt fair-opt-static">{ICONS.ear}<span><b>Try something on</b><small>Your reflection and your character wear it.</small>
+                <span className="fair-seg" role="group" aria-label="Something to try on">
                   <button type="button" aria-pressed={!tryOn} onClick={() => onTry(null)}>None</button>
-                  {earrings.map(e => <button key={e.key} type="button" aria-pressed={tryOn === e.key} onClick={() => onTry(e.key)}>{e.name}</button>)}
+                  {wearables.map(e => <button key={e.key} type="button" aria-pressed={tryOn === e.key} onClick={() => onTry(e.key)}>{e.name}</button>)}
                 </span>
                 {tried && <button type="button" className="button primary" onClick={() => onAdd(tried)}>{shortlist[tried.key] ? 'Add another' : 'Add to shortlist'} · {money(tried.pricePaise)}</button>}
               </span></div>
@@ -144,12 +147,17 @@ export function MirrorSheet({ maker, view, setView, tryOn, onTry, earrings, onAd
       {view === 'note' && (
         <>
           <h2 id="fair-mirror-h">Leave a feedback note</h2>
-          <p className="fair-meta">It gets pinned on the {maker.name} wall.</p>
-          <form className="admin-form" noValidate onSubmit={e => {
+          <p className="fair-meta">It goes to the Craftofy team and gets pinned on the {maker.name} wall.</p>
+          <form className="admin-form" noValidate onSubmit={async e => {
             e.preventDefault();
+            if (sending) return;
             const text = String(new FormData(e.currentTarget).get('note') ?? '').trim();
-            if (!text) { setError('Write a few words first, then pin your note.'); return; }
-            setError(''); onNote(text, rating); setRating(0); setView('menu');
+            if (!text) { setError('Write a few words first, then send your note.'); return; }
+            setError(''); setSending(true);
+            const problem = await onNote(text, rating);
+            setSending(false);
+            if (problem) { setError(problem); return; }
+            setRating(0); setView('menu');
           }}>
             <p className="form-note"><b>*</b> Required</p>
             <label><span className="lbl">Your note</span><textarea name="note" required maxLength={NOTE_MAX} rows={4} placeholder="What did you like? What would make the fair better?" /></label>
@@ -157,12 +165,41 @@ export function MirrorSheet({ maker, view, setView, tryOn, onTry, earrings, onAd
               {[1, 2, 3, 4, 5].map(n => <button key={n} type="button" data-on={n <= rating ? '1' : '0'} aria-pressed={n === rating} aria-label={`${n} out of 5`} onClick={() => setRating(r => (r === n ? 0 : n))}>★</button>)}
             </div>
             {error && <p role="alert" className="admin-error">{error}</p>}
-            <div className="fair-sheet-foot"><button type="button" className="button" onClick={() => setView('menu')}>Back</button><button type="submit" className="button primary">Pin my note</button></div>
+            <div className="fair-sheet-foot"><button type="button" className="button" onClick={() => setView('menu')}>Back</button><button type="submit" className="button primary" disabled={sending} aria-busy={sending}>Send my note</button></div>
           </form>
-          <p className="fair-note">Notes are saved in this browser only. They are not sent to anyone yet.</p>
+          <p className="fair-note">Your note is sent with your visitor code only, never your name. Please leave out personal details.</p>
           {notes.length > 0 && <ul className="fair-notes" aria-label="Your pinned notes">{notes.slice(-3).reverse().map(n => <li key={n.t + n.text}>{n.rating ? <span aria-label={`${n.rating} out of 5`}>{stars(n.rating)} </span> : null}{n.text}</li>)}</ul>}
         </>
       )}
+    </Sheet>
+  );
+}
+
+/** "My look": five female and five male characters to choose from. */
+export function LookSheet({ current, startsWith, onPick, onClose }: { current: LookId; startsWith: LookId; onPick: (id: LookId | null) => void; onClose: () => void }) {
+  const group = (title: string, ids: readonly LookId[]) => (
+    <fieldset className="fair-looks-group">
+      <legend>{title}</legend>
+      <div className="fair-looks">
+        {ids.map(id => (
+          <button key={id} type="button" className="fair-look" aria-pressed={id === current} onClick={() => onPick(id)}>
+            <span className="fair-avatar" dangerouslySetInnerHTML={{ __html: visitorAvatar(LOOKS[id]) }} />
+            <span>{LOOKS[id].name}</span>
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+  return (
+    <Sheet labelId="fair-look-h" onClose={onClose}>
+      <h2 id="fair-look-h">My look</h2>
+      <p className="fair-meta">Pick the character you walk the fair as. Other visitors see it too.</p>
+      {group('Female', FEMALE_LOOKS)}
+      {group('Male', MALE_LOOKS)}
+      <div className="fair-sheet-foot">
+        {current !== startsWith ? <button type="button" className="button" onClick={() => onPick(null)}>Back to my starting look</button> : <span />}
+        <button type="button" className="button primary" onClick={onClose}>Done</button>
+      </div>
     </Sheet>
   );
 }

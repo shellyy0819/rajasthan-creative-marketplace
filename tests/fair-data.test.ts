@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MAX_ITEMS, MAX_STALLS, artFor, buildRealMakers, craftFor, getFairData } from '@/lib/fair-data';
-import { SAMPLE_MAKERS } from '@/lib/fair-sample';
+import { MAX_ITEMS, MAX_STALLS, artFor, buildRealMakers, buildRealStalls, craftFor, getFairData, markMirror } from '@/lib/fair-data';
+import { SAMPLE_MAKERS, sampleFairData } from '@/lib/fair-sample';
 import { saveFairSettings } from '@/lib/fair-settings';
-import { CODE_ALPHABET } from '@/lib/fair-presence';
-import { characterFor, formatCode, hash32, normalizeCode, randomCode } from '@/lib/fair-characters';
+import { DEFAULT_STALLS, OPEN_LABEL, STALL_COUNT, fillStalls } from '@/lib/fair-stalls';
+import { FEMALE_LOOKS, LOOKS, MALE_LOOKS, characterFor, formatCode, hash32, lookFor, normalizeCode, randomCode } from '@/lib/fair-characters';
+import { CODE_ALPHABET, LOOK_IDS, isLookId } from '@/lib/fair-constants';
 import type { Product } from '@/lib/types';
 import { resetTestDb } from './helpers/testdb';
 
@@ -12,30 +13,66 @@ const prod = (seller: string, i: number, o: Partial<Product> = {}): Product => (
 });
 beforeEach(async () => { await resetTestDb(); });
 
-describe('buildRealMakers', () => {
-  it('makes one stall per seller, busiest first, with at most 4 items each', () => {
-    const products = [...Array.from({ length: 6 }, (_, i) => prod('Big', i)), prod('Small', 0), prod('Mid', 0), prod('Mid', 1)];
-    const makers = buildRealMakers(products);
-    expect(makers.map(m => m.name)).toEqual(['Big', 'Mid', 'Small']);
-    expect(makers[0].items).toHaveLength(MAX_ITEMS);
-    expect(makers[0].items[0]).toMatchObject({ key: 'big:0', name: 'Thing 0', href: expect.stringMatching(/^\/products\//) });
-    expect(makers[0].href).toBe('/artists/big-1');
+describe('the default stalls', () => {
+  it('are handmade crochet, resin art, wood craft, sarees and suits, and Christmas items, in that order', () => {
+    expect(DEFAULT_STALLS.map(d => d.label)).toEqual(['Handmade crochet', 'Resin Art', 'Wood craft', 'Sarees and suits', 'Christmas items']);
   });
-  it('keeps at most 8 stalls and treats seller names case- and space-insensitively', () => {
-    const products = Array.from({ length: 12 }, (_, i) => prod(`Seller${i}`, 0));
-    expect(buildRealMakers(products)).toHaveLength(MAX_STALLS);
+  it('the sample fair has a maker for each, then open stalls, eight places in all', () => {
+    const d = sampleFairData();
+    expect(d.stalls).toHaveLength(STALL_COUNT);
+    expect(d.stalls.slice(0, 5).map(s => s.label)).toEqual(DEFAULT_STALLS.map(x => x.label));
+    expect(d.stalls.slice(0, 5).every(s => s.maker)).toBe(true);
+    expect(d.stalls.slice(5).every(s => !s.maker && s.label === OPEN_LABEL)).toBe(true);
+    expect(d.makers).toEqual(SAMPLE_MAKERS);
+    expect(d.makers.filter(m => m.mirror).map(m => m.category)).toEqual(['Sarees and suits']);
+  });
+  it('every sample item has artwork and a price', () => {
+    for (const m of SAMPLE_MAKERS) for (const i of m.items) { expect(i.art).toBeTruthy(); expect(i.pricePaise).toBeGreaterThan(0); }
+  });
+});
+
+describe('buildRealStalls', () => {
+  const crochet = (s: string, n: number) => Array.from({ length: n }, (_, i) => prod(s, i, { category: 'Crochet & Textiles', name: `Crochet flower ${i}` }));
+  it('puts the default categories first, each with the seller who has the most matching products', () => {
+    const products = [...crochet('Big', 3), ...crochet('Small', 1), prod('Wood Co', 0, { category: 'Wood craft', name: 'Carved box' }), prod('Saree House', 0, { category: 'Sarees and suits', name: 'Silk saree' }), prod('Saree House', 1, { category: 'Sarees and suits', name: 'Cotton suit' })];
+    const stalls = buildRealStalls(products);
+    expect(stalls).toHaveLength(8);
+    expect(stalls[0]).toMatchObject({ label: 'Handmade crochet', maker: { name: 'Big' } });
+    expect(stalls[1]).toMatchObject({ label: 'Resin Art', maker: null });
+    expect(stalls[2]).toMatchObject({ label: 'Wood craft', maker: { name: 'Wood Co' } });
+    expect(stalls[3].maker!.name).toBe('Saree House');
+    expect(stalls[4]).toMatchObject({ label: 'Christmas items', maker: null });
+    expect(stalls[5].maker!.name).toBe('Small');
+  });
+  it('keeps an open stall named for its category when nobody sells it yet', () => {
+    const stalls = buildRealStalls([]);
+    expect(stalls.map(s => s.label)).toEqual([...DEFAULT_STALLS.map(d => d.label), OPEN_LABEL, OPEN_LABEL, OPEN_LABEL]);
+    expect(stalls.every(s => !s.maker)).toBe(true);
+  });
+  it('a seller fills one stall only, and each stall shows at most 4 items', () => {
+    const stalls = buildRealStalls(Array.from({ length: 9 }, (_, i) => prod('Everything', i, { category: i % 2 ? 'Resin Art' : 'Crochet & Textiles', name: 'Crochet resin thing' })));
+    expect(stalls.filter(s => s.maker).length).toBe(1);
+    expect(stalls[0].maker!.items).toHaveLength(MAX_ITEMS);
+  });
+  it('links products and artists, and chooses artwork from the name and category', () => {
+    const m = buildRealMakers([prod('Solo', 0, { name: 'Kundan Earrings', category: 'Accessories' })])[0];
+    expect(m.items[0]).toMatchObject({ art: 'drop', href: expect.stringMatching(/^\/products\//) });
+    expect(m.href).toBe('/artists/solo-1');
+  });
+  it('treats seller names case- and space-insensitively and caps the extra stalls at 8 places', () => {
     expect(buildRealMakers([prod('Rang  Ghar', 0), prod('rang ghar', 1)])).toHaveLength(1);
+    expect(buildRealStalls(Array.from({ length: 14 }, (_, i) => prod(`Seller${i}`, 0)))).toHaveLength(MAX_STALLS);
   });
-  it('gives exactly one stall the mirror, preferring a maker with earrings', () => {
-    const none = buildRealMakers([prod('A', 0), prod('B', 0)]);
-    expect(none.filter(m => m.mirror)).toHaveLength(1);
-    const withEarrings = buildRealMakers([prod('A', 0), prod('A', 1), prod('B', 0, { name: 'Kundan Earrings' })]);
-    expect(withEarrings.find(m => m.mirror)!.name).toBe('B');
+  it('gives exactly one stall the mirror, preferring a maker with something to wear', () => {
+    const wear = buildRealStalls([prod('A', 0), prod('B', 0, { category: 'Sarees and suits', name: 'Silk saree' })]);
+    expect(wear.flatMap(s => (s.maker?.mirror ? [s.maker.name] : []))).toEqual(['B']);
+    const none = buildRealStalls([prod('A', 0), prod('B', 0)]);
+    expect(none.filter(s => s.maker?.mirror)).toHaveLength(1);
+    expect(markMirror(fillStalls([]))).toHaveLength(8);
   });
   it('is stable: the same sellers always look the same', () => {
     expect(buildRealMakers([prod('A', 0)])[0].look).toEqual(buildRealMakers([prod('A', 0)])[0].look);
   });
-  it('returns nothing for no products', () => { expect(buildRealMakers([])).toEqual([]); });
 });
 
 describe('artFor / craftFor', () => {
@@ -43,10 +80,18 @@ describe('artFor / craftFor', () => {
     expect(artFor({ name: 'Aqua Jhumka', category: 'Accessories' })).toBe('drop');
     expect(artFor({ name: 'Pink Lotus', category: 'Crochet & Textiles' })).toBe('lily');
     expect(artFor({ name: 'Cardigan', category: 'Crochet & Textiles' })).toBe('frock');
-    expect(artFor({ name: 'Bowl', category: 'Pottery' })).toBe('pot');
     expect(artFor({ name: 'Coaster', category: 'Resin Art' })).toBe('coaster');
+    expect(artFor({ name: 'Toy elephant', category: 'Wood craft' })).toBe('woodtoy');
+    expect(artFor({ name: 'Jewellery box', category: 'Wood craft' })).toBe('woodbox');
+    expect(artFor({ name: 'Bandhani saree', category: 'Sarees and suits' })).toBe('saree');
+    expect(artFor({ name: 'Cotton suit set', category: 'Sarees and suits' })).toBe('suit');
+    expect(artFor({ name: 'Silk dupatta', category: 'Sarees and suits' })).toBe('stole');
+    expect(artFor({ name: 'Felt tree', category: 'Christmas items' })).toBe('tree');
+    expect(artFor({ name: 'Star ornament', category: 'Christmas items' })).toBe('ornament');
     expect(artFor({ name: 'Mystery', category: 'Other' })).toBe('box');
-    expect(craftFor('Pottery')).toBe('pottery');
+    expect(craftFor('Wood craft')).toBe('wood');
+    expect(craftFor('Christmas items')).toBe('christmas');
+    expect(craftFor('Sarees and suits')).toBe('print');
     expect(craftFor('Crochet & Textiles')).toBe('crochet');
     expect(craftFor('Anything else')).toBe('handmade');
   });
@@ -56,25 +101,38 @@ describe('getFairData', () => {
   it('shows the invented sample makers by default', async () => {
     const d = await getFairData();
     expect(d.source).toBe('sample');
-    expect(d.makers).toBe(SAMPLE_MAKERS);
-    expect(d.makers.filter(m => m.mirror)).toHaveLength(1);
+    expect(d.makers).toEqual(SAMPLE_MAKERS);
   });
-  it('shows live approved sellers once an admin switches to real', async () => {
+  it('shows live sellers once an admin switches to real, with the default stalls first', async () => {
     await saveFairSettings({ source: 'real' }, 'root@x.co');
     const d = await getFairData();
     expect(d.source).toBe('real');
-    expect(d.makers.length).toBeGreaterThan(0);
-    expect(d.makers.length).toBeLessThanOrEqual(MAX_STALLS);
+    expect(d.stalls).toHaveLength(8);
+    expect(d.stalls.slice(0, 5).map(s => s.label)).toEqual(DEFAULT_STALLS.map(x => x.label));
     expect(d.makers.every(m => m.items.every(i => i.href?.startsWith('/products/')))).toBe(true);
     expect(JSON.stringify(d)).not.toContain('Rangili Dhaga');
   });
 });
 
-describe('visitor characters and codes', () => {
-  it('the same code always gives the same character, other codes can differ', () => {
+describe('looks, characters and codes', () => {
+  it('has five female and five male looks', () => {
+    expect(LOOK_IDS).toHaveLength(10);
+    expect(FEMALE_LOOKS).toHaveLength(5); expect(MALE_LOOKS).toHaveLength(5);
+    expect(FEMALE_LOOKS.every(id => LOOKS[id].gender === 'female' && id.startsWith('f'))).toBe(true);
+    expect(MALE_LOOKS.every(id => LOOKS[id].gender === 'male' && id.startsWith('m'))).toBe(true);
+    expect(new Set(LOOK_IDS.map(id => LOOKS[id].name)).size).toBe(10);
+    expect(isLookId('f3')).toBe(true); expect(isLookId('x1')).toBe(false); expect(isLookId(3)).toBe(false);
+  });
+  it('every look is drawable: colours are hex, hair is a known style', () => {
+    for (const id of LOOK_IDS) { const c = LOOKS[id]; expect(c.id).toBe(id); for (const col of [c.top, c.skin, c.acc, c.pants]) expect(col).toMatch(/^#[0-9a-f]{6}$/i); expect(['short', 'long', 'bun', 'braid', 'bob']).toContain(c.hairStyle); }
+  });
+  it('a code starts with the same look everywhere, a picked look wins', () => {
+    expect(lookFor('ABC234')).toBe(lookFor('ABC234'));
     expect(characterFor('ABC234')).toEqual(characterFor('ABC234'));
-    const names = new Set(Array.from({ length: 40 }, (_, i) => characterFor(`${CODE_ALPHABET[i % 31]}BC${CODE_ALPHABET[(i * 7) % 31]}34`).top + characterFor(`${CODE_ALPHABET[i % 31]}BC${CODE_ALPHABET[(i * 7) % 31]}34`).name));
-    expect(names.size).toBeGreaterThan(8);
+    expect(characterFor('ABC234').id).toBe(lookFor('ABC234'));
+    expect(characterFor('ABC234', 'm4').name).toBe('Rudra');
+    const starts = new Set(Array.from({ length: 60 }, (_, i) => lookFor(`${CODE_ALPHABET[i % 31]}BC${CODE_ALPHABET[(i * 7) % 31]}34`)));
+    expect(starts.size).toBeGreaterThan(5);
   });
   it('makes valid random codes', () => {
     for (let i = 0; i < 20; i++) expect(randomCode(CODE_ALPHABET)).toMatch(new RegExp(`^[${CODE_ALPHABET}]{6}$`));
