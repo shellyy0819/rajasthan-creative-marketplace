@@ -21,13 +21,10 @@ export async function GET() {
     `- [About](${origin}/about): who ${SITE.name} is and how it works`,
     `- [Help](${origin}/help): ordering, selling and account questions`,
     `- [Contact](${origin}/contact): reach the ${SITE.name} team (${contactEmail()})`,
-    `- [Sell on ${SITE.name}](${origin}/sell): how makers list their craft`,
     ...(cities.length ? ['', '## Cities', ...cities.map(c => `- [Handmade and workshops in ${label(c)}](${origin}/cities/${c.slug})`)] : []),
     '',
     '## Optional',
     `- [Sitemap](${origin}/sitemap.xml)`,
-    `- [Privacy](${origin}/privacy)`,
-    `- [Terms](${origin}/terms)`,
     '',
   ].join('\n');
   return new Response(body, { headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' } });

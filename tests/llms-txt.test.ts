@@ -13,5 +13,7 @@ describe('GET /llms.txt', () => {
     expect(body).toContain('(https://rr.test/shop)');
     expect(body).toContain('(https://rr.test/cities/udaipur)');
     expect(body).not.toMatch(/Rajasthan/);
+    // only link pages that are indexable and exist on production (not noindex /sell, not the unreleased /privacy and /terms)
+    expect(body).not.toMatch(/\/(sell|privacy|terms)\)/);
   });
 });
