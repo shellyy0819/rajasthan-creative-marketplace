@@ -182,8 +182,21 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     ctx.fillStyle = col(L.top); ctx.beginPath(); ctx.moveTo(-27, -36); ctx.lineTo(-23, -64); ctx.quadraticCurveTo(0, -74, 23, -64); ctx.lineTo(27, -36); ctx.closePath(); ctx.fill();
     ctx.fillStyle = col(L.acc); ctx.beginPath(); ctx.moveTo(-23, -64); ctx.quadraticCurveTo(-6, -58, 10, -40); ctx.lineTo(18, -40); ctx.quadraticCurveTo(0, -62, -12, -69); ctx.closePath(); ctx.fill();
     ctx.fillStyle = skin; ctx.fillRect(-4, -76, 8, 9);
+    // The head (and the hair that hangs behind it) is drawn before the work, so hair never covers what the maker is making.
+    const head = () => {
+      ctx.save(); ctx.translate(0, -90 + bob + nod);
+      if (L.long) { ctx.fillStyle = hairC; ctx.beginPath(); ctx.roundRect(-14, -6, 28, 34, 10); ctx.fill(); }
+      ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(0, 0, 12.5, 0, TAU); ctx.fill();
+      ctx.fillStyle = hairC; ctx.beginPath(); ctx.arc(0, -1, 13, Math.PI * 1.02, Math.PI * 1.98); ctx.quadraticCurveTo(7, -6, 0, -5); ctx.quadraticCurveTo(-7, -6, -13, -1); ctx.fill();
+      if (L.bun) { ctx.beginPath(); ctx.arc(0, -15, 6, 0, TAU); ctx.fill(); }
+      if (work) { ctx.strokeStyle = C.hair; ctx.lineWidth = 1.5; ctx.lineCap = 'round'; for (const dx of [-4.3, 4.3]) { ctx.beginPath(); ctx.arc(dx, .4, 1.9, .12 * Math.PI, .88 * Math.PI); ctx.stroke(); } }   // eyes down on the work
+      else eyes(0, 1, 4.3, 1.3, look * 1.6);
+      ctx.strokeStyle = C.terraD; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(work ? 0 : look, 4 + (work ? 0 : att), work ? 2.8 : 3.6, .15 * Math.PI, .85 * Math.PI); ctx.stroke();
+      ctx.fillStyle = C.orange; ctx.beginPath(); ctx.arc(0, -5, 1.3, 0, TAU); ctx.fill(); ctx.restore();
+    };
     if (work) {
       // at work: the craft sits on the counter in front of them, and both arms reach down to it with proper hands
+      head();
       const RAISE = 8;   // the work sits on top of the counter edge, not behind it
       ctx.save(); ctx.translate(0, -RAISE); const j0 = work(ctx); ctx.restore();
       const job: Job = { left: { ...j0.left, y: j0.left.y - RAISE }, right: { ...j0.right, y: j0.right.y - RAISE } }, bangle = col(L.acc);
@@ -204,15 +217,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
       if (m.craft === 'crochet') { ctx.fillStyle = C.sage; ctx.beginPath(); ctx.arc(-34, -44, 8, 0, TAU); ctx.fill(); ctx.strokeStyle = C.chalk; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(-34, -44, 4, 0, Math.PI * 1.5); ctx.stroke(); ctx.strokeStyle = C.woodD; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ax - 2, ay + 2); ctx.lineTo(ax - 14, ay - 8); ctx.stroke(); }
       else if (att > .2) { const sp = reduce ? 1 : .6 + .4 * Math.sin(t * 8); ctx.fillStyle = C.mustard; ctx.globalAlpha = att; ctx.beginPath(); ctx.arc(ax + 7, ay - 6, 2.4 * sp, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
     }
-    ctx.save(); ctx.translate(0, -90 + bob + nod);
-    if (L.long) { ctx.fillStyle = hairC; ctx.beginPath(); ctx.roundRect(-14, -6, 28, 34, 10); ctx.fill(); }
-    ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(0, 0, 12.5, 0, TAU); ctx.fill();
-    ctx.fillStyle = hairC; ctx.beginPath(); ctx.arc(0, -1, 13, Math.PI * 1.02, Math.PI * 1.98); ctx.quadraticCurveTo(7, -6, 0, -5); ctx.quadraticCurveTo(-7, -6, -13, -1); ctx.fill();
-    if (L.bun) { ctx.beginPath(); ctx.arc(0, -15, 6, 0, TAU); ctx.fill(); }
-    if (work) { ctx.strokeStyle = C.hair; ctx.lineWidth = 1.5; ctx.lineCap = 'round'; for (const dx of [-4.3, 4.3]) { ctx.beginPath(); ctx.arc(dx, .4, 1.9, .12 * Math.PI, .88 * Math.PI); ctx.stroke(); } }   // eyes down on the work
-    else eyes(0, 1, 4.3, 1.3, look * 1.6);
-    ctx.strokeStyle = C.terraD; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(work ? 0 : look, 4 + (work ? 0 : att), work ? 2.8 : 3.6, .15 * Math.PI, .85 * Math.PI); ctx.stroke();
-    ctx.fillStyle = C.orange; ctx.beginPath(); ctx.arc(0, -5, 1.3, 0, TAU); ctx.fill(); ctx.restore();
+    if (!work) head();
   }
   const earOn = () => (st.wear?.kind === 'ear' ? st.wear : null);
   const outfit = () => (st.wear?.kind === 'outfit' ? st.wear : null);
