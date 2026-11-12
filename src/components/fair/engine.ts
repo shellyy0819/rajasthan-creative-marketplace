@@ -7,7 +7,7 @@ import type { GameEvent } from './quests';
 import { canvasFamily, readColors, type Colors } from './theme';
 import { MAX_CROWD, crowdAt, hourOf, phaseAt, skyAt, type DayPhase } from './daytime';
 import type { Wear } from './wear';
-import { NODES, RECTS, START, STALL_SCALE as SS, WORLD_H, WORLD_W, buildSlots, cameraAxis, clampWalk, route, walkable, type Pt, type Slot } from './world';
+import { COL_X, NODES, RECTS, START, STALL_SCALE as SS, WORLD_H, WORLD_W, buildSlots, cameraAxis, clampWalk, route, walkable, type Pt, type Slot } from './world';
 
 /** Everything the fair does on the canvas: drawing, walking, shoppers, other visitors, craft moments, the mirror. React owns the panels around it. */
 export type EngineCallbacks = {
@@ -143,8 +143,11 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
   /* ---------- drawing: floor, bunting, diyas ---------- */
   function drawGround() {
     ctx.fillStyle = C.paper; ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-    ctx.fillStyle = C.cream; for (let x = -20; x < WORLD_W; x += 190) { arch(x + 10, 250, 170, 200); ctx.fill(); }
-    ctx.fillStyle = C.sage; ctx.globalAlpha = .3; for (let x = 60; x < WORLD_W; x += 240) { arch(x, 250, 150, 170); ctx.fill(); } ctx.globalAlpha = 1;
+    // One arch behind each stall of the back row, centred on it, so the backdrop lines up with the stalls.
+    for (const cx of COL_X) {
+      ctx.fillStyle = C.cream; arch(cx - 112, 250, 224, 214); ctx.fill();
+      ctx.fillStyle = C.sage; ctx.globalAlpha = .3; arch(cx - 92, 250, 184, 190); ctx.fill(); ctx.globalAlpha = 1;
+    }
     ctx.fillStyle = C.ground; ctx.fillRect(0, 250, WORLD_W, WORLD_H - 250);
     ctx.fillStyle = C.cream; ctx.globalAlpha = .8; RECTS.forEach(r => { ctx.beginPath(); ctx.roundRect(r.x, r.y - 6, r.w, r.h + 12, 10); ctx.fill(); }); ctx.globalAlpha = 1;
     ctx.strokeStyle = C.line; ctx.lineWidth = 2; ctx.setLineDash([8, 10]);
