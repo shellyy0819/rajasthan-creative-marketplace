@@ -1,7 +1,9 @@
 import { auth } from '@/auth';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { EmailSettingsForm } from '@/components/EmailSettingsForm';
+import { FairSettingsForm } from '@/components/FairSettingsForm';
 import { requireAdminPage } from '@/lib/admin-page';
+import { getFairSettings } from '@/lib/fair-settings';
 import { hostConfig } from '@/lib/hosts';
 import { getEmailSettings } from '@/lib/settings';
 
@@ -20,6 +22,7 @@ export default async function SettingsPage() {
           <p>Site-wide options for administrators.</p>
         </div>
         <EmailSettingsForm initial={await getEmailSettings()} adminEmail={session?.user?.email ?? ''} />
+        <FairSettingsForm initial={await getFairSettings()} />
       </section>
     </>
   );

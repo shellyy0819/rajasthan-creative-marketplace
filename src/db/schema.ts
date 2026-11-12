@@ -285,3 +285,20 @@ export const siteThemes = pgTable('site_themes', {
   index('site_themes_window_idx').on(t.startsAt),
 ]);
 export type SiteThemeRow = typeof siteThemes.$inferSelect;
+
+/**
+ * Who is walking around the exhibition (/fair) right now. One row per visitor code, refreshed by a heartbeat every few seconds and
+ * deleted when stale. Holds no personal data: a random code, a position on the fair floor and the last emote.
+ */
+export const fairVisitors = pgTable('fair_visitors', {
+  code: text('code').primaryKey(),
+  x: doublePrecision('x').notNull(),
+  y: doublePrecision('y').notNull(),
+  facing: text('facing').notNull().default('down'),
+  emote: text('emote'),
+  emoteSeq: integer('emote_seq').notNull().default(0),
+  seenAt: timestamp('seen_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [
+  check('fair_visitors_facing_valid', sql`${t.facing} in ('up', 'down', 'left', 'right')`),
+  index('fair_visitors_seen_idx').on(t.seenAt),
+]);

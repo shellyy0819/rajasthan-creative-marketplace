@@ -127,6 +127,13 @@
       "when": 1794374926794,
       "tag": "0017_app_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794473457507,
+      "tag": "0018_fair_visitors",
+      "breakpoints": true
     }
   ]
 }
