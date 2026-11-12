@@ -41,8 +41,9 @@ describe('artist page', () => {
     const cards = [...document.querySelectorAll('.product-grid .product-card h3')].map(h => h.textContent);
     expect(cards).toEqual(['Piece 4', 'Piece 5']);
   });
-  it('with 4 products the count is singular', async () => {
+  it('with 4 products there is a single remaining piece and no "1 piece" count', async () => {
     await show(4);
-    expect(document.querySelector('.section-heading .muted')!.textContent).toBe('1 piece');
+    expect(screen.getByRole('heading', { name: 'More pieces' })).toBeTruthy();
+    expect(document.querySelector('.section-heading .muted')).toBeNull();
   });
 });

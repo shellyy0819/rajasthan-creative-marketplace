@@ -1,0 +1,2 @@
+ALTER TABLE "product_events" DROP CONSTRAINT "product_events_type_valid";--> statement-breakpoint
+ALTER TABLE "product_events" ADD CONSTRAINT "product_events_type_valid" CHECK ("product_events"."type" in ('view', 'contact', 'artist', 'contact_call', 'contact_email', 'contact_instagram', 'contact_youtube', 'contact_copy'));

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { InfoPage } from '@/components/InfoPage';
+import { ContactScene } from '@/components/HelpScenes';
 import { JsonLd } from '@/components/JsonLd';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
@@ -23,10 +23,20 @@ export default function ContactPage() {
     <>
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
       <Breadcrumbs items={crumbs} />
-      <InfoPage eyebrow="CONTACT US" title="Say hello." intro="Questions, ideas or feedback? We would love to hear from you.">
-        <p>Write to us at <a className="text-link" href={`mailto:${email}`}>{email}</a>.</p>
-      <p>You can also reach any maker directly from their page. <Link className="text-link" href="/help">See how it works →</Link></p>
-    </InfoPage>
+      <div className="contact-hero">
+        <div>
+          <div className="page-head">
+            <span className="eyebrow">CONTACT US</span>
+            <h1>Say hello.</h1>
+            <p>Questions, ideas or feedback? We would love to hear from you.</p>
+          </div>
+          <section className="section info-body">
+            <p>Write to us at <a className="text-link" href={`mailto:${email}`}>{email}</a>.</p>
+            <p>You can also reach any maker directly from their page. <Link className="text-link" href="/help">See how it works →</Link></p>
+          </section>
+        </div>
+        <div className="help-art"><ContactScene /></div>
+      </div>
     </>
   );
 }

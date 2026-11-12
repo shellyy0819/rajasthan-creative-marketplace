@@ -1,4 +1,4 @@
-import { abs, contactEmail, siteUrl, SITE } from './site';
+import { abs, contactEmail, siteUrl, INSTAGRAM_HANDLE, SITE } from './site';
 import { productSlug, workshopSlug } from './catalog';
 import type { Product, Workshop } from './types';
 
@@ -9,6 +9,9 @@ export const serializeJsonLd = (data: unknown) => JSON.stringify(data).replace(/
 export const organizationJsonLd = () => ({
   '@context': CTX, '@type': 'Organization',
   name: SITE.name, url: siteUrl(), description: SITE.description, email: contactEmail(),
+  logo: abs('/icons/icon-512.png'),
+  sameAs: [`https://www.instagram.com/${INSTAGRAM_HANDLE}`],
+  contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', email: contactEmail(), areaServed: 'IN', availableLanguage: ['en'] },
   areaServed: { '@type': 'AdministrativeArea', name: 'India' },
 });
 

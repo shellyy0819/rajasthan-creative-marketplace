@@ -20,7 +20,7 @@ describe('footer', () => {
   it('has Get to Know Us, Connect with Us and Let Us Help You columns with working links', async () => {
     render(await Footer());
     expect(links('Get to Know Us')).toEqual([['About us', '/about']]);
-    expect(links('Connect with Us')).toEqual([['Contact us', '/contact']]);
+    expect(links('Connect with Us')).toEqual([['Contact us', '/contact'], ['@craftofy_official', 'https://www.instagram.com/craftofy_official/']]);
     expect(links('Let Us Help You')).toEqual([['How it works', '/help'], ['Seller login', '/sell']]);
   });
   // SKIPPED on purpose: Footer.tsx has the Cities column and the Cookie settings link commented out (the owner's choice in PR #7). Remove the skip when it comes back.

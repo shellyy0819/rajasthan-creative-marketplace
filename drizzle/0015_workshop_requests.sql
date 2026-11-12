@@ -1,0 +1,33 @@
+CREATE TABLE "workshop_requests" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"host_name" text NOT NULL,
+	"contact_name" text NOT NULL,
+	"phone" text NOT NULL,
+	"email" text NOT NULL,
+	"city" text NOT NULL,
+	"venue" text NOT NULL,
+	"title" text NOT NULL,
+	"kind" text NOT NULL,
+	"description" text NOT NULL,
+	"start_date" date NOT NULL,
+	"end_date" date NOT NULL,
+	"start_time" text,
+	"end_time" text,
+	"seats" integer,
+	"price_type" text NOT NULL,
+	"price_paise" integer,
+	"instagram" text,
+	"website" text,
+	"notes" text,
+	"images" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"status" text DEFAULT 'received' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "workshop_requests_kind_valid" CHECK ("workshop_requests"."kind" in ('workshop', 'meetup', 'popup', 'market')),
+	CONSTRAINT "workshop_requests_price_type_valid" CHECK ("workshop_requests"."price_type" in ('FREE', 'PAID')),
+	CONSTRAINT "workshop_requests_dates_ordered" CHECK ("workshop_requests"."end_date" >= "workshop_requests"."start_date"),
+	CONSTRAINT "workshop_requests_seats_positive" CHECK ("workshop_requests"."seats" is null or "workshop_requests"."seats" >= 1),
+	CONSTRAINT "workshop_requests_price_nonneg" CHECK ("workshop_requests"."price_paise" is null or "workshop_requests"."price_paise" >= 0),
+	CONSTRAINT "workshop_requests_status_valid" CHECK ("workshop_requests"."status" in ('received'))
+);
+--> statement-breakpoint
+CREATE INDEX "workshop_requests_created_idx" ON "workshop_requests" USING btree ("created_at");

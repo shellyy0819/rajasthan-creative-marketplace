@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { gaEvent } from '@/lib/analytics';
 import { sendEvent, type TrackType } from '@/lib/track';
 
-const GA_NAMES: Record<TrackType, string> = { view: 'view_item', contact: 'contact_click', artist: 'artist_visit' };
+const GA_NAMES: Record<TrackType, string> = { view: 'view_item', contact: 'contact_click', artist: 'artist_visit', contact_call: 'contact_call', contact_email: 'contact_email', contact_instagram: 'contact_instagram', contact_youtube: 'contact_youtube', contact_copy: 'contact_copy' };
 
 /** Records one event for this product when the page appears (strict-mode safe). Renders nothing. */
 export function TrackOnMount({ productId, type }: { productId: string; type: TrackType }) {

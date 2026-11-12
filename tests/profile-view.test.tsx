@@ -18,9 +18,9 @@ beforeEach(() => { onLogoSaved.mockReset(); onClose.mockReset(); fetchMock = vi.
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe('ProfileView', () => {
-  it('shows the details as text with the lock note and no editable fields or save-profile button', () => {
+  it('shows the details as text with no lock note and no editable fields or save-profile button', () => {
     open();
-    expect(screen.getByText('Your details are locked. Contact Craftofy to change them.')).toBeTruthy();
+    expect(screen.queryByText(/details are locked/)).toBeNull();
     for (const t of ['Meera Pottery', 'Pottery', 'Kota', 'Hand-thrown mugs.', 'm@x.co', '9876543210', '@meera', 'WhatsApp, Instagram']) expect(screen.getByText(t)).toBeTruthy();
     expect(document.querySelectorAll('input, textarea, select')).toHaveLength(0);
     expect(screen.queryByRole('button', { name: 'Save profile' })).toBeNull();
@@ -52,6 +52,14 @@ describe('ProfileView', () => {
     expect(onLogoSaved).not.toHaveBeenCalled();
     expect((screen.getByRole('button', { name: 'Save logo' }) as HTMLButtonElement).disabled).toBe(false);
   });
+  it('links to the seller\'s public page when they have one, and explains when they do not', () => {
+    const r = render(<ProfileView profile={P} publicPageHref="/artists/meera-pottery-1a2b3c4d" onLogoSaved={onLogoSaved} onClose={onClose} />);
+    expect(screen.getByRole('link', { name: /View my public page/ }).getAttribute('href')).toBe('/artists/meera-pottery-1a2b3c4d');
+    r.unmount();
+    open();
+    expect(screen.queryByRole('link', { name: /View my public page/ })).toBeNull();
+    expect(screen.getByText('Your public page appears once your first product is approved.')).toBeTruthy();
+  });
   it('Close and Escape close it', () => {
     open();
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -67,7 +75,7 @@ describe('My profile on the posts page', () => {
     const locked = { ...P, logoUrl: 'https://cdn.example.com/logos/me.png' };
     const r = render(<PostsAdmin {...common} role="seller" profile={locked} />);
     act(() => { window.dispatchEvent(new Event('craftofy:open-profile')); });
-    expect(screen.getByText('Your details are locked. Contact Craftofy to change them.')).toBeTruthy();
+    expect(screen.getByText('Meera Pottery')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Save profile' })).toBeNull();
     r.unmount();
     render(<PostsAdmin {...common} role="admin" profile={locked} />);
@@ -81,6 +89,6 @@ describe('My profile on the posts page', () => {
     expect(screen.queryByRole('button', { name: 'My profile' })).toBeNull();
     r.unmount();
     render(<PostsAdmin {...common} role="seller" profile={P} openProfile />);
-    expect(screen.getByText('Your details are locked. Contact Craftofy to change them.')).toBeTruthy();
+    expect(screen.getByText('Meera Pottery')).toBeTruthy();
   });
 });

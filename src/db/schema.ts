@@ -180,7 +180,7 @@ export const productEvents = pgTable('product_events', {
   day: date('day', { mode: 'string' }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }, t => [
-  check('product_events_type_valid', sql`${t.type} in ('view', 'contact', 'artist')`),
+  check('product_events_type_valid', sql`${t.type} in ('view', 'contact', 'artist', 'contact_call', 'contact_email', 'contact_instagram', 'contact_youtube', 'contact_copy')`),
   uniqueIndex('product_events_unique_idx').on(t.productId, t.type, t.actor, t.day),
   index('product_events_day_idx').on(t.day),
 ]);
@@ -206,6 +206,48 @@ export const listingRequests = pgTable('listing_requests', {
   index('listing_requests_status_idx').on(t.status),
 ]);
 
+/** "Host a workshop" submissions from the public form. An admin reads them and, if it fits, creates the workshop. */
+export const workshopRequests = pgTable('workshop_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  hostName: text('host_name').notNull(),
+  contactName: text('contact_name').notNull(),
+  phone: text('phone').notNull(),
+  email: text('email').notNull(),
+  city: text('city').notNull(),
+  venue: text('venue').notNull(),
+  title: text('title').notNull(),
+  kind: text('kind').notNull(),
+  description: text('description').notNull(),
+  startDate: date('start_date', { mode: 'string' }).notNull(),
+  endDate: date('end_date', { mode: 'string' }).notNull(), // the form leaves it blank for a one-day event; the server then stores the start date
+  startTime: text('start_time'), // 'HH:MM', optional
+  endTime: text('end_time'),
+  seats: integer('seats'),
+  priceType: text('price_type').notNull(),
+  pricePaise: integer('price_paise'),
+  instagram: text('instagram'),
+  website: text('website'),
+  notes: text('notes'),
+  images: jsonb('images').$type<string[]>().notNull().default(sql`'[]'::jsonb`), // up to 3 public photo urls, first is the cover
+  status: text('status').notNull().default('unverified'), // 'received' once the emailed code is confirmed
+  codeHash: text('code_hash'),
+  codeExpiresAt: timestamp('code_expires_at', { withTimezone: true, mode: 'date' }),
+  codeAttempts: integer('code_attempts').notNull().default(0),
+  codeSends: integer('code_sends').notNull().default(0),
+  codeSentAt: timestamp('code_sent_at', { withTimezone: true, mode: 'date' }),
+  verifiedAt: timestamp('verified_at', { withTimezone: true, mode: 'date' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [
+  check('workshop_requests_kind_valid', sql`${t.kind} in ('workshop', 'meetup', 'popup', 'market')`),
+  check('workshop_requests_price_type_valid', sql`${t.priceType} in ('FREE', 'PAID')`),
+  check('workshop_requests_dates_ordered', sql`${t.endDate} >= ${t.startDate}`),
+  check('workshop_requests_seats_positive', sql`${t.seats} is null or ${t.seats} >= 1`),
+  check('workshop_requests_price_nonneg', sql`${t.pricePaise} is null or ${t.pricePaise} >= 0`),
+  check('workshop_requests_status_valid', sql`${t.status} in ('unverified', 'received')`),
+  index('workshop_requests_status_idx').on(t.status),
+  index('workshop_requests_created_idx').on(t.createdAt),
+]);
+
 /** Ordered photos of a product; position 0 is the cover. `s3Key` is null for legacy links that live on other hosts. */
 export const productImages = pgTable('product_images', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -215,6 +257,14 @@ export const productImages = pgTable('product_images', {
   position: smallint('position').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }, t => [uniqueIndex('product_images_product_position_idx').on(t.productId, t.position)]);
+
+/** Admin-editable settings, one row per area (key 'email' today). Secrets inside `value` are encrypted by the settings library, never stored in plain text. */
+export const appSettings = pgTable('app_settings', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').notNull(),
+  updatedBy: text('updated_by'),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+});
 
 /** Admin-scheduled festive themes. At most one row has status 'base' (the editable Everyday wording). */
 export const siteThemes = pgTable('site_themes', {

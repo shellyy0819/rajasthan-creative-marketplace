@@ -40,7 +40,7 @@ export default async function ArtistPage({ params, searchParams }: Props) {
       <ArtistHero a={a} />
       {rest.length > 0 && (
         <section className="section">
-          <div className="section-heading"><h2>More pieces</h2><span className="muted">{rest.length} {rest.length === 1 ? 'piece' : 'pieces'}</span></div>
+          <div className="section-heading"><h2>More pieces</h2>{rest.length > 1 && <span className="muted">{rest.length} pieces</span>}</div>
           <ProductGrid products={rest} />
         </section>
       )}

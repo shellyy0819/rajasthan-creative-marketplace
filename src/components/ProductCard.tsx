@@ -28,7 +28,7 @@ export function ProductCard({ p }: { p: Product }) {
         <p className="pc-who"><span className="pc-av" aria-hidden="true"><ArtistAvatar key={p.sellerLogo ?? 'none'} src={p.sellerLogo} initial={p.seller.trim().charAt(0).toUpperCase()} /></span><span>{p.seller} · {p.city}</span></p>
         <div className="product-bottom">
           <span className="price">{money(p.pricePaise)}</span>
-          <ContactArtistButton product={p} />
+          <ContactArtistButton product={p} iconOnly />
         </div>
       </div>
     </article>

@@ -147,12 +147,12 @@ describe('LiveCatalog city filter', () => {
   it('LiveCatalog lists the cities it is given', () => {
     render(<LiveCatalog cities={[{ name: 'Kota', slug: 'kota' }, { name: 'Pune', slug: 'pune' }]} kind="products" initialItems={[]} initialValues={{}} />);
     const sel = screen.getByLabelText('Filter by city') as HTMLSelectElement;
-    expect(Array.from(sel.options).map(o => [o.value, o.textContent])).toEqual([['', 'All India'], ['kota', 'Kota'], ['pune', 'Pune']]);
+    expect(Array.from(sel.options).map(o => [o.value, o.textContent])).toEqual([['', 'All'], ['kota', 'Kota'], ['pune', 'Pune']]);
     cleanup();
     render(<LiveCatalog cities={[{ name: 'Kota', slug: 'kota' }]} kind="workshops" initialItems={[]} initialValues={{}} />);
-    expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All India', 'Kota']);
+    expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All', 'Kota']);
   });
-  it('a filter value given by slug selects the matching city instead of falling back to All India', () => {
+  it('a filter value given by slug selects the matching city instead of falling back to All', () => {
     render(<LiveCatalog cities={[{ name: 'Kota', slug: 'kota' }]} kind="products" initialItems={[]} initialValues={{ city: 'kota' }} />);
     const sel = screen.getByLabelText('Filter by city') as HTMLSelectElement;
     expect(sel.options[sel.selectedIndex].textContent).toBe('Kota');
@@ -169,7 +169,7 @@ describe('LiveCatalog city filter', () => {
     render(<LiveCatalog cities={two} kind="products" initialItems={[]} initialValues={{}} />);
     const sel = screen.getByLabelText('Filter by city') as HTMLSelectElement;
     expect(Array.from(sel.options).map(o => [o.value, o.textContent])).toEqual([
-      ['', 'All India'], ['jaipur', 'Jaipur'], ['udaipur', 'Udaipur, Rajasthan'], ['udaipur-tripura', 'Udaipur, Tripura'],
+      ['', 'All'], ['jaipur', 'Jaipur'], ['udaipur', 'Udaipur, Rajasthan'], ['udaipur-tripura', 'Udaipur, Tripura'],
     ]);
     fireEvent.change(sel, { target: { value: 'udaipur-tripura' } });
     await flush(0);

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { headers } from 'next/headers';
 import { hostConfig, normalizeHost } from '@/lib/hosts';
-import { abs } from '@/lib/site';
+import { requestOrigin } from '@/lib/request-origin';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +12,6 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   if (hostConfig().dashboardHost && host === hostConfig().dashboardHost) return { rules: [{ userAgent: '*', disallow: '/' }] };
   return {
     rules: [{ userAgent: '*', allow: '/', disallow: ['/api/', '/dashboard/', '/admin/'] }],
-    sitemap: abs('/sitemap.xml'),
+    sitemap: `${await requestOrigin()}/sitemap.xml`,
   };
 }
