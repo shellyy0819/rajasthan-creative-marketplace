@@ -484,7 +484,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     ctx.restore();
   }
   /** Fade a whole entity as one solid layer, so parts of it never show through each other. */
-  function layerDraw(e: Ent, a: number, fn: (e: Ent) => void) {
+  function layerDraw(e: Ent, a: number, fn: (e: Ent) => void, tint?: string) {
     const b = e.box, pad = 40, x0 = Math.floor(b[0] * Z - cam.x - pad), y0 = Math.floor(b[1] * Z - cam.y - pad), w = Math.ceil(b[2] * Z + pad * 2), h = Math.ceil(b[3] * Z + pad * 2);
     if (!OFF) OFF = document.createElement('canvas');
     if (OFF.width < Math.ceil(w * DPR) || OFF.height < Math.ceil(h * DPR)) { OFF.width = Math.ceil(w * DPR); OFF.height = Math.ceil(h * DPR); }
@@ -492,7 +492,9 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(0, 0, OFF.width, OFF.height);
     ctx = o; ctx.setTransform(DPR * Z, 0, 0, DPR * Z, -(cam.x + x0) * DPR, -(cam.y + y0) * DPR);
     try { fn(e); } finally { ctx = mainCtx; }
-    ctx.save(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.globalAlpha = a; ctx.drawImage(OFF, 0, 0, Math.ceil(w * DPR), Math.ceil(h * DPR), x0, y0, w, h); ctx.restore();
+    // With a tint the layer stays solid and is washed toward that colour instead of turning see-through, so the arches behind it never show through.
+    if (tint) { o.save(); o.setTransform(1, 0, 0, 1, 0, 0); o.globalCompositeOperation = 'source-atop'; o.globalAlpha = (1 - a) * .7; o.fillStyle = tint; o.fillRect(0, 0, OFF.width, OFF.height); o.restore(); }
+    ctx.save(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.globalAlpha = tint ? 1 : a; ctx.drawImage(OFF, 0, 0, Math.ceil(w * DPR), Math.ceil(h * DPR), x0, y0, w, h); ctx.restore();
   }
 
   /* ---------- simulation ---------- */
@@ -640,7 +642,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
         if (!lit) a = 1 - (e.type === 'stall' ? .8 : .72) * focusV;
       }
       if (e.type === 'shopper') a = Math.min(a, e.sh.alpha);
-      if (a < .98) layerDraw(e, a, draw); else draw(e);
+      if (a < .98) layerDraw(e, a, draw, e.type === 'stall' ? C.ground : undefined); else draw(e);
     }
     drawBunting(t);
 
