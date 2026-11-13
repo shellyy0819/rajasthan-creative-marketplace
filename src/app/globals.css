@@ -4036,6 +4036,26 @@ body.modal-open {
   margin: 18px 0 4px;
 }
 
+/* festive theme editor (dashboard only) */
+.theme-editor { border: 1px solid var(--line); border-radius: 6px; background: var(--white); padding: 18px; margin-bottom: 18px; }
+.theme-editor-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+.theme-editor-head h2 { font: 600 20px var(--font-display); margin: 0; }
+.theme-editor-grid { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 24px; align-items: start; }
+.theme-stage { position: relative; width: 100%; aspect-ratio: 600 / 720; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; background: var(--paper); }
+.theme-stage .hero-stall, .theme-overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
+.theme-halo { fill: transparent; stroke: transparent; stroke-width: 2; cursor: grab; touch-action: none; }
+.theme-halo:hover, .theme-halo.on { stroke: var(--orange); stroke-dasharray: 6 4; }
+.theme-halo:active { cursor: grabbing; }
+.theme-colour { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.theme-colour input[type="color"] { width: 44px; height: var(--control-h); padding: 2px; }
+.theme-ratio { font-size: 12px; }
+.theme-ratio.ok { color: var(--green); }
+.theme-ratio.bad { color: #a74d35; font-weight: 600; }
+.theme-check { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 500; }
+.theme-check input { width: auto; margin: 0; }
+.theme-stickers { display: grid; gap: 10px; }
+.theme-sticker-group { display: grid; gap: 4px; }
+@media (max-width: 900px) { .theme-editor-grid { grid-template-columns: 1fr; } }
 /* Artist page hero: the stall awning */
 .artist-hero + .section {
   padding-top: 32px;
