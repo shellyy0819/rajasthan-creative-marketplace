@@ -2,14 +2,22 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
-import { LikeButton } from '@/components/LikeButton';
+import { QueryClient, QueryClientProvider, notifyManager } from '@tanstack/react-query';
+import { LikeButton as RawLikeButton } from '@/components/LikeButton';
 import { __resetLikeBatchForTests } from '@/components/LikeButton';
+
+// Each render gets its own client, retries off, so tests never share a cache.
+const LikeButton = (props: React.ComponentProps<typeof RawLikeButton>) => {
+  const [client] = React.useState(() => new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } }));
+  return <QueryClientProvider client={client}><RawLikeButton {...props} /></QueryClientProvider>;
+};
 
 let fetchMock: ReturnType<typeof vi.fn>;
 const res = (status: number, body: unknown) => Promise.resolve({ ok: status < 400, status, json: () => Promise.resolve(body) } as Response);
 let likes: Record<string, { count: number; liked: boolean }>;
 
 beforeEach(() => {
+  notifyManager.setScheduler(cb => cb()); // deliver query updates synchronously, so a click shows its result at once
   __resetLikeBatchForTests();
   likes = { p1: { count: 3, liked: false }, p2: { count: 0, liked: true } };
   fetchMock = vi.fn((url: string, init?: RequestInit) => {
@@ -37,6 +45,7 @@ describe('LikeButton', () => {
     render(<LikeButton productId="p1" initialCount={3} productName="Bag" />);
     await waitFor(() => expect(btn(/Like Bag/)).toBeTruthy());
     fireEvent.click(btn(/Like Bag/));
+    await waitFor(() => expect(finish).toBeTruthy()); // the mutation starts a tick after the click
     const pending = btn(/Unlike Bag/);
     expect(pending.getAttribute('aria-busy')).toBe('true');
     expect(pending.querySelector('.rr-spinner')).not.toBeNull();
@@ -92,6 +101,7 @@ describe('LikeButton', () => {
     fetchMock.mockImplementation(() => new Promise<Response>(r => { release = r; }));
     fireEvent.click(btn(/Like Bag/));
     fireEvent.click(btn(/Unlike Bag/));
+    await waitFor(() => expect(release).toBeTruthy()); // the mutation starts a tick after the click
     expect(fetchMock.mock.calls.filter(c => c[1]?.method)).toHaveLength(1);
     expect(btn(/Unlike Bag/).getAttribute('aria-busy')).toBe('true');
     await act(async () => { release({ ok: true, status: 200, json: () => Promise.resolve({ liked: true, count: 4 }) } as Response); });

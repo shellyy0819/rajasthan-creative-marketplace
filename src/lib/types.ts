@@ -1,5 +1,5 @@
 export type Product = {
-  id: string; name: string; category: string; city: string; cityId: number; citySlug: string; cityState?: string; pricePaise: number;
+  id: string; name: string; category: string; city: string; cityId: number; citySlug: string; cityState?: string; pricePaise: number | null;
   seller: string; description: string; stock: number; status: string;
   instagram?: string; youtube?: string; phone?: string; email?: string; imageUrl?: string; workshopId?: string;
   images?: string[]; likeCount?: number; sellerSlug?: string; sellerLogo?: string; artistBio?: string; artistCity?: string;

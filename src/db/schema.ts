@@ -69,7 +69,7 @@ export const products = pgTable('products', {
   name: text('name').notNull(),
   category: text('category').notNull().references(() => categories.name, { onUpdate: 'cascade', onDelete: 'restrict' }),
   cityId: integer('city_id').notNull().references(() => cities.id, { onDelete: 'restrict' }),
-  pricePaise: integer('price_paise').notNull(),
+  pricePaise: integer('price_paise'),
   description: text('description').notNull(),
   stock: integer('stock').notNull(),
   status: text('status').notNull().default('APPROVED'),
@@ -83,7 +83,7 @@ export const products = pgTable('products', {
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }, t => [
   check('products_stock_nonneg', sql`${t.stock} >= 0`),
-  check('products_price_nonneg', sql`${t.pricePaise} >= 0`),
+  check('products_price_nonneg', sql`${t.pricePaise} is null or ${t.pricePaise} >= 0`),
   check('products_status_valid', sql`${t.status} in ('APPROVED', 'DRAFT', 'ARCHIVED')`),
   index('products_status_idx').on(t.status),
   index('products_seller_idx').on(t.sellerId),
