@@ -18,6 +18,11 @@ export function int(v: unknown, field: string, min: number, max: number): number
   if (typeof v !== 'number' || !Number.isInteger(v) || v < min || v > max) throw bad(`${field} must be an integer between ${min} and ${max}.`);
   return v;
 }
+/** Blank, null or missing → null (the field is optional); anything else must be a valid integer. */
+export function optionalInt(v: unknown, field: string, min: number, max: number): number | null {
+  if (v === undefined || v === null || v === '') return null;
+  return int(v, field, min, max);
+}
 export function optionalText(v: unknown, field: string, max: number): string | undefined {
   if (v === undefined || v === null || v === '') return undefined;
   if (typeof v !== 'string' || v.trim().length > max) throw bad(`${field} must be text up to ${max} characters.`);

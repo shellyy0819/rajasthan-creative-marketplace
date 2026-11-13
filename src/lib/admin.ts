@@ -9,7 +9,7 @@ import { resolveCityInput } from './cities';
 import { canonicalCategory } from './categories';
 import type { Actor } from './authz';
 import { ApiError } from './errors';
-import { bad, int, obj, oneOf, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
+import { bad, int, obj, oneOf, optionalInt, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
 import { loadImages, parseImages, resolveImages, saveImages, unreferencedKeys } from './product-images';
 import { deleteObjects, storageConfig } from './storage';
 import type { AdminProduct, Workshop } from './types';
@@ -36,7 +36,7 @@ function validateProduct(v: Raw): ProductFields {
   return {
     name: text(v.name, 'name', 200),
     category: typeof v.category === 'string' ? v.category : '', // checked against the categories table inside the transaction
-    pricePaise: int(v.pricePaise, 'pricePaise', 0, 10_000_000),
+    pricePaise: optionalInt(v.pricePaise, 'pricePaise', 0, 10_000_000),
     description: text(v.description, 'description', 2000),
     stock: int(v.stock, 'stock', 0, 100_000),
     status: oneOf(v.status ?? 'DRAFT', 'status', PRODUCT_STATUSES), // new posts start as drafts; only an explicit admin choice publishes

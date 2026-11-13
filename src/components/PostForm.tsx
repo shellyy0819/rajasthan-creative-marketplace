@@ -6,7 +6,7 @@ import { CityInput } from './CityInput';
 import { ImageUploader } from './ImageUploader';
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
-// Blank or non-numeric → null so the server rejects it with a field-named 400 (Number('') would be a silent 0).
+// Blank or non-numeric → null so the server rejects it with a field-named 400 (Number('') would be a silent 0). The price is the one field where null is valid (optional).
 const num = (f: FormData, k: string, scale = 1) => {
   const raw = text(f, k);
   const n = raw === '' ? NaN : Number(raw);
@@ -158,7 +158,7 @@ export function PostForm({ initial, role, categories, workshops, sellers, me, on
             <label><span className="lbl">City</span><CityInput required defaultCity={initial ? { id: initial.cityId, label: initial.city } : undefined} /></label>
           </div>
           <div className="admin-form-row">
-            <label><span className="lbl">Price (₹)</span><input name="price" type="number" min="0" step="0.01" required defaultValue={initial ? initial.pricePaise / 100 : ''} /></label>
+            <label><span className="lbl">Price (₹)</span><input name="price" type="number" min="0" step="0.01" defaultValue={initial?.pricePaise != null ? initial.pricePaise / 100 : ''} /></label>
             <label><span className="lbl">Stock</span><input name="stock" type="number" min="0" step="1" required defaultValue={initial ? initial.stock : ''} /></label>
             {!lockedStatus && (
               <label><span className="lbl">Status</span>

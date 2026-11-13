@@ -13,6 +13,7 @@ vi.mock('@/components/TrackOnMount', () => ({ TrackOnMount: ({ productId, type }
 vi.mock('@/components/TrackedLink', () => ({ TrackedLink: ({ productId, type, ...r }: any) => <a data-tracked={`${type}:${productId}`} {...r} /> }));
 const nav = vi.hoisted(() => ({ notFound: vi.fn(() => { throw new Error('NOT_FOUND'); }) }));
 vi.mock('next/navigation', () => nav);
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TrendingSection } from '@/components/TrendingSection';
 import { ProductCard } from '@/components/ProductCard';
 import { likeProduct, recordEvent } from '@/lib/engagement';
@@ -150,7 +151,7 @@ describe('city listings come from active cities', () => {
   });
   it('shop and workshops pages pass the active cities to the filter and no longer name the three launch cities', async () => {
     const Shop = await import('@/app/shop/page');
-    render(await Shop.default({ searchParams: Promise.resolve({}) }));
+    render(<QueryClientProvider client={new QueryClient()}>{await Shop.default({ searchParams: Promise.resolve({}) })}</QueryClientProvider>);
     expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All', 'Jaipur', 'Jodhpur', 'Udaipur']);
     const shopMeta = await Shop.generateMetadata({ searchParams: Promise.resolve({}) });
     expect(String(shopMeta.description)).not.toMatch(/Udaipur|Jaipur|Jodhpur/);
@@ -158,7 +159,7 @@ describe('city listings come from active cities', () => {
     cleanup();
     await archiveJaipur();
     const Ws = await import('@/app/workshops/page');
-    render(await Ws.default({ searchParams: Promise.resolve({}) }));
+    render(<QueryClientProvider client={new QueryClient()}>{await Ws.default({ searchParams: Promise.resolve({}) })}</QueryClientProvider>);
     expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All', 'Jodhpur', 'Udaipur']);
     expect(String((await Ws.generateMetadata({ searchParams: Promise.resolve({}) })).description)).not.toMatch(/Udaipur|Jaipur|Jodhpur/);
   });

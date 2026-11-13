@@ -43,7 +43,7 @@ function makerFrom(key: string, list: Product[]): FairMaker {
   const r = rng(hash32(key)), first = list[0];
   const look: MakerLook = { skin: r() < .5 ? 'skin' : 'skin-2', top: TOPS[Math.floor(r() * TOPS.length)], acc: ACCS[Math.floor(r() * ACCS.length)], long: r() < .5, bun: r() < .4 };
   const items: FairItem[] = list.slice(0, MAX_ITEMS_EACH).map((p, i) => ({
-    key: `${key}:${i}`, name: p.name, pricePaise: p.pricePaise, art: artFor(p),
+    key: `${key}:${i}`, name: p.name, pricePaise: p.pricePaise ?? 0, art: artFor(p),
     color: artFor(p) === 'saree' || artFor(p) === 'suit' || artFor(p) === 'stole' ? CLOTH[hash32(p.name) % CLOTH.length] : FLOWERS[hash32(p.name) % FLOWERS.length],
     href: `/products/${productSlug(p)}`, ...(p.imageUrl ? { imageUrl: p.imageUrl } : {}),
   }));
@@ -62,7 +62,8 @@ const WEARABLE = new Set<ArtKind>(['drop', 'chandbali', 'saree', 'suit', 'stole'
  */
 export function buildRealStalls(products: Product[]): FairStall[] {
   const bySeller = new Map<string, Product[]>();
-  for (const p of products) { const k = artistKey(p.seller); bySeller.set(k, [...(bySeller.get(k) ?? []), p]); }
+  // The fair is a shopping game, so products without a price are left out of the stalls.
+  for (const p of products) { if (p.pricePaise == null) continue; const k = artistKey(p.seller); bySeller.set(k, [...(bySeller.get(k) ?? []), p]); }
   const used = new Set<string>(), stalls: FairStall[] = [];
   for (const d of DEFAULT_STALLS) {
     let best: { key: string; list: Product[] } | null = null;

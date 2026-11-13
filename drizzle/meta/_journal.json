@@ -162,6 +162,13 @@
       "when": 1794476181350,
       "tag": "0022_fair_quest_days",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794586329299,
+      "tag": "0023_product_price_optional",
+      "breakpoints": true
     }
   ]
 }
