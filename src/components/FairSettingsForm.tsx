@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Toast, type ToastState } from './Toast';
 import type { FairSettings } from '@/lib/fair-settings';
 import type { FairSource } from '@/lib/fair-types';
@@ -15,6 +16,7 @@ export function FairSettingsForm({ initial }: { initial: FairSettings }) {
   const [source, setSource] = useState<FairSource>(initial.source);
   const [savedOpen, setSavedOpen] = useState(initial.enabled);
   const [open, setOpen] = useState(initial.enabled);
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [toast, setToast] = useState<ToastState>(null);
@@ -35,6 +37,7 @@ export function FairSettingsForm({ initial }: { initial: FairSettings }) {
             const data = await r.json().catch(() => null);
             if (!r.ok) { setError((data as { error?: string } | null)?.error ?? 'Something went wrong. Please try again.'); return; }
             setSaved((data as FairSettings).source); setSavedOpen((data as FairSettings).enabled);
+            router.refresh(); // re-render the server layout so the header's Fair link follows the new setting
             setToast({ id: Date.now() + Math.random(), kind: 'success', text: 'Exhibition settings saved.' });
           } catch { setError('Network error. Please try again.'); }
           finally { setBusy(false); }
