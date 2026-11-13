@@ -28,6 +28,7 @@ export const productSelect = {
   sellerName: sellerNameSql,
   sellerEmail: users.email,
   publicPhone: sellerProfiles.publicPhone,
+  contactMethods: sellerProfiles.contactMethods,
   publicEmail: sellerProfiles.publicEmail,
   instagram: sellerProfiles.instagram,
   youtube: sellerProfiles.youtube,
@@ -41,7 +42,7 @@ export const productSelect = {
 };
 export type ProductJoinRow = {
   p: ProductRow; cityName: string; citySlug: string; cityState: string | null; sellerName: string; sellerEmail: string;
-  publicPhone: string | null; publicEmail: string | null; instagram: string | null; youtube: string | null; artistBio: string | null; sellerLogo?: string | null; artistCityName: string | null;
+  publicPhone: string | null; contactMethods: string[] | null; publicEmail: string | null; instagram: string | null; youtube: string | null; artistBio: string | null; sellerLogo?: string | null; artistCityName: string | null;
   publishedByEmail: string | null; workshopTitle: string | null; likeCount: number; images: string[] | string;
 };
 /** SELECT products + seller + profile. Add .where(...) / .orderBy(...) / .for('update', { of: products }) as needed. */
@@ -54,11 +55,18 @@ export const productsQuery = (q: Q) =>
 
 const imagesOf = (v: string[] | string): string[] => (typeof v === 'string' ? (JSON.parse(v) as string[]) : v);
 
+/**
+ * A seller's public phone is shown only while Phone is one of their chosen contact methods. A seller with no
+ * methods saved at all (an older or admin-created profile) keeps showing the phone they filled in.
+ */
+export const publicPhoneOf = (phone: string | null | undefined, methods: readonly string[] | null | undefined): string | undefined =>
+  phone && (!methods?.length || methods.includes('phone')) ? phone : undefined;
+
 export const toProduct = (r: ProductJoinRow): Product => ({
   id: r.p.id, name: r.p.name, category: r.p.category, city: r.cityName, cityId: r.p.cityId, citySlug: r.citySlug, pricePaise: r.p.pricePaise,
   ...opt('cityState', r.cityState),
   seller: r.sellerName, description: r.p.description, stock: r.p.stock, status: r.p.status,
-  ...opt('instagram', r.instagram), ...opt('youtube', r.youtube), ...opt('phone', r.publicPhone),
+  ...opt('instagram', r.instagram), ...opt('youtube', r.youtube), ...opt('phone', publicPhoneOf(r.publicPhone, r.contactMethods)),
   ...opt('email', r.publicEmail), ...opt('workshopId', r.p.workshopId),
   ...(imagesOf(r.images).length ? { images: imagesOf(r.images), imageUrl: imagesOf(r.images)[0] } : {}),
   likeCount: r.likeCount, sellerSlug: artistSlug(r.sellerName, r.p.sellerId),
