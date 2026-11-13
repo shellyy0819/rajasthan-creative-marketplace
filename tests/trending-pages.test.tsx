@@ -27,7 +27,7 @@ describe('TrendingSection (home page)', () => {
     expect(await TrendingSection()).toBeNull();
   });
   it('shows a "Trending now" row with a Show all link once something trends, one card per artist', async () => {
-    await recordEvent({ productId: 'p1', type: 'view', actor: 'h:a' }); await likeProduct('p2', 'v:a');
+    await recordEvent({ productId: 'p1', type: 'contact', actor: 'h:a' }); await likeProduct('p2', 'v:a');
     render(await TrendingSection());
     expect(screen.getByRole('heading', { name: 'Trending now' })).toBeTruthy();
     expect(screen.getByRole('link', { name: /Show all/ }).getAttribute('href')).toBe('/trending');
@@ -51,7 +51,7 @@ describe('/trending page', () => {
     expect(screen.getByText('Nothing is trending yet. Like a product to start the trend.')).toBeTruthy();
     expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toBeTruthy();
     cleanup();
-    await recordEvent({ productId: 'p1', type: 'view', actor: 'h:a' });
+    await recordEvent({ productId: 'p1', type: 'contact', actor: 'h:a' });
     render(await Page());
     expect(document.querySelectorAll('.product-card')).toHaveLength(1);
   });

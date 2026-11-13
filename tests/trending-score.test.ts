@@ -17,17 +17,20 @@ describe('scoreSignals', () => {
     expect(out.map(r => r.productId)).toEqual(['p2', 'p3', 'p1']);                  // balanced beats one-signal; p3 (.45) beats p1 (.35)
   });
   it('a signal that is zero for everyone does not divide by zero or distort the others', () => {
-    const out = scoreSignals([s('p1', 'a', 4, 0, 0, 0), s('p2', 'b', 2, 0, 0, 0)]);
-    expect(out.map(r => [r.productId, r.score])).toEqual([['p1', 0.35], ['p2', 0.175]]);
+    const out = scoreSignals([s('p1', 'a', 4, 0, 0, 0), s('p2', 'b', 3, 0, 0, 0)]);
+    expect(out.map(r => r.productId)).toEqual(['p1', 'p2']);
+    expect(out[0].score).toBeCloseTo(0.35, 10); expect(out[1].score).toBeCloseTo(0.2625, 10);
     expect(out.every(r => Number.isFinite(r.score))).toBe(true);
   });
   it('drops products with no signal at all; empty input gives empty output', () => {
     expect(scoreSignals([s('p1', 'a'), s('p2', 'b')])).toEqual([]);
     expect(scoreSignals([])).toEqual([]);
-    expect(scoreSignals([s('p1', 'a'), s('p2', 'b', 1)]).map(r => r.productId)).toEqual(['p2']);
+    expect(scoreSignals([s('p1', 'a'), s('p2', 'b', 3)]).map(r => r.productId)).toEqual(['p2']);
+    expect(scoreSignals([s('p1', 'a', 1), s('p2', 'b', 2, 0, 5)])).toEqual([]);                  // a few views, or an artist click, are not enough
+    expect(scoreSignals([s('p1', 'a', 0, 1), s('p2', 'b', 0, 0, 0, 1)]).map(r => r.productId)).toEqual(['p1', 'p2']); // a contact click or a like is
   });
   it('ties: more likes first, then the newer (higher numeric) id', () => {
-    const out = scoreSignals([s('p2', 'a', 1, 0, 0, 0), s('p10', 'b', 1, 0, 0, 0)]);
+    const out = scoreSignals([s('p2', 'a', 3, 0, 0, 0), s('p10', 'b', 3, 0, 0, 0)]);
     expect(out.map(r => r.productId)).toEqual(['p10', 'p2']);                       // p10 is newer than p2 (numeric, not text)
     const likes = scoreSignals([s('p1', 'a', 0, 0, 0, 2), s('p9', 'b', 0, 0, 0, 2), s('p5', 'c', 0, 0, 0, 2)]);
     expect(likes.map(r => r.productId)).toEqual(['p9', 'p5', 'p1']);

@@ -22,7 +22,7 @@ describe('GET /api/trending', () => {
     for (const secret of ['sellerId', 'sellerEmail', 'seed.rangrajasthan', 'h:a', 'v:a', 'pickupLocation']) expect(text).not.toContain(secret);
   });
   it('limit: default 6, clamped to 1..24, garbage ignored', async () => {
-    for (const p of ['p1', 'p2', 'p3', 'p4']) await recordEvent({ productId: p, type: 'view', actor: 'h:a' });
+    for (const p of ['p1', 'p2', 'p3', 'p4']) await recordEvent({ productId: p, type: 'contact', actor: 'h:a' });
     expect((await (await get('?limit=2')).json()).length).toBe(2);
     expect((await (await get('?limit=abc')).json()).length).toBe(4);
     expect((await (await get('?limit=-1')).json()).length).toBe(1);
