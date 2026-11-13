@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 
 const STEPS: { title: string; text: string }[] = [
-  { title: 'Add your first product.', text: 'Photos, a price and a short description.' },
+  { title: 'Add your first product.', text: 'Photos and a short description. A price is optional.' },
   { title: 'Craftofy publishes it.', text: 'New products stay hidden until we publish them.' },
   { title: 'Customers find you.', text: 'They contact you directly using the details you gave.' },
 ];
