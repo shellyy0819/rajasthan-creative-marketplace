@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { getServerSession, type NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { asRole, type AppSession } from '@/lib/authz';
@@ -66,7 +67,8 @@ export const buildAuthOptions = (): NextAuthOptions => ({
 
 export const authOptions: NextAuthOptions = buildAuthOptions();
 
-export async function auth(): Promise<AppSession> {
+/** The session, resolved once per request: the dashboard layout and its page share one lookup instead of each paying for it. */
+export const auth = cache(async (): Promise<AppSession> => {
   if (!process.env.NEXTAUTH_SECRET) throw new Error('NEXTAUTH_SECRET is not set; refusing to verify sessions.');
   return (await getServerSession(authOptions)) as AppSession;
-}
+});

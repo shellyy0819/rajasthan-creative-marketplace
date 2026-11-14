@@ -1,12 +1,12 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import type { AdminProduct } from '@/lib/types';
+import type { AdminProduct, SourcingType } from '@/lib/types';
 import { PlaceInput } from './PlaceInput';
 import { CityInput } from './CityInput';
 import { ImageUploader } from './ImageUploader';
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
-// Blank or non-numeric → null so the server rejects it with a field-named 400 (Number('') would be a silent 0).
+// Blank or non-numeric → null so the server rejects it with a field-named 400 (Number('') would be a silent 0). The price is the one field where null is valid (optional).
 const num = (f: FormData, k: string, scale = 1) => {
   const raw = text(f, k);
   const n = raw === '' ? NaN : Number(raw);
@@ -27,6 +27,9 @@ export function buildPayload(f: FormData): Record<string, unknown> {
   else if (cityId != null) payload.cityId = cityId;
   // Only sent when the form shows the control: a seller editing a published post must not send a status,
   // and only admins get a seller picker.
+  // Sent only when the form offers the choice; otherwise the server keeps the product's type (or the default for a new one).
+  const sourcingTypeId = num(f, 'sourcingTypeId');
+  if (f.has('sourcingTypeId') && sourcingTypeId != null) payload.sourcingTypeId = sourcingTypeId;
   if (f.has('status')) payload.status = text(f, 'status');
   if (f.has('sellerId')) payload.sellerId = text(f, 'sellerId');
   return payload;
@@ -41,6 +44,8 @@ type Props = {
   initial?: AdminProduct;
   role: 'admin' | 'seller';
   categories: string[];
+  /** Active sourcing types in the admin's order. Empty: the field is hidden and the server picks the default. */
+  sourcingTypes?: SourcingType[];
   workshops: WorkshopOption[];
   sellers: SellerOption[];
   /** Called after a new category was created through the API so the parent can keep its list in sync. */
@@ -53,9 +58,12 @@ type Props = {
 
 const NEW_CATEGORY = '__new__';
 
-export function PostForm({ initial, role, categories, workshops, sellers, me, onCategoryCreated, onSubmit, onCancel }: Props) {
+export function PostForm({ initial, role, categories, sourcingTypes = [], workshops, sellers, me, onCategoryCreated, onSubmit, onCancel }: Props) {
   const [cats, setCats] = useState(categories);
   const [category, setCategory] = useState(initial?.category && categories.includes(initial.category) ? initial.category : categories[0] ?? '');
+  // A product may keep a type that has since been switched off, so it stays selectable on that product.
+  const kept = initial?.sourcing && !sourcingTypes.some(t => t.id === initial.sourcing!.id) ? [{ ...initial.sourcing, off: true }] : [];
+  const sourcingOptions = [...sourcingTypes.map(t => ({ id: t.id, name: t.name, off: false })), ...kept.map(t => ({ id: t.id, name: t.name, off: true }))];
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [catBusy, setCatBusy] = useState(false);
@@ -134,6 +142,15 @@ export function PostForm({ initial, role, categories, workshops, sellers, me, on
           {error && <p role="alert" className="admin-error">{error}</p>}
           <label><span className="lbl">Title</span><input name="name" required maxLength={200} defaultValue={v('name')} autoFocus /></label>
           <label><span className="lbl">Description</span><textarea name="description" required maxLength={2000} rows={4} defaultValue={v('description')} /></label>
+          {sourcingOptions.length > 0 && (
+            <label><span className="lbl">Sourcing</span>
+              {/* A product with no type yet (it predates sourcing types) shows "Not set" and stays that way until someone picks one. */}
+              <select name="sourcingTypeId" required={!initial || !!initial.sourcing} defaultValue={initial ? (initial.sourcing?.id ?? '') : sourcingOptions[0].id}>
+                {initial && !initial.sourcing && <option value="">Not set</option>}
+                {sourcingOptions.map(t => <option key={t.id} value={t.id}>{t.name}{t.off ? ' (switched off)' : ''}</option>)}
+              </select>
+            </label>
+          )}
           <div className="admin-form-row">
             <div>
               <label><span className="lbl">Category</span>
@@ -158,7 +175,7 @@ export function PostForm({ initial, role, categories, workshops, sellers, me, on
             <label><span className="lbl">City</span><CityInput required defaultCity={initial ? { id: initial.cityId, label: initial.city } : undefined} /></label>
           </div>
           <div className="admin-form-row">
-            <label><span className="lbl">Price (₹)</span><input name="price" type="number" min="0" step="0.01" required defaultValue={initial ? initial.pricePaise / 100 : ''} /></label>
+            <label><span className="lbl">Price (₹)</span><input name="price" type="number" min="0" step="0.01" defaultValue={initial?.pricePaise != null ? initial.pricePaise / 100 : ''} /></label>
             <label><span className="lbl">Stock</span><input name="stock" type="number" min="0" step="1" required defaultValue={initial ? initial.stock : ''} /></label>
             {!lockedStatus && (
               <label><span className="lbl">Status</span>

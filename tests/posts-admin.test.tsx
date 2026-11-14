@@ -318,12 +318,12 @@ describe('PostForm field rules', () => {
   const open = (role: 'admin' | 'seller' = 'admin') => { mount(role); fireEvent.click(screen.getByRole('button', { name: 'New post' })); };
   it('mandatory fields are required and wrapped for the red asterisk; optional ones are not', () => {
     open();
-    for (const name of ['name', 'description', 'price', 'stock', 'category', 'city', 'status']) {
+    for (const name of ['name', 'description', 'stock', 'category', 'city', 'status']) {
       const el = document.querySelector(`[name="${name}"]`) as HTMLInputElement;
       expect(el.required).toBe(true);
       expect(el.closest('label')!.querySelector(':scope > .lbl')).toBeTruthy();
     }
-    for (const name of ['workshopId', 'pickupLocation', 'sellerId']) expect((document.querySelector(`[name="${name}"]`) as HTMLInputElement).required).toBe(false);
+    for (const name of ['price', 'workshopId', 'pickupLocation', 'sellerId']) expect((document.querySelector(`[name="${name}"]`) as HTMLInputElement).required).toBe(false);
   });
   it('the form has no seller-name or contact inputs any more', () => {
     open();
@@ -357,7 +357,7 @@ describe('Profile dialog (public name and contact)', () => {
   });
   it('"Use my sign-in email" fills the public email (explicit opt-in); the field starts empty so nothing is published by accident', () => {
     mount('seller');
-    fireEvent.click(screen.getByRole('button', { name: 'My profile' }));
+    act(() => { window.dispatchEvent(new Event('craftofy:open-profile')); });
     const email = screen.getByLabelText(/^Public email/) as HTMLInputElement;
     expect(email.value).toBe('');
     fireEvent.click(screen.getByRole('button', { name: /Use my sign-in email/ }));
@@ -366,7 +366,7 @@ describe('Profile dialog (public name and contact)', () => {
   });
   it('opens from "My profile", validates the phone pattern in the browser, PUTs /api/profile and toasts', async () => {
     mount('seller');
-    fireEvent.click(screen.getByRole('button', { name: 'My profile' }));
+    act(() => { window.dispatchEvent(new Event('craftofy:open-profile')); });
     const phone = screen.getByLabelText(/^Public phone/) as HTMLInputElement;
     for (const bad of ['12345', '5989898999', 'abcdefghij']) { fireEvent.change(phone, { target: { value: bad } }); expect(phone.validity.patternMismatch).toBe(true); }
     for (const good of ['9989898999', '+91 99898 98999', '']) { fireEvent.change(phone, { target: { value: good } }); expect(phone.validity.patternMismatch).toBe(false); }
@@ -381,7 +381,7 @@ describe('Profile dialog (public name and contact)', () => {
   });
   it('a server error keeps the dialog open with the message', async () => {
     mount('seller');
-    fireEvent.click(screen.getByRole('button', { name: 'My profile' }));
+    act(() => { window.dispatchEvent(new Event('craftofy:open-profile')); });
     fetchMock.mockImplementation(() => res(400, { error: 'publicPhone is invalid.' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save profile' }));
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/publicPhone is invalid/));
@@ -738,7 +738,7 @@ describe('loaders', () => {
   });
   it('the profile Save button and the "Add category" button show a busy ring while pending', async () => {
     mount('seller');
-    fireEvent.click(screen.getByRole('button', { name: 'My profile' }));
+    act(() => { window.dispatchEvent(new Event('craftofy:open-profile')); });
     const put = deferred<Response>();
     fetchMock.mockImplementation(() => put.promise);
     fireEvent.click(screen.getByRole('button', { name: 'Save profile' }));

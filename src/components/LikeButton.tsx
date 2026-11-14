@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { gaEvent } from '@/lib/analytics';
 
 type LikeInfo = { counts: Record<string, number>; liked: string[] };
@@ -29,36 +29,40 @@ function loadState(id: string): Promise<Info> {
 }
 
 export function LikeButton({ productId, initialCount = 0, productName = 'this product' }: { productId: string; initialCount?: number; productName?: string }) {
-  const [count, setCount] = useState(initialCount);
-  const [liked, setLiked] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const qc = useQueryClient();
+  const key = ['like', productId] as const;
+  // Still one batched request per tick (see loadState); React Query adds caching, so navigating back shows the hearts at once.
+  const { data } = useQuery<Info>({ queryKey: key, queryFn: () => loadState(productId), staleTime: 60_000 });
+  const liked = data?.liked ?? false;
+  const count = data && data.count >= 0 ? data.count : initialCount;
 
-  useEffect(() => {
-    let alive = true;
-    void loadState(productId).then(s => { if (alive) { setLiked(s.liked); if (s.count >= 0) setCount(s.count); } });
-    return () => { alive = false; };
-  }, [productId]);
+  type Vars = { next: boolean; before: Info };
+  const toggle = useMutation({
+    mutationFn: async ({ next }: Vars) => {
+      const r = await fetch(`/api/products/${productId}/like`, { method: next ? 'POST' : 'DELETE', headers: { 'content-type': 'application/json' }, body: '{}' });
+      if (!r.ok) throw new Error(String(r.status));
+      return (await r.json()) as { liked: boolean; count: number };
+    },
+    onError: (_e, v) => { qc.setQueryData<Info>(key, v.before); },
+    onSuccess: d => { qc.setQueryData<Info>(key, { liked: d.liked, count: d.count }); if (d.liked) gaEvent('like', { item_id: productId }); },
+  });
+  const busy = toggle.isPending;
 
-  async function toggle(e: React.MouseEvent) {
+  function onClick(e: React.MouseEvent) {
     e.preventDefault(); e.stopPropagation(); // the heart sits on a clickable card: never follow its link
     if (busy) return;
     const next = !liked;
-    const before = { liked, count };
-    setBusy(true); setLiked(next); setCount(c => Math.max(0, c + (next ? 1 : -1)));
-    try {
-      const r = await fetch(`/api/products/${productId}/like`, { method: next ? 'POST' : 'DELETE', headers: { 'content-type': 'application/json' }, body: '{}' });
-      if (!r.ok) throw new Error(String(r.status));
-      const data = (await r.json()) as { liked: boolean; count: number };
-      setLiked(data.liked); setCount(data.count);
-      if (data.liked) gaEvent('like', { item_id: productId });
-    } catch { setLiked(before.liked); setCount(before.count); }
-    setBusy(false);
+    // Optimistic update done synchronously, in the same tick as the click (a mutation's own onMutate runs a tick later).
+    const before = qc.getQueryData<Info>(key) ?? { count: initialCount, liked: false };
+    void qc.cancelQueries({ queryKey: key });
+    qc.setQueryData<Info>(key, { liked: next, count: Math.max(0, count + (next ? 1 : -1)) });
+    toggle.mutate({ next, before });
   }
 
   return (
     <button type="button" className={`like-btn${liked ? ' liked' : ''}`} aria-pressed={liked} aria-busy={busy}
-      aria-label={`${liked ? 'Unlike' : 'Like'} ${productName} (${count} ${count === 1 ? 'like' : 'likes'})`} onClick={toggle}>
-      {busy ? <span className="rr-spinner" aria-hidden="true" /> : <span aria-hidden="true">{liked ? '♥' : '♡'}</span>} <span aria-hidden="true">{count}</span>
+      aria-label={`${liked ? 'Unlike' : 'Like'} ${productName} (${count} ${count === 1 ? 'like' : 'likes'})`} onClick={onClick}>
+      {busy ? <span className="rr-spinner" aria-hidden="true" /> : <span aria-hidden="true">{liked ? '♥' : '♡'}</span>} <span className="like-count" aria-hidden="true">{count}</span>
     </button>
   );
 }

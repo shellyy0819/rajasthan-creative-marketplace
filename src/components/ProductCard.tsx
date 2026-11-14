@@ -2,11 +2,12 @@ import Link from 'next/link';
 import type { Product } from '@/lib/types';
 import { money } from '@/lib/money';
 import { productSlug } from '@/lib/catalog-shared';
+import { ArtistAvatar } from './ArtistAvatar';
 import { ContactArtistButton } from './ContactArtistButton';
 import { LikeButton } from './LikeButton';
 import { ProductImage } from './ProductImage';
+import { ProductPlaceholder } from './ProductPlaceholder';
 
-export const SYMBOLS = ['🌷', '⛵', '🌼', '🏺', '🧶', '🌸'];
 export const visualIndex = (id: string) => Number(id.replace(/\D/g, '')) || 0;
 
 export function ProductCard({ p }: { p: Product }) {
@@ -14,7 +15,7 @@ export function ProductCard({ p }: { p: Product }) {
   const low = p.stock > 0 && p.stock <= 2;
   return (
     <article className="product-card">
-      <div className={`product-visual visual-${i % 4}`}><ProductImage src={p.imageUrl} alt={p.name} fallback={<span className="symbol" aria-hidden="true">{SYMBOLS[i % SYMBOLS.length]}</span>} /></div>
+      <div className={`product-visual visual-${i % 4}`}><ProductImage src={p.imageUrl} alt={p.name} fallback={<ProductPlaceholder />} /></div>
       <div className="pc-top">
         <span className="pc-chips">
           <span className="pc-chip">{p.category}</span>
@@ -24,10 +25,10 @@ export function ProductCard({ p }: { p: Product }) {
       </div>
       <div className="product-info">
         <h3><Link href={`/products/${productSlug(p)}`}>{p.name}</Link></h3>
-        <p className="pc-who"><span className="pc-av" aria-hidden="true">{p.seller.trim().charAt(0).toUpperCase()}</span><span>{p.seller} · {p.city}</span></p>
+        <p className="pc-who"><span className="pc-av" aria-hidden="true"><ArtistAvatar key={p.sellerLogo ?? 'none'} src={p.sellerLogo} initial={p.seller.trim().charAt(0).toUpperCase()} /></span><span>{p.seller} · {p.city}</span></p>
         <div className="product-bottom">
           <span className="price">{money(p.pricePaise)}</span>
-          <ContactArtistButton product={p} />
+          <ContactArtistButton product={p} iconOnly />
         </div>
       </div>
     </article>

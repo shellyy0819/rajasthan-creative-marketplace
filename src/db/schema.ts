@@ -64,12 +64,28 @@ export const categories = pgTable('categories', {
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }, t => [uniqueIndex('categories_name_lower_idx').on(sql`lower(${t.name})`)]);
 
+/**
+ * Admin-managed ways a product came to be listed (Handmade, Curated, Resold, ...). `countsAsHandmade` is the only thing that lets the
+ * site call a product "handmade"; `showBadge` decides whether its cards carry a label. Types in use are deactivated, never deleted.
+ */
+export const sourcingTypes = pgTable('sourcing_types', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  countsAsHandmade: boolean('counts_as_handmade').notNull().default(false),
+  showBadge: boolean('show_badge').notNull().default(true),
+  position: integer('position').notNull(),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [uniqueIndex('sourcing_types_name_lower_idx').on(sql`lower(${t.name})`)]);
+
 export const products = pgTable('products', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   category: text('category').notNull().references(() => categories.name, { onUpdate: 'cascade', onDelete: 'restrict' }),
   cityId: integer('city_id').notNull().references(() => cities.id, { onDelete: 'restrict' }),
-  pricePaise: integer('price_paise').notNull(),
+  // Null = not classified yet (every product that existed before sourcing types). New products always get an explicit type.
+  sourcingTypeId: integer('sourcing_type_id').references(() => sourcingTypes.id, { onDelete: 'restrict' }),
+  pricePaise: integer('price_paise'),
   description: text('description').notNull(),
   stock: integer('stock').notNull(),
   status: text('status').notNull().default('APPROVED'),
@@ -83,12 +99,13 @@ export const products = pgTable('products', {
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }, t => [
   check('products_stock_nonneg', sql`${t.stock} >= 0`),
-  check('products_price_nonneg', sql`${t.pricePaise} >= 0`),
+  check('products_price_nonneg', sql`${t.pricePaise} is null or ${t.pricePaise} >= 0`),
   check('products_status_valid', sql`${t.status} in ('APPROVED', 'DRAFT', 'ARCHIVED')`),
   index('products_status_idx').on(t.status),
   index('products_seller_idx').on(t.sellerId),
   index('products_workshop_idx').on(t.workshopId),
   index('products_city_idx').on(t.cityId),
+  index('products_sourcing_idx').on(t.sourcingTypeId),
 ]);
 
 export const workshops = pgTable('workshops', {
@@ -180,7 +197,7 @@ export const productEvents = pgTable('product_events', {
   day: date('day', { mode: 'string' }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }, t => [
-  check('product_events_type_valid', sql`${t.type} in ('view', 'contact', 'artist')`),
+  check('product_events_type_valid', sql`${t.type} in ('view', 'contact', 'artist', 'contact_call', 'contact_email', 'contact_instagram', 'contact_youtube', 'contact_copy')`),
   uniqueIndex('product_events_unique_idx').on(t.productId, t.type, t.actor, t.day),
   index('product_events_day_idx').on(t.day),
 ]);
@@ -206,6 +223,48 @@ export const listingRequests = pgTable('listing_requests', {
   index('listing_requests_status_idx').on(t.status),
 ]);
 
+/** "Host a workshop" submissions from the public form. An admin reads them and, if it fits, creates the workshop. */
+export const workshopRequests = pgTable('workshop_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  hostName: text('host_name').notNull(),
+  contactName: text('contact_name').notNull(),
+  phone: text('phone').notNull(),
+  email: text('email').notNull(),
+  city: text('city').notNull(),
+  venue: text('venue').notNull(),
+  title: text('title').notNull(),
+  kind: text('kind').notNull(),
+  description: text('description').notNull(),
+  startDate: date('start_date', { mode: 'string' }).notNull(),
+  endDate: date('end_date', { mode: 'string' }).notNull(), // the form leaves it blank for a one-day event; the server then stores the start date
+  startTime: text('start_time'), // 'HH:MM', optional
+  endTime: text('end_time'),
+  seats: integer('seats'),
+  priceType: text('price_type').notNull(),
+  pricePaise: integer('price_paise'),
+  instagram: text('instagram'),
+  website: text('website'),
+  notes: text('notes'),
+  images: jsonb('images').$type<string[]>().notNull().default(sql`'[]'::jsonb`), // up to 3 public photo urls, first is the cover
+  status: text('status').notNull().default('unverified'), // 'received' once the emailed code is confirmed
+  codeHash: text('code_hash'),
+  codeExpiresAt: timestamp('code_expires_at', { withTimezone: true, mode: 'date' }),
+  codeAttempts: integer('code_attempts').notNull().default(0),
+  codeSends: integer('code_sends').notNull().default(0),
+  codeSentAt: timestamp('code_sent_at', { withTimezone: true, mode: 'date' }),
+  verifiedAt: timestamp('verified_at', { withTimezone: true, mode: 'date' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [
+  check('workshop_requests_kind_valid', sql`${t.kind} in ('workshop', 'meetup', 'popup', 'market')`),
+  check('workshop_requests_price_type_valid', sql`${t.priceType} in ('FREE', 'PAID')`),
+  check('workshop_requests_dates_ordered', sql`${t.endDate} >= ${t.startDate}`),
+  check('workshop_requests_seats_positive', sql`${t.seats} is null or ${t.seats} >= 1`),
+  check('workshop_requests_price_nonneg', sql`${t.pricePaise} is null or ${t.pricePaise} >= 0`),
+  check('workshop_requests_status_valid', sql`${t.status} in ('unverified', 'received')`),
+  index('workshop_requests_status_idx').on(t.status),
+  index('workshop_requests_created_idx').on(t.createdAt),
+]);
+
 /** Ordered photos of a product; position 0 is the cover. `s3Key` is null for legacy links that live on other hosts. */
 export const productImages = pgTable('product_images', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -215,6 +274,14 @@ export const productImages = pgTable('product_images', {
   position: smallint('position').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }, t => [uniqueIndex('product_images_product_position_idx').on(t.productId, t.position)]);
+
+/** Admin-editable settings, one row per area (key 'email' today). Secrets inside `value` are encrypted by the settings library, never stored in plain text. */
+export const appSettings = pgTable('app_settings', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').notNull(),
+  updatedBy: text('updated_by'),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+});
 
 /** Admin-scheduled festive themes. At most one row has status 'base' (the editable Everyday wording). */
 export const siteThemes = pgTable('site_themes', {
@@ -235,3 +302,61 @@ export const siteThemes = pgTable('site_themes', {
   index('site_themes_window_idx').on(t.startsAt),
 ]);
 export type SiteThemeRow = typeof siteThemes.$inferSelect;
+
+/**
+ * Who is walking around the exhibition (/fair) right now. One row per visitor code, refreshed by a heartbeat every few seconds and
+ * deleted when stale. Holds no personal data: a random code, a position on the fair floor and the last emote.
+ */
+export const fairVisitors = pgTable('fair_visitors', {
+  code: text('code').primaryKey(),
+  x: doublePrecision('x').notNull(),
+  y: doublePrecision('y').notNull(),
+  facing: text('facing').notNull().default('down'),
+  /** One of the ten looks (f1 to m5); null means the look the code starts with. */
+  look: text('look'),
+  emote: text('emote'),
+  emoteSeq: integer('emote_seq').notNull().default(0),
+  seenAt: timestamp('seen_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [
+  check('fair_visitors_facing_valid', sql`${t.facing} in ('up', 'down', 'left', 'right')`),
+  index('fair_visitors_seen_idx').on(t.seenAt),
+]);
+
+/**
+ * Who owns which exhibition code. The first visitor to use a code owns it; only the browser that holds the matching secret can keep using it.
+ * Only a hash of the secret is stored. A code that has not been used for 30 days is released.
+ */
+export const fairCodes = pgTable('fair_codes', {
+  code: text('code').primaryKey(),
+  tokenHash: text('token_hash').notNull(),
+  claimedAt: timestamp('claimed_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  seenAt: timestamp('seen_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [index('fair_codes_seen_idx').on(t.seenAt)]);
+
+/** Feedback notes left at the exhibition's mirror, for admins to read. `code` is the visitor's random code, not a person; `source` says whether the fair showed real or sample makers at the time. */
+export const fairNotes = pgTable('fair_notes', {
+  id: serial('id').primaryKey(),
+  code: text('code').notNull(),
+  stall: text('stall').notNull(),
+  text: text('text').notNull(),
+  rating: smallint('rating').notNull().default(0),
+  source: text('source').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [
+  check('fair_notes_rating_valid', sql`${t.rating} between 0 and 5`),
+  check('fair_notes_text_length', sql`char_length(${t.text}) between 1 and 280`),
+  check('fair_notes_source_valid', sql`${t.source} in ('real', 'sample')`),
+  index('fair_notes_created_idx').on(t.createdAt),
+]);
+
+/**
+ * A visitor code's quests for one day, so progress survives clearing the browser and can be looked back on any day.
+ * `quests` is a snapshot of the three quests offered that day (their wording can change later); `progress` holds what was done for each.
+ */
+export const fairQuestDays = pgTable('fair_quest_days', {
+  code: text('code').notNull(),
+  day: text('day').notNull(),
+  quests: jsonb('quests').notNull(),
+  progress: jsonb('progress').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [primaryKey({ columns: [t.code, t.day] })]);

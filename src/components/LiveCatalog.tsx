@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { Product, Workshop } from '@/lib/types';
 import { DEFAULT_CATEGORIES } from '@/lib/catalog-shared';
 import { cityLabeller } from '@/lib/city-label';
@@ -33,36 +34,40 @@ export function LiveCatalog(props: Props) {
   const { kind } = props;
   const { endpoint, path, selectKey } = CONFIG[kind];
   const [values, setValues] = useState<Values>(props.initialValues);
-  const [items, setItems] = useState<(Product | Workshop)[]>(props.initialItems);
   const [delay, setDelay] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const applied = useRef(buildQs(props.initialValues, selectKey));
+  // `values` is what the form shows; `applied` is what the query runs with (after the typing delay).
+  const [applied, setApplied] = useState(() => buildQs(props.initialValues, selectKey));
+  const qs = buildQs(values, selectKey);
+  const initialQs = useRef(applied).current;
 
   useEffect(() => {
-    const qs = buildQs(values, selectKey);
-    if (qs === applied.current) { setError(''); return; }
-    const ctrl = new AbortController();
-    const timer = setTimeout(async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const res = await fetch(qs ? `${endpoint}?${qs}` : endpoint, { signal: ctrl.signal });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || 'Something went wrong');
-        if (ctrl.signal.aborted) return;
-        setItems(data);
-        applied.current = qs;
-        window.history.replaceState(null, '', qs ? `${path}?${qs}` : path);
-      } catch (e) {
-        if ((e as Error).name === 'AbortError') return;
-        setError((e as Error).message || 'Could not load results. Please try again.');
-      } finally {
-        if (!ctrl.signal.aborted) setLoading(false);
-      }
-    }, delay);
-    return () => { clearTimeout(timer); ctrl.abort(); setLoading(false); };
-  }, [values, delay, endpoint, path, selectKey]);
+    if (qs === applied) return;
+    const timer = setTimeout(() => setApplied(qs), delay);
+    return () => clearTimeout(timer);
+  }, [qs, applied, delay]);
+
+  const { data, isFetching, error: queryError } = useQuery<(Product | Workshop)[]>({
+    queryKey: [kind, applied],
+    queryFn: async ({ signal }) => {
+      const res = await fetch(applied ? `${endpoint}?${applied}` : endpoint, { signal });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.error || 'Something went wrong');
+      return body;
+    },
+    // The server already rendered the first result set: seed the cache with it, and keep the old list on screen while a new search loads.
+    initialData: applied === initialQs ? props.initialItems : undefined,
+    placeholderData: keepPreviousData,
+  });
+  const items = data ?? props.initialItems;
+  const loading = isFetching;
+  const error = queryError ? (queryError.message || 'Could not load results. Please try again.') : '';
+
+  // Keep the address bar in step with the results being shown.
+  const searched = useRef(false);
+  useEffect(() => {
+    if (applied !== initialQs) searched.current = true;
+    if (searched.current) window.history.replaceState(null, '', applied ? `${path}?${applied}` : path);
+  }, [applied, initialQs, path]);
 
   // The filter accepts a name or a slug (?city=udaipur): show the matching city, or keep an unknown value visible.
   const cityValue = values.city ?? '';
@@ -85,7 +90,7 @@ export function LiveCatalog(props: Props) {
         aria-label={kind === 'products' ? 'Search products' : 'Search workshops'}
       />
       <select name="city" value={cityMatch?.slug ?? cityValue} onChange={e => set({ city: e.target.value }, 0)} aria-label="Filter by city">
-        <option value="">All India</option>
+        <option value="">All</option>
         {props.cities.map(c => <option key={c.slug} value={c.slug}>{labelOf(c)}</option>)}
         {cityValue && !cityMatch && <option value={cityValue}>{cityValue}</option>}
       </select>

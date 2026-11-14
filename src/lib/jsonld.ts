@@ -1,4 +1,4 @@
-import { abs, contactEmail, siteUrl, SITE } from './site';
+import { abs, contactEmail, siteUrl, INSTAGRAM_HANDLE, SITE } from './site';
 import { productSlug, workshopSlug } from './catalog';
 import type { Product, Workshop } from './types';
 
@@ -9,6 +9,9 @@ export const serializeJsonLd = (data: unknown) => JSON.stringify(data).replace(/
 export const organizationJsonLd = () => ({
   '@context': CTX, '@type': 'Organization',
   name: SITE.name, url: siteUrl(), description: SITE.description, email: contactEmail(),
+  logo: abs('/icons/icon-512.png'),
+  sameAs: [`https://www.instagram.com/${INSTAGRAM_HANDLE}`],
+  contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', email: contactEmail(), areaServed: 'IN', availableLanguage: ['en'] },
   areaServed: { '@type': 'AdministrativeArea', name: 'India' },
 });
 
@@ -52,4 +55,12 @@ export function workshopJsonLd(w: Workshop) {
 export const breadcrumbJsonLd = (items: { name: string; path: string }[]) => ({
   '@context': CTX, '@type': 'BreadcrumbList',
   itemListElement: items.map((it, i) => ({ '@type': 'ListItem', position: i + 1, name: it.name, item: abs(it.path) })),
+});
+
+/** The exhibition page (/fair): a walk-around of handmade stalls. */
+export const fairJsonLd = (description: string) => ({
+  '@context': CTX, '@type': 'WebPage',
+  name: 'Craftofy Fair', description, url: abs('/fair'), inLanguage: 'en-IN',
+  isPartOf: { '@type': 'WebSite', name: SITE.name, url: siteUrl() },
+  about: 'Handmade products and creative workshops from independent makers in India',
 });

@@ -1,4 +1,5 @@
 import { auth } from '@/auth';
+import { clientIp } from '@/lib/actors';
 import { handle, json } from '@/lib/api';
 import { requireUser } from '@/lib/authz';
 import { ApiError } from '@/lib/errors';
@@ -17,13 +18,18 @@ function limit(email: string) {
   hits.set(email.toLowerCase(), [...recent, now]);
 }
 
-/** Place suggestions for the pickup-location field. Any signed-in account (onboarding uses it before a role exists; it proxies a third-party service). */
+/**
+ * Place suggestions for the pickup-location field. Any signed-in account (onboarding uses it before a role exists; it proxies a third-party service).
+ * City search alone is also open to visitors (the public host-a-workshop form), limited per network address.
+ */
 export const GET = (req: Request) => handle(async () => {
-  const user = requireUser(await auth());
   const params = new URL(req.url).searchParams;
+  const cityOnly = params.get('type') === 'city';
+  const session = await auth();
+  const key = session?.user?.email || !cityOnly ? requireUser(session).email : `ip:${clientIp(req.headers)}`;
   const q = params.get('q') ?? '';
   if (q.trim().length < 2) return json([], 200, { 'cache-control': 'private, max-age=60' });
-  limit(user.email);
-  const found = params.get('type') === 'city' ? await searchPlaces(q, undefined, { cityOnly: true }) : await searchPlaces(q);
+  limit(key);
+  const found = cityOnly ? await searchPlaces(q, undefined, { cityOnly: true }) : await searchPlaces(q);
   return json(found, 200, { 'cache-control': 'private, max-age=300' });
 });

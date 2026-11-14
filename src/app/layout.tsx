@@ -5,10 +5,12 @@ import './globals.css';
 import { SITE, siteUrl } from '@/lib/site';
 import { JsonLd } from '@/components/JsonLd';
 import { organizationJsonLd, websiteJsonLd } from '@/lib/jsonld';
+import { isFairOpen } from '@/lib/fair-settings';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { StoreProvider } from '@/components/StoreProvider';
 import { AuthProvider } from '@/components/AuthProvider';
+import { QueryProvider } from '@/components/QueryProvider';
 import { Analytics } from '@/components/Analytics';
 import { hostConfig } from '@/lib/hosts';
 import { SplashScreen } from '@/components/SplashScreen';
@@ -44,7 +46,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: '#c8553d', colorScheme: 'light dark', width: 'device-width', initialScale: 1 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const theme = await getRenderTheme();
+  const [theme, fairOpen] = await Promise.all([getRenderTheme(), isFairOpen()]);
   return (
     <html lang="en-IN" className={sans.variable} data-festival={theme.preset} suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: `${themeInitScript};${splashInitScript}` }} /><ThemeHead preset={theme.preset} css={theme.css} /></head>
@@ -52,11 +54,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <SplashScreen />
         <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
         <AuthProvider>
+        <QueryProvider>
         <StoreProvider>
         <ThemeBanner text={theme.config.banner} />
-        <Header />
+        <Header fair={fairOpen} />
         <main id="main">{children}</main>
         </StoreProvider>
+        </QueryProvider>
         </AuthProvider>
         <Footer />
         {theme.previewing && <ThemePreviewBar />}

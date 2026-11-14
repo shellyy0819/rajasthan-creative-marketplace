@@ -18,6 +18,10 @@ describe('sendEvent', () => {
     expect((beacon.mock.calls[0][1] as Blob).type).toBe('application/json');
     expect(await sent()).toEqual({ type: 'view', productId: 'p1' });
   });
+  it('adds the source marker only when given', async () => {
+    sendEvent('contact', 'p1', 'artist');
+    expect(await sent()).toEqual({ type: 'contact', productId: 'p1', source: 'artist' });
+  });
   it('falls back to a keepalive fetch when sendBeacon is missing or refuses, and never throws', () => {
     beacon.mockReturnValue(false);
     expect(() => sendEvent('contact', 'p2')).not.toThrow();

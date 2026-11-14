@@ -76,4 +76,10 @@ describe('organizationJsonLd', () => {
   it('lists the public contact address', () => {
     expect((organizationJsonLd() as any).email).toBe('hello.craftofy@gmail.com');
   });
+  it('disambiguates the brand with a logo, Instagram sameAs and a contact point', () => {
+    const j = organizationJsonLd() as any;
+    expect(j.logo).toBe('https://rr.test/icons/icon-512.png');
+    expect(j.sameAs).toEqual(['https://www.instagram.com/craftofy_official']);
+    expect(j.contactPoint).toMatchObject({ '@type': 'ContactPoint', email: 'hello.craftofy@gmail.com' });
+  });
 });

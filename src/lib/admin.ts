@@ -7,14 +7,15 @@ import { products as productsT, userRoles, users, workshops as workshopsT } from
 import type { Tx } from '../db/client';
 import { resolveCityInput } from './cities';
 import { canonicalCategory } from './categories';
+import { resolveSourcingTypeId } from './sourcing-types';
 import type { Actor } from './authz';
 import { ApiError } from './errors';
-import { bad, int, obj, oneOf, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
+import { bad, int, obj, oneOf, optionalInt, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
 import { loadImages, parseImages, resolveImages, saveImages, unreferencedKeys } from './product-images';
 import { deleteObjects, storageConfig } from './storage';
 import type { AdminProduct, Workshop } from './types';
 
-const PRODUCT_KEYS = ['name', 'category', 'cityId', 'cityRef', 'pricePaise', 'description', 'stock', 'status', 'images', 'workshopId', 'pickupLocation'] as const;
+const PRODUCT_KEYS = ['name', 'category', 'sourcingTypeId', 'cityId', 'cityRef', 'pricePaise', 'description', 'stock', 'status', 'images', 'workshopId', 'pickupLocation'] as const;
 const WORKSHOP_KEYS = ['title', 'type', 'pricePaise', 'cityId', 'cityRef', 'venue', 'date', 'time', 'seats', 'host', 'hostId', 'description', 'status'] as const;
 const PRODUCT_STATUSES = ['APPROVED', 'DRAFT', 'ARCHIVED'] as const;
 const WORKSHOP_STATUSES = ['APPROVED', 'DRAFT', 'ARCHIVED'] as const;
@@ -36,7 +37,8 @@ function validateProduct(v: Raw): ProductFields {
   return {
     name: text(v.name, 'name', 200),
     category: typeof v.category === 'string' ? v.category : '', // checked against the categories table inside the transaction
-    pricePaise: int(v.pricePaise, 'pricePaise', 0, 10_000_000),
+    sourcingTypeId: optionalInt(v.sourcingTypeId, 'sourcingTypeId', 0, 1_000_000) ?? 0, // 0 = not chosen; resolved against the sourcing_types table inside the transaction
+    pricePaise: optionalInt(v.pricePaise, 'pricePaise', 0, 10_000_000),
     description: text(v.description, 'description', 2000),
     stock: int(v.stock, 'stock', 0, 100_000),
     status: oneOf(v.status ?? 'DRAFT', 'status', PRODUCT_STATUSES), // new posts start as drafts; only an explicit admin choice publishes
@@ -46,7 +48,7 @@ function validateProduct(v: Raw): ProductFields {
 }
 
 const inputOf = (p: typeof productsT.$inferSelect): ProductInput => ({
-  name: p.name, category: p.category, cityId: p.cityId, pricePaise: p.pricePaise, description: p.description,
+  name: p.name, category: p.category, cityId: p.cityId, sourcingTypeId: p.sourcingTypeId, pricePaise: p.pricePaise, description: p.description,
   stock: p.stock, status: p.status, workshopId: p.workshopId ?? undefined,
   pickupLocation: p.pickupLocation ?? undefined,
 });
@@ -96,6 +98,7 @@ export async function createProduct(input: unknown, actor: Actor): Promise<Admin
       sellerId = assigned;
     }
     data.category = await canonicalCategory(tx, data.category);
+    data.sourcingTypeId = await resolveSourcingTypeId(tx, data.sourcingTypeId);
     const cityId = (await resolveCityInput(tx, raw, { required: true }))!;
     await requireWorkshop(tx, data.workshopId);
     const id = await allocateId(tx, 'p');
@@ -134,6 +137,7 @@ export async function updateProduct(id: string, input: unknown, actor: Actor): P
     let sellerId = row.sellerId;
     if (!seller && assigned && assigned !== row.sellerId) { await requireSellerUser(tx, assigned); sellerId = assigned; }
     next.category = await canonicalCategory(tx, next.category);
+    next.sourcingTypeId = await resolveSourcingTypeId(tx, next.sourcingTypeId, row.sourcingTypeId);
     await requireWorkshop(tx, next.workshopId);
     const publishing = next.status === 'APPROVED' && row.status !== 'APPROVED';
     await tx.update(productsT).set({

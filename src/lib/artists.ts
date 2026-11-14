@@ -1,11 +1,12 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
-import { productsQuery, toProduct } from '../db/mappers';
+import { productsQuery, publicPhoneOf, toProduct } from '../db/mappers';
 import { cities, products, sellerProfiles, users } from '../db/schema';
 import { artistIdPrefix, artistSlug } from './artist-slug';
+import { publicLogo } from './public-logo';
 import type { Product } from './types';
 
-export type Artist = { name: string; slug: string; phone?: string; email?: string; instagram?: string; youtube?: string; bio?: string; city?: string; cityId?: number; products: Product[] };
+export type Artist = { name: string; slug: string; phone?: string; email?: string; instagram?: string; youtube?: string; bio?: string; logoUrl?: string; city?: string; cityId?: number; products: Product[] };
 
 /** Public artist page data. Undefined unless the artist has at least one published product and the slug is exactly current. */
 export async function getArtist(slug: string): Promise<Artist | undefined> {
@@ -23,9 +24,9 @@ export async function getArtist(slug: string): Promise<Artist | undefined> {
       .then(r => r.map(x => ({ ...x.pf, cityName: x.cityName })));
     return {
       name, slug,
-      ...(pf?.publicPhone ? { phone: pf.publicPhone } : {}), ...(pf?.publicEmail ? { email: pf.publicEmail } : {}),
+      ...(publicPhoneOf(pf?.publicPhone, pf?.contactMethods) ? { phone: publicPhoneOf(pf?.publicPhone, pf?.contactMethods)! } : {}), ...(pf?.publicEmail ? { email: pf.publicEmail } : {}),
       ...(pf?.instagram ? { instagram: pf.instagram } : {}), ...(pf?.youtube ? { youtube: pf.youtube } : {}),
-      ...(pf?.bio ? { bio: pf.bio } : {}), ...(pf?.cityName ? { city: pf.cityName, cityId: pf.cityId! } : {}),
+      ...(pf?.bio ? { bio: pf.bio } : {}), ...(pf?.logoUrl && publicLogo(id, pf.logoUrl) ? { logoUrl: pf.logoUrl } : {}), ...(pf?.cityName ? { city: pf.cityName, cityId: pf.cityId! } : {}),
       products: rows.map(toProduct),
     };
   }

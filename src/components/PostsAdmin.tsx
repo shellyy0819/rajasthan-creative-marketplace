@@ -1,27 +1,27 @@
 "use client";
+import { gaListingSubmit } from "@/lib/ga-events";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import type { AdminProduct as Product, SellerProfile } from "@/lib/types";
+import type { AdminProduct as Product, SellerProfile, SourcingType } from "@/lib/types";
 import type { AdminArtist } from "@/lib/admin-posts";
 import { artistKey } from "@/lib/artist";
 import { productSlug } from "@/lib/catalog-shared";
 import { money } from "@/lib/money";
 import { ProductImage } from "./ProductImage";
+import { ProductPlaceholder } from "./ProductPlaceholder";
 import { PhotoButton } from "./PhotoButton";
 import { PostForm, type SellerOption, type WorkshopOption } from "./PostForm";
 import { ProfileDialog } from "./ProfileDialog";
+import { ProfileView } from "./ProfileView";
 import { ProductDetail } from "./ProductDetail";
 import { PageLoader } from "./PageLoader";
 import { Toast, type ToastState } from "./Toast";
 
-const SYMBOLS = ["🌷", "⛵", "🌼", "🏺", "🧶", "🌸"];
 const POST_STATUSES = [
   { value: "APPROVED", label: "Published" },
   { value: "DRAFT", label: "Draft" },
   { value: "ARCHIVED", label: "Archived" },
 ] as const;
-const symbolFor = (id: string) =>
-  SYMBOLS[(Number(id.replace(/\D/g, "")) || 0) % SYMBOLS.length];
 const JSON_HEADERS = { "content-type": "application/json" };
 
 function explain(status: number, body: { error?: string } | null): string {
@@ -36,26 +36,30 @@ export function PostsAdmin({
   initialArtists,
   role,
   categories: initialCategories = [],
+  sourcingTypes = [],
   workshops = [],
   sellers = [],
   me,
   profile,
   openNew = false,
+  openProfile = false,
 }: {
   initialProducts: Product[];
   initialArtists: AdminArtist[];
   role: "admin" | "seller";
   categories?: string[];
+  sourcingTypes?: SourcingType[];
   workshops?: WorkshopOption[];
   sellers?: SellerOption[];
   me?: SellerOption;
   profile?: SellerProfile;
   /** Open the new-post form on arrival (the page passes it for `?new=1`). Only the initial state; role gates are untouched. */
   openNew?: boolean;
+  openProfile?: boolean;
 }) {
   const seller = role === "seller";
   const [categories, setCategories] = useState(initialCategories);
-  const [editingProfile, setEditingProfile] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(openProfile);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const lastViewed = useRef<string | null>(null);
   const [myProfile, setMyProfile] = useState(profile);
@@ -78,6 +82,19 @@ export function PostsAdmin({
     url.searchParams.delete("new");
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
   }, [openNew]);
+  // The account menu opens the profile: by address (?profile=1, dropped once honoured) or by event when already here.
+  useEffect(() => {
+    const open = () => setEditingProfile(true);
+    window.addEventListener("craftofy:open-profile", open);
+    return () => window.removeEventListener("craftofy:open-profile", open);
+  }, []);
+  useEffect(() => {
+    if (!openProfile) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("profile") !== "1") return;
+    url.searchParams.delete("profile");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, [openProfile]);
   const notify = (kind: "success" | "error", text: string) =>
     setToast({ id: Date.now() + Math.random(), kind, text });
   const closeToast = useCallback(() => setToast(null), []);
@@ -110,6 +127,7 @@ export function PostsAdmin({
     url: string,
     method: string,
     body?: unknown,
+    onOk?: (data: unknown) => void,
   ): Promise<string | null> {
     try {
       const res = await fetch(url, {
@@ -120,6 +138,7 @@ export function PostsAdmin({
       const data = await res.json().catch(() => null);
       // A failed write never triggers a re-fetch of the lists.
       if (!res.ok) return explain(res.status, data);
+      onOk?.(data);
       return null;
     } catch {
       return "Network error. Please try again.";
@@ -132,6 +151,7 @@ export function PostsAdmin({
       isNew ? "/api/products" : `/api/products/${(editing as Product).id}`,
       isNew ? "POST" : "PATCH",
       payload,
+      isNew ? (d) => { const c = d as { id?: unknown; category?: unknown } | null; if (typeof c?.id === "string") gaListingSubmit(c.id, typeof c.category === "string" ? c.category : ""); } : undefined,
     );
     if (err) return err;
     setEditing(null);
@@ -195,6 +215,8 @@ export function PostsAdmin({
   }, [products, artist, status, q]);
 
   const total = artists.reduce((n, a) => n + a.total, 0);
+  // the selected artist's public page (it lists only published posts, so it needs one)
+  const artistPage = artist ? products.find((p) => artistKey(p.seller) === artist && p.status === "APPROVED")?.sellerSlug : undefined;
 
   return (
     <section className="admin-posts">
@@ -240,6 +262,11 @@ export function PostsAdmin({
         )}
 
         <div>
+          {!seller && artistPage && (
+            <p className="admin-artist-link">
+              <Link href={`/artists/${artistPage}`}>View {artists.find((x) => x.key === artist)?.name}’s public page ↗</Link>
+            </p>
+          )}
           <div className="admin-toolbar">
             <input
               aria-label="Search posts"
@@ -267,11 +294,6 @@ export function PostsAdmin({
             >
               New post
             </button>
-            {myProfile && !(seller && myProfile.onboardedAt) && (
-              <button type="button" className="button" onClick={() => setEditingProfile(true)}>
-                My profile
-              </button>
-            )}
           </div>
 
           {products.length === 0 ? (
@@ -295,7 +317,7 @@ export function PostsAdmin({
                     <ProductImage
                       src={p.imageUrl}
                       alt={p.name}
-                      fallback={<span aria-hidden="true">{symbolFor(p.id)}</span>}
+                      fallback={<ProductPlaceholder />}
                     />
                   </PhotoButton>
                 </div>
@@ -322,6 +344,11 @@ export function PostsAdmin({
                     {p.status === "APPROVED" && (
                       <Link href={`/products/${productSlug(p)}`}>
                         View public page ↗
+                      </Link>
+                    )}
+                    {!seller && p.status === "APPROVED" && p.sellerSlug && (
+                      <Link href={`/artists/${p.sellerSlug}`}>
+                        View artist page ↗
                       </Link>
                     )}
                   </p>
@@ -415,6 +442,7 @@ export function PostsAdmin({
           initial={editing === "new" ? undefined : editing}
           role={role}
           categories={categories}
+          sourcingTypes={sourcingTypes}
           onCategoryCreated={(name) => setCategories((c) => (c.includes(name) ? c : [...c, name]))}
           workshops={workshops}
           sellers={sellers}
@@ -423,7 +451,19 @@ export function PostsAdmin({
           onCancel={() => setEditing(null)}
         />
       )}
-      {editingProfile && myProfile && (
+      {editingProfile && myProfile && seller && myProfile.onboardedAt && (
+        <ProfileView
+          profile={myProfile}
+          publicPageHref={(() => { const slug = products.find((p) => p.status === "APPROVED")?.sellerSlug; return slug ? `/artists/${slug}` : undefined; })()}
+          onLogoSaved={(p) => {
+            setMyProfile(p);
+            notify("success", "Logo saved.");
+            void refresh();
+          }}
+          onClose={() => setEditingProfile(false)}
+        />
+      )}
+      {editingProfile && myProfile && !(seller && myProfile.onboardedAt) && (
         <ProfileDialog
           title="My profile"
           initial={myProfile}

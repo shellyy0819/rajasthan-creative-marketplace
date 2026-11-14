@@ -33,6 +33,7 @@ export async function createOrder(input: unknown, userEmail: string): Promise<Or
       const r = typeof i.productId === 'string' ? byId.get(i.productId) : undefined;
       const qty = Number(i.quantity);
       if (!r || !Number.isInteger(qty) || qty < 1 || qty > r.p.stock) throw new ApiError(400, STOCK_ERROR);
+      if (r.p.pricePaise == null) throw new ApiError(400, `${r.p.name} has no price yet. Please contact the maker.`);
       return { productId: r.p.id, name: r.p.name, seller: r.sellerName, quantity: qty, unitPricePaise: r.p.pricePaise, lineTotalPaise: r.p.pricePaise * qty };
     });
     // same product listed twice: re-check the combined quantity

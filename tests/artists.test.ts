@@ -5,7 +5,9 @@ import { createProduct, updateProduct } from '@/lib/admin';
 import { saveProfile } from '@/lib/users';
 import { listProducts } from '@/lib/catalog';
 import { admin } from './helpers/actors';
-import { makeSeller, resetTestDb } from './helpers/testdb';
+import { makeSeller, resetTestDb, getTestDb } from './helpers/testdb';
+import { sellerProfiles } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { cityRef } from './helpers/cities';
 
 beforeEach(async () => { await resetTestDb(); });
@@ -30,6 +32,49 @@ describe('getArtist', () => {
     expect(a.products.map(p => p.id)).toEqual(['p1']);
     expect(a).not.toHaveProperty('id');
     expect(JSON.stringify(a)).not.toContain('seed.rangrajasthan');
+  });
+  it('exposes the uploaded logo (http or https only) and nothing else about it', async () => {
+    const s = await makeSeller('logo@x.co', 'Logo Studio');
+    const p = await createProduct({ name: 'Bowl', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 1, description: 'D', stock: 1, status: 'APPROVED', sellerId: s.id }, admin);
+    const slug = await slugOf(p.id);
+    expect(await getArtist(slug)).not.toHaveProperty('logoUrl');                    // no logo uploaded
+    const db = await getTestDb();
+    await db.update(sellerProfiles).set({ logoUrl: 'https://bucket.example/logos/u/a.png' }).where(eq(sellerProfiles.userId, s.id));
+    expect((await getArtist(slug))!.logoUrl).toBe('https://bucket.example/logos/u/a.png');
+    for (const bad of ['javascript:alert(1)', 'data:image/svg+xml;base64,AAAA', '/relative.png', 'ftp://x/y.png']) {
+      await db.update(sellerProfiles).set({ logoUrl: bad }).where(eq(sellerProfiles.userId, s.id));
+      expect(await getArtist(slug)).not.toHaveProperty('logoUrl');                  // an unsafe stored value is never handed to the page
+    }
+  });
+  it('product listings carry the maker logo as sellerLogo only when it is safe to show', async () => {
+    const s = await makeSeller('card@x.co', 'Card Studio');
+    const p = await createProduct({ name: 'Cup', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 1, description: 'D', stock: 1, status: 'APPROVED', sellerId: s.id }, admin);
+    const mine = async () => (await listProducts()).find(x => x.id === p.id)!;
+    expect(await mine()).not.toHaveProperty('sellerLogo');
+    const db = await getTestDb();
+    await db.update(sellerProfiles).set({ logoUrl: 'https://bucket.example/logos/u/a.png' }).where(eq(sellerProfiles.userId, s.id));
+    expect((await mine()).sellerLogo).toBe('https://bucket.example/logos/u/a.png');
+    await db.update(sellerProfiles).set({ logoUrl: 'javascript:alert(1)' }).where(eq(sellerProfiles.userId, s.id));
+    expect(await mine()).not.toHaveProperty('sellerLogo');
+  });
+  it('with uploads configured, only the maker\'s own stored file is shown as their logo', async () => {
+    const saved = ['S3_BUCKET', 'S3_REGION', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'S3_PUBLIC_BASE_URL'].map(k => [k, process.env[k]] as const);
+    Object.assign(process.env, { S3_BUCKET: 'b', S3_REGION: 'ap-south-1', AWS_ACCESS_KEY_ID: 'k', AWS_SECRET_ACCESS_KEY: 's' });
+    delete process.env.S3_PUBLIC_BASE_URL;
+    try {
+      const s = await makeSeller('own@x.co', 'Own Studio');
+      const p = await createProduct({ name: 'Bowl', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 1, description: 'D', stock: 1, status: 'APPROVED', sellerId: s.id }, admin);
+      const slug = await slugOf(p.id);
+      const db = await getTestDb();
+      const own = `https://b.s3.ap-south-1.amazonaws.com/logos/${s.id}/a.png`;
+      for (const [url, shown] of [[own, true], ['https://evil.example/logo.png', false], [`https://b.s3.ap-south-1.amazonaws.com/logos/someone-else/a.png`, false], [`https://b.s3.ap-south-1.amazonaws.com/products/${s.id}/a.png`, false]] as const) {
+        await db.update(sellerProfiles).set({ logoUrl: url }).where(eq(sellerProfiles.userId, s.id));
+        const a = (await getArtist(slug))!;
+        if (shown) expect(a.logoUrl).toBe(url); else expect(a).not.toHaveProperty('logoUrl');
+      }
+    } finally {
+      for (const [k, v] of saved) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+    }
   });
   it('shows public profile contact details (phone, email, social) and nothing private', async () => {
     const s = await makeSeller('contact@x.co', 'Contact Studio');

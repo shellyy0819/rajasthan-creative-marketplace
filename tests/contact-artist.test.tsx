@@ -72,7 +72,7 @@ describe('ContactArtistButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Contact artist' }));
     expect(track.sendEvent).toHaveBeenCalledTimes(1);
     expect(track.sendEvent).toHaveBeenCalledWith('contact', 'p1');
-    expect(track.gaEvent).toHaveBeenCalledWith('contact_click', { item_id: 'p1' });
+    expect(track.gaEvent).not.toHaveBeenCalled(); // opening the sheet is not a contact yet
   });
   it('hides what the artist did not share and shows an honest empty state when nothing is shared', () => {
     let d = open({ ...P, email: undefined, instagram: undefined, youtube: undefined, artistBio: undefined, artistCity: undefined });
@@ -83,6 +83,48 @@ describe('ContactArtistButton', () => {
     d = open({ ...P, phone: undefined, email: undefined, instagram: undefined, youtube: undefined });
     expect(d.textContent).toContain('This artist has not shared contact details yet.');
     expect(within(d).getByRole('link', { name: /View all by Shauk and Stuff/ })).toBeTruthy();
+  });
+  it('product mode (default) keeps the About line and View all link and logs a plain product event', () => {
+    const d = open();
+    expect(d.textContent).toContain('About:');
+    expect(within(d).getByRole('link', { name: /View all/ })).toBeTruthy();
+    expect(track.sendEvent.mock.calls[0]).toEqual(['contact', 'p1']);
+  });
+  it('artistLevel mode hides the About line and View all link and tags the events source=artist', () => {
+    render(<ContactArtistButton product={P} artistLevel />);
+    fireEvent.click(screen.getByRole('button', { name: 'Contact artist' }));
+    const d = screen.getByRole('dialog');
+    expect(d.textContent).not.toContain('About:');
+    expect(within(d).queryByRole('link', { name: /View all/ })).toBeNull();
+    expect(d.textContent).toContain('+91 99898 98999');
+    expect(track.sendEvent).toHaveBeenCalledWith('contact', 'p1', 'artist');
+    expect(track.gaEvent).not.toHaveBeenCalled();
+  });
+  it('clicks inside the sheet are tracked per method: call, email, Instagram, YouTube and copy', () => {
+    const d = open();
+    track.sendEvent.mockClear(); track.gaEvent.mockClear();
+    const click = (el: HTMLElement) => fireEvent.click(el, { preventDefault: () => undefined });
+    click(within(d).getByRole('link', { name: 'Call' }));
+    click(within(d).getByRole('link', { name: 'Email' }));
+    click(within(d).getByRole('link', { name: /Open Instagram/ }));
+    click(within(d).getByRole('link', { name: /Open YouTube/ }));
+    click(within(d).getByRole('button', { name: 'Copy phone' }));
+    expect(track.sendEvent.mock.calls.map(c => c[0])).toEqual(['contact_call', 'contact_email', 'contact_instagram', 'contact_youtube', 'contact_copy']);
+    expect(track.sendEvent).toHaveBeenCalledWith('contact_call', 'p1', undefined);
+    const prm = { seller_id: 'shauk-and-stuff-6b13cbf3', contact_method: 'call', product_id: 'p1' };
+    expect(track.gaEvent).toHaveBeenCalledWith('contact_seller', prm);
+    expect(track.gaEvent).toHaveBeenCalledWith('contact_call', prm);
+    expect(track.gaEvent).toHaveBeenCalledWith('contact_email', { ...prm, contact_method: 'email' });
+    expect(track.gaEvent).toHaveBeenCalledWith('contact_seller', { ...prm, contact_method: 'instagram' });
+    expect(track.gaEvent).not.toHaveBeenCalledWith('contact_instagram', expect.anything());
+  });
+  it('method clicks from the artist page carry source=artist', () => {
+    render(<ContactArtistButton product={P} artistLevel />);
+    fireEvent.click(screen.getByRole('button', { name: 'Contact artist' }));
+    track.sendEvent.mockClear(); track.gaEvent.mockClear();
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('link', { name: 'Call' }));
+    expect(track.sendEvent).toHaveBeenCalledWith('contact_call', 'p1', 'artist');
+    expect(track.gaEvent).toHaveBeenCalledWith('contact_seller', { seller_id: 'shauk-and-stuff-6b13cbf3', contact_method: 'call' });
   });
   it('without an artist page slug there is no "View all" link', () => {
     const d = open({ ...P, sellerSlug: undefined });
@@ -126,12 +168,23 @@ describe('ContactArtistButton', () => {
   });
 });
 
+describe('iconOnly', () => {
+  it('renders a round phone-handset button that is still named Contact artist and opens the same dialog', () => {
+    render(<ContactArtistButton product={P} iconOnly />);
+    const b = screen.getByRole('button', { name: 'Contact artist' });
+    expect(b.textContent).toBe('');
+    expect(b.querySelector('svg.contact-handset')).toBeTruthy();
+    fireEvent.click(b);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+});
+
 describe('Add to bag is gone from the whole storefront (source contract)', () => {
   it('cards and the product page use ContactArtistButton and nothing references the cart button', async () => {
     const fs = await import('node:fs');
     for (const f of ['src/components/ProductCard.tsx', 'src/app/products/[slug]/page.tsx']) {
       const src = fs.readFileSync(f, 'utf8');
-      expect(src).toContain('<ContactArtistButton product={p} />');
+      expect(src).toMatch(/<ContactArtistButton product=\{p\}( iconOnly)? \/>/);
       expect(src).not.toMatch(/AddToCart|Add to bag|Demo checkout/);
     }
     expect(fs.existsSync('src/components/AddToCartButton.tsx')).toBe(false);

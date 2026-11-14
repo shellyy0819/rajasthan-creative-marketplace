@@ -2,8 +2,9 @@ import { eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { AdminProduct, Booking, Order, OrderItem, Product, Workshop } from '../lib/types';
 import { artistSlug } from '../lib/artist-slug';
+import { publicLogo } from '../lib/public-logo';
 import type { Q } from './client';
-import { bookings, cities, orderItems, orders, products, sellerProfiles, users, workshops } from './schema';
+import { bookings, cities, orderItems, orders, products, sellerProfiles, sourcingTypes, users, workshops } from './schema';
 
 type ProductRow = typeof products.$inferSelect;
 type WorkshopRow = typeof workshops.$inferSelect;
@@ -27,11 +28,16 @@ export const productSelect = {
   sellerName: sellerNameSql,
   sellerEmail: users.email,
   publicPhone: sellerProfiles.publicPhone,
+  contactMethods: sellerProfiles.contactMethods,
   publicEmail: sellerProfiles.publicEmail,
   instagram: sellerProfiles.instagram,
   youtube: sellerProfiles.youtube,
   artistBio: sellerProfiles.bio,
+  sellerLogo: sellerProfiles.logoUrl,
   artistCityName: artistCities.name,
+  sourcingName: sourcingTypes.name,
+  sourcingHandmade: sourcingTypes.countsAsHandmade,
+  sourcingBadge: sourcingTypes.showBadge,
   images: sql<string[] | string>`coalesce((select json_agg(pim.url order by pim.position) from product_images pim where pim.product_id = ${products.id}), '[]'::json)`,
   likeCount: sql<number>`(select count(*) from product_likes pl where pl.product_id = ${products.id})`.mapWith(Number),
   publishedByEmail: sql<string | null>`(select pu.email from users pu where pu.id = ${products.publishedBy})`,
@@ -39,27 +45,38 @@ export const productSelect = {
 };
 export type ProductJoinRow = {
   p: ProductRow; cityName: string; citySlug: string; cityState: string | null; sellerName: string; sellerEmail: string;
-  publicPhone: string | null; publicEmail: string | null; instagram: string | null; youtube: string | null; artistBio: string | null; artistCityName: string | null;
+  publicPhone: string | null; contactMethods: string[] | null; publicEmail: string | null; instagram: string | null; youtube: string | null; artistBio: string | null; sellerLogo?: string | null; artistCityName: string | null;
+  sourcingName: string | null; sourcingHandmade: boolean | null; sourcingBadge: boolean | null;
   publishedByEmail: string | null; workshopTitle: string | null; likeCount: number; images: string[] | string;
 };
 /** SELECT products + seller + profile. Add .where(...) / .orderBy(...) / .for('update', { of: products }) as needed. */
 export const productsQuery = (q: Q) =>
   q.select(productSelect).from(products)
     .innerJoin(cities, eq(cities.id, products.cityId))
+    .leftJoin(sourcingTypes, eq(sourcingTypes.id, products.sourcingTypeId))
     .innerJoin(users, eq(users.id, products.sellerId))
     .leftJoin(sellerProfiles, eq(sellerProfiles.userId, users.id))
     .leftJoin(artistCities, eq(artistCities.id, sellerProfiles.cityId));
 
 const imagesOf = (v: string[] | string): string[] => (typeof v === 'string' ? (JSON.parse(v) as string[]) : v);
 
+/**
+ * A seller's public phone is shown only while Phone is one of their chosen contact methods. A seller with no
+ * methods saved at all (an older or admin-created profile) keeps showing the phone they filled in.
+ */
+export const publicPhoneOf = (phone: string | null | undefined, methods: readonly string[] | null | undefined): string | undefined =>
+  phone && (!methods?.length || methods.includes('phone')) ? phone : undefined;
+
 export const toProduct = (r: ProductJoinRow): Product => ({
   id: r.p.id, name: r.p.name, category: r.p.category, city: r.cityName, cityId: r.p.cityId, citySlug: r.citySlug, pricePaise: r.p.pricePaise,
   ...opt('cityState', r.cityState),
+  ...(r.p.sourcingTypeId != null && r.sourcingName != null ? { sourcing: { id: r.p.sourcingTypeId, name: r.sourcingName, countsAsHandmade: !!r.sourcingHandmade, showBadge: !!r.sourcingBadge } } : {}),
   seller: r.sellerName, description: r.p.description, stock: r.p.stock, status: r.p.status,
-  ...opt('instagram', r.instagram), ...opt('youtube', r.youtube), ...opt('phone', r.publicPhone),
+  ...opt('instagram', r.instagram), ...opt('youtube', r.youtube), ...opt('phone', publicPhoneOf(r.publicPhone, r.contactMethods)),
   ...opt('email', r.publicEmail), ...opt('workshopId', r.p.workshopId),
   ...(imagesOf(r.images).length ? { images: imagesOf(r.images), imageUrl: imagesOf(r.images)[0] } : {}),
   likeCount: r.likeCount, sellerSlug: artistSlug(r.sellerName, r.p.sellerId),
+  ...(r.sellerLogo && publicLogo(r.p.sellerId, r.sellerLogo) ? { sellerLogo: r.sellerLogo } : {}),
   ...opt('artistBio', r.artistBio), ...opt('artistCity', r.artistCityName),
 });
 
@@ -70,10 +87,10 @@ export const toAdminProduct = (r: ProductJoinRow): AdminProduct => ({
   createdAt: r.p.createdAt.toISOString(), updatedAt: r.p.updatedAt.toISOString(),
 });
 
-export type ProductInput = Omit<Product, 'id' | 'seller' | 'instagram' | 'youtube' | 'phone' | 'email' | 'city' | 'citySlug' | 'cityState'> & { pickupLocation?: string };
+export type ProductInput = Omit<Product, 'id' | 'seller' | 'instagram' | 'youtube' | 'phone' | 'email' | 'city' | 'citySlug' | 'cityState' | 'sourcing'> & { pickupLocation?: string; sourcingTypeId: number | null };
 /** undefined → null so that UPDATE really clears a field (Drizzle ignores undefined keys). */
 export const toProductRow = (p: ProductInput) => ({
-  name: p.name, category: p.category, cityId: p.cityId, pricePaise: p.pricePaise, description: p.description,
+  name: p.name, category: p.category, cityId: p.cityId, sourcingTypeId: p.sourcingTypeId, pricePaise: p.pricePaise, description: p.description,
   stock: p.stock, status: p.status, workshopId: p.workshopId ?? null,
   pickupLocation: p.pickupLocation ?? null,
 });

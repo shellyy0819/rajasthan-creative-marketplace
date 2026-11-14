@@ -62,6 +62,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addToCart = useCallback((p: Product) => {
+    if (p.pricePaise == null) { notify('This item has no price yet. Please contact the maker.'); return; }
+    const pricePaise = p.pricePaise;
     const ex = items.find(i => i.productId === p.id);
     if ((ex?.quantity ?? 0) >= p.stock) { notify('That is all the stock currently available.'); return; }
     notify(`${p.name} added to your bag.`);
@@ -69,7 +71,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const e = cur.find(i => i.productId === p.id);
       return e
         ? cur.map(i => (i.productId === p.id ? { ...i, quantity: i.quantity + 1, stock: p.stock } : i))
-        : [...cur, { productId: p.id, name: p.name, pricePaise: p.pricePaise, stock: p.stock, quantity: 1 }];
+        : [...cur, { productId: p.id, name: p.name, pricePaise, stock: p.stock, quantity: 1 }];
     });
   }, [items, notify]);
 
