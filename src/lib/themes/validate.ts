@@ -1,4 +1,4 @@
-import { bad, obj, text, type Raw } from '../validate';
+import { bad, obj, optionalText, text, type Raw } from '../validate';
 import { isHex, passesContrast } from './contrast';
 import { istToDate } from './ist';
 import { isStickerId } from './stickers';
@@ -31,12 +31,18 @@ export function validateConfig(raw: unknown): ThemeConfig {
   const out: ThemeConfig = {
     banner: text(r.banner, 'banner', LIMITS.banner),
     sign: text(r.sign, 'sign', LIMITS.sign),
-    chalkLabel: text(r.chalkLabel, 'chalkLabel', LIMITS.chalkLabel),
-    chalkTitle: text(r.chalkTitle, 'chalkTitle', LIMITS.chalkTitle),
-    chalkSub: text(r.chalkSub, 'chalkSub', LIMITS.chalkSub),
+    // The chalkboard is optional: leave all three lines empty and it is not drawn.
+    chalkLabel: optionalText(r.chalkLabel, 'chalkLabel', LIMITS.chalkLabel) ?? '',
+    chalkTitle: optionalText(r.chalkTitle, 'chalkTitle', LIMITS.chalkTitle) ?? '',
+    chalkSub: optionalText(r.chalkSub, 'chalkSub', LIMITS.chalkSub) ?? '',
     bunting: r.bunting,
     stickers: r.stickers.map(placement),
   };
+  const href = optionalText(r.chalkHref, 'chalkHref', LIMITS.chalkHref);
+  if (href) {
+    if (!/^\/(?!\/)\S*$/.test(href) && !/^https:\/\/[^\s/]+\S*$/.test(href)) throw bad('chalkHref must be a path on this site like /shop, or an https address.');
+    out.chalkHref = href;
+  }
   if (primary) out.primary = primary;
   return out;
 }
