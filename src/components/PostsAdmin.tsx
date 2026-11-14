@@ -7,6 +7,7 @@ import { artistKey } from "@/lib/artist";
 import { productSlug } from "@/lib/catalog-shared";
 import { money } from "@/lib/money";
 import { ProductImage } from "./ProductImage";
+import { ProductPlaceholder } from "./ProductPlaceholder";
 import { PhotoButton } from "./PhotoButton";
 import { PostForm, type SellerOption, type WorkshopOption } from "./PostForm";
 import { ProfileDialog } from "./ProfileDialog";
@@ -15,14 +16,11 @@ import { ProductDetail } from "./ProductDetail";
 import { PageLoader } from "./PageLoader";
 import { Toast, type ToastState } from "./Toast";
 
-const SYMBOLS = ["🌷", "⛵", "🌼", "🏺", "🧶", "🌸"];
 const POST_STATUSES = [
   { value: "APPROVED", label: "Published" },
   { value: "DRAFT", label: "Draft" },
   { value: "ARCHIVED", label: "Archived" },
 ] as const;
-const symbolFor = (id: string) =>
-  SYMBOLS[(Number(id.replace(/\D/g, "")) || 0) % SYMBOLS.length];
 const JSON_HEADERS = { "content-type": "application/json" };
 
 function explain(status: number, body: { error?: string } | null): string {
@@ -313,7 +311,7 @@ export function PostsAdmin({
                     <ProductImage
                       src={p.imageUrl}
                       alt={p.name}
-                      fallback={<span aria-hidden="true">{symbolFor(p.id)}</span>}
+                      fallback={<ProductPlaceholder />}
                     />
                   </PhotoButton>
                 </div>

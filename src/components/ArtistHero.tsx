@@ -8,7 +8,7 @@ import { ArtistAvatar } from './ArtistAvatar';
 import { ContactArtistButton } from './ContactArtistButton';
 import { ProductImage } from './ProductImage';
 import { StallAwning } from './StallAwning';
-import { SYMBOLS, visualIndex } from './ProductCard';
+import { ProductPlaceholder } from './ProductPlaceholder';
 
 
 const Pin = () => <svg className="ah-ico" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /><circle cx="12" cy="9.5" r="2.4" fill="currentColor" /></svg>;
@@ -54,7 +54,7 @@ export function ArtistHero({ a }: { a: Artist }) {
       <div className="ah-row" data-count={first.length}>
         {first.map(p => (
           <Link key={p.id} className="ah-card" href={`/products/${productSlug(p)}`}>
-            <span className="ah-photo"><ProductImage src={p.imageUrl} alt="" fallback={<span className={`ah-fallback visual-${visualIndex(p.id) % 4}`} aria-hidden="true">{SYMBOLS[visualIndex(p.id) % SYMBOLS.length]}</span>} /></span>
+            <span className="ah-photo"><ProductImage src={p.imageUrl} alt="" fallback={<ProductPlaceholder />} /></span>
             <span className="ah-cname">{p.name}</span>
             <span className="ah-ptag"><span className="ah-hole" aria-hidden="true" />{money(p.pricePaise)}</span>
           </Link>

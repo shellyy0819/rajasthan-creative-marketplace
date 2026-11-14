@@ -8,7 +8,8 @@ import { LikeButton } from '@/components/LikeButton';
 import { TrackOnMount } from '@/components/TrackOnMount';
 import { TrackedLink } from '@/components/TrackedLink';
 import { ProductGallery } from '@/components/ProductGallery';
-import { SYMBOLS, visualIndex } from '@/components/ProductCard';
+import { visualIndex } from '@/components/ProductCard';
+import { ProductPlaceholder } from '@/components/ProductPlaceholder';
 import { getProductBySlug, productSlug } from '@/lib/catalog';
 import { breadcrumbJsonLd, productJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
@@ -39,7 +40,7 @@ export default async function ProductPage({ params }: Props) {
       <JsonLd data={[productJsonLd(p), breadcrumbJsonLd(crumbs)]} />
       <Breadcrumbs items={crumbs} />
       <article className="detail">
-        <ProductGallery images={p.images ?? (p.imageUrl ? [p.imageUrl] : [])} alt={p.name} variant={i} fallback={<span className="symbol" aria-hidden="true">{SYMBOLS[i % SYMBOLS.length]}</span>} />
+        <ProductGallery images={p.images ?? (p.imageUrl ? [p.imageUrl] : [])} alt={p.name} variant={i} fallback={<ProductPlaceholder />} />
         <div>
           <span className="product-meta">{p.category}</span>
           <h1>{p.name}</h1>
