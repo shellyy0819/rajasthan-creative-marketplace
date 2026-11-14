@@ -2849,6 +2849,8 @@ main {
   margin-top: 10px;
   padding-bottom: 4px;
 }
+.gallery-thumbs .gallery-thumb:first-child { margin-left: auto; }   /* centred when they fit, still scrollable from the first one when they do not */
+.gallery-thumbs .gallery-thumb:last-child { margin-right: auto; }
 .gallery-thumb {
   flex: none;
   width: 64px;
