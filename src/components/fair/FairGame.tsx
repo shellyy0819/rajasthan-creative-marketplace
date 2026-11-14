@@ -311,7 +311,13 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
                 <button type="button" className="button" onClick={() => setSheet({ kind: 'shortlist' })} aria-haspopup="dialog">Shortlist <span className="fair-count" aria-label={`${total} items`}>{total}</span></button>
                 <button type="button" className="button" aria-pressed={overview} onClick={() => setOverview(o => !o)}>{overview ? 'Follow me' : 'Overview'}</button>
                 <button type="button" className="button" aria-pressed={panel} aria-controls="fair-panel" onClick={() => setPanel(p => !p)}>{panel ? 'Hide panel' : 'Show panel'}</button>
-                <button type="button" className="button" aria-pressed={!muted} onClick={toggleSound}>{muted ? 'Sound off' : 'Sound on'}</button>
+                <button type="button" className="button fair-sound" aria-pressed={!muted} onClick={toggleSound}>
+                  Sound: {muted ? 'off' : 'on'}
+                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 9v6h4l5 4V5L8 9H4z" />
+                    {muted ? <path d="M17 9l5 6M22 9l-5 6" /> : <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" />}
+                  </svg>
+                </button>
               </div>
             )}
           </div>

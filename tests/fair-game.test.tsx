@@ -185,13 +185,13 @@ describe('FairGame: look, sound, full screen and panel', () => {
   });
   it('turns the sound off and remembers it', async () => {
     await play();
-    const btn = menuBtn('Sound on');
+    const btn = menuBtn('Sound: on');
     fireEvent.click(btn);
     await waitFor(() => expect(localStorage.getItem(MUTE_KEY)).toBe('1'));
-    expect(menuBtn('Sound off')).toBeTruthy();
+    expect(menuBtn('Sound: off')).toBeTruthy();
     expect(localStorage.getItem(MUTE_KEY)).toBe('1');
     cleanup(); await play();
-    expect(menuBtn('Sound off')).toBeTruthy();
+    expect(menuBtn('Sound: off')).toBeTruthy();
   });
   it('hides and shows the side panel', async () => {
     await play();
