@@ -1,4 +1,5 @@
 'use client';
+import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { PageLoader } from './PageLoader';
 import { ThemeEditor, type EditorSave } from './ThemeEditor';
@@ -11,6 +12,7 @@ const STATE_BADGE: Record<ThemeDto['state'], string> = { live: 'published', sche
 const fmt = (s: string | null) => (s ? s.replace('T', ' ') + ' IST' : '—');
 
 export function ThemesAdmin({ initialBase, initialThemes, publicOrigin = '' }: { initialBase: ThemeDto; initialThemes: ThemeDto[]; publicOrigin?: string }) {
+  const router = useRouter();
   const [base, setBase] = useState(initialBase);
   const [themes, setThemes] = useState(initialThemes);
   const [editing, setEditing] = useState<'base' | number | null>(null);
@@ -38,7 +40,7 @@ export function ThemesAdmin({ initialBase, initialThemes, publicOrigin = '' }: {
     if (busy) return { error: 'busy' };
     setBusy(key);
     const res = await fn();
-    if (res.error) notify('error', res.error); else { notify('success', ok); await reload(); }
+    if (res.error) notify('error', res.error); else { notify('success', ok); await reload(); router.refresh(); } // re-render the server layout so the banner and theme follow the change
     setBusy(null);
     return res;
   }
@@ -64,58 +66,62 @@ export function ThemesAdmin({ initialBase, initialThemes, publicOrigin = '' }: {
       <Toast toast={toast} onClose={closeToast} />
       <PageLoader show={!!busy} label="Working…" blocking={false} />
 
-      {current && editing !== null && (
-        <ThemeEditor key={String(editing)} theme={current} isBase={editing === 'base'} saving={busy === 'save'} onSave={save} onClose={() => setEditing(null)} />
-      )}
-
-      <article className="admin-row" style={{ gridTemplateColumns: 'minmax(0,1fr) auto' }} data-testid="theme-base">
-        <div className="admin-row-main">
-          <h3>Everyday</h3>
-          <p>The default look, shown whenever no festival is live.</p>
-          <p className="admin-status-line"><span className="badge role">Always on</span></p>
-        </div>
-        <div className="admin-row-actions"><button type="button" className="button" onClick={() => setEditing('base')}>Edit</button></div>
-      </article>
-
-      <form className="admin-toolbar admin-form" onSubmit={e => {
-        e.preventDefault();
-        void act('new', () => call('/api/admin/themes', 'POST', { preset }), `${PRESETS[preset].label} draft created.`);
-      }}>
-        <label style={{ flex: 1, margin: 0 }}>
-          <span className="lbl">New theme from preset</span>
-          <select required value={preset} onChange={e => setPreset(e.target.value as PresetKey)}>
-            {(Object.keys(PRESETS) as PresetKey[]).filter(k => k !== 'everyday').map(k => <option key={k} value={k}>{PRESETS[k].label}</option>)}
-          </select>
-        </label>
-        <button type="submit" className="button primary" disabled={busy === 'new'} aria-busy={busy === 'new'} style={{ alignSelf: 'flex-end' }}>Create draft</button>
-      </form>
-
-      {themes.length === 0 ? <div className="empty">No festival themes yet. Create a draft from a preset, set its dates, then schedule it.</div> : themes.map(t => (
-        <article key={t.id} className="admin-row" style={{ gridTemplateColumns: 'minmax(0,1fr) auto' }} data-testid="theme-row">
-          <div className="admin-row-main">
-            <h3>{t.label}</h3>
-            <p>{fmt(t.startsAtIst)} to {fmt(t.endsAtIst)}</p>
-            <p className="admin-status-line"><span className={`badge ${STATE_BADGE[t.state]}`}>{t.state === 'live' ? 'Live now' : t.state[0].toUpperCase() + t.state.slice(1)}</span></p>
-          </div>
-          {confirming === t.id ? (
-            <div className="admin-confirm" role="group" aria-label={`Confirm delete ${t.label}`}>
-              <span>Delete this {t.label} theme? This can’t be undone.</span>
-              <button type="button" className="button" onClick={() => setConfirming(null)}>Cancel</button>
-              <button type="button" className="button danger" disabled={busy === `del-${t.id}`} aria-busy={busy === `del-${t.id}`}
-                onClick={() => { void act(`del-${t.id}`, () => call(`/api/admin/themes/${t.id}`, 'DELETE'), 'Theme deleted.').then(() => setConfirming(null)); }}>Yes, delete</button>
-            </div>
-          ) : (
-            <div className="admin-row-actions">
-              <button type="button" className="button" aria-label={`Edit ${t.label}`} onClick={() => setEditing(t.id)}>Edit</button>
-              <button type="button" className="button" aria-label={`Preview ${t.label} on the site`} onClick={() => void previewOnSite(t)}>Preview on site</button>
-              {t.state === 'draft' && <button type="button" className="button primary" aria-label={`Schedule ${t.label}`} disabled={!!busy} onClick={() => void act(`sc-${t.id}`, () => call(`/api/admin/themes/${t.id}/schedule`, 'POST'), `${t.label} scheduled.`)}>Schedule</button>}
-              {t.state === 'scheduled' && <button type="button" className="button" aria-label={`Unschedule ${t.label}`} disabled={!!busy} onClick={() => void act(`un-${t.id}`, () => call(`/api/admin/themes/${t.id}/schedule`, 'DELETE'), `${t.label} unscheduled.`)}>Unschedule</button>}
-              {t.state === 'live' && <button type="button" className="button danger-outline" aria-label={`End ${t.label} now`} disabled={!!busy} onClick={() => void act(`end-${t.id}`, () => call(`/api/admin/themes/${t.id}/end`, 'POST'), `${t.label} ended.`)}>End now</button>}
-              <button type="button" className="button danger-outline" aria-label={`Delete ${t.label}`} onClick={() => setConfirming(t.id)}>Delete</button>
-            </div>
+      <div className="admin-grid admin-grid-solo">
+        <div className="theme-admin-list">
+          {current && editing !== null && (
+            <ThemeEditor key={String(editing)} theme={current} isBase={editing === 'base'} saving={busy === 'save'} onSave={save} onClose={() => setEditing(null)} />
           )}
-        </article>
-      ))}
+
+          <article className="admin-row" style={{ gridTemplateColumns: 'minmax(0,1fr) auto' }} data-testid="theme-base">
+            <div className="admin-row-main">
+              <h3>Everyday</h3>
+              <p>The default look, shown whenever no festival is live.</p>
+              <p className="admin-status-line"><span className="badge role">Always on</span></p>
+            </div>
+            <div className="admin-row-actions"><button type="button" className="button" onClick={() => setEditing('base')}>Edit</button></div>
+          </article>
+
+          <form className="admin-toolbar admin-form theme-new" onSubmit={e => {
+            e.preventDefault();
+            void act('new', () => call('/api/admin/themes', 'POST', { preset }), `${PRESETS[preset].label} draft created.`);
+          }}>
+            <label>
+              <span className="lbl">New theme from preset</span>
+              <select required value={preset} onChange={e => setPreset(e.target.value as PresetKey)}>
+                {(Object.keys(PRESETS) as PresetKey[]).filter(k => k !== 'everyday').map(k => <option key={k} value={k}>{PRESETS[k].label}</option>)}
+              </select>
+            </label>
+            <button type="submit" className="button primary" disabled={busy === 'new'} aria-busy={busy === 'new'}>Create draft</button>
+          </form>
+
+          {themes.length === 0 ? <div className="empty">No festival themes yet. Create a draft from a preset, set its dates, then schedule it.</div> : themes.map(t => (
+            <article key={t.id} className="admin-row" style={{ gridTemplateColumns: 'minmax(0,1fr) auto' }} data-testid="theme-row">
+              <div className="admin-row-main">
+                <h3>{t.label}</h3>
+                <p>{fmt(t.startsAtIst)} to {fmt(t.endsAtIst)}</p>
+                <p className="admin-status-line"><span className={`badge ${STATE_BADGE[t.state]}`}>{t.state === 'live' ? 'Live now' : t.state[0].toUpperCase() + t.state.slice(1)}</span></p>
+              </div>
+              {confirming === t.id ? (
+                <div className="admin-confirm" role="group" aria-label={`Confirm delete ${t.label}`}>
+                  <span>Delete this {t.label} theme? This can’t be undone.</span>
+                  <button type="button" className="button" onClick={() => setConfirming(null)}>Cancel</button>
+                  <button type="button" className="button danger" disabled={busy === `del-${t.id}`} aria-busy={busy === `del-${t.id}`}
+                    onClick={() => { void act(`del-${t.id}`, () => call(`/api/admin/themes/${t.id}`, 'DELETE'), 'Theme deleted.').then(() => setConfirming(null)); }}>Yes, delete</button>
+                </div>
+              ) : (
+                <div className="admin-row-actions">
+                  <button type="button" className="button" aria-label={`Edit ${t.label}`} onClick={() => setEditing(t.id)}>Edit</button>
+                  <button type="button" className="button" aria-label={`Preview ${t.label} on the site`} onClick={() => void previewOnSite(t)}>Preview on site</button>
+                  {t.state === 'draft' && <button type="button" className="button primary" aria-label={`Schedule ${t.label}`} disabled={!!busy} onClick={() => void act(`sc-${t.id}`, () => call(`/api/admin/themes/${t.id}/schedule`, 'POST'), `${t.label} scheduled.`)}>Schedule</button>}
+                  {t.state === 'scheduled' && <button type="button" className="button" aria-label={`Unschedule ${t.label}`} disabled={!!busy} onClick={() => void act(`un-${t.id}`, () => call(`/api/admin/themes/${t.id}/schedule`, 'DELETE'), `${t.label} unscheduled.`)}>Unschedule</button>}
+                  {t.state === 'live' && <button type="button" className="button danger-outline" aria-label={`End ${t.label} now`} disabled={!!busy} onClick={() => void act(`end-${t.id}`, () => call(`/api/admin/themes/${t.id}/end`, 'POST'), `${t.label} ended.`)}>End now</button>}
+                  <button type="button" className="button danger-outline" aria-label={`Delete ${t.label}`} onClick={() => setConfirming(t.id)}>Delete</button>
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
