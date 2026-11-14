@@ -12,6 +12,7 @@ import { cityLabeller } from '@/lib/city-label';
 import { pageMetadata } from '@/lib/meta';
 import { SITE } from '@/lib/site';
 import { getRenderTheme } from '@/lib/themes/render';
+import { hasChalkboard } from '@/lib/themes/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,12 +29,12 @@ export const metadata: Metadata = {
 export default async function Home() {
   // Only the theme (already loaded by the layout) and the city list block the page; products, trending and workshops stream in with no placeholder.
   const [cities, theme] = await Promise.all([listActiveCities(), getRenderTheme()]);
-  const { sign, chalkLabel, chalkTitle, chalkSub, bunting, stickers } = theme.config;
+  const { sign, chalkLabel, chalkTitle, chalkSub, chalkHref, bunting, stickers } = theme.config;
   const cityLabel = cityLabeller(cities);
   return (
     <>
       <SignedOutToast />
-      <Hero stall={{ sign, chalkLabel, chalkTitle, chalkSub, bunting, stickers }} />
+      <Hero stall={{ sign, chalkLabel, chalkTitle, chalkSub, ...(hasChalkboard(theme.config) ? { chalkHref: chalkHref ?? '/shop' } : {}), bunting, stickers }} />
       <ValueProps />
       <Suspense fallback={null}><TrendingSection /></Suspense>
       <section className="section" id="shop" aria-labelledby="shop-h">

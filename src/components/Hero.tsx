@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { hasChalkboard } from '@/lib/themes/types';
 import { DEFAULT_STALL, HeroStall, type StallProps } from './HeroStall';
 
 export function Hero({ stall = DEFAULT_STALL }: { stall?: StallProps }) {
@@ -15,7 +16,7 @@ export function Hero({ stall = DEFAULT_STALL }: { stall?: StallProps }) {
           </div>
           <div className="hero-proof"><span>✦ Independent makers</span><span>✦ Local experiences</span><span>✦ Made across India</span></div>
         </div>
-        <div className="hero-art" aria-hidden="true">
+        <div className="hero-art" {...(stall.chalkHref && hasChalkboard(stall) ? {} : { 'aria-hidden': true })}>
           <HeroStall {...stall} />
         </div>
       </section>

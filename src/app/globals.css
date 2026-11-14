@@ -3045,6 +3045,11 @@ main {
   }
 }
 
+/* hero chalkboard as a link */
+.st-board-link { cursor: pointer; }
+.st-board-link:hover rect:first-of-type, .st-board-link:focus-visible rect:first-of-type { stroke: var(--orange); stroke-width: 2; }
+.st-board-link:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
 /* sticker motion (inside the fixed hero SVG only) */
 .flame { transform-box: fill-box; transform-origin: 50% 100%; animation: stk-flick 1.1s ease-in-out infinite alternate; }
 .wave2 { transform-box: fill-box; transform-origin: 0% 100%; animation: stk-wave2 1s ease-in-out infinite alternate; }
