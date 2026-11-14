@@ -47,7 +47,7 @@ export function SourcingTypesAdmin({ initial }: { initial: AdminSourcingType[] }
     <section className="admin-posts">
       <div className="page-head">
         <h1>Sourcing types</h1>
-        <p>How a product came to be listed, such as Handmade, Curated or Resold. Sellers pick one for each product. Only a type that <b>counts as handmade</b> lets the site call a product “handmade”, and <b>badge on cards</b> decides whether its cards carry a label.</p>
+        <p>How a product came to be listed, such as Handmade, Curated or Resold. Sellers pick one for each product. Only a type that <b>counts as handmade</b> lets the site call a product “handmade”, and <b>tag on product page</b> decides whether the product page shows its name as a tag. Cards never show it.</p>
       </div>
       <Toast toast={toast} onClose={closeToast} />
       <PageLoader show={!!busy} label="Working…" blocking={false} />
@@ -64,7 +64,7 @@ export function SourcingTypesAdmin({ initial }: { initial: AdminSourcingType[] }
                 <input id="sourcing-new-name" required value={name} onChange={e => setName(e.target.value)} maxLength={40} minLength={2} title={NAME_HINT} placeholder="For example Upcycled" />
               </label>
               <label className="theme-check"><input type="checkbox" checked={handmade} onChange={e => setHandmade(e.target.checked)} /> Counts as handmade</label>
-              <label className="theme-check"><input type="checkbox" checked={badge} onChange={e => setBadge(e.target.checked)} /> Badge on cards</label>
+              <label className="theme-check"><input type="checkbox" checked={badge} onChange={e => setBadge(e.target.checked)} /> Tag on product page</label>
               <button type="submit" className="button primary" disabled={busy === 'new'} aria-busy={busy === 'new'}>Add type</button>
             </div>
           </form>
@@ -85,7 +85,7 @@ export function SourcingTypesAdmin({ initial }: { initial: AdminSourcingType[] }
                 </p>
                 <div className="sourcing-flags">
                   <label className="theme-check"><input type="checkbox" checked={t.countsAsHandmade} disabled={!!busy} onChange={e => void patch(t, { countsAsHandmade: e.target.checked }, 'Saved.')} /> Counts as handmade</label>
-                  <label className="theme-check"><input type="checkbox" checked={t.showBadge} disabled={!!busy} onChange={e => void patch(t, { showBadge: e.target.checked }, 'Saved.')} /> Badge on cards</label>
+                  <label className="theme-check"><input type="checkbox" checked={t.showBadge} disabled={!!busy} onChange={e => void patch(t, { showBadge: e.target.checked }, 'Saved.')} /> Tag on product page</label>
                 </div>
               </div>
               {confirming === t.id ? (

@@ -601,6 +601,18 @@ h2 em {
   letter-spacing: 0.8px;
   text-transform: uppercase;
 }
+.detail-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0; }
+/* How the product was sourced (Curated, Resold ...): shown on the product page only, never on cards */
+.source-tag {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  padding: 4px 11px;
+  border-radius: 14px;
+  background: var(--cream);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
 .product-info h3 {
   font: 500 17px var(--font-display);
   margin: 8px 0;
