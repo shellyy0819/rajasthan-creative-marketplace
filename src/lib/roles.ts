@@ -14,11 +14,12 @@ export async function resolveAccess(email: string): Promise<Access> {
   const e = normEmail(email);
   if (roleFor(e) === 'admin') return { role: 'admin', active: true }; // the bootstrap admin can never be locked out
   try {
-    const [u] = await getDb().select({ id: users.id, active: users.active }).from(users).where(sql`lower(${users.email}) = ${e}`);
-    if (!u) return { role: 'customer', active: true };
-    if (!u.active) return { role: 'customer', active: false };
-    const rows = await getDb().select({ roleId: userRoles.roleId }).from(userRoles).where(eq(userRoles.userId, u.id));
-    const ids = rows.map(r => r.roleId);
+    // One round trip: the user and every role they hold.
+    const rows = await getDb().select({ active: users.active, roleId: userRoles.roleId }).from(users)
+      .leftJoin(userRoles, eq(userRoles.userId, users.id)).where(sql`lower(${users.email}) = ${e}`);
+    if (!rows.length) return { role: 'customer', active: true };
+    if (!rows[0].active) return { role: 'customer', active: false };
+    const ids = rows.flatMap(r => (r.roleId == null ? [] : [r.roleId]));
     return { role: ids.includes(ROLE_ID.admin) ? 'admin' : ids.includes(ROLE_ID.seller) ? 'seller' : 'customer', active: true };
   } catch (err) {
     console.error('role lookup failed; treating the user as a customer', err);
