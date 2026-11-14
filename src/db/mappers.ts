@@ -4,7 +4,7 @@ import type { AdminProduct, Booking, Order, OrderItem, Product, Workshop } from 
 import { artistSlug } from '../lib/artist-slug';
 import { publicLogo } from '../lib/public-logo';
 import type { Q } from './client';
-import { bookings, cities, orderItems, orders, products, sellerProfiles, users, workshops } from './schema';
+import { bookings, cities, orderItems, orders, products, sellerProfiles, sourcingTypes, users, workshops } from './schema';
 
 type ProductRow = typeof products.$inferSelect;
 type WorkshopRow = typeof workshops.$inferSelect;
@@ -35,6 +35,9 @@ export const productSelect = {
   artistBio: sellerProfiles.bio,
   sellerLogo: sellerProfiles.logoUrl,
   artistCityName: artistCities.name,
+  sourcingName: sourcingTypes.name,
+  sourcingHandmade: sourcingTypes.countsAsHandmade,
+  sourcingBadge: sourcingTypes.showBadge,
   images: sql<string[] | string>`coalesce((select json_agg(pim.url order by pim.position) from product_images pim where pim.product_id = ${products.id}), '[]'::json)`,
   likeCount: sql<number>`(select count(*) from product_likes pl where pl.product_id = ${products.id})`.mapWith(Number),
   publishedByEmail: sql<string | null>`(select pu.email from users pu where pu.id = ${products.publishedBy})`,
@@ -43,12 +46,14 @@ export const productSelect = {
 export type ProductJoinRow = {
   p: ProductRow; cityName: string; citySlug: string; cityState: string | null; sellerName: string; sellerEmail: string;
   publicPhone: string | null; contactMethods: string[] | null; publicEmail: string | null; instagram: string | null; youtube: string | null; artistBio: string | null; sellerLogo?: string | null; artistCityName: string | null;
+  sourcingName: string; sourcingHandmade: boolean; sourcingBadge: boolean;
   publishedByEmail: string | null; workshopTitle: string | null; likeCount: number; images: string[] | string;
 };
 /** SELECT products + seller + profile. Add .where(...) / .orderBy(...) / .for('update', { of: products }) as needed. */
 export const productsQuery = (q: Q) =>
   q.select(productSelect).from(products)
     .innerJoin(cities, eq(cities.id, products.cityId))
+    .innerJoin(sourcingTypes, eq(sourcingTypes.id, products.sourcingTypeId))
     .innerJoin(users, eq(users.id, products.sellerId))
     .leftJoin(sellerProfiles, eq(sellerProfiles.userId, users.id))
     .leftJoin(artistCities, eq(artistCities.id, sellerProfiles.cityId));
@@ -65,6 +70,7 @@ export const publicPhoneOf = (phone: string | null | undefined, methods: readonl
 export const toProduct = (r: ProductJoinRow): Product => ({
   id: r.p.id, name: r.p.name, category: r.p.category, city: r.cityName, cityId: r.p.cityId, citySlug: r.citySlug, pricePaise: r.p.pricePaise,
   ...opt('cityState', r.cityState),
+  sourcing: { id: r.p.sourcingTypeId, name: r.sourcingName, countsAsHandmade: r.sourcingHandmade, showBadge: r.sourcingBadge },
   seller: r.sellerName, description: r.p.description, stock: r.p.stock, status: r.p.status,
   ...opt('instagram', r.instagram), ...opt('youtube', r.youtube), ...opt('phone', publicPhoneOf(r.publicPhone, r.contactMethods)),
   ...opt('email', r.publicEmail), ...opt('workshopId', r.p.workshopId),
@@ -81,10 +87,10 @@ export const toAdminProduct = (r: ProductJoinRow): AdminProduct => ({
   createdAt: r.p.createdAt.toISOString(), updatedAt: r.p.updatedAt.toISOString(),
 });
 
-export type ProductInput = Omit<Product, 'id' | 'seller' | 'instagram' | 'youtube' | 'phone' | 'email' | 'city' | 'citySlug' | 'cityState'> & { pickupLocation?: string };
+export type ProductInput = Omit<Product, 'id' | 'seller' | 'instagram' | 'youtube' | 'phone' | 'email' | 'city' | 'citySlug' | 'cityState' | 'sourcing'> & { pickupLocation?: string; sourcingTypeId: number };
 /** undefined → null so that UPDATE really clears a field (Drizzle ignores undefined keys). */
 export const toProductRow = (p: ProductInput) => ({
-  name: p.name, category: p.category, cityId: p.cityId, pricePaise: p.pricePaise, description: p.description,
+  name: p.name, category: p.category, cityId: p.cityId, sourcingTypeId: p.sourcingTypeId, pricePaise: p.pricePaise, description: p.description,
   stock: p.stock, status: p.status, workshopId: p.workshopId ?? null,
   pickupLocation: p.pickupLocation ?? null,
 });

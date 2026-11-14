@@ -64,11 +64,27 @@ export const categories = pgTable('categories', {
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }, t => [uniqueIndex('categories_name_lower_idx').on(sql`lower(${t.name})`)]);
 
+/**
+ * Admin-managed ways a product came to be listed (Handmade, Curated, Resold, ...). `countsAsHandmade` is the only thing that lets the
+ * site call a product "handmade"; `showBadge` decides whether its cards carry a label. Types in use are deactivated, never deleted.
+ */
+export const sourcingTypes = pgTable('sourcing_types', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  countsAsHandmade: boolean('counts_as_handmade').notNull().default(false),
+  showBadge: boolean('show_badge').notNull().default(true),
+  position: integer('position').notNull(),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [uniqueIndex('sourcing_types_name_lower_idx').on(sql`lower(${t.name})`)]);
+
 export const products = pgTable('products', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   category: text('category').notNull().references(() => categories.name, { onUpdate: 'cascade', onDelete: 'restrict' }),
   cityId: integer('city_id').notNull().references(() => cities.id, { onDelete: 'restrict' }),
+  // The app always sends an explicit id; the default (1 = the seeded Handmade row) only covers legacy raw inserts.
+  sourcingTypeId: integer('sourcing_type_id').notNull().default(1).references(() => sourcingTypes.id, { onDelete: 'restrict' }),
   pricePaise: integer('price_paise'),
   description: text('description').notNull(),
   stock: integer('stock').notNull(),
@@ -89,6 +105,7 @@ export const products = pgTable('products', {
   index('products_seller_idx').on(t.sellerId),
   index('products_workshop_idx').on(t.workshopId),
   index('products_city_idx').on(t.cityId),
+  index('products_sourcing_idx').on(t.sourcingTypeId),
 ]);
 
 export const workshops = pgTable('workshops', {

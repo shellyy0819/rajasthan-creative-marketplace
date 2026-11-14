@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import type { AdminProduct as Product, SellerProfile } from "@/lib/types";
+import type { AdminProduct as Product, SellerProfile, SourcingType } from "@/lib/types";
 import type { AdminArtist } from "@/lib/admin-posts";
 import { artistKey } from "@/lib/artist";
 import { productSlug } from "@/lib/catalog-shared";
@@ -37,6 +37,7 @@ export function PostsAdmin({
   initialArtists,
   role,
   categories: initialCategories = [],
+  sourcingTypes = [],
   workshops = [],
   sellers = [],
   me,
@@ -48,6 +49,7 @@ export function PostsAdmin({
   initialArtists: AdminArtist[];
   role: "admin" | "seller";
   categories?: string[];
+  sourcingTypes?: SourcingType[];
   workshops?: WorkshopOption[];
   sellers?: SellerOption[];
   me?: SellerOption;
@@ -438,6 +440,7 @@ export function PostsAdmin({
           initial={editing === "new" ? undefined : editing}
           role={role}
           categories={categories}
+          sourcingTypes={sourcingTypes}
           onCategoryCreated={(name) => setCategories((c) => (c.includes(name) ? c : [...c, name]))}
           workshops={workshops}
           sellers={sellers}
