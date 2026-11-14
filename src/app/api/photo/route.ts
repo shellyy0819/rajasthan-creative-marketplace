@@ -30,21 +30,20 @@ const reply = (body: Buffer) => new Response(new Uint8Array(body), { headers: { 
 
 // Load limits. Resizing is CPU and memory work, so it is rationed:
 //  - at most MAX_PARALLEL photos are fetched and shrunk at once; others wait in line, and when the line is full the answer is 503
-//    (the page then shows the original photo, so nothing breaks); nobody waits in line longer than 4 seconds;
+//    (the page then shows the original photo, so nothing breaks);
+//  - a visitor waits at most MAX_WAIT_MS for their copy (the original photo loads faster than a long wait), but the job stays in line and
+//    finishes, so the next visitor gets the copy from memory;
 //  - several requests for the same photo share one job;
 //  - each network address gets a share of requests per minute (a page of cards is about 25 requests).
 const MAX_PARALLEL = 3, MAX_WAITING = 40, MAX_WAIT_MS = 4000;
 let running = 0;
 const waiting: Array<() => void> = [];
-/** A place to work, or false when the line is full or the wait runs past MAX_WAIT_MS (the original photo loads faster than a long wait). */
+/** A place to work, or false when the line is full. */
 async function turn(): Promise<boolean> {
   if (running < MAX_PARALLEL) { running++; return true; }
   if (waiting.length >= MAX_WAITING) return false;
-  return new Promise<boolean>(resolve => {
-    const go = () => { clearTimeout(timer); resolve(true); };   // the finishing job hands its place straight to us
-    const timer = setTimeout(() => { const i = waiting.indexOf(go); if (i >= 0) waiting.splice(i, 1); resolve(false); }, MAX_WAIT_MS);
-    waiting.push(go);
-  });
+  await new Promise<void>(go => waiting.push(go));   // the finishing job hands its place straight to us
+  return true;
 }
 function done() { const next = waiting.shift(); if (next) next(); else running--; }
 const inFlight = new Map<string, Promise<Buffer | null | 'busy'>>();
@@ -94,7 +93,7 @@ export async function GET(req: Request) {
     inFlight.set(memo, job);
     void job.finally(() => inFlight.delete(memo));
   }
-  const out = await job;
+  const out = await Promise.race([job, new Promise<'busy'>(r => { setTimeout(() => r('busy'), MAX_WAIT_MS).unref?.(); })]);
   if (out === 'busy') return new Response(null, { status: 503, headers: { 'retry-after': '5' } });
   if (!out) return new Response(null, { status: 404 });
   remember(memo, out);

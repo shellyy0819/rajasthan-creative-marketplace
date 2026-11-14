@@ -126,19 +126,21 @@ describe('load limits', () => {
     expect((await call(q(`${BASE}/products/load/after.jpg`))).status).toBe(200);
   });
 
-  it('stops waiting after four seconds so the page can use the original instead', async () => {
+  it('answers 503 after four seconds so the page can use the original, but finishes the job for the next visitor', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
     try {
       let release!: () => void;
       const slow = new Promise<void>(r => { release = r; });
       vi.stubGlobal('fetch', vi.fn(async () => { await slow; return new Response(new Uint8Array(original), { headers: { 'content-length': String(original.length) } }); }));
-      const all = photos(5).map(u => call(q(u)));        // 3 start working, 2 wait in line
+      const first = call(q(PHOTO));
       await vi.advanceTimersByTimeAsync(4100);
-      const late = await Promise.all(all.slice(3));
-      expect(late.map(r => r.status)).toEqual([503, 503]);
+      expect((await first).status).toBe(503);
       release();
-      const first = await Promise.all(all.slice(0, 3));
-      expect(first.map(r => r.status)).toEqual([200, 200, 200]);
+      await vi.advanceTimersByTimeAsync(10);
+      await new Promise(r => setImmediate(r));
+      const again = await call(q(PHOTO));            // the job finished meanwhile: served from memory, no second fetch
+      expect(again.status).toBe(200);
+      expect(fetch).toHaveBeenCalledTimes(1);
     } finally { vi.useRealTimers(); }
   });
 
