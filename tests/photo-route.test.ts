@@ -128,7 +128,9 @@ describe('load limits', () => {
 
   it('gives each network address a share of requests per minute', async () => {
     const limited = photoIpLimiter;
-    const req = () => GET(new Request(`http://x/api/photo?${q(PHOTO)}`, { headers: { 'x-forwarded-for': '198.51.100.7' } }));
+    // A client can put anything at the front of X-Forwarded-For; the entry our proxy added at the end is the one that counts.
+    let n2 = 0;
+    const req = () => GET(new Request(`http://x/api/photo?${q(PHOTO)}`, { headers: { 'x-forwarded-for': `9.9.${n2++ % 250}.${n2 % 250}, 198.51.100.7` } }));
     let blocked = 0;
     for (let i = 0; i < 650; i++) if ((await req()).status === 429) blocked++;
     expect(blocked).toBeGreaterThan(0);

@@ -1,4 +1,3 @@
-import { clientIp } from '@/lib/actors';
 import { createLimiter } from '@/lib/rate-limit';
 import { keyFromUrl, storageConfig } from '@/lib/storage';
 import { PHOTO_WIDTHS } from '@/lib/photo-sizes';
@@ -46,6 +45,11 @@ async function turn(): Promise<boolean> {
 function done() { const next = waiting.shift(); if (next) next(); else running--; }
 const inFlight = new Map<string, Promise<Buffer | null | 'busy'>>();
 export let photoIpLimiter = createLimiter(600, 60_000);
+/** The address our own proxy saw: the last X-Forwarded-For entry. The first entries are whatever the client sent, so they must not decide who is limited. */
+export function proxyAddress(h: { get(name: string): string | null }): string {
+  const last = h.get('x-forwarded-for')?.split(',').pop()?.trim();
+  return last || h.get('x-real-ip')?.trim() || 'unknown';
+}
 
 async function make(src: string, w: number): Promise<Buffer | null> {
   try {
@@ -73,7 +77,7 @@ export async function GET(req: Request) {
   const src = q.get('u') ?? '';
   const cfg = storageConfig();
   if (!cfg || !(PHOTO_WIDTHS as readonly number[]).includes(w) || !keyFromUrl(cfg, src)) return new Response(null, { status: 404 });
-  if (!photoIpLimiter.hit(clientIp(req.headers))) return new Response(null, { status: 429, headers: { 'retry-after': '60' } });
+  if (!photoIpLimiter.hit(proxyAddress(req.headers))) return new Response(null, { status: 429, headers: { 'retry-after': '60' } });
   const memo = `${w}:${src}`;
   const hit = recall(memo);
   if (hit) return reply(hit);
