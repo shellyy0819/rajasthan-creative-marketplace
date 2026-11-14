@@ -37,6 +37,17 @@ describe('GET /api/photo', () => {
     expect((await call(qs)).status).toBe(200);
     expect(fetch).toHaveBeenCalledTimes(1);
   });
+  it('forgets a copy after five minutes, and reading it does not extend that', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const qs = `w=480&u=${encodeURIComponent(PHOTO)}`;
+      await call(qs);
+      vi.advanceTimersByTime(4 * 60_000); await call(qs);
+      expect(fetch).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(2 * 60_000); await call(qs);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    } finally { vi.useRealTimers(); }
+  });
   it('never enlarges a photo that is already small', async () => {
     original = await sharp({ create: { width: 300, height: 200, channels: 3, background: '#405746' } }).jpeg().toBuffer();
     const res = await call(`w=960&u=${encodeURIComponent(PHOTO)}`);
