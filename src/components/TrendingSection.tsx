@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { ProductGrid } from './ProductGrid';
-import { trending } from '@/lib/trending';
+import { getHomeTrending } from '@/lib/home-cache';
 
 /** Home-page row of what people are loving this week. Hidden until something actually trends. */
 export async function TrendingSection() {
-  const items = await trending({ limit: 6 });
+  const items = await getHomeTrending();
   if (!items.length) return null;
   return (
     <section className="section" id="trending" aria-labelledby="trending-h">

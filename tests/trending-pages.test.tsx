@@ -15,6 +15,7 @@ vi.mock('@/components/TrackedLink', () => ({ TrackedLink: ({ productId, type, ..
 vi.mock('@/lib/request-origin', () => ({ requestOrigin: async () => 'http://localhost:3000' }));
 const nav = vi.hoisted(() => ({ notFound: vi.fn(() => { throw new Error('NOT_FOUND'); }) }));
 vi.mock('next/navigation', () => nav);
+vi.mock('next/cache', async orig => ({ ...(await orig<typeof import('next/cache')>()), unstable_cache: (fn: unknown) => fn })); // no Next cache outside a request: call straight through
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TrendingSection } from '@/components/TrendingSection';
 import { HomeShelf } from '@/components/HomeShelf';
@@ -176,7 +177,7 @@ describe('product page wiring (source contract)', () => {
   it('records a view, links to the artist page with the product id, and tracks all four contact links', () => {
     expect(src).toContain('<TrackOnMount productId={p.id} type="view" />');
     expect(src).toContain('/artists/${p.sellerSlug}?from=${p.id}');
-    expect(src.match(/<TrackedLink productId=\{p\.id\} type="contact"/g)).toHaveLength(4);   // instagram, youtube, phone, email
+    expect(src.match(/<TrackedLink productId=\{p\.id\} sellerSlug=\{p\.sellerSlug\} method="(instagram|youtube|call|email)" type="contact"/g)).toHaveLength(4);   // instagram, youtube, phone, email, each with its GA method
     expect(src).toContain('<LikeButton');
     expect(src).not.toMatch(/<a href=\{(instagramUrl|youtubeUrl)/);                         // no untracked social links left
   });
