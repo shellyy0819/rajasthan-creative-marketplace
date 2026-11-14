@@ -2863,6 +2863,8 @@ main {
   padding-bottom: 4px;
   justify-content: center;
 }
+.gallery-thumbs .gallery-thumb:first-child { margin-left: auto; }   /* centred when they fit, still scrollable from the first one when they do not */
+.gallery-thumbs .gallery-thumb:last-child { margin-right: auto; }
 .gallery-thumb {
   flex: none;
   width: 64px;
