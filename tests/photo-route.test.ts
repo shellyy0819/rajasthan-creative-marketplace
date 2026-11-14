@@ -28,6 +28,12 @@ describe('GET /api/photo', () => {
     expect(meta.width).toBe(960);
     expect(out.length).toBeLessThan(original.length);
   });
+  it('does not fetch or resize the same photo twice in a row', async () => {
+    const qs = `w=480&u=${encodeURIComponent(`${BASE}/products/user-1/twice.jpg`)}`;
+    expect((await call(qs)).status).toBe(200);
+    expect((await call(qs)).status).toBe(200);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
   it('never enlarges a photo that is already small', async () => {
     original = await sharp({ create: { width: 300, height: 200, channels: 3, background: '#405746' } }).jpeg().toBuffer();
     const res = await call(`w=960&u=${encodeURIComponent(PHOTO)}`);
