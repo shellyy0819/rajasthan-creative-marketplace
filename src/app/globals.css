@@ -2610,6 +2610,9 @@ main {
   height: 1px;
   overflow: hidden;
 }
+/* City page: the workshop band stacks its heading above the list instead of using the home page two-column intro layout */
+.workshop-band.stacked { display: block; }
+.workshop-band.stacked .section-heading { margin-bottom: 20px; }
 .admin-table-wrap {
   overflow-x: auto;
   margin-top: 16px;
