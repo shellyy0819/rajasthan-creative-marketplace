@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import sharp from 'sharp';
-import { GET } from '@/app/api/photo/route';
+import { GET, photoIpLimiter } from '@/app/api/photo/route';
 import { canResize, resizedSrcSet, resizedUrl } from '@/lib/photo-sizes';
 
 const BASE = 'https://bkt.s3.ap-south-1.amazonaws.com';
@@ -88,5 +88,50 @@ describe('photo-sizes', () => {
   it('builds an encoded address and a srcset of three widths', () => {
     expect(resizedUrl(PHOTO, 960)).toBe(`/api/photo?w=960&u=${encodeURIComponent(PHOTO)}`);
     expect(resizedSrcSet(PHOTO).split(', ')).toHaveLength(3);
+  });
+});
+
+describe('load limits', () => {
+  const photos = (n: number) => Array.from({ length: n }, (_, i) => `${BASE}/products/load/${PHOTO.length}-${n}-${i}.jpg`);
+  const q = (u: string) => `w=480&u=${encodeURIComponent(u)}`;
+
+  it('shares one job between simultaneous requests for the same photo', async () => {
+    const calls = await Promise.all(Array.from({ length: 25 }, () => call(q(PHOTO))));
+    expect(calls.every(r => r.status === 200)).toBe(true);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('never works on more than three photos at once, and still answers all of them', async () => {
+    let active = 0, peak = 0;
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      active++; peak = Math.max(peak, active);
+      await new Promise(r => setTimeout(r, 15));
+      active--;
+      return new Response(new Uint8Array(original), { headers: { 'content-length': String(original.length) } });
+    }));
+    const res = await Promise.all(photos(30).map(u => call(q(u))));
+    expect(res.every(r => r.status === 200)).toBe(true);
+    expect(peak).toBeLessThanOrEqual(3);
+  });
+
+  it('answers 503 when the line is full, so the page shows the original instead of waiting forever', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { await new Promise(r => setTimeout(r, 40)); return new Response(new Uint8Array(original), { headers: { 'content-length': String(original.length) } }); }));
+    const res = await Promise.all(photos(120).map(u => call(q(u))));
+    const ok = res.filter(r => r.status === 200).length, busy = res.filter(r => r.status === 503).length;
+    expect(ok + busy).toBe(120);
+    expect(busy).toBeGreaterThan(0);
+    expect(ok).toBeGreaterThanOrEqual(40);
+    expect(res.find(r => r.status === 503)!.headers.get('retry-after')).toBe('5');
+    // and it recovers once the work has drained
+    expect((await call(q(`${BASE}/products/load/after.jpg`))).status).toBe(200);
+  });
+
+  it('gives each network address a share of requests per minute', async () => {
+    const limited = photoIpLimiter;
+    const req = () => GET(new Request(`http://x/api/photo?${q(PHOTO)}`, { headers: { 'x-forwarded-for': '198.51.100.7' } }));
+    let blocked = 0;
+    for (let i = 0; i < 650; i++) if ((await req()).status === 429) blocked++;
+    expect(blocked).toBeGreaterThan(0);
+    expect(limited.size()).toBeGreaterThan(0);
   });
 });

@@ -1,3 +1,5 @@
+import { clientIp } from '@/lib/actors';
+import { createLimiter } from '@/lib/rate-limit';
 import { keyFromUrl, storageConfig } from '@/lib/storage';
 import { PHOTO_WIDTHS } from '@/lib/photo-sizes';
 export const dynamic = 'force-dynamic';
@@ -27,6 +29,39 @@ const recall = (k: string): Buffer | undefined => {
 };
 const reply = (body: Buffer) => new Response(new Uint8Array(body), { headers: { 'content-type': 'image/webp', 'cache-control': CACHE, 'x-content-type-options': 'nosniff' } });
 
+// Load limits. Resizing is CPU and memory work, so it is rationed:
+//  - at most MAX_PARALLEL photos are fetched and shrunk at once; others wait in line, and when the line is full the answer is 503
+//    (the page then shows the original photo, so nothing breaks);
+//  - several requests for the same photo share one job;
+//  - each network address gets a share of requests per minute (a page of cards is about 25 requests).
+const MAX_PARALLEL = 3, MAX_WAITING = 40;
+let running = 0;
+const waiting: Array<() => void> = [];
+async function turn(): Promise<boolean> {
+  if (running < MAX_PARALLEL) { running++; return true; }
+  if (waiting.length >= MAX_WAITING) return false;
+  await new Promise<void>(go => waiting.push(go));   // the finishing job hands its place straight to us
+  return true;
+}
+function done() { const next = waiting.shift(); if (next) next(); else running--; }
+const inFlight = new Map<string, Promise<Buffer | null | 'busy'>>();
+export let photoIpLimiter = createLimiter(600, 60_000);
+
+async function make(src: string, w: number): Promise<Buffer | null> {
+  try {
+    const res = await fetch(src, { signal: AbortSignal.timeout(8000), cache: 'no-store' });
+    const len = Number(res.headers.get('content-length') ?? 0);
+    if (!res.ok || len > MAX_SOURCE_BYTES) return null;
+    const input = Buffer.from(await res.arrayBuffer());
+    if (input.length > MAX_SOURCE_BYTES) return null;
+    const sharp = (await import('sharp')).default;
+    return await sharp(input, { limitInputPixels: 80_000_000 }).rotate().resize({ width: w, withoutEnlargement: true }).webp({ quality: 78 }).toBuffer();
+  } catch (e) {
+    console.error('Photo resize failed; the page will show the original.', e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
 /**
  * A smaller copy of one of our own product photos. Phones were downloading the original 1 to 5 MB uploads to fill a 380 px card.
  * Only urls inside this bucket's products/ area are served (this is not an open image proxy); anything else, or any failure, is a plain 404
@@ -38,21 +73,22 @@ export async function GET(req: Request) {
   const src = q.get('u') ?? '';
   const cfg = storageConfig();
   if (!cfg || !(PHOTO_WIDTHS as readonly number[]).includes(w) || !keyFromUrl(cfg, src)) return new Response(null, { status: 404 });
+  if (!photoIpLimiter.hit(clientIp(req.headers))) return new Response(null, { status: 429, headers: { 'retry-after': '60' } });
   const memo = `${w}:${src}`;
   const hit = recall(memo);
   if (hit) return reply(hit);
-  try {
-    const res = await fetch(src, { signal: AbortSignal.timeout(8000), cache: 'no-store' });
-    const len = Number(res.headers.get('content-length') ?? 0);
-    if (!res.ok || len > MAX_SOURCE_BYTES) return new Response(null, { status: 404 });
-    const input = Buffer.from(await res.arrayBuffer());
-    if (input.length > MAX_SOURCE_BYTES) return new Response(null, { status: 404 });
-    const sharp = (await import('sharp')).default;
-    const out = await sharp(input, { limitInputPixels: 80_000_000 }).rotate().resize({ width: w, withoutEnlargement: true }).webp({ quality: 78 }).toBuffer();
-    remember(memo, out);
-    return reply(out);
-  } catch (e) {
-    console.error('Photo resize failed; the page will show the original.', e instanceof Error ? e.message : e);
-    return new Response(null, { status: 404 });
+  let job = inFlight.get(memo);
+  if (!job) {
+    job = (async () => {
+      if (!(await turn())) return 'busy' as const;   // the line is full
+      try { return await make(src, w); } finally { done(); }
+    })();
+    inFlight.set(memo, job);
+    void job.finally(() => inFlight.delete(memo));
   }
+  const out = await job;
+  if (out === 'busy') return new Response(null, { status: 503, headers: { 'retry-after': '5' } });
+  if (!out) return new Response(null, { status: 404 });
+  remember(memo, out);
+  return reply(out);
 }
