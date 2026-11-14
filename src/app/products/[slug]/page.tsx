@@ -42,11 +42,9 @@ export default async function ProductPage({ params }: Props) {
       <article className="detail">
         <ProductGallery images={p.images ?? (p.imageUrl ? [p.imageUrl] : [])} alt={p.name} variant={i} fallback={<ProductPlaceholder />} />
         <div>
-          <p className="detail-tags">
-            <span className="product-meta">{p.category}</span>
-            {p.sourcing?.showBadge && <span className="source-tag" data-testid="sourcing-tag">{p.sourcing.name}</span>}
-          </p>
+          <span className="product-meta">{p.category}</span>
           <h1>{p.name}</h1>
+          {p.sourcing?.showBadge && <p className="detail-tags"><span className="source-tag" data-testid="sourcing-tag">{p.sourcing.name}</span></p>}
           <LikeButton productId={p.id} initialCount={p.likeCount ?? 0} productName={p.name} />
           <TrackOnMount productId={p.id} type="view" />
           <p className="lead">{p.description}</p>
