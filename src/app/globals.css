@@ -1381,7 +1381,18 @@ form label select {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.35s ease;
 }
+.product-photo.is-loaded { opacity: 1; }
+/* Shimmer inside the image box while the photo downloads */
+.photo-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, #ffffff00 20%, #ffffff1f 50%, #ffffff00 80%) 200% 0 / 200% 100% no-repeat;
+  animation: dash-skel-shimmer 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) { .photo-shimmer { animation: none; } }
 .admin-shell {
   min-height: 60vh;
 }
@@ -3799,7 +3810,7 @@ body.modal-open {
 }
 /* Cards fill edge to edge (the product page keeps the whole photo visible). */
 .product-card .product-photo {
-  object-fit: cover;
+  object-fit: contain;
 }
 /* Click a photo in the dashboard to see it full size. */
 .photo-open {
