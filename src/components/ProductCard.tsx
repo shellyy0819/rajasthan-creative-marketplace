@@ -6,8 +6,8 @@ import { ArtistAvatar } from './ArtistAvatar';
 import { ContactArtistButton } from './ContactArtistButton';
 import { LikeButton } from './LikeButton';
 import { ProductImage } from './ProductImage';
+import { ProductPlaceholder } from './ProductPlaceholder';
 
-export const SYMBOLS = ['🌷', '⛵', '🌼', '🏺', '🧶', '🌸'];
 export const visualIndex = (id: string) => Number(id.replace(/\D/g, '')) || 0;
 
 export function ProductCard({ p }: { p: Product }) {
@@ -15,7 +15,7 @@ export function ProductCard({ p }: { p: Product }) {
   const low = p.stock > 0 && p.stock <= 2;
   return (
     <article className="product-card">
-      <div className={`product-visual visual-${i % 4}`}><ProductImage src={p.imageUrl} alt={p.name} fallback={<span className="symbol" aria-hidden="true">{SYMBOLS[i % SYMBOLS.length]}</span>} /></div>
+      <div className={`product-visual visual-${i % 4}`}><ProductImage src={p.imageUrl} alt={p.name} fallback={<ProductPlaceholder />} /></div>
       <div className="pc-top">
         <span className="pc-chips">
           <span className="pc-chip">{p.category}</span>
