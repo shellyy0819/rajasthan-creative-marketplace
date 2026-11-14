@@ -1,3 +1,4 @@
+import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import { handle, json, readJson } from '@/lib/api';
 import { requireAdmin } from '@/lib/authz';
@@ -10,12 +11,15 @@ export const PATCH = (req: Request, { params }: Ctx) => handle(async () => {
   const admin = requireAdmin(await auth());
   const { id } = await params;
   if (!UUID.test(id)) return NOT_FOUND();
-  return json(await updateUser(id, await readJson(req), admin.email));
+  const updated = await updateUser(id, await readJson(req), admin.email);
+  revalidatePath('/', 'layout'); // a deactivated or re-roled seller must not stay in cached public pages
+  return json(updated);
 });
 export const DELETE = (_req: Request, { params }: Ctx) => handle(async () => {
   const admin = requireAdmin(await auth());
   const { id } = await params;
   if (!UUID.test(id)) return NOT_FOUND();
   await deleteUser(id, admin.email);
+  revalidatePath('/', 'layout');
   return json({ ok: true });
 });
