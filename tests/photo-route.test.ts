@@ -17,11 +17,12 @@ beforeEach(async () => {
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 describe('GET /api/photo', () => {
-  it('serves a smaller webp copy of a photo in our bucket, cached for a year', async () => {
+  it('serves a smaller webp copy of a photo in our bucket, cached for a day', async () => {
     const res = await call(`w=960&u=${encodeURIComponent(PHOTO)}`);
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toBe('image/webp');
-    expect(res.headers.get('cache-control')).toContain('immutable');
+    expect(res.headers.get('cache-control')).toContain('max-age=86400');
+    expect(res.headers.get('cache-control')).not.toContain('immutable');
     const out = Buffer.from(await res.arrayBuffer());
     const meta = await sharp(out).metadata();
     expect(meta.width).toBe(960);

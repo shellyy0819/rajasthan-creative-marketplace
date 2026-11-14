@@ -61,7 +61,7 @@ export function keyFromUrl(cfg: StorageConfig, url: string): string | undefined 
   return key;
 }
 
-export const UPLOAD_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+export const UPLOAD_CACHE_CONTROL = 'public, max-age=86400';
 
 /** A short-lived S3 POST form allowing exactly one key, exactly the declared type, 1 byte to 5 MB. */
 export async function presignUpload(
@@ -74,7 +74,7 @@ export async function presignUpload(
   const key = newKey(cfg, userId, contentType, area);
   const { url, fields } = await createPost(new S3Client({ region: cfg.region }), {
     Bucket: cfg.bucket, Key: key, Expires: 300,
-    // Keys are random and never reused, so browsers may keep an upload for a year.
+    // A day, so a photo a seller removes does not stay in browsers for long.
     Fields: { 'Content-Type': contentType, 'Cache-Control': UPLOAD_CACHE_CONTROL },
     Conditions: [['content-length-range', 1, MAX_IMAGE_BYTES], ['eq', '$Content-Type', contentType], ['eq', '$Cache-Control', UPLOAD_CACHE_CONTROL]],
   });
