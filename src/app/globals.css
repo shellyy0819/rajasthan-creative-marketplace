@@ -1866,6 +1866,14 @@ select:disabled {
     padding-right: 5%;
   }
 }
+
+/* Dashboard page placeholder while a tab loads (src/app/dashboard/loading.tsx) */
+.dash-skel { display: block; border-radius: 6px; background: linear-gradient(90deg, var(--cream) 0%, var(--line) 50%, var(--cream) 100%); background-size: 200% 100%; animation: dash-skel-shimmer 1.4s ease-in-out infinite; }
+.dash-skel-title { height: 40px; width: min(360px, 70%); }
+.dash-skel-list { display: grid; gap: 12px; }
+.dash-skel-row { height: 84px; }
+@keyframes dash-skel-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .dash-skel { animation: none; } }
 .badge.role {
   background: var(--chip-green);
   color: var(--green);
@@ -4486,6 +4494,8 @@ button.fair-opt:hover { background: var(--cream); }
 .fair-fs:hover { border-color: var(--green); }
 .fair-menu { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); box-shadow: 0 10px 30px #0000004d; }
 .fair-menu .button { justify-content: space-between; }
+.fair-sound svg { color: var(--green); }
+.fair-sound[aria-pressed="false"] svg { color: var(--muted); }
 .fair-toolbar .button[aria-pressed="true"] { border-color: var(--green); }
 .fair-time { position: absolute; left: 10px; top: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px 7px 10px; border-radius: 30px; background: var(--stall-board); color: var(--stall-chalk); font: 600 11px var(--font-sans); pointer-events: none; }
 .fair-time-icon { width: 12px; height: 12px; border-radius: 50%; background: #ffd27a; box-shadow: 0 0 9px #ffd27a; }
