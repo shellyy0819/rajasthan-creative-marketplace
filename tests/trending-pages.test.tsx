@@ -96,7 +96,8 @@ describe('city listings come from active cities', () => {
 
   it('the city page renders an active city with its products and workshops', async () => {
     render(await cityPage('udaipur'));
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Handmade products & workshops in Udaipur');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Products & workshops in Udaipur');
+    expect(screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent)).toEqual(['Products', 'Workshops']);
     expect(document.querySelectorAll('.product-card')).toHaveLength(2);
   });
   it('the city page for a city with only archived products calls notFound', async () => {
