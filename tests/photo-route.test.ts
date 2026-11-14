@@ -126,6 +126,22 @@ describe('load limits', () => {
     expect((await call(q(`${BASE}/products/load/after.jpg`))).status).toBe(200);
   });
 
+  it('stops waiting after four seconds so the page can use the original instead', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    try {
+      let release!: () => void;
+      const slow = new Promise<void>(r => { release = r; });
+      vi.stubGlobal('fetch', vi.fn(async () => { await slow; return new Response(new Uint8Array(original), { headers: { 'content-length': String(original.length) } }); }));
+      const all = photos(5).map(u => call(q(u)));        // 3 start working, 2 wait in line
+      await vi.advanceTimersByTimeAsync(4100);
+      const late = await Promise.all(all.slice(3));
+      expect(late.map(r => r.status)).toEqual([503, 503]);
+      release();
+      const first = await Promise.all(all.slice(0, 3));
+      expect(first.map(r => r.status)).toEqual([200, 200, 200]);
+    } finally { vi.useRealTimers(); }
+  });
+
   it('gives each network address a share of requests per minute', async () => {
     const limited = photoIpLimiter;
     // A client can put anything at the front of X-Forwarded-For; the entry our proxy added at the end is the one that counts.
