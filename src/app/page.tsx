@@ -7,7 +7,7 @@ import { HomeWorkshops } from '@/components/HomeWorkshops';
 import { TrendingSection } from '@/components/TrendingSection';
 import { SignedOutToast } from '@/components/SignedOutToast';
 import { ValueProps } from '@/components/ValueProps';
-import { listActiveCities } from '@/lib/cities';
+import { listActiveCitiesCached } from '@/lib/cities';
 import { cityLabeller } from '@/lib/city-label';
 import { pageMetadata } from '@/lib/meta';
 import { SITE } from '@/lib/site';
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   // Only the theme (already loaded by the layout) and the city list block the page; products, trending and workshops stream in with no placeholder.
-  const [cities, theme] = await Promise.all([listActiveCities(), getRenderTheme()]);
+  const [cities, theme] = await Promise.all([listActiveCitiesCached(), getRenderTheme()]);
   const { sign, chalkLabel, chalkTitle, chalkSub, bunting, stickers } = theme.config;
   const cityLabel = cityLabeller(cities);
   return (

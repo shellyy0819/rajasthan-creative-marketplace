@@ -20,9 +20,22 @@ export async function getFairSettings(): Promise<FairSettings> {
   };
 }
 
-/** Is the exhibition open? If the settings cannot be read the fair stays open rather than vanishing. */
+const OPEN_TTL_MS = 15_000;
+let openCache: { at: number; open: boolean } | null = null;
+export function clearFairOpenCache(): void { openCache = null; }
+
+/**
+ * Is the exhibition open? Every page asks (for the header link), so the answer is kept in memory for 15 seconds
+ * instead of costing a database round trip before the first byte of each page. Saving the setting clears it.
+ * If the settings cannot be read the fair stays open rather than vanishing.
+ */
 export async function isFairOpen(): Promise<boolean> {
-  try { return (await getFairSettings()).enabled; } catch { return true; }
+  if (openCache && Date.now() - openCache.at < OPEN_TTL_MS) return openCache.open;
+  try {
+    const open = (await getFairSettings()).enabled;
+    openCache = { at: Date.now(), open };
+    return open;
+  } catch { return true; }
 }
 
 /** For the fair's own API routes: a closed fair answers 404 and stores nothing. */
@@ -42,5 +55,6 @@ export async function saveFairSettings(input: unknown, actorEmail: string): Prom
   };
   await getDb().insert(appSettings).values({ key: 'fair', value, updatedBy: actorEmail })
     .onConflictDoUpdate({ target: appSettings.key, set: { value, updatedBy: actorEmail, updatedAt: new Date() } });
+  clearFairOpenCache();
   return value;
 }
