@@ -52,7 +52,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head><script dangerouslySetInnerHTML={{ __html: `${themeInitScript};${splashInitScript}` }} /><ThemeHead preset={theme.preset} css={theme.css} /></head>
       <body>
         <SplashScreen />
-        <a className="skip-link" href="#main">Skip to content</a>
         <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
         <AuthProvider>
         <QueryProvider>

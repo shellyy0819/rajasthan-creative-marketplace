@@ -1170,19 +1170,6 @@ form label select {
   font: 500 23px var(--font-display);
   margin: 0;
 }
-.skip-link {
-  position: absolute;
-  left: 12px;
-  top: -60px;
-  background: var(--green);
-  color: #fff;
-  padding: 10px 14px;
-  border-radius: 3px;
-  z-index: 30;
-}
-.skip-link:focus {
-  top: 12px;
-}
 :focus-visible {
   outline: 2px solid var(--orange);
   outline-offset: 2px;
