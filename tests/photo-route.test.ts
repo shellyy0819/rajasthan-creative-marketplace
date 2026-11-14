@@ -4,12 +4,15 @@ import { GET } from '@/app/api/photo/route';
 import { canResize, resizedSrcSet, resizedUrl } from '@/lib/photo-sizes';
 
 const BASE = 'https://bkt.s3.ap-south-1.amazonaws.com';
-const PHOTO = `${BASE}/products/user-1/abc.jpg`;
+let n = 0;
+// A new photo address per test, because copies are remembered in memory between calls.
+let PHOTO = '';
 const call = (qs: string) => GET(new Request(`http://x/api/photo?${qs}`));
 const env = { S3_BUCKET: 'bkt', S3_REGION: 'ap-south-1', AWS_ACCESS_KEY_ID: 'a', AWS_SECRET_ACCESS_KEY: 'b' };
 let original: Buffer;
 
 beforeEach(async () => {
+  PHOTO = `${BASE}/products/user-1/photo-${++n}.jpg`;
   for (const [k, v] of Object.entries(env)) vi.stubEnv(k, v);
   original = await sharp({ create: { width: 2400, height: 1800, channels: 3, background: '#c66b43' } }).jpeg().toBuffer();
   vi.stubGlobal('fetch', vi.fn(async () => new Response(new Uint8Array(original), { headers: { 'content-length': String(original.length) } })));
