@@ -1389,7 +1389,7 @@ form label select {
 .photo-shimmer {
   position: absolute;
   inset: 0;
-  background: linear-gradient(100deg, #ffffff00 20%, #ffffff1f 50%, #ffffff00 80%) 200% 0 / 200% 100% no-repeat;
+  background: linear-gradient(100deg, #ffffff00 20%, #ffffff3d 50%, #ffffff00 80%) 200% 0 / 200% 100% no-repeat, #ffffff14;
   animation: dash-skel-shimmer 1.4s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) { .photo-shimmer { animation: none; } }
