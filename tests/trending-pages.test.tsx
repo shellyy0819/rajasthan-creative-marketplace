@@ -11,6 +11,8 @@ vi.mock('@/components/ContactArtistButton', () => ({ ContactArtistButton: () => 
 vi.mock('@/components/LikeButton', () => ({ LikeButton: ({ productId, initialCount }: any) => <button data-like={productId}>{`♡ ${initialCount}`}</button> }));
 vi.mock('@/components/TrackOnMount', () => ({ TrackOnMount: ({ productId, type }: any) => <i data-track={`${type}:${productId}`} /> }));
 vi.mock('@/components/TrackedLink', () => ({ TrackedLink: ({ productId, type, ...r }: any) => <a data-tracked={`${type}:${productId}`} {...r} /> }));
+// The sitemap reads the request's host; outside Next there is no request.
+vi.mock('@/lib/request-origin', () => ({ requestOrigin: async () => 'http://localhost:3000' }));
 const nav = vi.hoisted(() => ({ notFound: vi.fn(() => { throw new Error('NOT_FOUND'); }) }));
 vi.mock('next/navigation', () => nav);
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
