@@ -30,6 +30,14 @@ describe('product form: sourcing', () => {
     expect(Array.from(select.options).map(o => o.textContent)).toEqual(['Handmade', 'Curated', 'Vintage (switched off)']);
     expect(select.value).toBe('9');
   });
+  it('a product with no type shows "Not set", is not forced to pick one, and sends no type unless one is chosen', () => {
+    const legacy = { id: 'p1', name: 'N', category: 'Pottery', cityId: 1, city: 'Jaipur', citySlug: 'jaipur', pricePaise: 1, seller: 'S', description: 'D', stock: 1, status: 'DRAFT', sellerId: 'u', sellerEmail: 'e@x.co' };
+    render(<PostForm {...props} sourcingTypes={types} initial={legacy as never} />);
+    const select = screen.getByLabelText('Sourcing') as HTMLSelectElement;
+    expect(select.value).toBe('');
+    expect(select.required).toBe(false);
+    expect(Array.from(select.options)[0].textContent).toBe('Not set');
+  });
   it('is hidden when there are no types, and the payload then carries no sourcingTypeId', () => {
     render(<PostForm {...props} />);
     expect(screen.queryByLabelText('Sourcing')).toBeNull();

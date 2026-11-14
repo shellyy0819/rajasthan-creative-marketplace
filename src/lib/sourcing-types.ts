@@ -36,11 +36,12 @@ export async function defaultSourcingTypeId(q: Q): Promise<number> {
 }
 
 /**
- * The id to store on a product. Nothing chosen: keep `currentId` (an edit) or take the default (a new product).
+ * The id to store on a product. Nothing chosen: keep `currentId` (an edit; null stays null, so an unclassified product is never
+ * silently given a type) or take the default (a new product, `currentId` undefined).
  * A chosen type must exist and be active, except that a product may keep the inactive type it already has.
  */
-export async function resolveSourcingTypeId(q: Q, chosen: number | null | undefined, currentId?: number): Promise<number> {
-  if (chosen === undefined || chosen === null || chosen === 0) return currentId ?? defaultSourcingTypeId(q);
+export async function resolveSourcingTypeId(q: Q, chosen: number | null | undefined, currentId?: number | null): Promise<number | null> {
+  if (chosen === undefined || chosen === null || chosen === 0) return currentId === undefined ? defaultSourcingTypeId(q) : currentId;
   const [row] = await q.select({ id: sourcingTypes.id, active: sourcingTypes.active }).from(sourcingTypes).where(eq(sourcingTypes.id, chosen));
   if (!row) throw bad('sourcingTypeId must be an existing sourcing type.');
   if (!row.active && row.id !== currentId) throw bad('That sourcing type is switched off. Choose an active one.');

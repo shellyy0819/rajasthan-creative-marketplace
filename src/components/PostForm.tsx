@@ -144,7 +144,9 @@ export function PostForm({ initial, role, categories, sourcingTypes = [], worksh
           <label><span className="lbl">Description</span><textarea name="description" required maxLength={2000} rows={4} defaultValue={v('description')} /></label>
           {sourcingOptions.length > 0 && (
             <label><span className="lbl">Sourcing</span>
-              <select name="sourcingTypeId" required defaultValue={initial?.sourcing?.id ?? sourcingOptions[0].id}>
+              {/* A product with no type yet (it predates sourcing types) shows "Not set" and stays that way until someone picks one. */}
+              <select name="sourcingTypeId" required={!initial || !!initial.sourcing} defaultValue={initial ? (initial.sourcing?.id ?? '') : sourcingOptions[0].id}>
+                {initial && !initial.sourcing && <option value="">Not set</option>}
                 {sourcingOptions.map(t => <option key={t.id} value={t.id}>{t.name}{t.off ? ' (switched off)' : ''}</option>)}
               </select>
             </label>

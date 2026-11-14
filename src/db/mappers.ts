@@ -46,14 +46,14 @@ export const productSelect = {
 export type ProductJoinRow = {
   p: ProductRow; cityName: string; citySlug: string; cityState: string | null; sellerName: string; sellerEmail: string;
   publicPhone: string | null; contactMethods: string[] | null; publicEmail: string | null; instagram: string | null; youtube: string | null; artistBio: string | null; sellerLogo?: string | null; artistCityName: string | null;
-  sourcingName: string; sourcingHandmade: boolean; sourcingBadge: boolean;
+  sourcingName: string | null; sourcingHandmade: boolean | null; sourcingBadge: boolean | null;
   publishedByEmail: string | null; workshopTitle: string | null; likeCount: number; images: string[] | string;
 };
 /** SELECT products + seller + profile. Add .where(...) / .orderBy(...) / .for('update', { of: products }) as needed. */
 export const productsQuery = (q: Q) =>
   q.select(productSelect).from(products)
     .innerJoin(cities, eq(cities.id, products.cityId))
-    .innerJoin(sourcingTypes, eq(sourcingTypes.id, products.sourcingTypeId))
+    .leftJoin(sourcingTypes, eq(sourcingTypes.id, products.sourcingTypeId))
     .innerJoin(users, eq(users.id, products.sellerId))
     .leftJoin(sellerProfiles, eq(sellerProfiles.userId, users.id))
     .leftJoin(artistCities, eq(artistCities.id, sellerProfiles.cityId));
@@ -70,7 +70,7 @@ export const publicPhoneOf = (phone: string | null | undefined, methods: readonl
 export const toProduct = (r: ProductJoinRow): Product => ({
   id: r.p.id, name: r.p.name, category: r.p.category, city: r.cityName, cityId: r.p.cityId, citySlug: r.citySlug, pricePaise: r.p.pricePaise,
   ...opt('cityState', r.cityState),
-  sourcing: { id: r.p.sourcingTypeId, name: r.sourcingName, countsAsHandmade: r.sourcingHandmade, showBadge: r.sourcingBadge },
+  ...(r.p.sourcingTypeId != null && r.sourcingName != null ? { sourcing: { id: r.p.sourcingTypeId, name: r.sourcingName, countsAsHandmade: !!r.sourcingHandmade, showBadge: !!r.sourcingBadge } } : {}),
   seller: r.sellerName, description: r.p.description, stock: r.p.stock, status: r.p.status,
   ...opt('instagram', r.instagram), ...opt('youtube', r.youtube), ...opt('phone', publicPhoneOf(r.publicPhone, r.contactMethods)),
   ...opt('email', r.publicEmail), ...opt('workshopId', r.p.workshopId),
@@ -87,7 +87,7 @@ export const toAdminProduct = (r: ProductJoinRow): AdminProduct => ({
   createdAt: r.p.createdAt.toISOString(), updatedAt: r.p.updatedAt.toISOString(),
 });
 
-export type ProductInput = Omit<Product, 'id' | 'seller' | 'instagram' | 'youtube' | 'phone' | 'email' | 'city' | 'citySlug' | 'cityState' | 'sourcing'> & { pickupLocation?: string; sourcingTypeId: number };
+export type ProductInput = Omit<Product, 'id' | 'seller' | 'instagram' | 'youtube' | 'phone' | 'email' | 'city' | 'citySlug' | 'cityState' | 'sourcing'> & { pickupLocation?: string; sourcingTypeId: number | null };
 /** undefined → null so that UPDATE really clears a field (Drizzle ignores undefined keys). */
 export const toProductRow = (p: ProductInput) => ({
   name: p.name, category: p.category, cityId: p.cityId, sourcingTypeId: p.sourcingTypeId, pricePaise: p.pricePaise, description: p.description,

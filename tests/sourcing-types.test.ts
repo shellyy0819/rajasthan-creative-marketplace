@@ -90,6 +90,18 @@ describe('sourcing types', () => {
     expect(await resolveSourcingTypeId(db, 0, c.id)).toBe(c.id);
   });
 
+  it('a product with no type (it predates sourcing types) stays unclassified until someone picks one', async () => {
+    const db = await getTestDb();
+    const s = await makeSeller('legacy@x.co', 'Legacy Maker');
+    const p = await createProduct({ ...base, sellerId: s.id }, admin);
+    await db.update(products).set({ sourcingTypeId: null }).where(eq(products.id, p.id));
+    expect(await resolveSourcingTypeId(db, undefined, null)).toBeNull();
+    expect(await resolveSourcingTypeId(db, 0, null)).toBeNull();
+    expect((await updateProduct(p.id, { name: 'Renamed' }, admin)).sourcing).toBeUndefined();
+    const [, c] = await listSourcingTypes();
+    expect((await updateProduct(p.id, { sourcingTypeId: c.id }, admin)).sourcing!.id).toBe(c.id);
+  });
+
   it('a seller changing the type of a live product sends it back to review', async () => {
     const s = await makeSeller('lamp3@x.co', 'Lamp Maker');
     const [, c] = await listSourcingTypes();

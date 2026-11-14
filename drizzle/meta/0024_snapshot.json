@@ -1239,8 +1239,7 @@
           "name": "sourcing_type_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "default": 1
+          "notNull": false
         },
         "price_paise": {
           "name": "price_paise",

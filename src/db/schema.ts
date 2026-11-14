@@ -83,8 +83,8 @@ export const products = pgTable('products', {
   name: text('name').notNull(),
   category: text('category').notNull().references(() => categories.name, { onUpdate: 'cascade', onDelete: 'restrict' }),
   cityId: integer('city_id').notNull().references(() => cities.id, { onDelete: 'restrict' }),
-  // The app always sends an explicit id; the default (1 = the seeded Handmade row) only covers legacy raw inserts.
-  sourcingTypeId: integer('sourcing_type_id').notNull().default(1).references(() => sourcingTypes.id, { onDelete: 'restrict' }),
+  // Null = not classified yet (every product that existed before sourcing types). New products always get an explicit type.
+  sourcingTypeId: integer('sourcing_type_id').references(() => sourcingTypes.id, { onDelete: 'restrict' }),
   pricePaise: integer('price_paise'),
   description: text('description').notNull(),
   stock: integer('stock').notNull(),
