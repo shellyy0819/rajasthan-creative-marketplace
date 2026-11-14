@@ -2613,6 +2613,8 @@ main {
 /* City page: the workshop band stacks its heading above the list instead of using the home page two-column intro layout */
 .workshop-band.stacked { display: block; }
 .workshop-band.stacked .section-heading { margin-bottom: 20px; }
+/* Same heading as the Products section above it (.section h2 + .section-heading h2: no bottom margin) */
+.workshop-band.stacked h2 { font: 500 clamp(32px, 4vw, 45px)/1.15 var(--font-display); letter-spacing: -1px; margin: 15px 0 0; }
 .admin-table-wrap {
   overflow-x: auto;
   margin-top: 16px;
