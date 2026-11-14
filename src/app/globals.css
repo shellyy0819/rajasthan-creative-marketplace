@@ -1385,7 +1385,6 @@ form label select {
 .admin-shell {
   min-height: 60vh;
 }
-.admin-grid-solo { grid-template-columns: minmax(0, 1fr) !important; }
 .admin-grid {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);

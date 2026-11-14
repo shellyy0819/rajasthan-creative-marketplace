@@ -104,6 +104,10 @@ describe('onboarding step 2 errors', () => {
     const f = new File(['x'], 'logo.png', { type: 'image/png' });
     fireEvent.change(screen.getByLabelText('Upload photo'), { target: { files: [f] } });
     expect(await screen.findByText('The photo could not be uploaded.')).toBeTruthy();
+    // The error text renders a tick before LogoUpload's busy=false reaches the form (passive effect), so wait for Finish
+    // to be enabled; clicking it while still disabled is a no-op and made this test flaky. It still fails if a failed upload leaves Finish disabled.
+    const finishBtn = screen.getByRole('button', { name: 'Finish and add my first product' }) as HTMLButtonElement;
+    await waitFor(() => expect(finishBtn.disabled).toBe(false));
     finish();
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('logoUrl');
