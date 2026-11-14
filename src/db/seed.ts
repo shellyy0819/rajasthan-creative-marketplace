@@ -5,8 +5,8 @@ import type { Database } from './client';
 import { ensureSellerProfile, ensureUser, grantRole } from './people';
 import { istToDate, toProductRow } from './mappers';
 import { ensureCityByName, LAUNCH_CITIES } from '../lib/cities';
-import { bookings, categories, idCounters, orderItems, orders, products, sellerProfiles, workshops } from './schema';
-import { DEFAULT_CATEGORIES } from '../lib/catalog-shared';
+import { bookings, categories, idCounters, orderItems, orders, products, sellerProfiles, sourcingTypes, workshops } from './schema';
+import { DEFAULT_CATEGORIES, DEFAULT_SOURCING_TYPES } from '../lib/catalog-shared';
 
 export type { LegacyDb };
 const LEGACY_EMAIL = 'legacy@rangrajasthan.invalid';
@@ -14,7 +14,7 @@ const LEGACY_EMAIL = 'legacy@rangrajasthan.invalid';
 export async function truncateAll(db: Database): Promise<void> {
   // cities is wiped too (the migration's launch cities included); seedFromJson always recreates the launch cities.
   // roles is reference data (seeded by a migration) and is deliberately kept.
-  await db.execute(sql`truncate table app_settings, fair_visitors, fair_codes, fair_notes, fair_quest_days, site_themes, listing_requests, workshop_requests, order_items, orders, bookings, products, workshops, seller_profiles, user_roles, users, categories, cities, id_counters restart identity cascade`);
+  await db.execute(sql`truncate table app_settings, fair_visitors, fair_codes, fair_notes, fair_quest_days, site_themes, listing_requests, workshop_requests, order_items, orders, bookings, products, workshops, seller_profiles, user_roles, users, categories, sourcing_types, cities, id_counters restart identity cascade`);
 }
 
 const maxNumericId = (prefix: string, ids: string[]) =>
@@ -29,6 +29,10 @@ const slug = (s: string) => artistKey(s).replace(/[^a-z0-9]+/g, '-').replace(/^-
 export async function seedFromJson(db: Database, data: LegacyDb) {
   return db.transaction(async tx => {
     const inserted = { products: 0, workshops: 0, orders: 0, bookings: 0 };
+
+    // sourcing types: the starter three (migration 0024 seeds them too; truncateAll wipes them); legacy products are all Handmade
+    for (const [i, t] of DEFAULT_SOURCING_TYPES.entries()) await tx.insert(sourcingTypes).values({ ...t, position: i + 1 }).onConflictDoNothing();
+    const [handmade] = await tx.select({ id: sourcingTypes.id }).from(sourcingTypes).where(sql`lower(${sourcingTypes.name}) = 'handmade'`);
 
     // categories: the starter four plus anything the imported products use (products reference categories by name)
     for (const name of new Set<string>([...DEFAULT_CATEGORIES, ...(data.products ?? []).map(p => p.category)]))
@@ -62,7 +66,7 @@ export async function seedFromJson(db: Database, data: LegacyDb) {
     }
 
     for (const p of data.products ?? []) {
-      const row = toProductRow({ ...p, cityId: await cityId(p.city) });
+      const row = toProductRow({ ...p, cityId: await cityId(p.city), sourcingTypeId: handmade.id });
       const r = await tx.insert(products).values({ id: p.id, sellerId: sellers.get(artistKey(p.seller))!, ...row }).onConflictDoNothing().returning({ id: products.id });
       inserted.products += r.length;
     }
