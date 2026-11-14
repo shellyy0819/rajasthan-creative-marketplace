@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { gaEvent } from '@/lib/analytics';
+import { gaContactSeller } from '@/lib/ga-events';
 import { instagramHandle, instagramUrl, youtubeUrl } from '@/lib/social';
 import { sendEvent, type MethodEvent } from '@/lib/track';
 import type { Product } from '@/lib/types';
@@ -53,7 +53,7 @@ export function ContactArtistButton({ product: p, artistLevel = false, iconOnly 
   const close = () => { setOpen(false); trigger.current?.focus(); };
   const trackMethod = (method: 'call' | 'email' | 'instagram' | 'youtube' | 'copy') => {
     sendEvent(`contact_${method}` as MethodEvent, p.id, artistLevel ? 'artist' : undefined);
-    gaEvent('contact_method_click', { item_id: p.id, method, ...(artistLevel ? { source: 'artist' } : {}) });
+    if (p.sellerSlug) gaContactSeller({ sellerSlug: p.sellerSlug, method, ...(artistLevel ? {} : { productId: p.id }) });
   };
   const shared = [p.phone, p.email, p.instagram, p.youtube].some(Boolean);
 
@@ -61,8 +61,7 @@ export function ContactArtistButton({ product: p, artistLevel = false, iconOnly 
     <>
       <button ref={trigger} type="button" className={`add-btn contact-btn${iconOnly ? ' contact-icon-btn' : ''}`} aria-haspopup="dialog" {...(iconOnly ? { 'aria-label': 'Contact artist', title: 'Contact artist' } : {})} onClick={() => {
         setOpen(true);
-        if (artistLevel) { sendEvent('contact', p.id, 'artist'); gaEvent('contact_click', { item_id: p.id, source: 'artist' }); }
-        else { sendEvent('contact', p.id); gaEvent('contact_click', { item_id: p.id }); }
+        if (artistLevel) sendEvent('contact', p.id, 'artist'); else sendEvent('contact', p.id); // opening the sheet is not yet a contact: GA hears only about the method clicked
       }}>{iconOnly ? <svg className="contact-handset" viewBox="0 0 24 24" aria-hidden="true">{ICONS.handset}</svg> : 'Contact artist'}</button>
       {open && createPortal(
         <div className="contact-backdrop admin-modal" onClick={e => { if (e.target === e.currentTarget) close(); }}>

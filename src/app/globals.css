@@ -1866,6 +1866,14 @@ select:disabled {
     padding-right: 5%;
   }
 }
+
+/* Dashboard page placeholder while a tab loads (src/app/dashboard/loading.tsx) */
+.dash-skel { display: block; border-radius: 6px; background: linear-gradient(90deg, var(--cream) 0%, var(--line) 50%, var(--cream) 100%); background-size: 200% 100%; animation: dash-skel-shimmer 1.4s ease-in-out infinite; }
+.dash-skel-title { height: 40px; width: min(360px, 70%); }
+.dash-skel-list { display: grid; gap: 12px; }
+.dash-skel-row { height: 84px; }
+@keyframes dash-skel-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .dash-skel { animation: none; } }
 .badge.role {
   background: var(--chip-green);
   color: var(--green);
@@ -2614,6 +2622,11 @@ main {
 .sourcing-rename { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; }
 .sourcing-rename input { flex: 1 1 200px; }
 @media (max-width: 600px) { .sourcing-list .admin-row { grid-template-columns: minmax(0, 1fr); } }
+/* City page: the workshop band stacks its heading above the list instead of using the home page two-column intro layout */
+.workshop-band.stacked { display: block; }
+.workshop-band.stacked .section-heading { margin-bottom: 20px; }
+/* Same heading as the Products section above it (.section h2 + .section-heading h2: no bottom margin) */
+.workshop-band.stacked h2 { font: 500 clamp(32px, 4vw, 45px)/1.15 var(--font-display); letter-spacing: -1px; margin: 15px 0 0; }
 .admin-table-wrap {
   overflow-x: auto;
   margin-top: 16px;
@@ -4238,13 +4251,9 @@ body.modal-open {
 .ah-photo .product-photo {
   object-fit: cover;
 }
-.ah-fallback {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: 48px;
-}
+/* The single placeholder for a missing product photo (ProductPlaceholder.tsx) */
+.product-placeholder { display: grid; place-items: center; align-self: stretch; justify-self: stretch; width: 100%; height: 100%; background: var(--cream); color: var(--muted); }
+.product-placeholder svg { width: 34%; min-width: 24px; max-width: 72px; height: auto; opacity: 0.7; }
 .ah-ptag {
   position: absolute;
   right: -6px;
@@ -4498,6 +4507,8 @@ button.fair-opt:hover { background: var(--cream); }
 .fair-fs:hover { border-color: var(--green); }
 .fair-menu { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); box-shadow: 0 10px 30px #0000004d; }
 .fair-menu .button { justify-content: space-between; }
+.fair-sound svg { color: var(--green); }
+.fair-sound[aria-pressed="false"] svg { color: var(--muted); }
 .fair-toolbar .button[aria-pressed="true"] { border-color: var(--green); }
 .fair-time { position: absolute; left: 10px; top: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px 7px 10px; border-radius: 30px; background: var(--stall-board); color: var(--stall-chalk); font: 600 11px var(--font-sans); pointer-events: none; }
 .fair-time-icon { width: 12px; height: 12px; border-radius: 50%; background: #ffd27a; box-shadow: 0 0 9px #ffd27a; }
@@ -4535,3 +4546,19 @@ button.fair-opt:hover { background: var(--cream); }
 .trending-rules li::before { content: counter(rule) '.'; position: absolute; left: 0; font-variant-numeric: tabular-nums; }
 .trending-rules b { color: var(--ink); }
 .admin-table small { color: var(--muted); font-size: 11px; }
+
+.theme-admin-list { display: grid; gap: 14px; }
+.theme-admin-list .admin-row { align-items: center; margin: 0; }
+.theme-admin-list .theme-new { align-items: flex-end; margin: 0; }
+.theme-new label { flex: 1; margin: 0; }
+.theme-new select, .theme-new .button { height: var(--control-h); }
+
+/* Home-page section placeholders (see HomeSkeletons.tsx) */
+.skeleton { display: block; background: linear-gradient(90deg, var(--cream) 0%, var(--line) 50%, var(--cream) 100%); background-size: 200% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite; border-radius: 6px; }
+.skeleton-card { aspect-ratio: 3 / 4; border-radius: 6px; }
+.skeleton-row { height: 84px; }
+.skeleton-line { height: 12px; width: 100%; max-width: 260px; margin-bottom: 12px; }
+.skeleton-line.short { max-width: 120px; height: 10px; }
+.skeleton-line.title { height: 34px; max-width: 360px; margin-bottom: 0; }
+@keyframes skeleton-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }

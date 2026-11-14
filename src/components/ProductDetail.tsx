@@ -6,6 +6,7 @@ import { productSlug } from '@/lib/catalog-shared';
 import { money } from '@/lib/money';
 import { instagramHandle, instagramUrl } from '@/lib/social';
 import { ProductImage } from './ProductImage';
+import { ProductPlaceholder } from './ProductPlaceholder';
 import { PhotoButton } from './PhotoButton';
 
 const STATUS_LABEL: Record<string, string> = { APPROVED: 'Published', DRAFT: 'Draft', ARCHIVED: 'Archived' };
@@ -52,7 +53,7 @@ export function ProductDetail({ product: p, role, onEdit, onClose }: { product: 
         <div className="pd-top">
           <div className="admin-thumb pd-thumb">
             <PhotoButton images={p.images?.length ? p.images : [p.imageUrl]} label={p.name}>
-              <ProductImage src={p.imageUrl} alt={p.name} fallback={<span aria-hidden="true">🌸</span>} />
+              <ProductImage src={p.imageUrl} alt={p.name} fallback={<ProductPlaceholder />} />
             </PhotoButton>
           </div>
           <div className="pd-summary">

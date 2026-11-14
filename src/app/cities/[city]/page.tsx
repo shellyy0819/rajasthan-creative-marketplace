@@ -22,8 +22,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!c) return { title: 'City not found', robots: { index: false } };
   const city = c.name;
   return pageMetadata({
-    title: `Handmade Products & Local Makers in ${city}`,
-    description: `Find handmade crafts by ${city} makers and contact them directly to order. Also discover creative workshops and meetups in ${city}, India.`,
+    title: `Products, Sellers & Workshops in ${city}`,
+    description: `Find products from independent sellers in ${city} and contact them directly to order. Also discover creative workshops and meetups in ${city}, India.`,
     path: `/cities/${c.slug}`,
   });
 }
@@ -41,11 +41,16 @@ export default async function CityPage({ params }: Props) {
       <Breadcrumbs items={crumbs} />
       <div className="page-head">
         <span className="eyebrow">{[city, c.state, 'India'].filter(Boolean).join(', ').toUpperCase()}</span>
-        <h1>Handmade products &amp; workshops in {city}</h1>
-        <p>Independent makers and creative gatherings in {city}.</p>
+        <h1>Products &amp; workshops in {city}</h1>
       </div>
-      <section className="section" aria-labelledby="c-shop"><h2 id="c-shop">Handmade in {city}</h2><div style={{ height: 20 }} /><ProductGrid products={products} /></section>
-      <section className="workshop-band" style={{ display: 'block' }} aria-labelledby="c-ws"><h2 id="c-ws" style={{ marginTop: 0 }}>Workshops in {city}</h2><WorkshopList workshops={workshops} /></section>
+      <section className="section" aria-labelledby="c-shop">
+        <div className="section-heading"><h2 id="c-shop">Products</h2>{products.length > 0 && <span className="muted">{products.length} {products.length === 1 ? 'find' : 'finds'}</span>}</div>
+        <ProductGrid products={products} emptyMessage="No products here yet." />
+      </section>
+      <section className="workshop-band stacked" aria-labelledby="c-ws">
+        <div className="section-heading"><h2 id="c-ws">Workshops</h2>{workshops.length > 0 && <span className="muted">{workshops.length} {workshops.length === 1 ? 'workshop' : 'workshops'}</span>}</div>
+        <WorkshopList workshops={workshops} emptyMessage="No workshops here yet." />
+      </section>
     </>
   );
 }

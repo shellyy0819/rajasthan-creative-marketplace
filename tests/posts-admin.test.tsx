@@ -318,12 +318,12 @@ describe('PostForm field rules', () => {
   const open = (role: 'admin' | 'seller' = 'admin') => { mount(role); fireEvent.click(screen.getByRole('button', { name: 'New post' })); };
   it('mandatory fields are required and wrapped for the red asterisk; optional ones are not', () => {
     open();
-    for (const name of ['name', 'description', 'price', 'stock', 'category', 'city', 'status']) {
+    for (const name of ['name', 'description', 'stock', 'category', 'city', 'status']) {
       const el = document.querySelector(`[name="${name}"]`) as HTMLInputElement;
       expect(el.required).toBe(true);
       expect(el.closest('label')!.querySelector(':scope > .lbl')).toBeTruthy();
     }
-    for (const name of ['workshopId', 'pickupLocation', 'sellerId']) expect((document.querySelector(`[name="${name}"]`) as HTMLInputElement).required).toBe(false);
+    for (const name of ['price', 'workshopId', 'pickupLocation', 'sellerId']) expect((document.querySelector(`[name="${name}"]`) as HTMLInputElement).required).toBe(false);
   });
   it('the form has no seller-name or contact inputs any more', () => {
     open();

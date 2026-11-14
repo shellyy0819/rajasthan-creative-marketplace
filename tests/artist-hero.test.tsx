@@ -58,7 +58,7 @@ describe('ArtistHero', () => {
     expect(d.textContent).not.toContain('About:');
     expect(within(d).queryByRole('link', { name: /View all/ })).toBeNull();
     expect(track.sendEvent).toHaveBeenCalledWith('contact', 'p1', 'artist');
-    expect(track.gaEvent).toHaveBeenCalledWith('contact_click', { item_id: 'p1', source: 'artist' });
+    expect(track.gaEvent).not.toHaveBeenCalled(); // opening the sheet is not a contact yet
   });
   it('shows the bio only when there is one', () => {
     hero();
@@ -126,10 +126,10 @@ describe('ArtistHero avatar logo', () => {
     expect(container.querySelector('.ah-avatar img')).toBeNull();
     expect(container.querySelector('.ah-avatar')!.textContent).toBe('S');
   });
-  it('crops the logo to the round avatar', () => {
+  it('shows the logo inside the round avatar: the avatar clips it and the logo fills the whole circle', () => {
     const css = readCss();
     expect(css).toMatch(/\.ah-avatar\{[^}]*overflow:hidden/);
-    expect(css).toMatch(/\.ah-logo\{[^}]*object-fit:cover/);
+    expect(css).toMatch(/\.ah-logo\{[^}]*width:100%;height:100%;object-fit:fill/); // fill, since commit e869697 (it was cover before)
   });
 });
 

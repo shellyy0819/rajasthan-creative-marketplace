@@ -5,6 +5,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { ProductGrid } from '@/components/ProductGrid';
 import { TrackOnMount } from '@/components/TrackOnMount';
+import { TrackSellerProfileView } from '@/components/TrackSellerProfileView';
 import { getArtist } from '@/lib/artists';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
@@ -36,6 +37,7 @@ export default async function ArtistPage({ params, searchParams }: Props) {
     <>
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
       <Breadcrumbs items={crumbs} />
+      <TrackSellerProfileView sellerSlug={a.slug} />
       {from && <TrackOnMount productId={from} type="artist" />}
       <ArtistHero a={a} />
       {rest.length > 0 && (

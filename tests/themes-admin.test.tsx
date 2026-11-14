@@ -2,6 +2,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-library/react';
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 import { ThemesAdmin } from '@/components/ThemesAdmin';
 import type { ThemeDto } from '@/lib/themes/dto';
 import { PRESETS } from '@/lib/themes/presets';

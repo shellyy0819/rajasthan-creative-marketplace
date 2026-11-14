@@ -11,10 +11,14 @@ vi.mock('@/components/ContactArtistButton', () => ({ ContactArtistButton: () => 
 vi.mock('@/components/LikeButton', () => ({ LikeButton: ({ productId, initialCount }: any) => <button data-like={productId}>{`♡ ${initialCount}`}</button> }));
 vi.mock('@/components/TrackOnMount', () => ({ TrackOnMount: ({ productId, type }: any) => <i data-track={`${type}:${productId}`} /> }));
 vi.mock('@/components/TrackedLink', () => ({ TrackedLink: ({ productId, type, ...r }: any) => <a data-tracked={`${type}:${productId}`} {...r} /> }));
+// The sitemap reads the request's host; outside Next there is no request.
+vi.mock('@/lib/request-origin', () => ({ requestOrigin: async () => 'http://localhost:3000' }));
 const nav = vi.hoisted(() => ({ notFound: vi.fn(() => { throw new Error('NOT_FOUND'); }) }));
 vi.mock('next/navigation', () => nav);
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TrendingSection } from '@/components/TrendingSection';
+import { HomeShelf } from '@/components/HomeShelf';
+import { HomeWorkshops } from '@/components/HomeWorkshops';
 import { ProductCard } from '@/components/ProductCard';
 import { likeProduct, recordEvent } from '@/lib/engagement';
 import { resetTestDb } from './helpers/testdb';
@@ -92,7 +96,8 @@ describe('city listings come from active cities', () => {
 
   it('the city page renders an active city with its products and workshops', async () => {
     render(await cityPage('udaipur'));
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Handmade products & workshops in Udaipur');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Products & workshops in Udaipur');
+    expect(screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent)).toEqual(['Products', 'Workshops']);
     expect(document.querySelectorAll('.product-card')).toHaveLength(2);
   });
   it('the city page for a city with only archived products calls notFound', async () => {
@@ -140,10 +145,10 @@ describe('city listings come from active cities', () => {
   it('the home page "Explore by city" row lists active cities only', async () => {
     await archiveJaipur();
     const Home = (await import('@/app/page')).default;
-    // The page tree holds the async TrendingSection (tested above); jsdom cannot render async components.
+    // The page tree holds the async TrendingSection, HomeShelf and HomeWorkshops (streamed behind skeletons); jsdom cannot render async components.
     const drop = (node: any): any => Array.isArray(node) ? node.map(drop)
       : !React.isValidElement(node) ? node
-      : node.type === TrendingSection ? null
+      : [TrendingSection, HomeShelf, HomeWorkshops].includes(node.type as never) ? null
       : (node.props as any)?.children === undefined ? node : React.cloneElement(node, { children: drop((node.props as any).children) } as any);
     render(drop(await Home()));
     const row = screen.getByRole('navigation', { name: 'Explore by city' });

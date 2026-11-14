@@ -1,13 +1,16 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render as plainRender, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 vi.mock('@/components/ContactArtistButton', () => ({ ContactArtistButton: () => <button>add</button> }));
 import { HomeCraftExplorer } from '@/components/HomeCraftExplorer';
 
 afterEach(cleanup);
+// Product cards read like counts through React Query, so every render needs a client.
+const render = (ui: React.ReactElement) => plainRender(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>);
 const p = (id: string, name: string, category: string) => ({ id, name, category, city: 'Jaipur', cityId: 1, citySlug: 'jaipur', pricePaise: 10000, seller: 'S', description: 'd', stock: 3, status: 'APPROVED' });
 const PRODUCTS = [p('p1', 'Lily Bouquet', 'Crochet & Textiles'), p('p2', 'Frock', 'Crochet & Textiles'), p('p3', 'Coaster Set', 'Resin Art'), p('p4', 'Wood Horse', 'Wooden Toys')];
 
@@ -38,10 +41,11 @@ describe('HomeCraftExplorer uses only real data', () => {
     fireEvent.click(screen.getByRole('button', { name: /^All/ }));
     expect(document.querySelectorAll('.product-card')).toHaveLength(4);
   });
-  it('the heading names the selected category and the real count', () => {
+  it('the heading names the selected category, and the grid holds exactly that category\'s products (the piece count was removed from the header on purpose)', () => {
     render(<HomeCraftExplorer products={PRODUCTS} />);
     fireEvent.click(screen.getByRole('button', { name: /Crochet/ }));
-    expect(document.querySelector('.craft-results-heading')!.textContent).toMatch(/Crochet & Textiles.*2 pieces/);
+    expect(document.querySelector('.craft-results-heading')!.textContent).toBe('Crochet & Textiles');
+    expect(document.querySelectorAll('.product-card')).toHaveLength(2);
   });
   it('with no products there are no filter buttons, just the empty state', () => {
     render(<HomeCraftExplorer products={[]} />);
