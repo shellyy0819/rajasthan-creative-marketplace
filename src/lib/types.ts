@@ -1,7 +1,11 @@
+/** How a product came to be listed. Managed by admins; see lib/sourcing-types.ts. */
+export type SourcingType = { id: number; name: string; countsAsHandmade: boolean; showBadge: boolean; position: number; active: boolean };
+export type AdminSourcingType = SourcingType & { productCount: number };
 export type Product = {
   id: string; name: string; category: string; city: string; cityId: number; citySlug: string; cityState?: string; pricePaise: number | null;
   seller: string; description: string; stock: number; status: string;
   instagram?: string; youtube?: string; phone?: string; email?: string; imageUrl?: string; workshopId?: string;
+  sourcing?: Pick<SourcingType, 'id' | 'name' | 'countsAsHandmade' | 'showBadge'>;
   images?: string[]; likeCount?: number; sellerSlug?: string; sellerLogo?: string; artistBio?: string; artistCity?: string;
 };
 /** What admins and sellers see: the public product plus ownership and publishing details. */

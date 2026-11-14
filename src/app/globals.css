@@ -1381,7 +1381,18 @@ form label select {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.35s ease;
 }
+.product-photo.is-loaded { opacity: 1; }
+/* Shimmer inside the image box while the photo downloads */
+.photo-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, #ffffff00 20%, #ffffff1f 50%, #ffffff00 80%) 200% 0 / 200% 100% no-repeat;
+  animation: dash-skel-shimmer 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) { .photo-shimmer { animation: none; } }
 .admin-shell {
   min-height: 60vh;
 }
@@ -2610,6 +2621,18 @@ main {
   height: 1px;
   overflow: hidden;
 }
+/* Admin: sourcing types */
+.sourcing-list { display: grid; gap: 12px; }
+.sourcing-list .admin-row { margin: 0; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.sourcing-new { display: grid; gap: 8px; margin: 0; }
+.sourcing-new .form-note { margin: 0; }
+.sourcing-new-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
+.sourcing-name { flex: 1 1 240px; margin: 0; }
+.sourcing-new-row .button { height: var(--control-h); }
+.sourcing-flags { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 6px; }
+.sourcing-rename { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; }
+.sourcing-rename input { flex: 1 1 200px; }
+@media (max-width: 600px) { .sourcing-list .admin-row { grid-template-columns: minmax(0, 1fr); } }
 /* City page: the workshop band stacks its heading above the list instead of using the home page two-column intro layout */
 .workshop-band.stacked { display: block; }
 .workshop-band.stacked .section-heading { margin-bottom: 20px; }
@@ -3787,7 +3810,7 @@ body.modal-open {
 }
 /* Cards fill edge to edge (the product page keeps the whole photo visible). */
 .product-card .product-photo {
-  object-fit: cover;
+  object-fit: contain;
 }
 /* Click a photo in the dashboard to see it full size. */
 .photo-open {
