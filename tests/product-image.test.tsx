@@ -58,4 +58,28 @@ describe('ProductImage image that failed before hydration', () => {
     render(<ProductImage src="https://cdn.example.com/slow.jpg" alt="x" fallback={fb} />);
     expect(screen.getByRole('img')).toBeTruthy();
   });
+  describe('our own bucket photos are shown as resized copies', () => {
+    const S3 = 'https://bkt.s3.ap-south-1.amazonaws.com/products/u/a.jpg';
+    it('asks the resizer, with a srcset and sizes', () => {
+      render(<ProductImage src={S3} alt="Pot" fallback={fb} sizes="300px" />);
+      const img = screen.getByRole('img', { name: 'Pot' });
+      expect(img.getAttribute('src')).toBe(`/api/photo?w=960&u=${encodeURIComponent(S3)}`);
+      expect(img.getAttribute('srcset')).toContain('480w');
+      expect(img.getAttribute('sizes')).toBe('300px');
+    });
+    it('uses the original when the resizer fails, and the fallback only if that fails too', () => {
+      render(<ProductImage src={S3} alt="Pot" fallback={fb} />);
+      fireEvent.error(screen.getByRole('img'));
+      const img = screen.getByRole('img', { name: 'Pot' });
+      expect(img.getAttribute('src')).toBe(S3);
+      expect(img.hasAttribute('srcset')).toBe(false);
+      expect(screen.queryByTestId('fallback')).toBeNull();
+      fireEvent.error(img);
+      expect(screen.getByTestId('fallback')).toBeTruthy();
+    });
+    it('leaves other hosts alone', () => {
+      render(<ProductImage src="https://cdn.example.com/a.jpg" alt="x" fallback={fb} />);
+      expect(screen.getByRole('img').hasAttribute('srcset')).toBe(false);
+    });
+  });
 });

@@ -10,12 +10,12 @@ import { ProductPlaceholder } from './ProductPlaceholder';
 
 export const visualIndex = (id: string) => Number(id.replace(/\D/g, '')) || 0;
 
-export function ProductCard({ p }: { p: Product }) {
+export function ProductCard({ p, eager = false }: { p: Product; eager?: boolean }) {
   const i = visualIndex(p.id);
   const low = p.stock > 0 && p.stock <= 2;
   return (
     <article className="product-card">
-      <div className={`product-visual visual-${i % 4}`}><ProductImage src={p.imageUrl} alt={p.name} fallback={<ProductPlaceholder />} /></div>
+      <div className={`product-visual visual-${i % 4}`}><ProductImage src={p.imageUrl} alt={p.name} fallback={<ProductPlaceholder />} eager={eager} /></div>
       <div className="pc-top">
         <span className="pc-chips">
           <span className="pc-chip">{p.category}</span>
