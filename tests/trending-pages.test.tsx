@@ -176,7 +176,7 @@ describe('product page wiring (source contract)', () => {
   it('records a view, links to the artist page with the product id, and tracks all four contact links', () => {
     expect(src).toContain('<TrackOnMount productId={p.id} type="view" />');
     expect(src).toContain('/artists/${p.sellerSlug}?from=${p.id}');
-    expect(src.match(/<TrackedLink productId=\{p\.id\} type="contact"/g)).toHaveLength(4);   // instagram, youtube, phone, email
+    expect(src.match(/<TrackedLink productId=\{p\.id\} sellerSlug=\{p\.sellerSlug\} method="(instagram|youtube|call|email)" type="contact"/g)).toHaveLength(4);   // instagram, youtube, phone, email, each with its GA method
     expect(src).toContain('<LikeButton');
     expect(src).not.toMatch(/<a href=\{(instagramUrl|youtubeUrl)/);                         // no untracked social links left
   });
