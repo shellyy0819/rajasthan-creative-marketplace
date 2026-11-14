@@ -1,27 +1,27 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { JsonLd } from '@/components/JsonLd';
-import { ContactArtistButton } from '@/components/ContactArtistButton';
-import { LikeButton } from '@/components/LikeButton';
-import { TrackOnMount } from '@/components/TrackOnMount';
-import { TrackedLink } from '@/components/TrackedLink';
-import { ProductGallery } from '@/components/ProductGallery';
-import { visualIndex } from '@/components/ProductCard';
-import { ProductPlaceholder } from '@/components/ProductPlaceholder';
-import { getProductBySlug, productSlug } from '@/lib/catalog';
-import { breadcrumbJsonLd, productJsonLd } from '@/lib/jsonld';
-import { pageMetadata } from '@/lib/meta';
-import { money } from '@/lib/money';
-import { instagramHandle, instagramUrl, youtubeUrl } from '@/lib/social';
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { JsonLd } from "@/components/JsonLd";
+import { ContactArtistButton } from "@/components/ContactArtistButton";
+import { LikeButton } from "@/components/LikeButton";
+import { TrackOnMount } from "@/components/TrackOnMount";
+import { TrackedLink } from "@/components/TrackedLink";
+import { ProductGallery } from "@/components/ProductGallery";
+import { visualIndex } from "@/components/ProductCard";
+import { ProductPlaceholder } from "@/components/ProductPlaceholder";
+import { getProductBySlug, productSlug } from "@/lib/catalog";
+import { breadcrumbJsonLd, productJsonLd } from "@/lib/jsonld";
+import { pageMetadata } from "@/lib/meta";
+import { money } from "@/lib/money";
+import { instagramHandle, instagramUrl, youtubeUrl } from "@/lib/social";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = await getProductBySlug((await params).slug);
-  if (!p) return { title: 'Product not found', robots: { index: false } };
+  if (!p) return { title: "Product not found", robots: { index: false } };
   return pageMetadata({
     title: `${p.name} — handmade in ${p.city}`,
     description: `${p.description} Handmade by ${p.seller} in ${p.city}. ${money(p.pricePaise)}.`,
@@ -34,30 +34,235 @@ export default async function ProductPage({ params }: Props) {
   const p = await getProductBySlug((await params).slug);
   if (!p) notFound();
   const i = visualIndex(p.id);
-  const crumbs = [{ name: 'Home', path: '/' }, { name: 'Shop', path: '/shop' }, { name: p.name, path: `/products/${productSlug(p)}` }];
+  const crumbs = [
+    { name: "Home", path: "/" },
+    { name: "Shop", path: "/shop" },
+    { name: p.name, path: `/products/${productSlug(p)}` },
+  ];
   return (
     <>
       <JsonLd data={[productJsonLd(p), breadcrumbJsonLd(crumbs)]} />
       <Breadcrumbs items={crumbs} />
       <article className="detail">
-        <ProductGallery images={p.images ?? (p.imageUrl ? [p.imageUrl] : [])} alt={p.name} variant={i} fallback={<ProductPlaceholder />} />
+        <ProductGallery
+          images={p.images ?? (p.imageUrl ? [p.imageUrl] : [])}
+          alt={p.name}
+          variant={i}
+          fallback={<ProductPlaceholder />}
+        />
         <div>
           <span className="product-meta">{p.category}</span>
           <h1>{p.name}</h1>
-          {p.sourcing?.showBadge && <p className="detail-tags"><span className="source-tag" data-testid="sourcing-tag">{p.sourcing.name}</span></p>}
-          <LikeButton productId={p.id} initialCount={p.likeCount ?? 0} productName={p.name} />
+          {p.sourcing?.showBadge && (
+            <p className="detail-tags">
+              <span className="source-tag" data-testid="sourcing-tag">
+                {p.sourcing.name}
+              </span>
+            </p>
+          )}
           <TrackOnMount productId={p.id} type="view" />
           <p className="lead">{p.description}</p>
           <dl>
-            <dt><span className="detail-label"><svg className="detail-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Artist</span></dt><dd>{p.sellerSlug ? <Link href={`/artists/${p.sellerSlug}?from=${p.id}`}>{p.seller}</Link> : p.seller}</dd>
-            <dt><span className="detail-label"><svg className="detail-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>City</span></dt><dd><Link href={`/cities/${p.citySlug}`}>{p.city}</Link></dd>
-            <dt><span className="detail-label"><svg className="detail-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 9-4 9 4v10l-9 4-9-4V7Z"/><path d="m3 7 9 4 9-4M12 11v10"/></svg>Availability</span></dt><dd>{p.stock > 0 ? `${p.stock} in stock` : 'Sold out'}</dd>
-            {p.instagram && <><dt><span className="detail-label"><svg className="social-icon instagram-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="18" cy="6" r="1.2" fill="currentColor"/></svg>Instagram</span></dt><dd><TrackedLink productId={p.id} sellerSlug={p.sellerSlug} method="instagram" type="contact" href={instagramUrl(p.instagram)} target="_blank" rel="noreferrer">{instagramHandle(p.instagram)} ↗</TrackedLink></dd></>}
-            {p.youtube && <><dt><span className="detail-label"><svg className="social-icon youtube-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8Z"/><path d="m9.6 15.7 6.2-3.7-6.2-3.7v7.4Z" fill="white"/></svg>YouTube</span></dt><dd><TrackedLink productId={p.id} sellerSlug={p.sellerSlug} method="youtube" type="contact" href={youtubeUrl(p.youtube)} target="_blank" rel="noreferrer">Visit channel ↗</TrackedLink></dd></>}
-            {p.phone && <><dt><span className="detail-label"><svg className="detail-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18H7z"/><path d="M10 18h4"/></svg>Phone</span></dt><dd><TrackedLink productId={p.id} sellerSlug={p.sellerSlug} method="call" type="contact" href={`tel:${p.phone.replace(/[^\d+]/g, '')}`}>{p.phone}</TrackedLink></dd></>}
-            {p.email && <><dt><span className="detail-label"><svg className="detail-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>Email</span></dt><dd><TrackedLink productId={p.id} sellerSlug={p.sellerSlug} method="email" type="contact" href={`mailto:${p.email}`}>{p.email}</TrackedLink></dd></>}
+            <dt>
+              <span className="detail-label">
+                <svg
+                  className="detail-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 21a8 8 0 0 1 16 0" />
+                </svg>
+                Artist
+              </span>
+            </dt>
+            <dd>
+              {p.sellerSlug ? (
+                <Link href={`/artists/${p.sellerSlug}?from=${p.id}`}>
+                  {p.seller}
+                </Link>
+              ) : (
+                p.seller
+              )}
+            </dd>
+            <dt>
+              <span className="detail-label">
+                <svg
+                  className="detail-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" />
+                  <circle cx="12" cy="10" r="2.5" />
+                </svg>
+                City
+              </span>
+            </dt>
+            <dd>
+              <Link href={`/cities/${p.citySlug}`}>{p.city}</Link>
+            </dd>
+            <dt>
+              <span className="detail-label">
+                <svg
+                  className="detail-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="m3 7 9-4 9 4v10l-9 4-9-4V7Z" />
+                  <path d="m3 7 9 4 9-4M12 11v10" />
+                </svg>
+                Availability
+              </span>
+            </dt>
+            <dd>{p.stock > 0 ? `${p.stock} in stock` : "Sold out"}</dd>
+            {p.instagram && (
+              <>
+                <dt>
+                  <span className="detail-label">
+                    <svg
+                      className="social-icon instagram-icon"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <rect
+                        x="3"
+                        y="3"
+                        width="18"
+                        height="18"
+                        rx="5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      />
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      />
+                      <circle cx="18" cy="6" r="1.2" fill="currentColor" />
+                    </svg>
+                    Instagram
+                  </span>
+                </dt>
+                <dd>
+                  <TrackedLink
+                    productId={p.id}
+                    sellerSlug={p.sellerSlug}
+                    method="instagram"
+                    type="contact"
+                    href={instagramUrl(p.instagram)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {instagramHandle(p.instagram)} ↗
+                  </TrackedLink>
+                </dd>
+              </>
+            )}
+            {p.youtube && (
+              <>
+                <dt>
+                  <span className="detail-label">
+                    <svg
+                      className="social-icon youtube-icon"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8Z"
+                      />
+                      <path d="m9.6 15.7 6.2-3.7-6.2-3.7v7.4Z" fill="white" />
+                    </svg>
+                    YouTube
+                  </span>
+                </dt>
+                <dd>
+                  <TrackedLink
+                    productId={p.id}
+                    sellerSlug={p.sellerSlug}
+                    method="youtube"
+                    type="contact"
+                    href={youtubeUrl(p.youtube)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Visit channel ↗
+                  </TrackedLink>
+                </dd>
+              </>
+            )}
+            {p.phone && (
+              <>
+                <dt>
+                  <span className="detail-label">
+                    <svg
+                      className="detail-icon"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path d="M7 3h10v18H7z" />
+                      <path d="M10 18h4" />
+                    </svg>
+                    Phone
+                  </span>
+                </dt>
+                <dd>
+                  <TrackedLink
+                    productId={p.id}
+                    sellerSlug={p.sellerSlug}
+                    method="call"
+                    type="contact"
+                    href={`tel:${p.phone.replace(/[^\d+]/g, "")}`}
+                  >
+                    {p.phone}
+                  </TrackedLink>
+                </dd>
+              </>
+            )}
+            {p.email && (
+              <>
+                <dt>
+                  <span className="detail-label">
+                    <svg
+                      className="detail-icon"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <rect x="3" y="5" width="18" height="14" rx="2" />
+                      <path d="m3 7 9 6 9-6" />
+                    </svg>
+                    Email
+                  </span>
+                </dt>
+                <dd>
+                  <TrackedLink
+                    productId={p.id}
+                    sellerSlug={p.sellerSlug}
+                    method="email"
+                    type="contact"
+                    href={`mailto:${p.email}`}
+                  >
+                    {p.email}
+                  </TrackedLink>
+                </dd>
+              </>
+            )}
           </dl>
-          <div className="product-bottom" style={{ gap: 20, justifyContent: 'flex-start' }}>
+          <div className="detail-like">
+            <LikeButton
+              productId={p.id}
+              initialCount={p.likeCount ?? 0}
+              productName={p.name}
+            />
+          </div>
+          <div
+            className="product-bottom"
+            style={{ gap: 20, justifyContent: "flex-start", marginTop: 24 }}
+          >
             <span className="price">{money(p.pricePaise)}</span>
             <ContactArtistButton product={p} />
           </div>

@@ -601,6 +601,7 @@ h2 em {
   letter-spacing: 0.8px;
   text-transform: uppercase;
 }
+.detail-like { margin-top: 16px; }
 .detail-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 12px; }
 /* How the product was sourced (Curated, Resold ...): shown on the product page only, never on cards */
 .source-tag {
@@ -2860,6 +2861,7 @@ main {
   scrollbar-width: thin;
   margin-top: 10px;
   padding-bottom: 4px;
+  justify-content: center;
 }
 .gallery-thumb {
   flex: none;
