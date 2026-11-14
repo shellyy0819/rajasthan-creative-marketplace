@@ -34,12 +34,17 @@ Bucket, **Permissions**, **Cross-origin resource sharing (CORS)**:
 ```json
 [{
   "AllowedMethods": ["POST"],
-  "AllowedOrigins": ["http://localhost:3000", "http://localhost:3001"],
+  "AllowedOrigins": [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://api.craftofy.online",
+    "https://craftofy.online"
+  ],
   "AllowedHeaders": ["*"],
   "MaxAgeSeconds": 3000
 }]
 ```
-Add every origin the site runs on. Without this the browser blocks the upload and the tile shows an error.
+Add every origin the site runs on (scheme + host exactly as in the browser, no trailing slash; `http://` and `https://` are separate entries). Without this the browser blocks the upload and the tile shows an error.
 
 ## 4. Create a limited access key
 IAM, **Users**, **Create user** (no console access), then attach an inline policy:
