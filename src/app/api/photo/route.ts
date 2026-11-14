@@ -88,14 +88,18 @@ export async function GET(req: Request) {
   if (!job) {
     job = (async () => {
       if (!(await turn())) return 'busy' as const;   // the line is full
-      try { return await make(src, w); } finally { done(); }
+      try {
+        const made = await make(src, w);
+        if (made) remember(memo, made);   // stored here, so a copy finished after its visitor gave up still serves the next one
+        return made;
+      } finally { done(); }
     })();
     inFlight.set(memo, job);
     void job.finally(() => inFlight.delete(memo));
   }
-  const out = await Promise.race([job, new Promise<'busy'>(r => { setTimeout(() => r('busy'), MAX_WAIT_MS).unref?.(); })]);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const out = await Promise.race([job, new Promise<'busy'>(r => { timer = setTimeout(() => r('busy'), MAX_WAIT_MS); })]).finally(() => clearTimeout(timer));
   if (out === 'busy') return new Response(null, { status: 503, headers: { 'retry-after': '5' } });
   if (!out) return new Response(null, { status: 404 });
-  remember(memo, out);
   return reply(out);
 }

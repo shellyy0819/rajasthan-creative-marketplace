@@ -136,8 +136,7 @@ describe('load limits', () => {
       await vi.advanceTimersByTimeAsync(4100);
       expect((await first).status).toBe(503);
       release();
-      await vi.advanceTimersByTimeAsync(10);
-      await new Promise(r => setImmediate(r));
+      for (let i = 0; i < 5; i++) { await vi.advanceTimersByTimeAsync(10); await new Promise(r => setImmediate(r)); }   // the job ends and its slot in the in-flight list is cleared
       const again = await call(q(PHOTO));            // the job finished meanwhile: served from memory, no second fetch
       expect(again.status).toBe(200);
       expect(fetch).toHaveBeenCalledTimes(1);
