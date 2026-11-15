@@ -121,11 +121,23 @@ describe('catalog: sourcing type', () => {
     expect((await listProducts({ source: 'curated' })).map(p => p.id)).toEqual(['p1']);
     expect(await listProducts({ source: 'Nope' })).toEqual([]);
   });
-  it('a search that is exactly a type name means that type: "handmade" does not list a product whose sourcing is not set', async () => {
+  it('a search that is exactly a type name finds products of that type and products whose text says the word', async () => {
+    const { db } = await classify();
+    const ids = async (q: string) => (await listProducts({ q })).map(p => p.id).sort();
+    // p1 Curated, text says handmade; p2 not set, text says handmade; p3 Handmade, text too; p4 Handmade, text does not say it
+    expect(await ids('handmade')).toEqual(['p1', 'p2', 'p3', 'p4']);
+    expect(await ids('  Handmade ')).toEqual(['p1', 'p2', 'p3', 'p4']);
+    // p2 not set and its text no longer says it: not found. p4 is still found, by its type alone.
+    const { eq } = await import('drizzle-orm');
+    await db.update(productsTable).set({ description: 'A tiny bowl' }).where(eq(productsTable.id, 'p2'));
+    expect(await ids('handmade')).toEqual(['p1', 'p3', 'p4']);
+    expect(await ids('CURATED')).toEqual(['p1']);                 // by type only
+  });
+  it('products found by their text come before those found only by their type', async () => {
     await classify();
-    expect((await listProducts({ q: 'handmade' })).map(p => p.id)).toEqual(['p3', 'p4']);
-    expect((await listProducts({ q: '  Handmade ' })).map(p => p.id)).toEqual(['p3', 'p4']);
-    expect((await listProducts({ q: 'CURATED' })).map(p => p.id)).toEqual(['p1']);
+    const found = (await listProducts({ q: 'handmade' })).map(p => p.id);
+    expect(found).toHaveLength(4);
+    expect(found[found.length - 1]).toBe('p4');
   });
   it('a type and other filters or words combine', async () => {
     await classify();

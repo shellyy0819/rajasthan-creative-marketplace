@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, or, sql, type SQL } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { productsQuery, sellerNameSql, toProduct, toWorkshop, workshopsQuery } from '../db/mappers';
 import { products as productsT, sourcingTypes, workshops as workshopsT } from '../db/schema';
@@ -18,17 +18,18 @@ const productDoc = sql`concat_ws(' ', ${productsT.name}, ${productsT.description
 const workshopDoc = sql`concat_ws(' ', ${workshopsT.title}, ${workshopsT.description}, ${workshopsT.venue}, ${workshopsT.hostName})`;
 
 /**
- * Which sourcing type (if any) a product search is limited to, and the text left to search for. An explicit `source` keeps the text.
- * A search that is exactly the name of a type (for example "handmade") means that type, not a word to find: only products whose
- * sourcing is that type are listed, so a product with no sourcing set is never shown as handmade just because its text says so.
+ * Which sourcing type (if any) a product search is tied to.
+ *  - An explicit `source` (the Type filter) is strict: only products of that type, and the text, if any, must match as well.
+ *  - A search that is exactly the name of a type (for example "handmade") finds both kinds of product: those whose sourcing is
+ *    that type, and those whose name, description, maker or category says the word (`orText`).
  */
-async function sourcingScope(f: ProductFilter): Promise<{ source?: string; q: string }> {
+async function sourcingScope(f: ProductFilter): Promise<{ source?: string; q: string; orText?: boolean }> {
   const q = normalizeQuery(f.q);
   if (f.source) return { source: f.source, q };
   if (!q) return { q };
   const [hit] = await getDb().select({ name: sourcingTypes.name }).from(sourcingTypes)
     .where(sql`${sourcingTypes.active} and lower(${sourcingTypes.name}) = ${q.toLowerCase()}`);
-  return hit ? { source: hit.name, q: '' } : { q };
+  return hit ? { source: hit.name, q, orText: true } : { q };
 }
 
 export async function listProducts(f: ProductFilter = {}): Promise<Product[]> {
@@ -40,10 +41,11 @@ export async function listProducts(f: ProductFilter = {}): Promise<Product[]> {
   }
   if (f.category && f.category !== 'All categories') where.push(eq(productsT.category, f.category));
   const scope = await sourcingScope(f);
-  // A product with no sourcing type (null) never matches a type.
-  if (scope.source) where.push(sql`${productsT.sourcingTypeId} in (select id from sourcing_types where lower(name) = ${scope.source.toLowerCase()})`);
   const search = textSearch(productDoc, scope.q);
-  where.push(search.where);
+  // A product with no sourcing type (null) never matches the type itself.
+  const ofType = scope.source ? sql`${productsT.sourcingTypeId} in (select id from sourcing_types where lower(name) = ${scope.source.toLowerCase()})` : undefined;
+  if (ofType && scope.orText && search.where) where.push(or(ofType, search.where));
+  else { if (ofType) where.push(ofType); where.push(search.where); }
   const rows = await productsQuery(getDb()).where(and(...where)).orderBy(...(search.rank ? [desc(search.rank)] : []), ...idOrder(productsT));
   return rows.map(toProduct);
 }
