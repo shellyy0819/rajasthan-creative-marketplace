@@ -32,11 +32,11 @@ describe('homepage hero', () => {
     render(<Hero />);
     expect(screen.getByText("Shop thoughtfully curated handmade products from India's independent artisans and book hands-on workshops to experience traditional crafts firsthand.")).toBeTruthy();
   });
-  it('has two main buttons: Explore Handmade (shop) and Find a Workshop (workshops)', () => {
+  it('has two main buttons: Explore Handmade (the shop, searching handmade) and Find a Workshop (workshops)', () => {
     render(<Hero />);
     const explore = screen.getByRole('link', { name: /Explore Handmade/ });
     const find = screen.getByRole('link', { name: /Find a Workshop/ });
-    expect(explore.getAttribute('href')).toBe('/shop');
+    expect(explore.getAttribute('href')).toBe('/shop?q=handmade');
     expect(find.getAttribute('href')).toBe('/workshops');
     expect(explore.className).toContain('button');
     expect(find.className).toContain('button');
