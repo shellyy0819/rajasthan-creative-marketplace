@@ -169,6 +169,13 @@
       "when": 1794586329299,
       "tag": "0023_product_price_optional",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794633829179,
+      "tag": "0024_sourcing_types",
+      "breakpoints": true
     }
   ]
 }

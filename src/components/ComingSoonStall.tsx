@@ -35,14 +35,14 @@ export function ComingSoonStall() {
       <rect x="278" y="270" width="22" height="60" rx="11" className="st-f-mustard" /><rect x="304" y="282" width="22" height="48" rx="11" className="st-f-terra" />
       <rect x="330" y="296" width="22" height="34" rx="11" className="st-f-indigo" />
       <g transform="translate(404 330)"><rect x="-26" y="-34" width="52" height="34" className="st-f-wood" /><path d="M-26 -22h52" strokeWidth="5" className="st-s-chalk" opacity=".7" fill="none" />
-        <rect x="-18" y="-48" width="36" height="12" rx="2" className="st-f-chalk" /><text x="0" y="-39.5" textAnchor="middle" fontSize="7" fontWeight="600" className="st-t-ink">FRAGILE</text></g>
+        <rect x="-18" y="-48" width="36" height="12" rx="2" className="st-f-chalk" /><text x="0" y="-39.5" textAnchor="middle" fontSize="7" fontWeight="600" className="st-t-hair">FRAGILE</text></g>
       <path d="M456 330C452 312 458 300 466 298C474 300 480 312 476 330Z" className="st-f-terra" /><rect x="456" y="294" width="20" height="6" rx="3" className="st-f-terrad" />
 
       {/* shelf 2: still waiting for stock */}
       <rect x="84" y="410" width="432" height="8" className="st-f-wood" />
       <rect x="110" y="372" width="70" height="38" className="st-f-wood" /><path d="M110 388h70" strokeWidth="5" className="st-s-chalk" opacity=".7" fill="none" />
       <path d="M260 410L266 398H320L326 410Z" className="st-f-terra" /><path d="M264 398L270 386H316L322 398Z" className="st-f-sage" />
-      <g className="st-sway"><rect x="396" y="340" width="34" height="46" rx="2" className="st-f-chalk" /><text x="413" y="360" textAnchor="middle" fontSize="8" fontWeight="600" className="st-t-ink">price</text><text x="413" y="374" textAnchor="middle" fontSize="8" fontWeight="600" className="st-t-terrad">₹ ?</text></g>
+      <g className="st-sway"><rect x="396" y="340" width="34" height="46" rx="2" className="st-f-chalk" /><text x="413" y="360" textAnchor="middle" fontSize="8" fontWeight="600" className="st-t-hair">price</text><text x="413" y="374" textAnchor="middle" fontSize="8" fontWeight="600" className="st-t-terrad">₹ ?</text></g>
 
       {/* awning */}
       <path d="M96 112H492L526 150H62Z" className="st-f-green" />

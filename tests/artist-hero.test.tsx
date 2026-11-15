@@ -58,7 +58,7 @@ describe('ArtistHero', () => {
     expect(d.textContent).not.toContain('About:');
     expect(within(d).queryByRole('link', { name: /View all/ })).toBeNull();
     expect(track.sendEvent).toHaveBeenCalledWith('contact', 'p1', 'artist');
-    expect(track.gaEvent).toHaveBeenCalledWith('contact_click', { item_id: 'p1', source: 'artist' });
+    expect(track.gaEvent).not.toHaveBeenCalled(); // opening the sheet is not a contact yet
   });
   it('shows the bio only when there is one', () => {
     hero();

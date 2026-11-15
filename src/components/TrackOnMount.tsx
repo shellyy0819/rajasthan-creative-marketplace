@@ -3,8 +3,6 @@ import { useEffect, useRef } from 'react';
 import { gaEvent } from '@/lib/analytics';
 import { sendEvent, type TrackType } from '@/lib/track';
 
-const GA_NAMES: Record<TrackType, string> = { view: 'view_item', contact: 'contact_click', artist: 'artist_visit', contact_call: 'contact_call', contact_email: 'contact_email', contact_instagram: 'contact_instagram', contact_youtube: 'contact_youtube', contact_copy: 'contact_copy' };
-
 /** Records one event for this product when the page appears (strict-mode safe). Renders nothing. */
 export function TrackOnMount({ productId, type }: { productId: string; type: TrackType }) {
   const last = useRef<string | null>(null);
@@ -13,7 +11,7 @@ export function TrackOnMount({ productId, type }: { productId: string; type: Tra
     if (last.current === key) return;
     last.current = key;
     sendEvent(type, productId);
-    gaEvent(GA_NAMES[type], { item_id: productId });
+    if (type === 'view') gaEvent('view_item', { item_id: productId }); // contact and artist-credit events have their own GA events
   }, [productId, type]);
   return null;
 }

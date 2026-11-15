@@ -9,6 +9,8 @@ export type ThemeConfig = {
   chalkLabel: string;
   chalkTitle: string;
   chalkSub: string;
+  /** Where the chalkboard leads when clicked: a path on this site or an https address. Optional; the shop is used when empty. */
+  chalkHref?: string;
   bunting: boolean;
   stickers: Placement[];
 };
@@ -42,4 +44,7 @@ export type ThemeRow = {
   updatedBy?: string;
 };
 
-export const LIMITS = { banner: 60, sign: 34, chalkLabel: 18, chalkTitle: 20, chalkSub: 26 } as const;
+export const LIMITS = { banner: 60, sign: 34, chalkLabel: 18, chalkTitle: 20, chalkSub: 26, chalkHref: 200 } as const;
+
+/** The chalkboard is drawn only while at least one of its three lines has text. */
+export const hasChalkboard = (c: Pick<ThemeConfig, 'chalkLabel' | 'chalkTitle' | 'chalkSub'>): boolean => !!(c.chalkLabel.trim() || c.chalkTitle.trim() || c.chalkSub.trim());

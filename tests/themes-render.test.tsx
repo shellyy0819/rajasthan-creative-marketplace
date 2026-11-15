@@ -56,6 +56,24 @@ describe('HeroStall props', () => {
     expect(h).not.toContain('textLength="54"');
     expect(h).not.toContain('textLength="176"');
   });
+  it('draws no chalkboard when all three lines are empty, and keeps it when any has words', () => {
+    const none = stall({ chalkLabel: '', chalkTitle: '', chalkSub: '' });
+    expect(none).not.toContain('Meet the maker');
+    expect(none).not.toContain('st-t-mustard');
+    expect(none).not.toContain('x1="500" y1="586"');
+    expect(stall({ chalkLabel: '', chalkTitle: 'Only a title', chalkSub: '' })).toContain('Only a title');
+  });
+  it('makes the chalkboard a link only when given somewhere to go', () => {
+    expect(stall()).not.toContain('st-board-link');
+    expect(stall()).toContain('aria-hidden="true"');
+    const inner = stall({ chalkHref: '/shop' });
+    expect(inner).toMatch(/<a [^>]*href="\/shop"[^>]*class="st-board-link"|<a [^>]*class="st-board-link"[^>]*href="\/shop"/);
+    expect(inner).toContain('aria-label="Handmade. Meet the maker. Made across India"');
+    expect(inner).not.toContain('<svg class="hero-stall" viewBox="0 0 600 720" focusable="false" aria-hidden');
+    const out = stall({ chalkHref: 'https://example.com/x' });
+    expect(out).toContain('rel="noopener noreferrer"');
+    expect(stall({ chalkLabel: '', chalkTitle: '', chalkSub: '', chalkHref: '/shop' })).not.toContain('st-board-link');
+  });
   it('omits the bunting when off', () => {
     expect(stall({ bunting: false })).not.toContain('M27 23h18l-9 20z');
   });

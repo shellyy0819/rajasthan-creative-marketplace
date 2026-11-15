@@ -32,4 +32,9 @@ describe('parseFilters', () => {
     expect(parseFilters({ q: 'a'.repeat(10000) }).q).toHaveLength(100);
     expect(parseFilters({ q: '   ' })).toEqual({});
   });
+  it('accepts a sourcing type name, trimmed, and treats it as a filter', () => {
+    expect(parseFilters({ source: ' Handmade ' })).toEqual({ source: 'Handmade' });
+    expect(parseFilters({ source: 'x'.repeat(41) })).toEqual({});
+    expect(hasFilters(parseFilters({ source: 'Curated' }))).toBe(true);
+  });
 });

@@ -21,7 +21,7 @@ export function Header({ fair = true }: { fair?: boolean }) {
     <header className="topbar">
       <Brand />
       <nav aria-label="Primary">
-        <Link href="/shop">Shop handmade</Link>
+        <Link href="/shop">Shop products</Link>
         <Link href="/workshops">Workshops &amp; pop-ups</Link>
         {fair && <Link href="/fair" className="nav-fair">Fair<span className="nav-fair-spark" aria-hidden="true" /></Link>}
         <AuthButton dashboardUrl={hostConfig().dashboardOrigin ?? ''} />

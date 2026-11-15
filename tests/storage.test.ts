@@ -74,6 +74,8 @@ describe('presignProductUpload', () => {
     expect(opts.Expires).toBe(300);
     expect(opts.Conditions).toEqual(expect.arrayContaining([['content-length-range', 1, 5242880], ['eq', '$Content-Type', 'image/png']]));
     expect(opts.Fields['Content-Type']).toBe('image/png');
+    expect(opts.Fields['Cache-Control']).toBe('public, max-age=86400');
+    expect(opts.Conditions).toEqual(expect.arrayContaining([['eq', '$Cache-Control', 'public, max-age=86400']]));
     expect(r.url).toBe('https://b.s3.ap-south-1.amazonaws.com/');
     expect(r.fields.key).toBe(r.key);
     expect(r.publicUrl).toBe(`https://b.s3.ap-south-1.amazonaws.com/${r.key}`);

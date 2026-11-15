@@ -1,7 +1,8 @@
 "use client";
+import { gaListingSubmit } from "@/lib/ga-events";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import type { AdminProduct as Product, SellerProfile } from "@/lib/types";
+import type { AdminProduct as Product, SellerProfile, SourcingType } from "@/lib/types";
 import type { AdminArtist } from "@/lib/admin-posts";
 import { artistKey } from "@/lib/artist";
 import { productSlug } from "@/lib/catalog-shared";
@@ -35,6 +36,7 @@ export function PostsAdmin({
   initialArtists,
   role,
   categories: initialCategories = [],
+  sourcingTypes = [],
   workshops = [],
   sellers = [],
   me,
@@ -46,6 +48,7 @@ export function PostsAdmin({
   initialArtists: AdminArtist[];
   role: "admin" | "seller";
   categories?: string[];
+  sourcingTypes?: SourcingType[];
   workshops?: WorkshopOption[];
   sellers?: SellerOption[];
   me?: SellerOption;
@@ -124,6 +127,7 @@ export function PostsAdmin({
     url: string,
     method: string,
     body?: unknown,
+    onOk?: (data: unknown) => void,
   ): Promise<string | null> {
     try {
       const res = await fetch(url, {
@@ -134,6 +138,7 @@ export function PostsAdmin({
       const data = await res.json().catch(() => null);
       // A failed write never triggers a re-fetch of the lists.
       if (!res.ok) return explain(res.status, data);
+      onOk?.(data);
       return null;
     } catch {
       return "Network error. Please try again.";
@@ -146,6 +151,7 @@ export function PostsAdmin({
       isNew ? "/api/products" : `/api/products/${(editing as Product).id}`,
       isNew ? "POST" : "PATCH",
       payload,
+      isNew ? (d) => { const c = d as { id?: unknown; category?: unknown } | null; if (typeof c?.id === "string") gaListingSubmit(c.id, typeof c.category === "string" ? c.category : ""); } : undefined,
     );
     if (err) return err;
     setEditing(null);
@@ -436,6 +442,7 @@ export function PostsAdmin({
           initial={editing === "new" ? undefined : editing}
           role={role}
           categories={categories}
+          sourcingTypes={sourcingTypes}
           onCategoryCreated={(name) => setCategories((c) => (c.includes(name) ? c : [...c, name]))}
           workshops={workshops}
           sellers={sellers}

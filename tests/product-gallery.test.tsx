@@ -146,7 +146,7 @@ describe('ProductGallery', () => {
     expect(f.className).toBe('product-visual detail-art visual-2 zoomable');
     expect(f.getAttribute('tabindex')).toBeNull(); expect(f.getAttribute('role')).toBeNull();
     expect(document.querySelector('.gallery-slide')).toBeNull();
-    expect(Array.from(f.children).map(c => c.tagName)).toEqual(['IMG']);
+    expect(Array.from(f.children).filter(c => !c.classList.contains('photo-shimmer')).map(c => c.tagName)).toEqual(['IMG']); // the loading shimmer is the only extra child
     expect(big2()!.getAttribute('loading')).toBe('lazy');
     const img = f.querySelector('img')!;
     Object.defineProperty(img, 'naturalWidth', { value: 800 }); Object.defineProperty(img, 'naturalHeight', { value: 800 });

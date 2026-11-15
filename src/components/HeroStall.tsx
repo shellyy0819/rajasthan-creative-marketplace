@@ -1,9 +1,10 @@
 import { StickerLayer } from './theme/StickerLayer';
+import Link from 'next/link';
 import { fitText } from './theme/fit';
 import { EVERYDAY } from '@/lib/themes/presets';
-import type { Placement } from '@/lib/themes/types';
+import { hasChalkboard, type Placement } from '@/lib/themes/types';
 
-export type StallProps = { sign: string; chalkLabel: string; chalkTitle: string; chalkSub: string; bunting: boolean; stickers: Placement[] };
+export type StallProps = { sign: string; chalkLabel: string; chalkTitle: string; chalkSub: string; bunting: boolean; stickers: Placement[]; /** When set, the chalkboard is a link to it. */ chalkHref?: string };
 
 const D = EVERYDAY.config;
 export const DEFAULT_STALL: StallProps = { sign: D.sign, chalkLabel: D.chalkLabel, chalkTitle: D.chalkTitle, chalkSub: D.chalkSub, bunting: true, stickers: [] };
@@ -14,9 +15,11 @@ function Fitted({ value, original, x, y, size, width, ...rest }: { value: string
   return <text x={x} y={y} fontSize={size} {...(f.textLength ? { textLength: f.textLength, lengthAdjust: 'spacingAndGlyphs' as const } : {})} {...rest}>{f.text}</text>;
 }
 
-export function HeroStall({ sign = D.sign, chalkLabel = D.chalkLabel, chalkTitle = D.chalkTitle, chalkSub = D.chalkSub, bunting = true, stickers = [] }: Partial<StallProps>) {
+export function HeroStall({ sign = D.sign, chalkLabel = D.chalkLabel, chalkTitle = D.chalkTitle, chalkSub = D.chalkSub, bunting = true, stickers = [], chalkHref }: Partial<StallProps>) {
+  // A link must stay reachable by keyboard and screen readers, so the picture is only hidden from them when the board is not a link.
+  const boardLink = !!chalkHref && hasChalkboard({ chalkLabel, chalkTitle, chalkSub });
   return (
-    <svg className="hero-stall" viewBox="0 0 600 720" focusable="false" aria-hidden="true">
+    <svg className="hero-stall" viewBox="0 0 600 720" focusable="false" {...(boardLink ? {} : { 'aria-hidden': true })}>
       <defs>
       <pattern id="st-blk" width="30" height="30" patternUnits="userSpaceOnUse">
       <circle cx="15" cy="15" r="7" className="st-f-mustard"/>
@@ -96,7 +99,7 @@ export function HeroStall({ sign = D.sign, chalkLabel = D.chalkLabel, chalkTitle
       <g transform="translate(228 302) rotate(10)">
       <line x1="0" y1="-10" x2="0" y2="0" strokeWidth="1" className="st-s-ink"/>
       <rect x="-4" y="0" width="40" height="18" rx="3" className="st-f-chalk"/>
-      <text x="2" y="14" className="st-hand st-t-ink" fontSize="11">₹450</text>
+      <text x="2" y="14" className="st-hand st-t-hair" fontSize="11">₹450</text>
       </g>
 
       {/* shelf 2 */}
@@ -225,7 +228,7 @@ export function HeroStall({ sign = D.sign, chalkLabel = D.chalkLabel, chalkTitle
       <path d="M370 424q-10 4-18 20" fill="none" strokeWidth="1" className="st-s-terrad"/>
       {/* UPI QR stand */}
       <rect x="474" y="444" width="26" height="34" rx="2" className="st-f-chalk"/>
-      <text x="487" y="454" textAnchor="middle" fontSize="6" fontWeight="600" className="st-t-ink">UPI</text>
+      <text x="487" y="454" textAnchor="middle" fontSize="6" fontWeight="600" className="st-t-hair">UPI</text>
       <rect x="478" y="458" width="7" height="7" className="st-f-board"/><rect x="489" y="458" width="7" height="7" className="st-f-board"/><rect x="478" y="469" width="7" height="7" className="st-f-board"/>
       <rect x="479.5" y="459.5" width="4" height="4" className="st-f-chalk"/><rect x="490.5" y="459.5" width="4" height="4" className="st-f-chalk"/><rect x="479.5" y="470.5" width="4" height="4" className="st-f-chalk"/>
       <rect x="490" y="470" width="3" height="3" className="st-f-board"/><rect x="495" y="466" width="3" height="3" className="st-f-board"/><rect x="493" y="474" width="3" height="3" className="st-f-board"/>
@@ -295,13 +298,24 @@ export function HeroStall({ sign = D.sign, chalkLabel = D.chalkLabel, chalkTitle
       <circle cx="0" cy="553" r="11" className="st-f-hair"/><circle cx="-11" cy="555" r="2" className="st-f-skin"/><circle cx="11" cy="555" r="2" className="st-f-skin"/>
       <path d="M-11 578L-16 606" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" className="st-s-skin"/><path d="M11 578L22 566L24 552" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" className="st-s-skin"/><rect x="21" y="540" width="7" height="12" rx="1.5" className="st-f-board"/><path d="M32 546q5 6 0 12M36 543q8 9 0 18" fill="none" strokeWidth="1.3" className="st-s-mustard st-blink"/>
       </g></g>
-      {/* easel sign */}
-      <line x1="500" y1="586" x2="490" y2="660" strokeWidth="3" className="st-s-woodd"/><line x1="524" y1="586" x2="534" y2="660" strokeWidth="3" className="st-s-woodd"/>
-      <rect x="480" y="548" width="64" height="44" rx="3" className="st-f-board"/>
-      <rect x="480" y="548" width="64" height="44" rx="3" fill="none" strokeWidth="2" className="st-s-woodd"/>
-      <Fitted value={chalkLabel.toUpperCase()} original={D.chalkLabel.toUpperCase()} x={512} y={562} size={6} width={54} textAnchor="middle" fontWeight="600" letterSpacing="1.5" className="st-t-mustard"/>
-      <Fitted value={chalkTitle} original={D.chalkTitle} x={512} y={575} size={8} width={54} textAnchor="middle" fontWeight="600" className="st-t-chalk"/>
-      <Fitted value={chalkSub} original={D.chalkSub} x={512} y={585} size={6.5} width={54} textAnchor="middle" className="st-t-chalk" opacity=".85"/>
+      {/* easel sign: drawn only when it has words, and a link when the admin gave it somewhere to go */}
+      {hasChalkboard({ chalkLabel, chalkTitle, chalkSub }) && (() => {
+        const board = (
+          <>
+        <line x1="500" y1="586" x2="490" y2="660" strokeWidth="3" className="st-s-woodd"/><line x1="524" y1="586" x2="534" y2="660" strokeWidth="3" className="st-s-woodd"/>
+        <rect x="480" y="548" width="64" height="44" rx="3" className="st-f-board"/>
+        <rect x="480" y="548" width="64" height="44" rx="3" fill="none" strokeWidth="2" className="st-s-woodd"/>
+        <Fitted value={chalkLabel.toUpperCase()} original={D.chalkLabel.toUpperCase()} x={512} y={562} size={6} width={54} textAnchor="middle" fontWeight="600" letterSpacing="1.5" className="st-t-mustard"/>
+        <Fitted value={chalkTitle} original={D.chalkTitle} x={512} y={575} size={8} width={54} textAnchor="middle" fontWeight="600" className="st-t-chalk"/>
+        <Fitted value={chalkSub} original={D.chalkSub} x={512} y={585} size={6.5} width={54} textAnchor="middle" className="st-t-chalk" opacity=".85"/>
+          </>
+        );
+        if (!chalkHref) return <g>{board}</g>;
+        const label = [chalkLabel, chalkTitle, chalkSub].filter(Boolean).join('. ');
+        return chalkHref.startsWith('/')
+          ? <Link href={chalkHref} className="st-board-link" aria-label={label}>{board}</Link>
+          : <a href={chalkHref} className="st-board-link" aria-label={label} target="_blank" rel="noopener noreferrer">{board}</a>;
+      })()}
       {/* badge */}
       <g transform="translate(550 92)">
       <circle r="38" className="st-f-chalk"/>

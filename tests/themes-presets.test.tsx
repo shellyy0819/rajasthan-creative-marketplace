@@ -25,7 +25,7 @@ describe('festive presets', () => {
   });
   it.each(KEYS)('%s wording is within LIMITS', (k) => {
     const c = PRESETS[k].config;
-    for (const f of Object.keys(LIMITS) as (keyof typeof LIMITS)[]) expect(c[f].length, f).toBeLessThanOrEqual(LIMITS[f]);
+    for (const f of ['banner', 'sign', 'chalkLabel', 'chalkTitle', 'chalkSub'] as const) expect(c[f].length, f).toBeLessThanOrEqual(LIMITS[f]);
     expect(PRESETS[k].label.length).toBeGreaterThan(0);
   });
   it.each(KEYS)('%s placements exist in the catalogue with art', (k) => {

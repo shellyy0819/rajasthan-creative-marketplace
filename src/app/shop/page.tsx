@@ -4,6 +4,7 @@ import { LiveCatalog } from '@/components/LiveCatalog';
 import { JsonLd } from '@/components/JsonLd';
 import { listProducts } from '@/lib/catalog';
 import { listCategories } from '@/lib/categories';
+import { listSourcingTypes } from '@/lib/sourcing-types';
 import { listActiveCities } from '@/lib/cities';
 import { hasFilters, parseFilters } from '@/lib/filters';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
@@ -23,7 +24,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 export default async function ShopPage({ searchParams }: Props) {
   const f = parseFilters(await searchParams);
-  const [products, categories, cities] = await Promise.all([listProducts(f), listCategories(), listActiveCities()]);
+  const [products, categories, cities, sourcingTypes] = await Promise.all([listProducts(f), listCategories(), listActiveCities(), listSourcingTypes()]);
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Shop', path: '/shop' }];
   return (
     <>
@@ -34,7 +35,7 @@ export default async function ShopPage({ searchParams }: Props) {
         <h1>Handmade products</h1>
         <p>Craftofy is an online marketplace for handmade products from independent artisans across India. Browse by category or city, then contact the maker directly to order. Craftofy charges makers no commission.</p>
       </div>
-      <LiveCatalog kind="products" initialItems={products} initialValues={f} categories={categories} cities={cities.map(c => ({ name: c.name, slug: c.slug, state: c.state }))} />
+      <LiveCatalog kind="products" initialItems={products} initialValues={f} categories={categories} sourcingTypes={sourcingTypes.map(t => t.name)} cities={cities.map(c => ({ name: c.name, slug: c.slug, state: c.state }))} />
     </>
   );
 }

@@ -116,6 +116,16 @@ export async function listActiveCities(): Promise<City[]> {
   return rows.map(toCity);
 }
 
+const ACTIVE_TTL_MS = 60_000;
+let activeCache: { at: number; rows: City[] } | null = null;
+/** The home page's city list, kept in memory for a minute so the page does not wait on this query every visit. Everything else uses the live list. */
+export async function listActiveCitiesCached(): Promise<City[]> {
+  if (activeCache && Date.now() - activeCache.at < ACTIVE_TTL_MS) return activeCache.rows;
+  const rows = await listActiveCities();
+  activeCache = { at: Date.now(), rows };
+  return rows;
+}
+
 export async function nearestActiveCities(
   from: { lat: number; lng: number },
   opts: { limit?: number; maxKm?: number } = {},

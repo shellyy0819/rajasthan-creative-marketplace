@@ -601,6 +601,19 @@ h2 em {
   letter-spacing: 0.8px;
   text-transform: uppercase;
 }
+.detail-like { margin-top: 16px; }
+.detail-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 12px; }
+/* How the product was sourced (Curated, Resold ...): shown on the product page only, never on cards */
+.source-tag {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  padding: 4px 11px;
+  border-radius: 14px;
+  background: var(--cream);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
 .product-info h3 {
   font: 500 17px var(--font-display);
   margin: 8px 0;
@@ -1381,7 +1394,18 @@ form label select {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.35s ease;
 }
+.product-photo.is-loaded { opacity: 1; }
+/* Shimmer inside the image box while the photo downloads */
+.photo-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, #ffffff00 20%, #ffffff3d 50%, #ffffff00 80%) 200% 0 / 200% 100% no-repeat, #ffffff14;
+  animation: dash-skel-shimmer 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) { .photo-shimmer { animation: none; } }
 .admin-shell {
   min-height: 60vh;
 }
@@ -2610,6 +2634,23 @@ main {
   height: 1px;
   overflow: hidden;
 }
+/* Admin: sourcing types */
+.sourcing-list { display: grid; gap: 12px; }
+.sourcing-list .admin-row { margin: 0; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.sourcing-new { display: grid; gap: 8px; margin: 0; }
+.sourcing-new .form-note { margin: 0; }
+.sourcing-new-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
+.sourcing-name { flex: 1 1 240px; margin: 0; }
+.sourcing-new-row .button { height: var(--control-h); }
+.sourcing-flags { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 6px; }
+.sourcing-rename { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; }
+.sourcing-rename input { flex: 1 1 200px; }
+@media (max-width: 600px) { .sourcing-list .admin-row { grid-template-columns: minmax(0, 1fr); } }
+/* City page: the workshop band stacks its heading above the list instead of using the home page two-column intro layout */
+.workshop-band.stacked { display: block; }
+.workshop-band.stacked .section-heading { margin-bottom: 20px; }
+/* Same heading as the Products section above it (.section h2 + .section-heading h2: no bottom margin) */
+.workshop-band.stacked h2 { font: 500 clamp(32px, 4vw, 45px)/1.15 var(--font-display); letter-spacing: -1px; margin: 15px 0 0; }
 .admin-table-wrap {
   overflow-x: auto;
   margin-top: 16px;
@@ -2820,7 +2861,10 @@ main {
   scrollbar-width: thin;
   margin-top: 10px;
   padding-bottom: 4px;
+  justify-content: center;
 }
+.gallery-thumbs .gallery-thumb:first-child { margin-left: auto; }   /* centred when they fit, still scrollable from the first one when they do not */
+.gallery-thumbs .gallery-thumb:last-child { margin-right: auto; }
 .gallery-thumb {
   flex: none;
   width: 64px;
@@ -3016,6 +3060,11 @@ main {
     animation-duration: 0.01s;
   }
 }
+
+/* hero chalkboard as a link */
+.st-board-link { cursor: pointer; }
+.st-board-link:hover rect:first-of-type, .st-board-link:focus-visible rect:first-of-type { stroke: var(--orange); stroke-width: 2; }
+.st-board-link:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
 /* sticker motion (inside the fixed hero SVG only) */
 .flame { transform-box: fill-box; transform-origin: 50% 100%; animation: stk-flick 1.1s ease-in-out infinite alternate; }
@@ -3782,7 +3831,7 @@ body.modal-open {
 }
 /* Cards fill edge to edge (the product page keeps the whole photo visible). */
 .product-card .product-photo {
-  object-fit: cover;
+  object-fit: contain;
 }
 /* Click a photo in the dashboard to see it full size. */
 .photo-open {

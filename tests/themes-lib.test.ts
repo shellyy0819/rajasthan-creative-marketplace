@@ -42,6 +42,19 @@ describe('contrast', () => {
   });
 });
 
+describe('validateConfig: chalkboard', () => {
+  it('lets all three chalkboard lines be empty', () => {
+    const out = validateConfig(cfg({ chalkLabel: '', chalkTitle: '  ', chalkSub: '' }));
+    expect([out.chalkLabel, out.chalkTitle, out.chalkSub]).toEqual(['', '', '']);
+  });
+  it('keeps a valid link and drops an empty one', () => {
+    expect(validateConfig(cfg({ chalkHref: ' /workshops ' })).chalkHref).toBe('/workshops');
+    expect(validateConfig(cfg({ chalkHref: 'https://example.com/sale' })).chalkHref).toBe('https://example.com/sale');
+    expect(validateConfig(cfg({ chalkHref: '' })).chalkHref).toBeUndefined();
+  });
+  it.each(['javascript:alert(1)', '//evil.com', 'http://insecure.com', 'shop', '/a b'])('rejects the link %s', href => { rejects(cfg({ chalkHref: href }), /chalkHref/); });
+});
+
 describe('validateConfig', () => {
   it('accepts every preset config', () => {
     for (const p of Object.values(PRESETS)) expect(validateConfig(p.config)).toEqual(p.config);

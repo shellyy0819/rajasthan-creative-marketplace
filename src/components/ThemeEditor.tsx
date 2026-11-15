@@ -112,11 +112,18 @@ export function ThemeEditor({ theme, isBase, saving, onSave, onClose }: {
             <div key={key}>
               <label>
                 <span className="lbl">{label}</span>
-                <input required maxLength={max} value={cfg[key]} onChange={e => set({ [key]: e.target.value })} />
+                <input required={key === 'banner' || key === 'sign'} maxLength={max} value={cfg[key]} onChange={e => set({ [key]: e.target.value })} />
               </label>
               <small className="muted" aria-hidden="true">{cfg[key].length}/{max}</small>
             </div>
           ))}
+
+          <p className="muted">Chalkboard: leave all three lines empty to remove the board from the home page. With words on it, the board is a link.</p>
+          <label>
+            <span className="lbl">Chalkboard link (optional)</span>
+            <input type="text" inputMode="url" maxLength={LIMITS.chalkHref} placeholder="/shop" value={cfg.chalkHref ?? ''} onChange={e => set({ chalkHref: e.target.value })} pattern="(/(?!/)\S*|https://\S+)?" title="A path on this site like /shop or /workshops, or an https address. Empty goes to the shop." />
+            <small className="muted">Empty goes to the shop.</small>
+          </label>
 
           <label className="theme-check"><input type="checkbox" checked={cfg.bunting} onChange={e => set({ bunting: e.target.checked })} /> Show bunting</label>
 

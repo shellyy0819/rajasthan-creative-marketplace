@@ -16,6 +16,8 @@ const reducedMotion = () => typeof window !== 'undefined' && typeof window.match
  * Product page photos: a carousel (arrows, dots, counter, swipe, arrow keys) when there is more than one photo,
  * a thumbnail row kept in sync, and the Amazon-style hover zoom on the current photo for mouse users.
  */
+const DETAIL_SIZES = '(max-width: 900px) 100vw, 640px';
+
 export function ProductGallery({ images, alt, fallback, variant = 0 }: { images: string[]; alt: string; fallback: React.ReactNode; variant?: number }) {
   const n = images.length;
   const many = n > 1;
@@ -107,7 +109,7 @@ export function ProductGallery({ images, alt, fallback, variant = 0 }: { images:
     return (
       <div className="gallery">
         <div ref={box} className={`product-visual detail-art visual-${variant % 4}${current ? ' zoomable' : ''}`} onMouseMove={current ? onMoveSingle : undefined} onMouseLeave={() => setZoom(null)}>
-          <ProductImage key={current ?? 'none'} src={current} alt={alt} fallback={fallback} />
+          <ProductImage key={current ?? 'none'} src={current} alt={alt} fallback={fallback} sizes={DETAIL_SIZES} />
           {zoom && <span className="zoom-lens" aria-hidden="true" style={{ left: zoom.lx, top: zoom.ly, width: zoom.lw, height: zoom.lh }} />}
         </div>
         {zoom && current && (
@@ -124,7 +126,7 @@ export function ProductGallery({ images, alt, fallback, variant = 0 }: { images:
           const active = i === cur;
           return (
             <div key={`${i}-${src}`} className="gallery-slide" data-active={active} aria-hidden={!active ? true : undefined} role="group" aria-roledescription="slide" aria-label={`${i + 1} of ${n}`}>
-              <ProductImage src={src} alt={`${alt} (photo ${i + 1} of ${n})`} fallback={fallback} eager={near(i)} />
+              <ProductImage src={src} alt={`${alt} (photo ${i + 1} of ${n})`} fallback={fallback} eager={near(i)} sizes={DETAIL_SIZES} />
             </div>
           );
         })}

@@ -1,4 +1,5 @@
 'use client';
+import { gaSignUp } from '@/lib/ga-events';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { FieldError } from '@/components/onboarding/FieldError';
@@ -125,6 +126,7 @@ export function SellerOnboarding({ initialName, initialEmail, postsUrl, postsUrl
       let body: { errors?: unknown; error?: unknown } | null = null;
       try { body = await res.json(); } catch { /* not JSON */ }
       if (res.status === 200 && body) {
+        if ((body as { status?: unknown }).status === 'created') gaSignUp('google'); // new seller account only: not an admin finishing their profile
         try { sessionStorage.removeItem(DRAFT_KEY); } catch { /* storage blocked */ }
         setDone({ name: payload.fullName.trim().split(/\s+/)[0] || payload.fullName, brand: payload.brandName });
         return;
