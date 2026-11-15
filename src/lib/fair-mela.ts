@@ -26,6 +26,15 @@ export const MELA_QUESTS: Record<MelaPhase, QuestId[]> = {
   purnima: ['meet3', 'dip', 'note'],
 };
 
+/** Things to do at Pushkar during the mela. The balloon floats over the fair, music and sports have a place on the floor, and the market is the stalls themselves. */
+export type ActivityId = 'balloon' | 'music' | 'sports' | 'market';
+export const ACTIVITIES: Array<{ id: ActivityId; name: string; line: string }> = [
+  { id: 'balloon', name: 'Hot air balloon rides', line: 'Float over the fair' },
+  { id: 'music', name: 'Folk music', line: 'Sit down at the stage' },
+  { id: 'sports', name: 'Rural sports', line: 'Join a tug of war' },
+  { id: 'market', name: 'Handicraft market', line: 'Browse the stalls' },
+];
+
 /** Which part of the mela an IST calendar day (yyyy-mm-dd) falls in, or null outside it. */
 export function melaPhaseOf(day: string): MelaPhase | null {
   const y = MELA_DAYS[Number(day.slice(0, 4))];

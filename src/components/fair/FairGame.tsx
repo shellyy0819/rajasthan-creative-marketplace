@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CODE_RE } from '@/lib/fair-constants';
 import { characterFor, formatCode, lookFor, normalizeCode } from '@/lib/fair-characters';
 import type { LookId } from '@/lib/fair-constants';
-import { dayFromSearch, melaOf } from '@/lib/fair-mela';
+import { ACTIVITIES, dayFromSearch, melaOf, type ActivityId } from '@/lib/fair-mela';
 import type { Emote, FairData, FairItem } from '@/lib/fair-types';
 import { money } from '@/lib/money';
 import { PageLoader } from '../PageLoader';
@@ -19,9 +19,12 @@ import { LookSheet, MirrorSheet, ShortlistSheet, StallSheet, Sheet } from './Fai
 import { MAX_NOTES, MAX_QTY, cartCount, cleanProfile, emptyProfile, loadStore, saveStore, type Profile, type Store } from './profile';
 import type { QuestDay } from '@/lib/fair-quest-days';
 import { applyEvent, countOf, dayKey, isDone, mergeProgress, questsFor, restoreState, type GameEvent, type QuestState } from './quests';
-import { lakeIndex } from './world';
+import { PLACE_LABEL, placeIndexes, type Place } from './world';
+import { BalloonSheet, MarketSheet, MusicSheet, SportsSheet } from './FairActivities';
+import { playFolk } from './folk';
 
-type SheetState = { kind: 'stall'; idx: number } | { kind: 'open'; label: string } | { kind: 'lake' } | { kind: 'look' } | { kind: 'shortlist' } | { kind: 'mirror'; view: 'menu' | 'selfie' | 'note' } | null;
+type SheetState = { kind: 'stall'; idx: number } | { kind: 'open'; label: string } | { kind: Place | ActivityId } | { kind: 'look' } | { kind: 'shortlist' } | { kind: 'mirror'; view: 'menu' | 'selfie' | 'note' } | null;
+const PLACE_NOTE: Record<Place, string> = { lake: 'Holy dip on Kartik Purnima', music: 'Folk musicians on the stage', sports: 'Tug of war in the ring' };
 const EMOTE_LABEL: Record<Emote, string> = { wave: 'Wave', namaste: 'Namaste', hello: 'Say hello' };
 
 /** The walk-around exhibition: the canvas on the left, the maker you are nearest, your player code, quests and other visitors on the right. */
@@ -34,7 +37,9 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
   const day = useMemo(() => (typeof window === 'undefined' ? null : dayFromSearch(window.location.search)) ?? realDay, [realDay]);
   const simulated = day !== realDay;
   const mela = useMemo(() => melaOf(day), [day]);
-  const lakeAt = mela ? lakeIndex(data.stalls) : -1;
+  const places = useMemo(() => (mela ? placeIndexes(data.stalls) : null), [mela, data.stalls]);
+  const placeAt = (i: number): Place | null => (places ? (['lake', 'music', 'sports'] as const).find(p => places[p] === i) ?? null : null);
+  const folkRef = useRef<{ stop(): void } | null>(null);
   const quests = useMemo(() => questsFor(data, day), [data, day]);
   const mirrorMaker = data.makers.find(m => m.mirror) ?? null;
   const wearables = useMemo(() => (mirrorMaker?.items ?? []).filter(isWearable), [mirrorMaker]);
@@ -181,10 +186,10 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
     if (!profile.met.includes(id)) { notify(`Stamp collected: ${name}`); play('stamp'); }
     record({ type: 'visit', makerId: id });
   }, [profile.met, record, notify, play]);
-  const handlers = useRef<EngineCallbacks>({ onNearest() {}, onOpenStall() {}, onOpenMirror() {}, onToast() {}, onEvent() {}, onMoved() {}, onPhase() {}, onCrowd() {}, onSfx() {}, onCraft() {} });
+  const handlers = useRef<EngineCallbacks>({ onNearest() {}, onOpenStall() {}, onOpenMirror() {}, onToast() {}, onEvent() {}, onMoved() {}, onPhase() {}, onCrowd() {}, onSfx() {}, onCraft() {}, onOpenActivity() {} });
   handlers.current = {
     onNearest: i => setNearIdx(i),
-    onOpenStall: slot => { if (slot.lake) setSheet({ kind: 'lake' }); else if (!slot.maker) setSheet({ kind: 'open', label: slot.label }); else { visit(slot.maker.id, slot.maker.name); setSheet({ kind: 'stall', idx: slot.idx }); } },
+    onOpenStall: slot => { if (slot.place) setSheet({ kind: slot.place }); else if (!slot.maker) setSheet({ kind: 'open', label: slot.label }); else { visit(slot.maker.id, slot.maker.name); setSheet({ kind: 'stall', idx: slot.idx }); } },
     onOpenMirror: view => setSheet({ kind: 'mirror', view }),
     onToast: t => notify(t),
     onEvent: record,
@@ -193,12 +198,13 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
     onCrowd: n => setCrowd(n),
     onSfx: e => play(e === 'step' ? 'step' : e),
     onCraft: k => soundRef.current?.craft(k),
+    onOpenActivity: id => setSheet({ kind: id }),
   };
   useEffect(() => {
     if (!ready || !canvasRef.current) return;
     const eng = createFairEngine(canvasRef.current, data, {
       onNearest: i => handlers.current.onNearest(i), onOpenStall: s => handlers.current.onOpenStall(s), onOpenMirror: v => handlers.current.onOpenMirror(v),
-      onToast: t => handlers.current.onToast(t), onEvent: e => handlers.current.onEvent(e), onMoved: () => handlers.current.onMoved(), onPhase: p => handlers.current.onPhase(p), onCrowd: n => handlers.current.onCrowd(n), onSfx: e => handlers.current.onSfx(e), onCraft: k => handlers.current.onCraft(k),
+      onToast: t => handlers.current.onToast(t), onEvent: e => handlers.current.onEvent(e), onMoved: () => handlers.current.onMoved(), onPhase: p => handlers.current.onPhase(p), onCrowd: n => handlers.current.onCrowd(n), onSfx: e => handlers.current.onSfx(e), onCraft: k => handlers.current.onCraft(k), onOpenActivity: id => handlers.current.onOpenActivity(id),
     }, { reducedMotion: typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches, hour: hourFromSearch(window.location.search), mela });
     engineRef.current = eng; eng.setIdentity(codeRef.current, lookRef.current);
     return () => { eng.destroy(); engineRef.current = null; };
@@ -292,6 +298,21 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
   const onSelfie = useCallback(() => record({ type: 'selfie' }), [record]);
   const closeSheet = useCallback(() => setSheet(null), []);
   /** The holy dip at Pushkar Lake, on Kartik Purnima: you stand in the water with the devotees and the quest is done. */
+  useEffect(() => () => folkRef.current?.stop(), []);
+  /** Hot air balloon: the camera pulls back and you float across the fair. */
+  const takeRide = () => { engineRef.current?.ride(); setSheet(null); notify('Up you go! Hold on tight.'); play('stamp'); };
+  /** Folk music: the musicians play (you hear them when sound is on) and the shoppers come over to listen. */
+  const playMusic = () => {
+    folkRef.current?.stop(); folkRef.current = muted ? null : playFolk();
+    engineRef.current?.music(); setSheet(null);
+    notify(muted ? 'The musicians are playing. Sound is off: switch it on from the menu to hear them.' : 'The folk musicians are playing.');
+  };
+  const finishTug = useCallback((won: boolean) => { engineRef.current?.cheer(won); notify(won ? 'Your team won the tug of war!' : 'The village team won this time.'); play(won ? 'quest' : 'remove'); }, [notify, play]);
+  /** One of the things to do at Pushkar, from its card in the side panel: the music stage and the sports ring are walked to first. */
+  const openActivity = (id: ActivityId) => {
+    const idx = id === 'music' || id === 'sports' ? places?.[id] ?? -1 : -1;
+    if (idx >= 0 && engineRef.current) engineRef.current.walkToSlot(idx, () => setSheet({ kind: id })); else setSheet({ kind: id });
+  };
   const takeDip = () => { engineRef.current?.dip(); setSheet(null); notify('You took the holy dip at Pushkar Lake with the other devotees.'); play('stamp'); record({ type: 'dip' }); };
 
   const near = data.makers[0] ? (data.makers.find((_, i) => i === nearIdx)?.id ? engineRef.current?.slots[nearIdx]?.maker ?? data.makers[0] : data.makers[0]) : null;
@@ -354,6 +375,22 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
             </section>
           )}
 
+          {mela && (
+            <section className="fair-card" aria-labelledby="fair-act-h">
+              <h3 id="fair-act-h">Things to do at Pushkar</h3>
+              <ul className="fair-chips">
+                {ACTIVITIES.map(a => (
+                  <li key={a.id}>
+                    <button type="button" className="fair-chip activity" onClick={() => openActivity(a.id)} aria-haspopup="dialog">
+                      <span className="fair-dot" aria-hidden="true">›</span>
+                      <span>{a.name}<small>{a.line}</small></span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section className="fair-card" aria-labelledby="fair-here-h">
             <h3 id="fair-here-h">In the fair now</h3>
             <p className="fair-here">{here > 1 ? `${here} people here now, including you.` : 'Just you for the moment.'}</p>
@@ -413,11 +450,11 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
           <section className="fair-card" aria-labelledby="fair-makers-h">
             <h3 id="fair-makers-h">Makers at the fair</h3>
             <ul className="fair-chips">
-              {data.stalls.map((st, i) => { const m = st.maker, lake = i === lakeAt; return (
+              {data.stalls.map((st, i) => { const m = st.maker, place = placeAt(i); return (
                 <li key={m?.id ?? `open-${i}`}>
                   <button type="button" className={`fair-chip${m && profile.met.includes(m.id) ? ' met' : ''}${m ? '' : ' open'}`} aria-current={m && near?.id === m.id ? 'true' : undefined} onClick={() => engineRef.current?.walkToSlot(i)}>
                     <span className="fair-dot" aria-hidden="true">✓</span>
-                    <span>{lake ? 'Pushkar Lake' : m ? m.name : st.label === 'Open stall' ? 'Open stall' : `Open: ${st.label}`}<small>{lake ? 'Holy dip on Kartik Purnima' : m ? `${m.city} · ${m.category}` : st.label === 'Open stall' ? 'Waiting for a maker' : `Waiting for a ${st.label.toLowerCase()} maker`}</small></span>
+                    <span>{place ? PLACE_LABEL[place] : m ? m.name : st.label === 'Open stall' ? 'Open stall' : `Open: ${st.label}`}<small>{place ? PLACE_NOTE[place] : m ? `${m.city} · ${m.category}` : st.label === 'Open stall' ? 'Waiting for a maker' : `Waiting for a ${st.label.toLowerCase()} maker`}</small></span>
                   </button>
                 </li>
               ); })}
@@ -447,6 +484,10 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
           </div>
         </Sheet>
       )}
+      {sheet?.kind === 'balloon' && <BalloonSheet onRide={takeRide} onClose={closeSheet} />}
+      {sheet?.kind === 'music' && <MusicSheet muted={muted} onPlay={playMusic} onClose={closeSheet} />}
+      {sheet?.kind === 'sports' && <SportsSheet onFinish={finishTug} onClose={closeSheet} />}
+      {sheet?.kind === 'market' && <MarketSheet data={data} onVisit={i => { setSheet(null); engineRef.current?.walkToSlot(i); }} onShortlist={() => setSheet({ kind: 'shortlist' })} onClose={closeSheet} />}
       {sheet?.kind === 'open' && (
         <Sheet labelId="fair-open-h" onClose={closeSheet}>
           <h2 id="fair-open-h">{sheet.label === 'Open stall' ? 'An open stall' : `${sheet.label}: open`}</h2>

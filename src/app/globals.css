@@ -4460,6 +4460,13 @@ body.modal-open {
 .fair-chip small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
 .fair-dot { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px dashed var(--control-border); display: grid; place-items: center; font-size: 12px; color: transparent; }
 .fair-chip.open .fair-dot { border-style: dotted; }
+.fair-chip.activity .fair-dot { border-style: solid; border-color: var(--green); color: var(--green); font-size: 15px; }
+.fair-tug { display: grid; gap: 8px; }
+.fair-tugscene { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); }
+.fair-market { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.fair-market li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); }
+.fair-market small { display: block; color: var(--muted); font-size: 12px; }
+.fair-pull { min-width: 120px; min-height: 48px; font-size: 16px; }
 .fair-chip.met .fair-dot { border: 1.5px solid var(--green); background: var(--green); color: var(--white); }
 .fair-track { height: 8px; border-radius: 8px; background: var(--cream); overflow: hidden; }
 .fair-track div { height: 100%; background: var(--orange); transition: width 0.5s; }

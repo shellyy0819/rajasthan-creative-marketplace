@@ -22,26 +22,35 @@ export type Slot = {
   maker: FairMaker | null; open: boolean;
   /** Pushkar Lake, which takes the place of an open stall during the Pushkar Camel Fair week. It has no maker and is not an open stall. */
   lake: boolean;
+  /** What an open place is turned into during the Pushkar Camel Fair week, or null: the lake, the folk music stage or the rural sports ring. */
+  place: Place | null;
   /** The category an open stall is waiting for ("Wood craft"), or "Open stall". */
   label: string;
   att: number; hov: number; look: number;
 };
+export type Place = 'lake' | 'music' | 'sports';
+export const PLACE_LABEL: Record<Place, string> = { lake: 'Pushkar Lake', music: 'Folk music', sports: 'Rural sports' };
 
-/** Where Pushkar Lake goes: the last place on the floor with no maker (the bottom right when there is room), or -1 when every place is taken. */
-export function lakeIndex(stalls: FairStall[]): number {
-  for (let i = STALL_COUNT - 1; i >= 0; i--) if (!stalls[i]?.maker) return i;
-  return -1;
+/** Where the mela places go: the last places on the floor with no maker, from the bottom right: the lake, then the music stage, then the sports ring. A place that finds no room is -1. */
+export function placeIndexes(stalls: FairStall[]): Record<Place, number> {
+  const out: Record<Place, number> = { lake: -1, music: -1, sports: -1 };
+  const order: Place[] = ['lake', 'music', 'sports'];
+  for (let i = STALL_COUNT - 1; i >= 0 && order.length; i--) if (!stalls[i]?.maker) out[order.shift()!] = i;
+  return out;
 }
+/** Where Pushkar Lake goes (the bottom right when there is room), or -1 when every place is taken. */
+export const lakeIndex = (stalls: FairStall[]): number => placeIndexes(stalls).lake;
 
-/** Eight slots, row by row, from the floor plan: a maker's stall or an open one named for its category. With `lake`, one open place becomes Pushkar Lake. */
-export function buildSlots(stalls: FairStall[], lake = false): Slot[] {
-  const lakeAt = lake ? lakeIndex(stalls) : -1;
+/** Eight slots, row by row, from the floor plan: a maker's stall or an open one named for its category. With `mela`, open places become the lake, the music stage and the sports ring. */
+export function buildSlots(stalls: FairStall[], mela = false): Slot[] {
+  const at = mela ? placeIndexes(stalls) : { lake: -1, music: -1, sports: -1 };
   return Array.from({ length: 8 }, (_, i) => {
     const row = (i < 4 ? 0 : 1) as 0 | 1, col = i % 4, st: FairStall = stalls[i] ?? { maker: null, label: 'Open stall' };
-    if (i === lakeAt) return { idx: i, row, col, cx: COL_X[col], base: ROW_BASE[row], fx: COL_X[col] + 80, fy: ROW_BASE[row] + 30, maker: null, open: false, lake: true, label: 'Pushkar Lake', att: 0, hov: 0, look: 0 };
+    const place = (['lake', 'music', 'sports'] as const).find(p => at[p] === i) ?? null;
+    if (place) return { idx: i, row, col, cx: COL_X[col], base: ROW_BASE[row], fx: COL_X[col] + 80, fy: ROW_BASE[row] + 30, maker: null, open: false, lake: place === 'lake', place, label: PLACE_LABEL[place], att: 0, hov: 0, look: 0 };
     // you stand beside the maker, not in front, so the maker (and the mirror) stay in view; the mirror stall's side is the left
     const stand = COL_X[col] + (st.maker?.mirror ? -72 : 72);
-    return { idx: i, row, col, cx: COL_X[col], base: ROW_BASE[row], fx: stand, fy: ROW_BASE[row] + 30, maker: st.maker, open: !st.maker, lake: false, label: st.label, att: 0, hov: 0, look: 0 };
+    return { idx: i, row, col, cx: COL_X[col], base: ROW_BASE[row], fx: stand, fy: ROW_BASE[row] + 30, maker: st.maker, open: !st.maker, lake: false, place: null, label: st.label, att: 0, hov: 0, look: 0 };
   });
 }
 /** Where a camera of this size should sit along one axis: centred when the world is smaller than the view, otherwise kept inside the world. */
