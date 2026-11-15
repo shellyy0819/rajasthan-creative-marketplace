@@ -19,7 +19,7 @@ describe('homepage hero', () => {
   });
   it('each destination is offered once: one link to the shop and one to workshops in the whole hero block', () => {
     const { container } = render(<Hero />);
-    expect(container.querySelectorAll('a[href="/shop"]')).toHaveLength(1);
+    expect(container.querySelectorAll('a[href^="/shop"]')).toHaveLength(1);   // /shop?q=handmade
     expect(container.querySelectorAll('a[href="/workshops"]')).toHaveLength(1);
   });
   it('has exactly one h1 with the three-part headline', () => {
