@@ -103,3 +103,54 @@ describe('search text is a literal, injection-safe substring match', () => {
     expect(ids.indexOf('p2')).toBeLessThan(ids.indexOf('p10'));
   });
 });
+
+describe('catalog: sourcing type', () => {
+  // p1 Curated, p2 not set (its text says handmade), p3 and p4 stay Handmade
+  async function classify() {
+    const { eq } = await import('drizzle-orm');
+    const { sourcingTypes } = await import('@/db/schema');
+    const db = await getTestDb();
+    const ids = Object.fromEntries((await db.select().from(sourcingTypes)).map(t => [t.name, t.id]));
+    await db.update(productsTable).set({ sourcingTypeId: ids.Curated }).where(eq(productsTable.id, 'p1'));
+    await db.update(productsTable).set({ sourcingTypeId: null, description: 'A handmade bowl' }).where(eq(productsTable.id, 'p2'));
+    return { db, ids };
+  }
+  it('source lists only products of that type, ignoring case; a product with no type never matches', async () => {
+    await classify();
+    expect((await listProducts({ source: 'Handmade' })).map(p => p.id)).toEqual(['p3', 'p4']);
+    expect((await listProducts({ source: 'curated' })).map(p => p.id)).toEqual(['p1']);
+    expect(await listProducts({ source: 'Nope' })).toEqual([]);
+  });
+  it('a search that is exactly a type name finds products of that type and products whose text says the word', async () => {
+    const { db } = await classify();
+    const ids = async (q: string) => (await listProducts({ q })).map(p => p.id).sort();
+    // p1 Curated, text says handmade; p2 not set, text says handmade; p3 Handmade, text too; p4 Handmade, text does not say it
+    expect(await ids('handmade')).toEqual(['p1', 'p2', 'p3', 'p4']);
+    expect(await ids('  Handmade ')).toEqual(['p1', 'p2', 'p3', 'p4']);
+    // p2 not set and its text no longer says it: not found. p4 is still found, by its type alone.
+    const { eq } = await import('drizzle-orm');
+    await db.update(productsTable).set({ description: 'A tiny bowl' }).where(eq(productsTable.id, 'p2'));
+    expect(await ids('handmade')).toEqual(['p1', 'p3', 'p4']);
+    expect(await ids('CURATED')).toEqual(['p1']);                 // by type only
+  });
+  it('products found by their text come before those found only by their type', async () => {
+    await classify();
+    const found = (await listProducts({ q: 'handmade' })).map(p => p.id);
+    expect(found).toHaveLength(4);
+    expect(found[found.length - 1]).toBe('p4');
+  });
+  it('a type and other filters or words combine', async () => {
+    await classify();
+    expect((await listProducts({ source: 'Handmade', q: 'FLOWER' })).map(p => p.id)).toEqual(['p3']);
+    expect((await listProducts({ source: 'Handmade', city: 'Jaipur' })).map(p => p.id)).toEqual(['p3', 'p4']);
+    expect((await listProducts({ q: 'handmade bowl' }))[0].id).toBe('p2'); // more than the bare type name: ordinary text search, best match first
+  });
+  it('a switched-off type name is an ordinary word again', async () => {
+    const { db } = await classify();
+    const { sourcingTypes } = await import('@/db/schema');
+    const { eq } = await import('drizzle-orm');
+    await db.update(sourcingTypes).set({ active: false }).where(eq(sourcingTypes.name, 'Resold'));
+    await db.update(productsTable).set({ description: 'resold in a set' }).where(eq((await import('@/db/schema')).products.id, 'p4'));
+    expect((await listProducts({ q: 'resold' })).map(p => p.id)).toEqual(['p4']);
+  });
+});

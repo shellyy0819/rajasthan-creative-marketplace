@@ -8,11 +8,11 @@ import { ProductGrid } from './ProductGrid';
 import { PageLoader } from './PageLoader';
 import { WorkshopList } from './WorkshopList';
 
-type Values = { city?: string; category?: string; type?: string; q?: string };
+type Values = { city?: string; category?: string; source?: string; type?: string; q?: string };
 type CityOption = { name: string; slug: string; state?: string };
 /** `cities` are the active cities (from the server), offered in the city filter by slug (labelled with the state when a name repeats). */
 type Props =
-  | { kind: 'products'; initialItems: Product[]; initialValues: Values; cities: readonly CityOption[]; categories?: readonly string[] }
+  | { kind: 'products'; initialItems: Product[]; initialValues: Values; cities: readonly CityOption[]; categories?: readonly string[]; sourcingTypes?: readonly string[] }
   | { kind: 'workshops'; initialItems: Workshop[]; initialValues: Values; cities: readonly CityOption[] };
 
 const SEARCH_DELAY_MS = 300;
@@ -25,6 +25,7 @@ function buildQs(v: Values, selectKey: 'category' | 'type'): string {
   const sp = new URLSearchParams();
   if (v.city) sp.set('city', v.city);
   if (v[selectKey]) sp.set(selectKey, v[selectKey]!);
+  if (selectKey === 'category' && v.source) sp.set('source', v.source);
   const q = (v.q ?? '').trim();
   if (q) sp.set('q', q);
   return sp.toString();
@@ -94,6 +95,13 @@ export function LiveCatalog(props: Props) {
         {props.cities.map(c => <option key={c.slug} value={c.slug}>{labelOf(c)}</option>)}
         {cityValue && !cityMatch && <option value={cityValue}>{cityValue}</option>}
       </select>
+      {kind === 'products' && props.kind === 'products' && props.sourcingTypes && props.sourcingTypes.length > 0 && (
+        <select name="source" value={values.source ?? ''} onChange={e => set({ source: e.target.value }, 0)} aria-label="Filter by type">
+          <option value="">All types</option>
+          {props.sourcingTypes.map(t => <option key={t}>{t}</option>)}
+          {values.source && !props.sourcingTypes.includes(values.source) && <option>{values.source}</option>}
+        </select>
+      )}
       {kind === 'products' ? (
         <select name="category" value={values.category ?? ''} onChange={e => set({ category: e.target.value }, 0)} aria-label="Filter by category">
           <option value="">All categories</option>

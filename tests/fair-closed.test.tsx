@@ -22,7 +22,7 @@ describe('the Fair link in the header', () => {
     cleanup();
     render(<Header fair={false} />);
     expect(screen.queryByRole('link', { name: 'Fair' })).toBeNull();
-    expect(screen.getByRole('link', { name: /shop handmade/i })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /shop products/i })).toBeTruthy();
   });
 });
 
