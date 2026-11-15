@@ -4460,6 +4460,13 @@ body.modal-open {
 .fair-chip small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
 .fair-dot { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px dashed var(--control-border); display: grid; place-items: center; font-size: 12px; color: transparent; }
 .fair-chip.open .fair-dot { border-style: dotted; }
+.fair-chip.activity .fair-dot { border-style: solid; border-color: var(--green); color: var(--green); font-size: 15px; }
+.fair-tug { display: grid; gap: 8px; }
+.fair-tugscene { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); }
+.fair-market { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.fair-market li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); }
+.fair-market small { display: block; color: var(--muted); font-size: 12px; }
+.fair-pull { min-width: 120px; min-height: 48px; font-size: 16px; }
 .fair-chip.met .fair-dot { border: 1.5px solid var(--green); background: var(--green); color: var(--white); }
 .fair-track { height: 8px; border-radius: 8px; background: var(--cream); overflow: hidden; }
 .fair-track div { height: 100%; background: var(--orange); transition: width 0.5s; }
@@ -4598,3 +4605,43 @@ button.fair-opt:hover { background: var(--cream); }
 .skeleton-line.title { height: 34px; max-width: 360px; margin-bottom: 0; }
 @keyframes skeleton-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+
+/* Home: makers carousel. One maker at a time in front of a small stall, drawn with the same tokens as the home illustration. */
+.makers-nav { display: flex; gap: 8px; }
+.makers-nav .button { width: var(--control-h); height: var(--control-h); padding: 0; font-size: 16px; gap: 0; }
+.makers-rail { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; margin-top: 28px; border-radius: 6px; }
+.makers-rail::-webkit-scrollbar { display: none; }
+.maker-slide { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; }
+.maker-card { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); min-height: 380px; height: 100%; background: var(--white); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.maker-stall { display: flex; flex-direction: column; min-width: 0; background: var(--sand-soft); border-right: 1px solid var(--line); }
+.maker-scene { position: relative; flex: 1; min-height: 230px; }
+.maker-arch { position: absolute; bottom: 0; background: var(--sand); border-radius: 999px 999px 0 0; }
+.maker-arch-1 { inset: 6px 8% 0; }
+.maker-arch-2 { inset: 34px 17% 0; background: var(--sage); opacity: 0.38; }
+.maker-post { position: absolute; top: 0; bottom: 0; width: 10px; background: var(--stall-wood-d); }
+.maker-post-l { left: 6%; }
+.maker-post-r { right: 6%; }
+.maker-frame { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: 44%; max-width: 190px; aspect-ratio: 4 / 5; display: grid; place-items: center; overflow: hidden; border: 5px solid var(--white); border-radius: 999px 999px 6px 6px; background: linear-gradient(180deg, var(--sage), var(--sage-d)); color: var(--stall-chalk); font: 500 72px/1 var(--font-display); box-shadow: 0 8px 18px #28190a38; }
+.maker-frame .ah-logo { width: 100%; height: 100%; object-fit: cover; }
+.maker-frame:has(.ah-logo) { bottom: 14px; width: 48%; max-width: 210px; aspect-ratio: 1; border-radius: 50%; background: var(--white); }
+.maker-counter { position: absolute; left: 0; right: 0; bottom: 0; height: 14px; background: var(--stall-wood); border-radius: 2px; }
+.maker-info { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 14px; padding: 32px 40px; min-width: 0; }
+.maker-tags { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.maker-tags li { padding: 5px 12px; border: 1px solid var(--sand-line); border-radius: 30px; background: var(--sand-soft); color: var(--green); font: 600 11px var(--font-sans); letter-spacing: 0.04em; }
+.maker-info h3 { font: 500 clamp(28px, 3.4vw, 38px) / 1.1 var(--font-display); letter-spacing: -0.03em; margin: 0; }
+.maker-where { margin: -6px 0 0; font-size: 13px; color: var(--muted); }
+.maker-quote { margin: 0; max-width: 46ch; font-size: 18px; line-height: 1.5; }
+.maker-actions { margin-top: 8px; }
+.makers-controls { display: flex; align-items: center; margin-top: 16px; }
+.makers-dots { display: flex; gap: 6px; margin-left: auto; }
+.makers-dots button { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 50%; background: var(--line-2); cursor: pointer; transition: width 0.3s, background-color 0.3s; }
+.makers-dots button.on { width: 24px; border-radius: 5px; background: var(--orange); }
+@media (max-width: 900px) {
+  .maker-card { grid-template-columns: 1fr; }
+  .maker-stall { border-right: 0; border-bottom: 1px solid var(--line); min-height: 320px; }
+  .maker-info { padding: 22px 20px 26px; }
+  .maker-frame { width: 46%; font-size: 60px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .makers-dots button { transition: none; }
+}

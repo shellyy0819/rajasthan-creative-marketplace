@@ -1,5 +1,6 @@
 import { unstable_cache } from 'next/cache';
 import { listProducts } from './catalog';
+import { listHomeMakers } from './makers';
 import { trending } from './trending';
 
 /**
@@ -12,3 +13,4 @@ export const HOME_TRENDING_TTL = 300;
 
 export const getHomeProducts = unstable_cache(() => listProducts(), ['home-products'], { revalidate: HOME_PRODUCTS_TTL, tags: ['home-products'] });
 export const getHomeTrending = unstable_cache(() => trending({ limit: 6 }), ['home-trending'], { revalidate: HOME_TRENDING_TTL, tags: ['home-trending'] });
+export const getHomeMakers = unstable_cache(() => listHomeMakers(), ['home-makers'], { revalidate: HOME_PRODUCTS_TTL, tags: ['home-makers'] });

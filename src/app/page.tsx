@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Hero } from '@/components/Hero';
+import { HomeMakers } from '@/components/HomeMakers';
 import { HomeShelf } from '@/components/HomeShelf';
 import { HomeWorkshops } from '@/components/HomeWorkshops';
 import { TrendingSection } from '@/components/TrendingSection';
@@ -67,6 +68,7 @@ export default async function Home() {
           {cities.map(c => <Link key={c.slug} href={`/cities/${c.slug}`}>Handmade &amp; workshops in {cityLabel(c)}</Link>)}
         </nav>
       )}
+      <Suspense fallback={null}><HomeMakers /></Suspense>
     </>
   );
 }
