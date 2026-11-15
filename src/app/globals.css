@@ -4460,6 +4460,13 @@ body.modal-open {
 .fair-chip small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
 .fair-dot { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px dashed var(--control-border); display: grid; place-items: center; font-size: 12px; color: transparent; }
 .fair-chip.open .fair-dot { border-style: dotted; }
+.fair-chip.activity .fair-dot { border-style: solid; border-color: var(--green); color: var(--green); font-size: 15px; }
+.fair-tug { display: grid; gap: 8px; }
+.fair-tugscene { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); }
+.fair-market { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.fair-market li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); }
+.fair-market small { display: block; color: var(--muted); font-size: 12px; }
+.fair-pull { min-width: 120px; min-height: 48px; font-size: 16px; }
 .fair-chip.met .fair-dot { border: 1.5px solid var(--green); background: var(--green); color: var(--white); }
 .fair-track { height: 8px; border-radius: 8px; background: var(--cream); overflow: hidden; }
 .fair-track div { height: 100%; background: var(--orange); transition: width 0.5s; }
@@ -4547,6 +4554,8 @@ button.fair-opt:hover { background: var(--cream); }
 @media (prefers-reduced-motion: reduce) { .toggle-switch-track, .toggle-switch-knob { transition: none; } }
 .fair-toolbar .button[aria-pressed="true"] { border-color: var(--green); }
 .fair-time { position: absolute; left: 10px; top: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px 7px 10px; border-radius: 30px; background: var(--stall-board); color: var(--stall-chalk); font: 600 11px var(--font-sans); pointer-events: none; }
+.fair-mela-tag { position: absolute; left: 10px; top: 46px; z-index: 2; max-width: calc(100% - 20px); padding: 6px 12px; border-radius: 30px; background: var(--orange); color: #fffdf9; font: 600 11px var(--font-sans); pointer-events: none; }
+.fair-mela p { margin: 0 0 6px; }
 .fair-time-icon { width: 12px; height: 12px; border-radius: 50%; background: #ffd27a; box-shadow: 0 0 9px #ffd27a; }
 .fair-time.afternoon .fair-time-icon { background: #ffe27a; box-shadow: 0 0 12px #ffd24a; }
 .fair-time.evening .fair-time-icon { background: #ff9a4a; box-shadow: 0 0 9px #ff9a4a; }

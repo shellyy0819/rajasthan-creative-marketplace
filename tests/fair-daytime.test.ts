@@ -4,10 +4,10 @@ import { MAX_CROWD, PHASE_LABEL, crowdAt, hourFromSearch, hourOf, phaseAt, skyAt
 describe('time of day', () => {
   it('names the phase from the hour', () => {
     expect([0, 4.9, 20, 23.5].map(phaseAt)).toEqual(['night', 'night', 'night', 'night']);
-    expect([5, 8, 10.9].map(phaseAt)).toEqual(['morning', 'morning', 'morning']);
-    expect([11, 14, 16.9].map(phaseAt)).toEqual(['afternoon', 'afternoon', 'afternoon']);
+    expect([5, 8, 11, 11.9].map(phaseAt)).toEqual(['morning', 'morning', 'morning', 'morning']);   // 11 AM is still morning
+    expect([12, 14, 16.9].map(phaseAt)).toEqual(['afternoon', 'afternoon', 'afternoon']);
     expect([17, 18.5, 19.9].map(phaseAt)).toEqual(['evening', 'evening', 'evening']);
-    expect(PHASE_LABEL.night).toBe('Chilly night'); expect(PHASE_LABEL.morning).toBe('Sunny morning'); expect(PHASE_LABEL.afternoon).toBe('Busy afternoon');
+    expect(PHASE_LABEL.night).toBe('Chilly night'); expect(PHASE_LABEL.morning).toBe('Busy morning'); expect(PHASE_LABEL.afternoon).toBe('Busy afternoon');
   });
   it('is dark, chilly and lamp-lit at night', () => {
     const s = skyAt(23);
