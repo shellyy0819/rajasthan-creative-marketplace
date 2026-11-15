@@ -99,7 +99,7 @@ export function HeroStall({ sign = D.sign, chalkLabel = D.chalkLabel, chalkTitle
       <g transform="translate(228 302) rotate(10)">
       <line x1="0" y1="-10" x2="0" y2="0" strokeWidth="1" className="st-s-ink"/>
       <rect x="-4" y="0" width="40" height="18" rx="3" className="st-f-chalk"/>
-      <text x="2" y="14" className="st-hand st-t-ink" fontSize="11">₹450</text>
+      <text x="2" y="14" className="st-hand st-t-hair" fontSize="11">₹450</text>
       </g>
 
       {/* shelf 2 */}
@@ -228,7 +228,7 @@ export function HeroStall({ sign = D.sign, chalkLabel = D.chalkLabel, chalkTitle
       <path d="M370 424q-10 4-18 20" fill="none" strokeWidth="1" className="st-s-terrad"/>
       {/* UPI QR stand */}
       <rect x="474" y="444" width="26" height="34" rx="2" className="st-f-chalk"/>
-      <text x="487" y="454" textAnchor="middle" fontSize="6" fontWeight="600" className="st-t-ink">UPI</text>
+      <text x="487" y="454" textAnchor="middle" fontSize="6" fontWeight="600" className="st-t-hair">UPI</text>
       <rect x="478" y="458" width="7" height="7" className="st-f-board"/><rect x="489" y="458" width="7" height="7" className="st-f-board"/><rect x="478" y="469" width="7" height="7" className="st-f-board"/>
       <rect x="479.5" y="459.5" width="4" height="4" className="st-f-chalk"/><rect x="490.5" y="459.5" width="4" height="4" className="st-f-chalk"/><rect x="479.5" y="470.5" width="4" height="4" className="st-f-chalk"/>
       <rect x="490" y="470" width="3" height="3" className="st-f-board"/><rect x="495" y="466" width="3" height="3" className="st-f-board"/><rect x="493" y="474" width="3" height="3" className="st-f-board"/>
