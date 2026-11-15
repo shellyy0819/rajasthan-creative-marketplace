@@ -4539,8 +4539,12 @@ button.fair-opt:hover { background: var(--cream); }
 .fair-fs:hover { border-color: var(--green); }
 .fair-menu { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); box-shadow: 0 10px 30px #0000004d; }
 .fair-menu .button { justify-content: space-between; }
-.fair-sound svg { color: var(--green); }
-.fair-sound[aria-pressed="false"] svg { color: var(--muted); }
+.toggle-switch { display: inline-flex; align-items: center; gap: 10px; }
+.toggle-switch-track { position: relative; width: 34px; height: 20px; flex: none; margin-left: auto; border-radius: 20px; background: var(--line); transition: background .15s; }
+.toggle-switch[aria-checked="true"] .toggle-switch-track { background: var(--green); }
+.toggle-switch-knob { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--white); box-shadow: 0 1px 2px #0003; transition: transform .15s; }
+.toggle-switch[aria-checked="true"] .toggle-switch-knob { transform: translateX(14px); }
+@media (prefers-reduced-motion: reduce) { .toggle-switch-track, .toggle-switch-knob { transition: none; } }
 .fair-toolbar .button[aria-pressed="true"] { border-color: var(--green); }
 .fair-time { position: absolute; left: 10px; top: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px 7px 10px; border-radius: 30px; background: var(--stall-board); color: var(--stall-chalk); font: 600 11px var(--font-sans); pointer-events: none; }
 .fair-time-icon { width: 12px; height: 12px; border-radius: 50%; background: #ffd27a; box-shadow: 0 0 9px #ffd27a; }

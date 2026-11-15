@@ -38,6 +38,10 @@ const menuBtn = (name: string | RegExp) => {
   if (!document.getElementById('fair-menu')) fireEvent.click(screen.getByRole('button', { name: 'Menu' }));
   return screen.getByRole('button', { name });
 };
+const soundSwitch = (name: string | RegExp) => {
+  if (!document.getElementById('fair-menu')) fireEvent.click(screen.getByRole('button', { name: 'Menu' }));
+  return screen.getByRole('switch', { name });
+};
 const play = async (data: FairData = sampleFairData()) => { render(<FairGame data={data} />); await screen.findByRole('heading', { name: 'Your player' }); };
 const shownCode = () => screen.getByText(/^[A-Z2-9]{3}-[A-Z2-9]{3}$/).textContent!;
 const claims = () => fetchMock.mock.calls.filter(c => c[0] === '/api/fair/claim').map(c => JSON.parse(c[1].body));
@@ -185,13 +189,14 @@ describe('FairGame: look, sound, full screen and panel', () => {
   });
   it('turns the sound off and remembers it', async () => {
     await play();
-    const btn = menuBtn('Sound: on');
-    fireEvent.click(btn);
+    const sw = soundSwitch('Sound: ON');
+    expect(sw.getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(sw);
     await waitFor(() => expect(localStorage.getItem(MUTE_KEY)).toBe('1'));
-    expect(menuBtn('Sound: off')).toBeTruthy();
+    expect(soundSwitch('Sound: OFF').getAttribute('aria-checked')).toBe('false');
     expect(localStorage.getItem(MUTE_KEY)).toBe('1');
     cleanup(); await play();
-    expect(menuBtn('Sound: off')).toBeTruthy();
+    expect(soundSwitch('Sound: OFF').getAttribute('aria-checked')).toBe('false');
   });
   it('hides and shows the side panel', async () => {
     await play();
