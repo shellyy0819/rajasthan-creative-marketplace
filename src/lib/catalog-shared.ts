@@ -12,5 +12,9 @@ export const DEFAULT_SOURCING_TYPES = [
   { name: 'Resold', countsAsHandmade: false, showBadge: true },
 ] as const;
 
+/** How many products the home shelf shows at first, and how many each scroll adds. Also the most the products API returns per request. */
+export const SHELF_PAGE_SIZE = 8;
+export const PRODUCTS_PAGE_MAX = 48;
+
 export const productSlug = (p: Product) => `${slugify(p.name)}-${p.id}`;
 export const workshopSlug = (w: Workshop) => `${slugify(w.title)}-${w.id}`;

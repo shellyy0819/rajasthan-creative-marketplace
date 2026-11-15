@@ -1,25 +1,71 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import type { Product } from "@/lib/types";
+import { SHELF_PAGE_SIZE } from "@/lib/catalog-shared";
+import { PageLoader } from "./PageLoader";
 import { ProductGrid } from "./ProductGrid";
 
-/** Home-page browser: filters come from the categories of the published products, nothing is hard-coded. */
-export function HomeCraftExplorer({ products }: { products: Product[] }) {
+/** A fetched page is reused for this long (the same time the server keeps the home data), then refreshed quietly in the background. */
+export const SHELF_STALE_MS = 60_000;
+const SHELF_KEEP_MS = 30 * 60_000;
+
+async function fetchPage(category: string, offset: number, signal?: AbortSignal): Promise<Product[]> {
+  const sp = new URLSearchParams({ limit: String(SHELF_PAGE_SIZE), offset: String(offset) });
+  if (category) sp.set("category", category);
+  const res = await fetch(`/api/products?${sp}`, { signal });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(body?.error || "Could not load more finds.");
+  return body;
+}
+
+/**
+ * Home-page browser. The server sends the first page and the category counts; the rest of each category arrives a page at a time as the
+ * visitor scrolls (or taps "Show more"), and every page fetched is kept, so going back to a category costs nothing.
+ */
+export function HomeCraftExplorer({ initialItems, categories }: { initialItems: Product[]; categories: { name: string; count: number }[] }) {
   const [category, setCategory] = useState("");
-  const categories = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const p of products) counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
-    return [...counts.entries()].map(([name, count]) => ({ name, count }));
-  }, [products]);
-  const visible = category ? products.filter((p) => p.category === category) : products;
+  const all = useMemo(() => categories.reduce((n, c) => n + c.count, 0), [categories]);
+  const total = category ? (categories.find((c) => c.name === category)?.count ?? 0) : all;
+
+  const query = useInfiniteQuery({
+    queryKey: ["home-shelf", category],
+    initialPageParam: 0,
+    queryFn: ({ pageParam, signal }) => fetchPage(category, pageParam, signal),
+    getNextPageParam: (last, pages) => {
+      const loaded = pages.reduce((n, p) => n + p.length, 0);
+      return last.length > 0 && loaded < total ? loaded : undefined;
+    },
+    // The page the server already rendered seeds "All"; other categories load their first page when first opened.
+    initialData: category === "" ? { pages: [initialItems], pageParams: [0] } : undefined,
+    staleTime: SHELF_STALE_MS,
+    gcTime: SHELF_KEEP_MS,
+  });
+  const { hasNextPage, isFetchingNextPage, isError, fetchNextPage, refetch } = query;
+  // Pages are cut by position, so a product added meanwhile can shift one onto the next page: show each only once.
+  const items = useMemo(() => {
+    const seen = new Set<string>();
+    return (query.data?.pages ?? []).flat().filter((p) => !seen.has(p.id) && seen.add(p.id));
+  }, [query.data]);
+
+  const sentinel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || !hasNextPage || isError || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((entries) => { if (entries.some((e) => e.isIntersecting) && !isFetchingNextPage) void fetchNextPage(); }, { rootMargin: "600px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasNextPage, isError, isFetchingNextPage, fetchNextPage, items.length]);
+
+  const openingCategory = query.isFetching && !isFetchingNextPage && items.length === 0;
 
   return (
     <div className="craft-explorer">
       {categories.length > 0 && (
         <div className="craft-tabs" role="group" aria-label="Browse by category">
           <button type="button" className={category ? "" : "active"} aria-pressed={!category} onClick={() => setCategory("")}>
-            All <small>{products.length}</small>
+            All <small>{all}</small>
           </button>
           {categories.map((c) => (
             <button
@@ -36,13 +82,17 @@ export function HomeCraftExplorer({ products }: { products: Product[] }) {
       )}
 
       <div className="craft-results" aria-live="polite">
-        <div className="craft-results-heading">
-          {category && <h3>{category}</h3>}
-          {/* <span>
-            {visible.length} {visible.length === 1 ? "piece" : "pieces"}
-          </span> */}
-        </div>
-        <ProductGrid products={visible} emptyMessage="No handmade finds yet. Check back soon." />
+        <div className="craft-results-heading">{category && <h3>{category}</h3>}</div>
+        <ProductGrid products={items} emptyMessage={isError ? "Could not load these finds. Please try again." : openingCategory ? "Loading finds…" : "No handmade finds yet. Check back soon."} />
+        {(hasNextPage || isError) && (
+          <div ref={sentinel} className="craft-more">
+            {isError && items.length > 0 && <p role="alert">Could not load more. Please try again.</p>}
+            <button type="button" className="button outline" disabled={isFetchingNextPage} aria-busy={isFetchingNextPage} onClick={() => void (items.length ? fetchNextPage() : refetch())}>
+              {isError ? "Try again" : "Show more"}
+            </button>
+          </div>
+        )}
+        <PageLoader show={openingCategory} blocking={false} label="Loading finds" />
       </div>
     </div>
   );

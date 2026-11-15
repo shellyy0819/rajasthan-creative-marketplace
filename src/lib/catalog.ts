@@ -9,7 +9,8 @@ import type { Product, Workshop } from './types';
 
 export { DEFAULT_CATEGORIES, productSlug, workshopSlug } from './catalog-shared';
 
-export type ProductFilter = { city?: string; category?: string; source?: string; q?: string };
+/** `limit`/`offset` return one page of the same ordering the full list has. */
+export type ProductFilter = { city?: string; category?: string; source?: string; q?: string; limit?: number; offset?: number };
 export type WorkshopFilter = { city?: string; type?: string; q?: string };
 
 const anyCity = (c?: string) => !c || c === 'All India';
@@ -46,8 +47,16 @@ export async function listProducts(f: ProductFilter = {}): Promise<Product[]> {
   const ofType = scope.source ? sql`${productsT.sourcingTypeId} in (select id from sourcing_types where lower(name) = ${scope.source.toLowerCase()})` : undefined;
   if (ofType && scope.orText && search.where) where.push(or(ofType, search.where));
   else { if (ofType) where.push(ofType); where.push(search.where); }
-  const rows = await productsQuery(getDb()).where(and(...where)).orderBy(...(search.rank ? [desc(search.rank)] : []), ...idOrder(productsT));
+  const ordered = productsQuery(getDb()).where(and(...where)).orderBy(...(search.rank ? [desc(search.rank)] : []), ...idOrder(productsT));
+  const rows = f.limit === undefined ? await ordered : await ordered.limit(f.limit).offset(f.offset ?? 0);
   return rows.map(toProduct);
+}
+
+/** Published products per category, A to Z: the home shelf's filter tabs, without loading every product. */
+export async function countProductsByCategory(): Promise<{ name: string; count: number }[]> {
+  const rows = await getDb().select({ name: productsT.category, count: sql<number>`count(*)::int` }).from(productsT)
+    .where(eq(productsT.status, 'APPROVED')).groupBy(productsT.category).orderBy(asc(productsT.category));
+  return rows;
 }
 
 export async function listWorkshops(f: WorkshopFilter = {}): Promise<Workshop[]> {
