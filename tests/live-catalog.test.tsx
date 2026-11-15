@@ -58,6 +58,21 @@ describe('LiveCatalog (products)', () => {
     expect(screen.getByRole('status').textContent).toMatch(/1 find /);
   });
 
+  it('offers a type filter when the shop has types, and sends the chosen one', async () => {
+    fetchMock.mockReturnValue(reply([prod('p3', 'Curated Thing')]));
+    renderCat(<LiveCatalog cities={CITIES} kind="products" initialItems={initial as any} initialValues={{}} sourcingTypes={['Handmade', 'Curated']} />);
+    const select = screen.getByLabelText('Filter by type') as HTMLSelectElement;
+    expect(Array.from(select.options).map(o => o.textContent)).toEqual(['All types', 'Handmade', 'Curated']);
+    fireEvent.change(select, { target: { value: 'Curated' } });
+    await flush(0);
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/products?source=Curated');
+    expect(screen.getByText('Curated Thing')).toBeTruthy();
+  });
+  it('has no type filter when no types are offered', () => {
+    mount();
+    expect(screen.queryByLabelText('Filter by type')).toBeNull();
+  });
+
   it('category and city combine; clearing a select drops its param', async () => {
     fetchMock.mockImplementation(() => reply([]));
     mount();

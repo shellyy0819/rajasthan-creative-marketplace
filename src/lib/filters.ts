@@ -1,5 +1,5 @@
 type SP = Record<string, string | string[] | undefined>;
-export type Filters = { city?: string; category?: string; q?: string; type?: 'FREE' | 'PAID' };
+export type Filters = { city?: string; category?: string; source?: string; q?: string; type?: 'FREE' | 'PAID' };
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
@@ -11,6 +11,9 @@ export function parseFilters(sp: SP): Filters {
   const category = first(sp.category);
   // Categories are user-created now, so any sane name is accepted; an unknown one simply finds nothing.
   if (category && category.trim() && category.length <= 60) out.category = category.trim();
+  // The sourcing type of a product (Handmade, Curated...): admin-managed names, so any sane name is accepted; an unknown one finds nothing.
+  const source = first(sp.source);
+  if (source && source.trim() && source.length <= 40) out.source = source.trim();
   const type = first(sp.type);
   if (type === 'FREE' || type === 'PAID') out.type = type;
   const q = (first(sp.q) ?? '').trim().slice(0, 100);
