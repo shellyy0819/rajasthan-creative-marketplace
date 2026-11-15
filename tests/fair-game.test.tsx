@@ -166,7 +166,7 @@ describe('FairGame: the fair', () => {
 describe('FairGame: look, sound, full screen and panel', () => {
   it('lets you pick one of five female and five male looks, and others see it', async () => {
     await play();
-    fireEvent.click(screen.getByRole('button', { name: 'My look' }));
+    fireEvent.click(menuBtn('My look'));
     const dialog = await screen.findByRole('dialog');
     const groups = within(dialog).getAllByRole('group');
     expect(groups.map(g => within(g).getAllByRole('button').length)).toEqual([5, 5]);
@@ -179,7 +179,7 @@ describe('FairGame: look, sound, full screen and panel', () => {
   });
   it('can go back to the look the code starts with', async () => {
     await play();
-    fireEvent.click(screen.getByRole('button', { name: 'My look' }));
+    fireEvent.click(menuBtn('My look'));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).queryByRole('button', { name: /starting look/i })).toBeNull();
     const other = within(dialog).getAllByRole('button').find(b => b.getAttribute('aria-pressed') === 'false')!;

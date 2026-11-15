@@ -341,6 +341,7 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
             {menuOpen && (
               <div id="fair-menu" className="fair-menu" onClick={() => setMenuOpen(false)}>
                 <button type="button" className="button" onClick={() => setSheet({ kind: 'shortlist' })} aria-haspopup="dialog">Shortlist <span className="fair-count" aria-label={`${total} items`}>{total}</span></button>
+                <button type="button" className="button" onClick={() => setSheet({ kind: 'look' })} aria-haspopup="dialog">My look</button>
                 <button type="button" className="button" aria-pressed={overview} onClick={() => setOverview(o => !o)}>{overview ? 'Follow me' : 'Overview'}</button>
                 <button type="button" className="button" aria-pressed={panel} aria-controls="fair-panel" onClick={() => setPanel(p => !p)}>{panel ? 'Hide panel' : 'Show panel'}</button>
                 <ToggleSwitch className="fair-sound" checked={!muted} onToggle={toggleSound}>
@@ -436,7 +437,6 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
                 </div>
               </div>
             </div>
-            <button type="button" className="button" onClick={() => setSheet({ kind: 'look' })} aria-haspopup="dialog">My look</button>
             <form className="admin-form fair-codeform" noValidate onSubmit={async e => { e.preventDefault(); const f = e.currentTarget; if (claiming) return; if (await switchTo(String(new FormData(f).get('code') ?? ''))) f.reset(); }}>
               <label><span className="lbl">Play with a code</span>
                 <span className="fair-row"><input name="code" placeholder="ABC-123" maxLength={7} autoCapitalize="characters" autoComplete="off" spellCheck={false} aria-describedby="fair-code-err" onChange={() => setCodeError('')} /><button type="submit" className="button primary" disabled={claiming} aria-busy={claiming}>Play</button></span>
