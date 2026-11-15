@@ -10,6 +10,8 @@ export type Sfx = 'step' | 'stamp' | 'add' | 'remove' | 'quest' | 'garland' | 'e
 export const MUTE_KEY = 'cf-fair-muted';
 /** Overall volume, kept low: the fair should never startle anyone. The background layers are lower still. */
 export const MASTER_GAIN = .28;
+/** How loud one footstep is, before the master volume. The stamp is .3, so a step is a touch softer than that. */
+export const STEP_GAIN = .25;
 export const AMBIENCE_GAIN = { murmur: .011, birds: .008, crickets: .004 } as const;
 
 export type Ambience = { murmur: number; birds: boolean; crickets: boolean };
@@ -77,7 +79,8 @@ export function createSound(storage: Pick<Storage, 'getItem' | 'setItem'> | null
   };
 
   const SFX: Record<Sfx, () => void> = {
-    step: () => { stepFlip = !stepFlip; hiss(.07, 'lowpass', stepFlip ? 760 : 920, { gain: .09 }); tone(stepFlip ? 95 : 110, .05, { gain: .05, glide: 60 }); },
+    // Louder than the first version (noise .09, thump .05 at 95 Hz) which nobody could hear: laptop speakers cannot play 100 Hz, and the whole thing sat near -30 dB.
+    step: () => { stepFlip = !stepFlip; hiss(.09, 'lowpass', stepFlip ? 1000 : 1250, { gain: STEP_GAIN }); tone(stepFlip ? 150 : 175, .08, { gain: STEP_GAIN * .4, glide: 90 }); },
     stamp: () => { tone(190, .12, { gain: .3, glide: 80, type: 'triangle' }); hiss(.04, 'bandpass', 1400, { gain: .15 }); tone(NOTE.g5, .25, { gain: .08, at: .08 }); },
     add: () => { tone(660, .09, { type: 'triangle', gain: .14 }); tone(880, .14, { type: 'triangle', gain: .14, at: .07 }); },
     remove: () => { tone(520, .09, { type: 'triangle', gain: .1 }); tone(390, .12, { type: 'triangle', gain: .1, at: .07 }); },
