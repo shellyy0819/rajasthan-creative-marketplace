@@ -7,6 +7,7 @@ import type { Emote, FairData, FairItem } from '@/lib/fair-types';
 import { money } from '@/lib/money';
 import { PageLoader } from '../PageLoader';
 import { Toast, type ToastState } from '../Toast';
+import { ToggleSwitch } from '../ToggleSwitch';
 import { makerAvatar, visitorAvatar } from './avatar';
 import { PHASE_LABEL, hourFromSearch, type DayPhase } from './daytime';
 import { createFairEngine, type EngineCallbacks, type FairEngine, type SelfiePose } from './engine';
@@ -311,7 +312,9 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
                 <button type="button" className="button" onClick={() => setSheet({ kind: 'shortlist' })} aria-haspopup="dialog">Shortlist <span className="fair-count" aria-label={`${total} items`}>{total}</span></button>
                 <button type="button" className="button" aria-pressed={overview} onClick={() => setOverview(o => !o)}>{overview ? 'Follow me' : 'Overview'}</button>
                 <button type="button" className="button" aria-pressed={panel} aria-controls="fair-panel" onClick={() => setPanel(p => !p)}>{panel ? 'Hide panel' : 'Show panel'}</button>
-                <button type="button" className="button" aria-pressed={!muted} onClick={toggleSound}>{muted ? 'Sound off' : 'Sound on'}</button>
+                <ToggleSwitch className="fair-sound" checked={!muted} onToggle={toggleSound}>
+                  Sound: {muted ? 'OFF' : 'ON'}
+                </ToggleSwitch>
               </div>
             )}
           </div>
