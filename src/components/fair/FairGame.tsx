@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CODE_RE } from '@/lib/fair-constants';
 import { characterFor, formatCode, lookFor, normalizeCode } from '@/lib/fair-characters';
 import type { LookId } from '@/lib/fair-constants';
+import { dayFromSearch, melaOf } from '@/lib/fair-mela';
 import type { Emote, FairData, FairItem } from '@/lib/fair-types';
 import { money } from '@/lib/money';
 import { PageLoader } from '../PageLoader';
@@ -18,8 +19,9 @@ import { LookSheet, MirrorSheet, ShortlistSheet, StallSheet, Sheet } from './Fai
 import { MAX_NOTES, MAX_QTY, cartCount, cleanProfile, emptyProfile, loadStore, saveStore, type Profile, type Store } from './profile';
 import type { QuestDay } from '@/lib/fair-quest-days';
 import { applyEvent, countOf, dayKey, isDone, mergeProgress, questsFor, restoreState, type GameEvent, type QuestState } from './quests';
+import { lakeIndex } from './world';
 
-type SheetState = { kind: 'stall'; idx: number } | { kind: 'open'; label: string } | { kind: 'look' } | { kind: 'shortlist' } | { kind: 'mirror'; view: 'menu' | 'selfie' | 'note' } | null;
+type SheetState = { kind: 'stall'; idx: number } | { kind: 'open'; label: string } | { kind: 'lake' } | { kind: 'look' } | { kind: 'shortlist' } | { kind: 'mirror'; view: 'menu' | 'selfie' | 'note' } | null;
 const EMOTE_LABEL: Record<Emote, string> = { wave: 'Wave', namaste: 'Namaste', hello: 'Say hello' };
 
 /** The walk-around exhibition: the canvas on the left, the maker you are nearest, your player code, quests and other visitors on the right. */
@@ -27,7 +29,12 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
   const real = data.source === 'real';
   const makerIds = useMemo(() => new Set(data.makers.map(m => m.id)), [data]);
   const items = useMemo(() => new Map<string, { item: FairItem; maker: typeof data.makers[number] }>(data.makers.flatMap(m => m.items.map(i => [i.key, { item: i, maker: m }] as const))), [data]);
-  const day = useMemo(() => dayKey(), []);
+  // `?day=2026-11-24` pretends it is that day, to try the Pushkar Camel Fair week before it starts. A pretend day is never saved to the server or over today's progress.
+  const realDay = useMemo(() => dayKey(), []);
+  const day = useMemo(() => (typeof window === 'undefined' ? null : dayFromSearch(window.location.search)) ?? realDay, [realDay]);
+  const simulated = day !== realDay;
+  const mela = useMemo(() => melaOf(day), [day]);
+  const lakeAt = mela ? lakeIndex(data.stalls) : -1;
   const quests = useMemo(() => questsFor(data, day), [data, day]);
   const mirrorMaker = data.makers.find(m => m.mirror) ?? null;
   const wearables = useMemo(() => (mirrorMaker?.items ?? []).filter(isWearable), [mirrorMaker]);
@@ -108,11 +115,11 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
   }, [ready, code]);
   useEffect(() => { // remember this visitor on this device
     if (!ready || !code) return;
-    storeRef.current = { current: code, profiles: { ...storeRef.current.profiles, [code]: { ...profile, quests: qs } } };
+    storeRef.current = { current: code, profiles: { ...storeRef.current.profiles, [code]: { ...profile, quests: simulated ? storeRef.current.profiles[code]?.quests : qs } } };
     saveStore(typeof localStorage === 'undefined' ? null : localStorage, storeRef.current);
-  }, [ready, code, profile, qs]);
+  }, [ready, code, profile, qs, simulated]);
   useEffect(() => { // this code's quests are kept on the server: bring back today's progress and the earlier days
-    if (!ready || !code || !tokenRef.current) return;
+    if (!ready || !code || !tokenRef.current || simulated) return;
     let stale = false;
     (async () => {
       try {
@@ -126,14 +133,14 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
       } catch { /* offline: this device's copy is still there */ }
     })();
     return () => { stale = true; setHistory([]); };
-  }, [ready, code, day]);
+  }, [ready, code, day, simulated]);
   useEffect(() => { // save today's progress under the code, a moment after it changes
-    if (!ready || !code || !tokenRef.current || !Object.keys(qs.progress).length) return;
+    if (!ready || !code || !tokenRef.current || simulated || !Object.keys(qs.progress).length) return;
     const id = setTimeout(() => {
       fetch('/api/fair/quests', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code, token: tokenRef.current, day, quests: quests.map(q => ({ id: q.id, title: q.title, target: q.target })), progress: qs.progress }) }).catch(() => undefined);
     }, 800);
     return () => clearTimeout(id);
-  }, [ready, code, qs, quests, day]);
+  }, [ready, code, qs, quests, day, simulated]);
   /** Becomes `c` if it is free (or already ours): a code is first come, first served. */
   const takeCode = async (c: string, announce: (name: string) => string): Promise<boolean> => {
     if (await claim(c, tokenRef.current) === 'taken') return false;
@@ -177,7 +184,7 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
   const handlers = useRef<EngineCallbacks>({ onNearest() {}, onOpenStall() {}, onOpenMirror() {}, onToast() {}, onEvent() {}, onMoved() {}, onPhase() {}, onCrowd() {}, onSfx() {}, onCraft() {} });
   handlers.current = {
     onNearest: i => setNearIdx(i),
-    onOpenStall: slot => { if (!slot.maker) setSheet({ kind: 'open', label: slot.label }); else { visit(slot.maker.id, slot.maker.name); setSheet({ kind: 'stall', idx: slot.idx }); } },
+    onOpenStall: slot => { if (slot.lake) setSheet({ kind: 'lake' }); else if (!slot.maker) setSheet({ kind: 'open', label: slot.label }); else { visit(slot.maker.id, slot.maker.name); setSheet({ kind: 'stall', idx: slot.idx }); } },
     onOpenMirror: view => setSheet({ kind: 'mirror', view }),
     onToast: t => notify(t),
     onEvent: record,
@@ -192,10 +199,10 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
     const eng = createFairEngine(canvasRef.current, data, {
       onNearest: i => handlers.current.onNearest(i), onOpenStall: s => handlers.current.onOpenStall(s), onOpenMirror: v => handlers.current.onOpenMirror(v),
       onToast: t => handlers.current.onToast(t), onEvent: e => handlers.current.onEvent(e), onMoved: () => handlers.current.onMoved(), onPhase: p => handlers.current.onPhase(p), onCrowd: n => handlers.current.onCrowd(n), onSfx: e => handlers.current.onSfx(e), onCraft: k => handlers.current.onCraft(k),
-    }, { reducedMotion: typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches, hour: hourFromSearch(window.location.search) });
+    }, { reducedMotion: typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches, hour: hourFromSearch(window.location.search), mela });
     engineRef.current = eng; eng.setIdentity(codeRef.current, lookRef.current);
     return () => { eng.destroy(); engineRef.current = null; };
-  }, [ready, data]);
+  }, [ready, data, mela]);
   useEffect(() => { if (code) engineRef.current?.setIdentity(code, lookRef.current); }, [code]);
   useEffect(() => { engineRef.current?.setLook(look); }, [look, ready]);
   useEffect(() => { engineRef.current?.setOverview(overview); }, [overview, ready]);
@@ -284,6 +291,8 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
   const paintSelfie = useCallback((cv: HTMLCanvasElement, pose: SelfiePose) => engineRef.current?.paintSelfie(cv, pose), []);
   const onSelfie = useCallback(() => record({ type: 'selfie' }), [record]);
   const closeSheet = useCallback(() => setSheet(null), []);
+  /** The holy dip at Pushkar Lake, on Kartik Purnima: you stand in the water with the devotees and the quest is done. */
+  const takeDip = () => { engineRef.current?.dip(); setSheet(null); notify('You took the holy dip at Pushkar Lake with the other devotees.'); play('stamp'); record({ type: 'dip' }); };
 
   const near = data.makers[0] ? (data.makers.find((_, i) => i === nearIdx)?.id ? engineRef.current?.slots[nearIdx]?.maker ?? data.makers[0] : data.makers[0]) : null;
   const total = cartCount(profile.shortlist);
@@ -303,6 +312,7 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
             </svg>
           </button>
           {phase && <span className={`fair-time ${phase}`} role="status"><span className="fair-time-icon" aria-hidden="true" />{PHASE_LABEL[phase]}</span>}
+          {mela && <span className="fair-mela-tag">Pushkar Camel Fair · {mela.label}</span>}
           <div className="fair-toolbar" role="toolbar" aria-label="Fair controls" onKeyDown={e => { if (e.key === 'Escape') setMenuOpen(false); }}>
             <button type="button" className="button fair-burger" aria-expanded={menuOpen} aria-controls="fair-menu" aria-label="Menu" onClick={() => setMenuOpen(o => !o)}>
               <span className="fair-burger-bars" aria-hidden="true" /> Menu{total > 0 && <span className="fair-count" aria-label={`${total} items in shortlist`}>{total}</span>}
@@ -332,6 +342,15 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
                 <button type="button" className="button primary" onClick={() => engineRef.current?.walkToSlot(nearIdx)}>Walk to this stall</button>
                 <button type="button" className="button" onClick={() => engineRef.current?.watchCraft(nearIdx)}>Watch them work</button>
               </div>
+            </section>
+          )}
+
+          {mela && (
+            <section className="fair-card fair-mela" aria-labelledby="fair-mela-h">
+              <h3 id="fair-mela-h">Pushkar Camel Fair week</h3>
+              <p><b>{mela.label}</b></p>
+              <p>{mela.blurb}</p>
+              {simulated && <p className="fair-note">Preview of {new Date(`${day}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}. Nothing from this day is saved.</p>}
             </section>
           )}
 
@@ -394,11 +413,11 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
           <section className="fair-card" aria-labelledby="fair-makers-h">
             <h3 id="fair-makers-h">Makers at the fair</h3>
             <ul className="fair-chips">
-              {data.stalls.map((st, i) => { const m = st.maker; return (
+              {data.stalls.map((st, i) => { const m = st.maker, lake = i === lakeAt; return (
                 <li key={m?.id ?? `open-${i}`}>
                   <button type="button" className={`fair-chip${m && profile.met.includes(m.id) ? ' met' : ''}${m ? '' : ' open'}`} aria-current={m && near?.id === m.id ? 'true' : undefined} onClick={() => engineRef.current?.walkToSlot(i)}>
                     <span className="fair-dot" aria-hidden="true">✓</span>
-                    <span>{m ? m.name : st.label === 'Open stall' ? 'Open stall' : `Open: ${st.label}`}<small>{m ? `${m.city} · ${m.category}` : st.label === 'Open stall' ? 'Waiting for a maker' : `Waiting for a ${st.label.toLowerCase()} maker`}</small></span>
+                    <span>{lake ? 'Pushkar Lake' : m ? m.name : st.label === 'Open stall' ? 'Open stall' : `Open: ${st.label}`}<small>{lake ? 'Holy dip on Kartik Purnima' : m ? `${m.city} · ${m.category}` : st.label === 'Open stall' ? 'Waiting for a maker' : `Waiting for a ${st.label.toLowerCase()} maker`}</small></span>
                   </button>
                 </li>
               ); })}
@@ -416,6 +435,18 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
       )}
       {sheet?.kind === 'look' && <LookSheet current={character.id} startsWith={lookFor(code)} onPick={id => { play('look'); setProfile(p => ({ ...p, look: id })); const c = characterFor(code, id); notify(id ? `You now look like ${c.name}.` : `Back to ${c.name}, the look your code starts with.`); }} onClose={closeSheet} />}
       {sheet?.kind === 'shortlist' && <ShortlistSheet data={data} shortlist={profile.shortlist} onChange={changeQty} onClose={closeSheet} />}
+      {sheet?.kind === 'lake' && (
+        <Sheet labelId="fair-lake-h" onClose={closeSheet}>
+          <h2 id="fair-lake-h">Pushkar Lake</h2>
+          {mela?.phase === 'purnima'
+            ? <p className="fair-say">Devotees gather at Pushkar Lake on Kartik Purnima to take a holy dip. They are coming down to the ghat now. Step in with them.</p>
+            : <p className="fair-say">The holy dip happens on Kartik Purnima, 24 November. Until then the ghat is quiet. Come back that night and the devotees will gather here.</p>}
+          <div className="fair-sheet-foot">
+            <button type="button" className="button" onClick={closeSheet}>Close</button>
+            {mela?.phase === 'purnima' && <button type="button" className="button primary" onClick={takeDip}>Take the holy dip</button>}
+          </div>
+        </Sheet>
+      )}
       {sheet?.kind === 'open' && (
         <Sheet labelId="fair-open-h" onClose={closeSheet}>
           <h2 id="fair-open-h">{sheet.label === 'Open stall' ? 'An open stall' : `${sheet.label}: open`}</h2>

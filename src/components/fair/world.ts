@@ -1,4 +1,5 @@
 import { FAIR_WORLD } from '@/lib/fair-constants';
+import { STALL_COUNT } from '@/lib/fair-stalls';
 import type { FairMaker, FairStall } from '@/lib/fair-types';
 
 /**
@@ -19,18 +20,28 @@ export type Slot = {
   /** Where a visitor stands at the counter. */
   fx: number; fy: number;
   maker: FairMaker | null; open: boolean;
+  /** Pushkar Lake, which takes the place of an open stall during the Pushkar Camel Fair week. It has no maker and is not an open stall. */
+  lake: boolean;
   /** The category an open stall is waiting for ("Wood craft"), or "Open stall". */
   label: string;
   att: number; hov: number; look: number;
 };
 
-/** Eight slots, row by row, from the floor plan: a maker's stall or an open one named for its category. */
-export function buildSlots(stalls: FairStall[]): Slot[] {
+/** Where Pushkar Lake goes: the last place on the floor with no maker (the bottom right when there is room), or -1 when every place is taken. */
+export function lakeIndex(stalls: FairStall[]): number {
+  for (let i = STALL_COUNT - 1; i >= 0; i--) if (!stalls[i]?.maker) return i;
+  return -1;
+}
+
+/** Eight slots, row by row, from the floor plan: a maker's stall or an open one named for its category. With `lake`, one open place becomes Pushkar Lake. */
+export function buildSlots(stalls: FairStall[], lake = false): Slot[] {
+  const lakeAt = lake ? lakeIndex(stalls) : -1;
   return Array.from({ length: 8 }, (_, i) => {
     const row = (i < 4 ? 0 : 1) as 0 | 1, col = i % 4, st: FairStall = stalls[i] ?? { maker: null, label: 'Open stall' };
+    if (i === lakeAt) return { idx: i, row, col, cx: COL_X[col], base: ROW_BASE[row], fx: COL_X[col] + 80, fy: ROW_BASE[row] + 30, maker: null, open: false, lake: true, label: 'Pushkar Lake', att: 0, hov: 0, look: 0 };
     // you stand beside the maker, not in front, so the maker (and the mirror) stay in view; the mirror stall's side is the left
     const stand = COL_X[col] + (st.maker?.mirror ? -72 : 72);
-    return { idx: i, row, col, cx: COL_X[col], base: ROW_BASE[row], fx: stand, fy: ROW_BASE[row] + 30, maker: st.maker, open: !st.maker, label: st.label, att: 0, hov: 0, look: 0 };
+    return { idx: i, row, col, cx: COL_X[col], base: ROW_BASE[row], fx: stand, fy: ROW_BASE[row] + 30, maker: st.maker, open: !st.maker, lake: false, label: st.label, att: 0, hov: 0, look: 0 };
   });
 }
 /** Where a camera of this size should sit along one axis: centred when the world is smaller than the view, otherwise kept inside the world. */

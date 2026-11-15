@@ -1,5 +1,6 @@
 import { characterFor, formatCode, hash32, type Character, type HairStyle, type Headwear } from '@/lib/fair-characters';
 import { isLookId, type LookId } from '@/lib/fair-constants';
+import type { Mela } from '@/lib/fair-mela';
 import type { CraftKind, Emote, Facing, FairData, FairVisitor } from '@/lib/fair-types';
 import { artDataUri } from './art';
 import { CRAFT_LABEL, CRAFT_SECONDS, HOLD, drawCounterCraft, drawHand, type HandPose, type Job } from './crafts';
@@ -47,6 +48,8 @@ export type FairEngine = {
   walkToSlot(idx: number, arrive?: () => void): void;
   watchCraft(idx: number): void;
   emote(e: Emote): void;
+  /** Take the holy dip at Pushkar Lake: you stand in the water with the devotees for a few seconds. */
+  dip(): void;
   pose(): { x: number; y: number; facing: Facing };
   paintSelfie(cv: HTMLCanvasElement, pose: SelfiePose): void;
   slots: Slot[];
@@ -62,6 +65,7 @@ type Ent =
   | { type: 'maker'; slot: Slot; x: number; y: number; box: number[] }
   | { type: 'shopper'; sh: Shopper; x: number; y: number; box: number[] }
   | { type: 'sprite'; sp: Sprite; x: number; y: number; box: number[] }
+  | { type: 'camel'; camel: Camel; x: number; y: number; box: number[] }
   | { type: 'mirror'; x: number; y: number; box: number[] }
   | { type: 'me'; x: number; y: number; box: number[] };
 type Badge = { i: number; x: number; y: number; r: number };
@@ -84,11 +88,26 @@ const NPC: Array<Pick<Shopper, 'name' | 'top' | 'pants' | 'skin' | 'bag' | 'acc'
   { name: 'Dev', top: '#405746', pants: '#2b3a31', skin: 'skin2', headwear: { kind: 'cap', color: '#c66b43' }, x: 960, y: 690 },
 ];
 
-export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: EngineCallbacks, opts: { reducedMotion?: boolean; hour?: number | null } = {}): FairEngine {
+/* ---------- the Pushkar Camel Fair week ---------- */
+type Camel = { x: number; y: number; flip: boolean; seed: number; rug: 'orange' | 'indigo' | 'mustard' };
+/** Livestock trading days: camels standing on the lanes and bales of hay. They sit in the lane and corridor spots, never behind a stall. */
+const CAMELS: Camel[] = [{ x: 270, y: 408, flip: false, seed: 1, rug: 'orange' }, { x: 790, y: 408, flip: true, seed: 2, rug: 'indigo' }, { x: 655, y: 738, flip: false, seed: 3, rug: 'mustard' }, { x: 330, y: 742, flip: true, seed: 4, rug: 'orange' }];
+const HAY: Array<[number, number]> = [[110, 396], [940, 398], [60, 300], [990, 300], [720, 750], [405, 748]];
+/** Devotees at the ghat, from the nearest row (r 0) to the farthest, and where the diyas float. Positions are in the lake's own units. */
+type Devotee = { x: number; r: 0 | 1 | 2; top: string; skin: string };
+const FOLK: Devotee[] = [{ x: -78, r: 0, top: '#c66b43', skin: '#c98b62' }, { x: -40, r: 1, top: '#405746', skin: '#8e5b3c' }, { x: -6, r: 0, top: '#d9a441', skin: '#e0ac86' }, { x: 34, r: 1, top: '#b3262e', skin: '#c98b62' },
+  { x: 70, r: 0, top: '#35506f', skin: '#8e5b3c' }, { x: -62, r: 2, top: '#7a4e8f', skin: '#e0ac86' }, { x: 22, r: 2, top: '#c66b43', skin: '#8e5b3c' }, { x: 86, r: 2, top: '#405746', skin: '#c98b62' }];
+const WATERLINE = [-60, -84, -106], DEPTH = [1, .84, .7];
+const DIYAS: Array<[number, number]> = [[-90, -128], [-58, -100], [-24, -132], [10, -96], [44, -124], [76, -104], [-76, -70], [-30, -76], [28, -72], [88, -80]];
+/** How long you stay in the water after taking the holy dip, and how long the crowd stays after you click the lake (milliseconds). */
+const DIP_MS = 12_000, GATHER_MS = 30_000;
+
+export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: EngineCallbacks, opts: { reducedMotion?: boolean; hour?: number | null; mela?: Mela | null } = {}): FairEngine {
   const main = canvas.getContext('2d');
   const reduce = !!opts.reducedMotion;
-  const slots = buildSlots(data.stalls);
-  if (!main) return { destroy() {}, setIdentity() {}, setLook() {}, setOverview() {}, setFill() {}, setState() {}, setMet() {}, setVisitors() {}, setPaused() {}, walkToSlot() {}, watchCraft() {}, emote() {}, pose: () => ({ x: START.x, y: START.y, facing: 'up' }), paintSelfie() {}, slots };
+  const mela = opts.mela ?? null, purnima = mela?.phase === 'purnima';
+  const slots = buildSlots(data.stalls, !!mela);
+  if (!main) return { destroy() {}, setIdentity() {}, setLook() {}, setOverview() {}, setFill() {}, setState() {}, setMet() {}, setVisitors() {}, setPaused() {}, walkToSlot() {}, watchCraft() {}, emote() {}, dip() {}, pose: () => ({ x: START.x, y: START.y, facing: 'up' }), paintSelfie() {}, slots };
   const mainCtx: CanvasRenderingContext2D = main;
   let ctx: CanvasRenderingContext2D = mainCtx, OFF: HTMLCanvasElement | null = null;
   let C: Colors = readColors(), fam = canvasFamily();
@@ -123,6 +142,9 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
   const startCrowd = crowdAt(clock.hour);
   const shoppers: Shopper[] = NPC.map((n, i) => ({ ...n, active: i < startCrowd, alpha: i < startCrowd ? 1 : 0, leaving: false, seed: i * 1.7, facing: 'down' as Facing, moving: false, state: 'browse' as const, timer: 1 + i, path: [], say: '', sayUntil: 0, stall: null }));
   const stocked = slots.filter(s => s.maker);
+  const lakeSlot = slots.find(s => s.lake) ?? null;
+  /** Pushkar Lake: the crowd is gathering (you are at the ghat or just clicked it), how full the ghat is (0 to 1), and when you took the dip. */
+  let lakeOn = false, lakeG = 0, lakeUntil = 0, selfDip = 0;
 
   /* ---------- helpers ---------- */
   const inBox = (w: Pt, b: number[]) => w.x >= b[0] && w.x <= b[0] + b[2] && w.y >= b[1] && w.y <= b[1] + b[3];
@@ -278,7 +300,91 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     for (let i = 0; i < n; i++) { ctx.save(); ctx.translate(-82 + (i % 2) * 22, -168 + Math.floor(i / 2) * 24); ctx.rotate(i % 2 ? .08 : -.07);
       ctx.fillStyle = cols[i]; ctx.fillRect(-9, -9, 18, 18); ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fillRect(-6, -3, 12, 1.5); ctx.fillRect(-6, 1, 9, 1.5); ctx.restore(); }
   }
+  /** Livestock trading days: a dusty warm floor and bales of hay (the camels are drawn with the people so they stand in front of and behind things properly). */
+  function drawMelaGround() {
+    if (mela?.phase !== 'trade') return;
+    ctx.fillStyle = C.mustard; ctx.globalAlpha = .1; ctx.fillRect(0, 250, WORLD_W, WORLD_H - 250); ctx.globalAlpha = 1;
+    for (const [x, y] of HAY) {
+      ctx.save(); ctx.translate(x, y); ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.beginPath(); ctx.ellipse(0, 12, 30, 7, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = C.mustard; ctx.beginPath(); ctx.roundRect(-26, -14, 52, 26, 6); ctx.fill();
+      ctx.strokeStyle = C.woodD; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(-9, -14); ctx.lineTo(-9, 12); ctx.moveTo(9, -14); ctx.lineTo(9, 12); ctx.stroke();
+      ctx.strokeStyle = C.wood; ctx.lineWidth = 1; ctx.beginPath(); for (let i = -20; i < 22; i += 8) { ctx.moveTo(i, -8); ctx.lineTo(i + 5, 4); } ctx.stroke();
+      ctx.restore();
+    }
+  }
+  function drawCamel(c: Camel, t: number) {
+    const sway = reduce ? 0 : Math.sin(t * 1.6 + c.seed) * 1.6, chew = reduce ? 0 : Math.sin(t * 5 + c.seed) * 1.3, fur = C.wood, dark = C.woodD;
+    ctx.save(); if (c.flip) ctx.scale(-1, 1);
+    ctx.fillStyle = 'rgba(0,0,0,.14)'; ctx.beginPath(); ctx.ellipse(4, 2, 52, 7, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = dark; [-32, -18, 20, 34].forEach(x => ctx.fillRect(x - 3.5, -48, 7, 48));
+    ctx.fillStyle = fur; ctx.beginPath(); ctx.ellipse(0, -62 + sway * .3, 46, 22, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-10, -86 + sway * .3, 15, 17, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(30, -68); ctx.quadraticCurveTo(54, -80, 50, -104); ctx.lineTo(61, -104); ctx.quadraticCurveTo(64, -78, 44, -50); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(62, -107 + chew, 12, 8, -.12, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(72, -103 + chew, 7, 6, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = dark; ctx.beginPath(); ctx.ellipse(54, -114, 3, 5, -.4, 0, TAU); ctx.fill(); ctx.fillStyle = C.hair; ctx.beginPath(); ctx.arc(64, -110 + chew, 1.6, 0, TAU); ctx.fill();
+    ctx.strokeStyle = dark; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-44, -66); ctx.quadraticCurveTo(-54, -54, -50 + sway, -38); ctx.stroke();
+    ctx.fillStyle = C[c.rug]; ctx.beginPath(); ctx.roundRect(-30, -78, 46, 28, 5); ctx.fill();
+    ctx.fillStyle = C.chalk; ctx.fillRect(-30, -68, 46, 4); ctx.fillStyle = C.mustard; for (let x = -26; x <= 10; x += 9) { ctx.beginPath(); ctx.arc(x + 4, -50, 2.6, 0, TAU); ctx.fill(); }
+    ctx.strokeStyle = C.orange; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(52, -98); ctx.quadraticCurveTo(48, -78, 40, -62); ctx.stroke();
+    ctx.restore();
+  }
+  /** One devotee standing in the water up to the chest. They duck under, come up with their hands raised and let the water run off. y is the waterline, k the size for their row. */
+  function drawDevotee(x: number, y: number, k: number, top: string, skin: string, ph: number) {
+    const s = reduce ? -.2 : Math.sin(ph), under = Math.max(0, s), rise = Math.max(0, -s), hy = y - (30 - under * 40) * k;
+    ctx.save(); ctx.beginPath(); ctx.rect(x - 30, y - 90, 60, 90); ctx.clip();
+    ctx.fillStyle = top; ctx.beginPath(); ctx.ellipse(x, y - (8 - under * 40) * k, 12 * k, 14 * k, 0, 0, TAU); ctx.fill();
+    if (rise > .25) { ctx.strokeStyle = skin; ctx.lineWidth = 3 * k; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x - 9 * k, hy + 10 * k); ctx.lineTo(x - 13 * k, hy - 8 * k - rise * 6 * k); ctx.moveTo(x + 9 * k, hy + 10 * k); ctx.lineTo(x + 13 * k, hy - 8 * k - rise * 6 * k); ctx.stroke(); }
+    ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(x, hy, 7 * k, 0, TAU); ctx.fill();
+    ctx.fillStyle = C.hair; ctx.beginPath(); ctx.arc(x, hy - k, 7.3 * k, Math.PI, 0); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(x, y, (16 + under * 6) * k, 3.5 * k, 0, 0, TAU); ctx.stroke();
+    if (rise > .6 && !reduce) { ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.beginPath(); ctx.arc(x - 14 * k, hy - 6 * k + (rise - .6) * 30 * k, 1.5 * k, 0, TAU); ctx.arc(x + 14 * k, hy - 6 * k + (rise - .6) * 26 * k, 1.5 * k, 0, TAU); ctx.fill(); }
+  }
+  /**
+   * Pushkar Lake: hills and white temples round a pool, with the steps of a ghat in front. On Kartik Purnima the sky over it is a full-moon night, diyas float on the
+   * water and devotees come down to take the holy dip: two at first, more while you stand at the ghat or have just clicked it, and you too once you take the dip.
+   */
+  function drawLake(slot: Slot, t: number) {
+    const night = purnima;
+    ctx.fillStyle = 'rgba(0,0,0,.14)'; ctx.beginPath(); ctx.ellipse(0, 3, 124, 11, 0, 0, TAU); ctx.fill();
+    ctx.save(); ctx.translate(0, -slot.hov * 7);
+    ctx.fillStyle = C.woodD; ctx.fillRect(-120, -254, 8, 254); ctx.fillRect(112, -254, 8, 254);
+    ctx.save(); ctx.beginPath(); ctx.roundRect(-112, -250, 224, 208, 8); ctx.clip();
+    const sky = ctx.createLinearGradient(0, -250, 0, -150); sky.addColorStop(0, night ? C.board : C.cream); sky.addColorStop(1, night ? C.indigo : C.white); ctx.fillStyle = sky; ctx.fillRect(-112, -250, 224, 120);
+    if (night) {
+      ctx.fillStyle = C.chalk; for (let i = 0; i < 9; i++) { ctx.globalAlpha = .35 + .4 * ((i * 37) % 10) / 10; ctx.beginPath(); ctx.arc(-96 + i * 23, -238 + (i * 53) % 26, 1.1, 0, TAU); ctx.fill(); } ctx.globalAlpha = 1;
+      const mg = ctx.createRadialGradient(76, -214, 4, 76, -214, 34); mg.addColorStop(0, 'rgba(251,247,239,.55)'); mg.addColorStop(1, 'rgba(251,247,239,0)'); ctx.fillStyle = mg; ctx.fillRect(40, -250, 72, 70);
+      ctx.fillStyle = C.chalk; ctx.beginPath(); ctx.arc(76, -214, 12, 0, TAU); ctx.fill();
+    }
+    ctx.fillStyle = C.sage; ctx.globalAlpha = night ? .5 : .75; ctx.beginPath(); ctx.moveTo(-112, -150); ctx.lineTo(-112, -178); ctx.lineTo(-70, -198); ctx.lineTo(-30, -176); ctx.lineTo(20, -204); ctx.lineTo(68, -178); ctx.lineTo(112, -192); ctx.lineTo(112, -150); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    for (const [x, w, h] of [[-82, 26, 30], [-22, 34, 40], [58, 26, 28]]) {
+      ctx.fillStyle = night ? C.cream : C.chalk; ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.fillRect(x - w / 2, -150 - h, w, h); ctx.strokeRect(x - w / 2, -150 - h, w, h);
+      ctx.beginPath(); ctx.ellipse(x, -150 - h, w / 2, w * .4, 0, Math.PI, 0); ctx.fill(); ctx.stroke(); ctx.fillStyle = C.mustard; ctx.beginPath(); ctx.arc(x, -150 - h - w * .4 - 2, 2.2, 0, TAU); ctx.fill();
+      ctx.fillStyle = C.woodD; ctx.beginPath(); ctx.roundRect(x - 3, -150 - h * .55, 6, h * .55, [3, 3, 0, 0]); ctx.fill();
+    }
+    const wg = ctx.createLinearGradient(0, -150, 0, -42); wg.addColorStop(0, night ? C.board : C.indigo); wg.addColorStop(1, night ? C.indigo : '#4fb6b8'); ctx.fillStyle = wg; ctx.fillRect(-112, -150, 224, 108);
+    ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = 1.3; ctx.lineCap = 'round';
+    for (let i = 0; i < 6; i++) { const y = -140 + i * 16, ph = reduce ? 0 : t * .9 + i; ctx.beginPath(); ctx.moveTo(-100 + Math.sin(ph) * 6, y); ctx.quadraticCurveTo(-60, y - 4, -20 + Math.sin(ph) * 6, y); ctx.quadraticCurveTo(20, y + 4, 60 + Math.sin(ph) * 6, y); ctx.stroke(); }
+    if (night) { ctx.fillStyle = C.chalk; ctx.globalAlpha = .22; ctx.fillRect(70, -150, 12, 108); ctx.globalAlpha = 1; }
+    const people: Array<{ x: number; r: number; top: string; skin: string; ph: number }> = [];
+    if (night) FOLK.slice(0, 2 + Math.round(6 * lakeG)).forEach((f, i) => people.push({ x: f.x, r: f.r, top: f.top, skin: f.skin, ph: t * 1.1 + i * 1.7 }));
+    if (nowMs < selfDip + DIP_MS) people.push({ x: -24, r: 0, top: topOf(), skin: me.skin, ph: t * 1.1 + 4 });
+    if (night) DIYAS.slice(0, 6 + Math.round(4 * lakeG)).forEach(([x, y], i) => {
+      const dx = x + (reduce ? 0 : Math.sin(t * .6 + i) * 3), fl = reduce ? 1 : .8 + .2 * Math.sin(t * 7 + i * 2);
+      const gl = ctx.createRadialGradient(dx, y - 3, 1, dx, y - 3, 13); gl.addColorStop(0, 'rgba(242,154,31,.6)'); gl.addColorStop(1, 'rgba(242,154,31,0)'); ctx.fillStyle = gl; ctx.fillRect(dx - 14, y - 17, 28, 28);
+      ctx.fillStyle = C.terraD; ctx.beginPath(); ctx.ellipse(dx, y, 6, 2.6, 0, 0, TAU); ctx.fill(); ctx.fillStyle = C.mustard; ctx.beginPath(); ctx.moveTo(dx - 2, y - 1); ctx.quadraticCurveTo(dx, y - 9 * fl, dx + 2, y - 1); ctx.closePath(); ctx.fill();
+    });
+    people.sort((a, b) => b.r - a.r).forEach(p => drawDevotee(p.x, WATERLINE[p.r], DEPTH[p.r], p.top, p.skin, p.ph));
+    ctx.restore();
+    for (let i = 0; i < 4; i++) { const y = -42 + i * 10.5, w = 112 + i * 3; ctx.fillStyle = i % 2 ? C.chalk : C.cream; ctx.fillRect(-w, y, w * 2, 10.5); ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.strokeRect(-w, y, w * 2, 10.5); }
+    for (let x = -100; x <= 100; x += 14) { ctx.fillStyle = (x / 14) % 2 ? C.orange : C.mustard; ctx.beginPath(); ctx.arc(x, -21, 3.6, 0, TAU); ctx.fill(); }
+    ctx.fillStyle = C.board; ctx.beginPath(); ctx.roundRect(-84, -286, 168, 32, 5); ctx.fill();
+    ctx.strokeStyle = C.mustard; ctx.globalAlpha = .6; ctx.lineWidth = 1; ctx.beginPath(); ctx.roundRect(-80, -282, 160, 24, 3); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.font = F(600, 14); ctx.fillStyle = C.chalk; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Pushkar Lake', 0, -269); ctx.textBaseline = 'alphabetic';
+    ctx.restore();
+  }
   function drawStallBody(slot: Slot) {
+    if (slot.lake) { drawLake(slot, nowT); return; }
     const open = slot.open, m = slot.maker;
     const aw1 = open ? C.line : C.green, aw2 = open ? C.cream : C.orange, aw3 = open ? C.line : C.mustard;
     ctx.fillStyle = 'rgba(0,0,0,.14)'; ctx.beginPath(); ctx.ellipse(0, 3, 124, 11, 0, 0, TAU); ctx.fill();
@@ -463,7 +569,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, mw, mh, 8); ctx.clip(); ctx.translate(x, y);
     ctx.fillStyle = C.ground; ctx.fillRect(0, 0, mw, mh);
     ctx.fillStyle = C.cream; RECTS.forEach(r => ctx.fillRect(r.x * k, r.y * k, r.w * k, r.h * k));
-    for (const sl of slots) { ctx.fillStyle = sl.maker ? C.green : C.line; ctx.fillRect((sl.cx - 80) * k, (sl.base - 150) * k, 160 * k, 140 * k); if (sl.maker?.mirror) { ctx.fillStyle = C.mustard; ctx.fillRect((sl.cx + 36) * k, (sl.base - 110) * k, 14 * k, 60 * k); } }
+    for (const sl of slots) { ctx.fillStyle = sl.maker ? C.green : sl.lake ? C.indigo : C.line; ctx.fillRect((sl.cx - 80) * k, (sl.base - 150) * k, 160 * k, 140 * k); if (sl.maker?.mirror) { ctx.fillStyle = C.mustard; ctx.fillRect((sl.cx + 36) * k, (sl.base - 110) * k, 14 * k, 60 * k); } }
     ctx.fillStyle = C.muted; shoppers.forEach(sh => { if (!sh.active) return; ctx.beginPath(); ctx.arc(sh.x * k, sh.y * k, 1.8, 0, TAU); ctx.fill(); });
     ctx.fillStyle = C.indigo; sprites.forEach(sp => { ctx.beginPath(); ctx.arc(sp.x * k, sp.y * k, 2.6, 0, TAU); ctx.fill(); });
     ctx.strokeStyle = C.ink; ctx.globalAlpha *= .55; ctx.lineWidth = 1.2; ctx.strokeRect(Math.max(0, cam.x / Z * k), Math.max(0, cam.y / Z * k), Math.min(mw, W / Z * k), Math.min(mh, H / Z * k));
@@ -528,7 +634,8 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
       } else {
         sh.moving = false; sh.timer -= dt;
         if (sh.timer <= 0) {
-          const pool = stocked.length ? stocked.filter(s => s !== sh.stall) : [], s = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+          const places = lakeOn && lakeSlot ? [...stocked, lakeSlot] : stocked;   // while the devotees gather, shoppers walk down to the lake too
+          const pool = places.length ? places.filter(s => s !== sh.stall) : [], s = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
           sh.stall = s;
           const to = s ? { x: s.fx + (Math.random() * 90 - 45), y: s.fy + Math.random() * 28 } : { x: 120 + Math.random() * 800, y: 300 + Math.random() * 90 };
           sh.path = route({ x: sh.x, y: sh.y }, to); sh.state = 'walk';
@@ -588,6 +695,8 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     updateShoppers(dt); updateSprites(dt, now);
     if (ptr.down && !press && badgePress < 0 && !paused && now - holdT > 110) { holdT = now; player.path = route({ x: player.x, y: player.y }, clampWalk(toWorld(ptr.x, ptr.y))); player.arrive = null; }
     const { nearSlot, nearest: nr, mirrorNear } = nearInfo();
+    lakeOn = purnima && (!!nearSlot?.lake || now < lakeUntil);   // devotees gather while you are at the ghat or just clicked the lake
+    lakeG += ((lakeOn ? 1 : 0) - lakeG) * Math.min(1, dt * 1.1);
     if (nr && nr.idx !== nearest) { nearest = nr.idx; cb.onNearest(nr.idx); }
     const fs = slots.find(s => Math.abs(player.x - s.cx) < 84 && player.y - s.base > 0 && player.y - s.base < 84) ?? null;
     if (fs) focusRef = fs;
@@ -606,7 +715,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
 
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.fillStyle = C.paper; ctx.fillRect(0, 0, W, H);
     ctx.setTransform(DPR * Z, 0, 0, DPR * Z, -cam.x * DPR, -cam.y * DPR);
-    drawGround(); drawDiyas(t);
+    drawGround(); drawMelaGround(); drawDiyas(t);
     if (focusRef && focusV > .01) {
       const gx = focusRef.cx, gy = focusRef.base - 70, g = ctx.createRadialGradient(gx, gy, 120, gx, gy, 380);
       g.addColorStop(0, 'rgba(8,12,8,0)'); g.addColorStop(1, `rgba(8,12,8,${(.62 * focusV).toFixed(3)})`); ctx.fillStyle = g; ctx.fillRect(0, 0, WORLD_W, WORLD_H);
@@ -615,9 +724,10 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     slots.forEach(s => ents.push({ type: 'stall', slot: s, y: s.base, x: s.cx, box: [s.cx - 118 * SS, s.base - 290 * SS, 236 * SS, 296 * SS] }));
     shoppers.forEach(sh => { if (sh.alpha > .02) ents.push({ type: 'shopper', sh, y: sh.y, x: sh.x, box: [sh.x - 20, sh.y - 120, 40, 126] }); });
     sprites.forEach(sp => ents.push({ type: 'sprite', sp, y: sp.y, x: sp.x, box: [sp.x - 20, sp.y - 120, 40, 126] }));
+    if (mela?.phase === 'trade') CAMELS.forEach(camel => ents.push({ type: 'camel', camel, y: camel.y, x: camel.x, box: [camel.x - 64, camel.y - 122, 136, 128] }));
     ents.push({ type: 'me', y: player.y, x: player.x, box: [player.x - 24, player.y - 126, 48, 134] });
     ents.sort((a, b) => a.y - b.y);
-    hits = ents.filter(e => e.type === 'stall' || (e.type === 'shopper' && e.sh.alpha > .6));
+    hits = ents.filter(e => e.type === 'stall' || e.type === 'camel' || (e.type === 'shopper' && e.sh.alpha > .6));
     for (const s of slots) if (s.maker) hits.push({ type: 'maker', slot: s, x: s.cx, y: s.base, box: [s.cx - 30 * SS, s.base - 112 * SS, 66 * SS, 78 * SS] });
     if (MIRROR) hits.push({ type: 'mirror', x: MIRROR.x, y: MIRROR.y, box: [MIRROR.x - 22, MIRROR.y - 50, 44, 100] });
     hovered = null; if (ptr.inside && !paused) for (let i = hits.length - 1; i >= 0; i--) if (inBox(w, hits[i].box)) { hovered = hits[i]; break; }
@@ -632,6 +742,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
       if (e.type === 'stall') { ctx.scale(SS, SS); drawStallBody(e.slot); }
       else if (e.type === 'shopper') { ctx.scale(.95, .95); drawPerson(e.sh, t, Math.max(-1, Math.min(1, (w.x - e.x) / 200))); }
       else if (e.type === 'sprite') { ctx.scale(.95, .95); drawPerson(e.sp, t, Math.max(-1, Math.min(1, (w.x - e.x) / 200))); }
+      else if (e.type === 'camel') { ctx.scale(.88, .88); drawCamel(e.camel, t); }
       else { ctx.scale(.98, .98); drawPerson(meWalker(), t, 0); }
       ctx.restore();
     };
@@ -659,7 +770,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     drawCraftCaption(now);
     if ((nearSlot || mirrorNear) && !paused && !craft) {
       const sl = nearSlot ?? mirrorSlot!, mouse = ptr.type === 'mouse';
-      const txt = mirrorNear ? (mouse ? (nearSlot ? 'Enter to shop · M for the mirror' : 'Press M for the mirror') : 'Tap the stall or the mirror') : nearSlot!.open ? (mouse ? 'Open stall · press Enter' : 'Open stall · tap it') : mouse ? 'Enter to shop · click the maker to watch' : 'Tap the stall, or the maker';
+      const txt = mirrorNear ? (mouse ? (nearSlot ? 'Enter to shop · M for the mirror' : 'Press M for the mirror') : 'Tap the stall or the mirror') : nearSlot!.lake ? (mouse ? 'Press Enter for Pushkar Lake' : 'Tap the lake') : nearSlot!.open ? (mouse ? 'Open stall · press Enter' : 'Open stall · tap it') : mouse ? 'Enter to shop · click the maker to watch' : 'Tap the stall, or the maker';
       bubble(sx(sl.cx), sy(sl.base - 292 * SS), txt, true);
     }
   }
@@ -702,13 +813,15 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
   }
 
   /* ---------- input ---------- */
+  /** Opens a stall's counter; clicking Pushkar Lake also calls the devotees down to the ghat for a while. */
+  const openStall = (s: Slot) => { if (s.lake) lakeUntil = performance.now() + GATHER_MS; cb.onOpenStall(s); };
   const typing = (el: EventTarget | null) => el instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
   const onKeyDown = (e: KeyboardEvent) => {
     if (paused || typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
     const onGame = e.target === canvas || e.target === document.body, k = KEY[e.key];
     if (k && onGame) { e.preventDefault(); keys[k] = 1; ptr.down = false; }
     else if ((e.key === 'm' || e.key === 'M') && onGame) { if (nearInfo().mirrorNear) { e.preventDefault(); cb.onOpenMirror('menu'); } }
-    else if ((e.key === 'Enter' || e.key === 'e' || e.key === 'E' || e.key === ' ') && onGame) { const { nearSlot } = nearInfo(); if (nearSlot) { e.preventDefault(); cb.onOpenStall(nearSlot); } }
+    else if ((e.key === 'Enter' || e.key === 'e' || e.key === 'E' || e.key === ' ') && onGame) { const { nearSlot } = nearInfo(); if (nearSlot) { e.preventDefault(); openStall(nearSlot); } }
   };
   const onKeyUp = (e: KeyboardEvent) => { const k = KEY[e.key]; if (k) keys[k] = 0; };
   const onBlur = () => { keys.l = keys.r = keys.u = keys.d = 0; ptr.down = false; };
@@ -738,7 +851,8 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     endCraft();
     if (e.type === 'mirror') mirrorAction('menu');
     else if (e.type === 'maker') { const s = e.slot; if (nearInfo().nearSlot === s) startCraft(s); else walkTo({ x: s.fx, y: s.fy }, () => startCraft(s)); }
-    else if (e.type === 'stall') { const s = e.slot; if (nearInfo().nearSlot === s) cb.onOpenStall(s); else walkTo({ x: s.fx, y: s.fy }, () => cb.onOpenStall(s)); }
+    else if (e.type === 'stall') { const s = e.slot; if (nearInfo().nearSlot === s) openStall(s); else walkTo({ x: s.fx, y: s.fy }, () => openStall(s)); }
+    else if (e.type === 'camel') cb.onToast('The camel traders are in town. This one is being groomed for the sale.');
     else if (e.type === 'shopper' && stocked.length) {
       const sh = e.sh, s = stocked[Math.floor(Math.random() * stocked.length)], m = s.maker!, it = m.items[Math.floor(Math.random() * m.items.length)];
       sh.say = `Try the ${it.name.toLowerCase()}`; sh.sayUntil = performance.now() + 3200; cb.onToast(`${sh.name} says: ${it.name} at ${m.name} is worth a look.`); walkTo({ x: s.fx, y: s.fy });
@@ -793,6 +907,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     walkToSlot(idx, arrive) { const s = slots[idx]; if (s) walkTo({ x: s.fx, y: s.fy }, arrive); },
     watchCraft(idx) { const s = slots[idx]; if (!s?.maker) return; if (nearInfo().nearSlot === s) startCraft(s); else walkTo({ x: s.fx, y: s.fy }, () => startCraft(s)); },
     emote(e) { mySay = SAY[e]; mySayUntil = performance.now() + 3200; cb.onEvent({ type: 'emote' }); },
+    dip() { const now = performance.now(); selfDip = now; lakeUntil = now + GATHER_MS; },
     pose: () => ({ x: player.x, y: player.y, facing: player.facing }),
     paintSelfie,
   };

@@ -4547,6 +4547,8 @@ button.fair-opt:hover { background: var(--cream); }
 @media (prefers-reduced-motion: reduce) { .toggle-switch-track, .toggle-switch-knob { transition: none; } }
 .fair-toolbar .button[aria-pressed="true"] { border-color: var(--green); }
 .fair-time { position: absolute; left: 10px; top: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px 7px 10px; border-radius: 30px; background: var(--stall-board); color: var(--stall-chalk); font: 600 11px var(--font-sans); pointer-events: none; }
+.fair-mela-tag { position: absolute; left: 10px; top: 46px; z-index: 2; max-width: calc(100% - 20px); padding: 6px 12px; border-radius: 30px; background: var(--orange); color: #fffdf9; font: 600 11px var(--font-sans); pointer-events: none; }
+.fair-mela p { margin: 0 0 6px; }
 .fair-time-icon { width: 12px; height: 12px; border-radius: 50%; background: #ffd27a; box-shadow: 0 0 9px #ffd27a; }
 .fair-time.afternoon .fair-time-icon { background: #ffe27a; box-shadow: 0 0 12px #ffd24a; }
 .fair-time.evening .fair-time-icon { background: #ff9a4a; box-shadow: 0 0 9px #ff9a4a; }
