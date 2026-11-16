@@ -3,8 +3,6 @@ import { renderOg, ogSize } from '@/lib/og';
 export const alt = 'Craftofy — products and creative workshops';
 export const size = ogSize;
 export const contentType = 'image/png';
-// Reads the catalogue wording from the database, which is not reachable while the image is built, so render per request.
-export const dynamic = 'force-dynamic';
 export default async function Image() {
   const w = await getCatalogWording();
   return renderOg('Discover the Craft. Meet the Maker. Learn the Art.', `${capitalize(w.finds)} & workshops across India`);
