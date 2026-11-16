@@ -152,9 +152,9 @@ export function LiveCatalog(props: Props) {
 
   const results = (
     <div aria-busy={loading} style={{ opacity: loading ? 0.6 : 1, transition: 'opacity .15s' }}>
-      <PageLoader show={loading} blocking={false} label="Searching…" />
+      <PageLoader show={loading} blocking={false} label="" />
       {error && <p role="alert" className="fine-print" style={{ color: '#a74d35', textAlign: 'left' }}>Couldn’t update results: {error}</p>}
-      {kind === 'products' ? <ProductGrid products={items as Product[]} /> : <WorkshopList workshops={items as Workshop[]} />}
+      {kind === 'products' ? <ProductGrid products={items as Product[]} loading={loading} /> : <WorkshopList workshops={items as Workshop[]} loading={loading} />}
       {paged && (hasNextPage || (queryError && items.length > 0)) && (
         <div ref={sentinel} className="craft-more">
           <button type="button" className="button outline" disabled={isFetchingNextPage} aria-busy={isFetchingNextPage} onClick={() => void (hasNextPage ? fetchNextPage() : refetch())}>
