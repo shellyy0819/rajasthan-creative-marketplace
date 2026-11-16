@@ -20,6 +20,33 @@ export const cities = pgTable('cities', {
 }, t => [uniqueIndex('cities_osm_idx').on(t.osmType, t.osmId)]);
 export type CityRow = typeof cities.$inferSelect;
 
+/**
+ * A seller adding a place to the City field when they could not find their city. It is live at once (added to the extra areas list) and kept here
+ * for an admin to review: status 'live' (not reviewed yet), 'approved' (kept) or 'removed' (taken out of the City field).
+ */
+export const cityRequests = pgTable('city_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  requestedBy: text('requested_by').notNull(),
+  requestedByName: text('requested_by_name'),
+  name: text('name').notNull(),
+  placeLabel: text('place_label').notNull(),
+  state: text('state'),
+  osmType: text('osm_type').notNull(),
+  osmId: bigint('osm_id', { mode: 'number' }).notNull(),
+  lat: doublePrecision('lat').notNull(),
+  lng: doublePrecision('lng').notNull(),
+  note: text('note'),
+  status: text('status').notNull().default('live'),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  decidedAt: timestamp('decided_at', { withTimezone: true, mode: 'date' }),
+  decidedBy: text('decided_by'),
+}, t => [
+  check('city_requests_status_valid', sql`${t.status} in ('live', 'approved', 'removed')`),
+  index('city_requests_status_idx').on(t.status),
+  index('city_requests_created_idx').on(t.createdAt),
+]);
+export type CityRequestRow = typeof cityRequests.$inferSelect;
+
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull(),

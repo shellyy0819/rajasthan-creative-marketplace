@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { CityRequestPanel, type AddedCity } from './CityRequestPanel';
 import { usePlaceSuggest } from './usePlaceSuggest';
 
 type CitySuggestion = { label: string; name: string; state?: string; ref?: string };
@@ -15,7 +16,7 @@ const CHOOSE = 'Choose a city from the suggestions.';
  */
 export type PickedCity = { ref: string; label: string; /** The bare city name (the label without the state). */ name?: string; state?: string };
 
-export function CityInput({ name = 'city', defaultCity, defaultRef, required = false, onPick: onPicked, ariaInvalid, describedBy, valueFormat = 'label' }: {
+export function CityInput({ name = 'city', defaultCity, defaultRef, required = false, onPick: onPicked, ariaInvalid, describedBy, valueFormat = 'label', allowRequest = false }: {
   name?: 'city';
   defaultCity?: { id: number; label: string };
   /** A previously picked (signed) suggestion, e.g. restored from a draft. */
@@ -27,6 +28,8 @@ export function CityInput({ name = 'city', defaultCity, defaultRef, required = f
   describedBy?: string;
   /** What the input shows after a pick: the suggestion label ("Udaipur, Rajasthan", default) or only the city name. The list always shows labels. */
   valueFormat?: 'label' | 'name';
+  /** Sellers: offer "Cannot find your city? Add it", which adds a place the search did not offer, live at once, for the team to review. */
+  allowRequest?: boolean;
 }) {
   const shown = (c: { label: string; name?: string }) => (valueFormat === 'name' ? c.name ?? c.label : c.label);
   const initial: Choice | null = defaultRef ? { kind: 'ref', ref: defaultRef.ref, label: defaultRef.label, name: defaultRef.name, state: defaultRef.state }
@@ -36,6 +39,8 @@ export function CityInput({ name = 'city', defaultCity, defaultRef, required = f
   // The last valid choice: restored when the search service fails.
   const kept = useRef<Choice | null>(initial);
   const [down, setDown] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { search, loading, inputProps, list } = usePlaceSuggest<CitySuggestion>({
@@ -54,6 +59,14 @@ export function CityInput({ name = 'city', defaultCity, defaultRef, required = f
       }
     },
   });
+
+  /** A place the seller just added: it becomes the chosen city, exactly as if it had been picked from the list. */
+  const adopt = (c: AddedCity) => {
+    const next: Choice = { kind: 'ref', ref: c.ref, label: c.label, name: c.name, state: c.state };
+    setValue(shown(next)); setChoice(next); kept.current = next; setDown(false); setAdding(false);
+    setAdded(`“${c.name}” is added and ready to use. We have told the Craftofy team.`);
+    onPicked?.({ ref: c.ref, label: c.label, name: c.name, state: c.state });
+  };
 
   // Free text that is not a chosen city makes the form invalid; an empty optional field is fine.
   const invalid = value.trim() !== '' && !choice;
@@ -81,6 +94,9 @@ export function CityInput({ name = 'city', defaultCity, defaultRef, required = f
       {choice?.kind === 'id' && <input type="hidden" name="cityId" value={choice.id} />}
       {choice?.kind === 'ref' && <input type="hidden" name="cityRef" value={choice.ref} />}
       {down && <small role="alert" className="field-error">{CITY_SEARCH_DOWN}</small>}
+      {added && !adding && <small role="status" className="field-hint">{added}</small>}
+      {allowRequest && !adding && <button type="button" className="text-link city-request-link" onClick={() => { setAdding(true); setAdded(''); }}>Cannot find your city? Add it</button>}
+      {allowRequest && adding && <CityRequestPanel onAdded={adopt} onClose={() => setAdding(false)} />}
     </>
   );
 }

@@ -12,6 +12,7 @@ const TABS = [
   { href: '/dashboard/trending', label: 'Trending' },
   { href: '/dashboard/sourcing-types', label: 'Sourcing types' },
   { href: '/dashboard/theme', label: 'Festive themes' },
+  { href: '/dashboard/city-requests', label: 'City requests' },
   { href: '/dashboard/settings', label: 'Settings' },
 ];
 

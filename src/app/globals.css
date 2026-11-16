@@ -4629,3 +4629,10 @@ button.fair-opt:hover { background: var(--cream); }
 .area-list-h { margin: 22px 0 10px; font: 600 11px var(--font-sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .area-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); }
 .area-list small { display: block; color: var(--muted); font-size: 12px; }
+
+/* Seller: adding a city the City field did not offer (inside the product form). */
+.city-request-link { display: block; margin-top: 6px; font-size: 12px; }
+.city-request { display: grid; gap: 10px; margin-top: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); }
+.city-request .field { display: grid; gap: 6px; }
+.city-request .form-note { margin: 0; }
+.field-hint { display: block; margin-top: 6px; color: var(--green); }

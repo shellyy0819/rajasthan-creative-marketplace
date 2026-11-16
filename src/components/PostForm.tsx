@@ -172,7 +172,7 @@ export function PostForm({ initial, role, categories, sourcingTypes = [], worksh
               )}
               {catError && <p role="alert" className="admin-error" style={{ margin: '6px 0 0' }}>{catError}</p>}
             </div>
-            <label><span className="lbl">City</span><CityInput required defaultCity={initial ? { id: initial.cityId, label: initial.city } : undefined} /></label>
+            <label><span className="lbl">City</span><CityInput required allowRequest defaultCity={initial ? { id: initial.cityId, label: initial.city } : undefined} /></label>
           </div>
           <div className="admin-form-row">
             <label><span className="lbl">Price (₹)</span><input name="price" type="number" min="0" step="0.01" defaultValue={initial?.pricePaise != null ? initial.pricePaise / 100 : ''} /></label>
