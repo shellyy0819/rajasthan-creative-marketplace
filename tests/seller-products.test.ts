@@ -82,9 +82,10 @@ describe('seller edit / archive / publish rules', () => {
     await expect(updateProduct(p.id, { status: 'APPROVED' }, A.actor)).rejects.toMatchObject({ status: 403 });
     expect((await snapshot()).products.find(x => x.id === p.id)!.status).toBe('ARCHIVED');
   });
-  it('editing a published product sends it back to DRAFT (even if the seller sends status APPROVED)', async () => {
+  it('editing the content of a published product sends it back to DRAFT (even if the seller sends status APPROVED), but changing only the stock does not', async () => {
     const p = await adminOwned(A.id);
-    expect((await updateProduct(p.id, { stock: 9 }, A.actor)).status).toBe('DRAFT');
+    expect((await updateProduct(p.id, { stock: 9 }, A.actor)).status).toBe('APPROVED');   // how many are left is not reviewed
+    expect((await updateProduct(p.id, { stock: 0, status: 'APPROVED' }, A.actor)).status).toBe('APPROVED');   // sold out stays published
     await updateProduct(p.id, { status: 'APPROVED' }, admin);
     expect((await updateProduct(p.id, { description: 'changed', status: 'APPROVED' }, A.actor)).status).toBe('DRAFT');
     expect((await listProducts()).map(x => x.id)).not.toContain(p.id);
