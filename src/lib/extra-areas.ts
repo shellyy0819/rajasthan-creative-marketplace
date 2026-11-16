@@ -31,6 +31,29 @@ async function save(q: Q, areas: ExtraArea[], actorEmail: string): Promise<Extra
   return areas;
 }
 
+const REMOVED_KEY = 'extra-areas-removed';
+const MAX_REMOVED = 1000;
+type Place = Pick<ExtraArea, 'osmType' | 'osmId'>;
+async function readRemoved(q: Q): Promise<Place[]> {
+  const [row] = await q.select().from(appSettings).where(eq(appSettings.key, REMOVED_KEY));
+  const v = row?.value as { places?: unknown } | undefined;
+  return Array.isArray(v?.places) ? v!.places.filter((p): p is Place => !!p && typeof (p as Place).osmType === 'string' && typeof (p as Place).osmId === 'number') : [];
+}
+async function writeRemoved(q: Q, places: Place[], actorEmail: string): Promise<void> {
+  const value = { places: places.slice(-MAX_REMOVED) };
+  await q.insert(appSettings).values({ key: REMOVED_KEY, value, updatedBy: actorEmail })
+    .onConflictDoUpdate({ target: appSettings.key, set: { value, updatedBy: actorEmail, updatedAt: new Date() } });
+}
+/** Places an admin has taken out of the City field. A seller cannot put one back by asking again; the admin can add it again from Settings or restore it from City requests. */
+export async function isRemovedPlace(place: Place, q: Q = getDb()): Promise<boolean> { return (await readRemoved(q)).some(p => sameArea(p, place)); }
+/** Records that an admin took this place out, whether or not any seller ever asked for it. */
+export async function markPlaceRemoved(place: Place, actorEmail: string, q?: Q): Promise<void> {
+  await withExtraAreasLock(async tx => {
+    const removed = await readRemoved(tx);
+    if (!removed.some(p => sameArea(p, place))) await writeRemoved(tx, [...removed, { osmType: place.osmType, osmId: place.osmId }], actorEmail);
+  }, q);
+}
+
 /**
  * Runs `fn` in a transaction that holds a lock on the list, so two changes at the same moment (two sellers, or a seller and an admin) cannot overwrite each other,
  * and a check made inside `fn` (a limit, a repeat) is still true when `fn` saves. Pass `q` when already inside a transaction.
@@ -53,12 +76,15 @@ export async function addExtraArea(input: unknown, actorEmail: string, q?: Q): P
     const current = await getExtraAreas(tx);
     if (!current.some(a => sameArea(a, pick)) && current.length >= MAX_EXTRA_AREAS) throw new ApiError(400, `At most ${MAX_EXTRA_AREAS} extra areas.`);
     const area: ExtraArea = { name, osmType: pick.osmType, osmId: pick.osmId, lat: pick.lat, lng: pick.lng, ...(pick.state ? { state: pick.state } : {}), aliases: name.toLowerCase() === pick.name.toLowerCase() ? [] : [pick.name] };
-    return save(tx, [...current.filter(a => !sameArea(a, area)), area].sort((a, b) => a.name.localeCompare(b.name)), actorEmail);
+    const saved = await save(tx, [...current.filter(a => !sameArea(a, area)), area].sort((a, b) => a.name.localeCompare(b.name)), actorEmail);
+    const removed = await readRemoved(tx);   // adding a place again (by an admin, or restoring it) lifts the ban on asking for it
+    if (removed.some(p => sameArea(p, area))) await writeRemoved(tx, removed.filter(p => !sameArea(p, area)), actorEmail);
+    return saved;
   }, q);
 }
 
 /**
- * Takes an area out of the City field's suggestions, and marks any seller's request for it as removed, so it cannot be put back by asking again.
+ * Takes an area out of the City field's suggestions and records it as removed (and marks any seller's request for it), so it cannot be put back by asking again.
  * Cities already created from it, and the products using them, are untouched.
  */
 export async function removeExtraArea(input: unknown, actorEmail: string, q?: Q): Promise<ExtraArea[]> {
@@ -69,6 +95,7 @@ export async function removeExtraArea(input: unknown, actorEmail: string, q?: Q)
     const current = await getExtraAreas(tx);
     if (!current.some(a => sameArea(a, target))) throw new ApiError(404, 'That area is not in the list.');
     const next = await save(tx, current.filter(a => !sameArea(a, target)), actorEmail);
+    await markPlaceRemoved(target, actorEmail, tx);
     await tx.update(cityRequests).set({ status: 'removed', decidedAt: new Date(), decidedBy: actorEmail })
       .where(and(eq(cityRequests.osmType, target.osmType), eq(cityRequests.osmId, target.osmId), ne(cityRequests.status, 'removed')));
     return next;

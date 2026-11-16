@@ -98,6 +98,40 @@ describe('what stops it being misused', () => {
     for (let i = 0; i < GLOBAL_DAILY_LIMIT; i++) await createCityRequest({ ref: place(100 + i), name: `Place ${100 + i}` }, { email: `s${i % 10}@x.co` });
     await expect(createCityRequest({ ref: place(999), name: 'Place 999' }, { email: 'fresh@x.co' })).rejects.toMatchObject({ status: 429, message: expect.stringMatching(/Many places were added today/) });
   });
+  it('a place the admin removed from Settings stays removed even if no seller ever asked for it, until the admin adds it again', async () => {
+    const shaikpet = signCityRef(DEFAULT_EXTRA_AREAS[0]);
+    await removeExtraArea({ osmType: 'N', osmId: 2935018020 }, 'boss@x.co');
+    await expect(createCityRequest({ ref: shaikpet }, SELLER)).rejects.toMatchObject({ status: 409 });
+    expect((await getExtraAreas()).some(a => a.osmId === 2935018020)).toBe(false);
+    await addExtraArea({ ref: shaikpet, name: 'Hyderabad Shaikpet' }, 'boss@x.co');   // the admin changes her mind
+    expect((await createCityRequest({ ref: shaikpet }, SELLER)).alreadyThere).toBe(true);
+    await removeExtraArea({ osmType: 'N', osmId: 2935018020 }, 'boss@x.co');
+    await expect(createCityRequest({ ref: shaikpet }, SELLER)).rejects.toMatchObject({ status: 409 });   // and removing it again bans it again
+  });
+  it('removing a request marks its place removed even when it was already gone from the list', async () => {
+    const { request } = await createCityRequest({ ref: place(4), name: 'Place 4' }, SELLER);
+    await removeExtraArea({ osmType: 'N', osmId: 7004 }, 'boss@x.co');
+    await decideCityRequest(request!.id, { decision: 'remove' }, 'boss@x.co');
+    await expect(createCityRequest({ ref: place(4) }, { email: 'other@x.co' })).rejects.toMatchObject({ status: 409 });
+  });
+  it('removed cities stop counting towards the limit for all sellers, so the admin can free room', async () => {
+    const made: string[] = [];
+    for (let i = 0; i < GLOBAL_DAILY_LIMIT; i++) made.push((await createCityRequest({ ref: place(500 + i), name: `Place ${500 + i}` }, { email: `s${i % 10}@x.co` })).request!.id);
+    await expect(createCityRequest({ ref: place(998), name: 'Place 998' }, { email: 'fresh@x.co' })).rejects.toMatchObject({ status: 429 });
+    await decideCityRequest(made[0], { decision: 'remove' }, 'boss@x.co');
+    await expect(createCityRequest({ ref: place(998), name: 'Place 998' }, { email: 'fresh@x.co' })).resolves.toBeTruthy();
+  });
+  it('tells the team once a day when the limit is reached, and who added the most', async () => {
+    for (let i = 0; i < GLOBAL_DAILY_LIMIT; i++) await createCityRequest({ ref: place(600 + i), name: `Place ${600 + i}` }, { email: i < 8 ? 'busy@x.co' : `s${i}@x.co` });
+    sent.length = 0;
+    await expect(createCityRequest({ ref: place(997), name: 'Place 997' }, { email: 'fresh@x.co' })).rejects.toMatchObject({ status: 429 });
+    expect(sent).toHaveLength(1);
+    expect(sent[0].to).toEqual(expect.arrayContaining(['hello.craftofy@gmail.com', 'boss@x.co']));
+    expect(sent[0].subject).toBe('City requests: the daily limit was reached');
+    expect(sent[0].text).toMatch(/busy@x\.co: 8/); expect(sent[0].text).toMatch(/at most once a day/);
+    await expect(createCityRequest({ ref: place(996), name: 'Place 996' }, { email: 'fresh2@x.co' })).rejects.toMatchObject({ status: 429 });
+    expect(sent).toHaveLength(1);   // not again the same day
+  });
   it('sellers cannot fill the list: the last places are kept for the admin', async () => {
     const many = Array.from({ length: SELLER_AREA_LIMIT }, (_, i) => ({ name: `Area ${i}`, osmType: 'N', osmId: 100_000 + i, lat: 10, lng: 70, aliases: [] }));
     await (await getTestDb()).insert(appSettings).values({ key: 'extra-areas', value: { areas: many }, updatedBy: 'a@x.co' });
