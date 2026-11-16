@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -10,6 +11,7 @@ import { TrackedLink } from "@/components/TrackedLink";
 import { ProductGallery } from "@/components/ProductGallery";
 import { visualIndex } from "@/components/ProductCard";
 import { ProductPlaceholder } from "@/components/ProductPlaceholder";
+import { RelatedProducts } from "@/components/RelatedProducts";
 import { getProductBySlug, productSlug } from "@/lib/catalog";
 import { breadcrumbJsonLd, productJsonLd } from "@/lib/jsonld";
 import { isHandmade, madeByPhrase } from "@/lib/handmade";
@@ -269,6 +271,9 @@ export default async function ProductPage({ params }: Props) {
           </div>
         </div>
       </article>
+      <Suspense fallback={null}>
+        <RelatedProducts product={p} />
+      </Suspense>
     </>
   );
 }
