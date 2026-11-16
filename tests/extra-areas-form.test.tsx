@@ -61,6 +61,18 @@ describe('ExtraAreasForm', () => {
     expect(within(saved_()).getByText('Jaipur Bani Park')).toBeTruthy();
     expect(screen.getByLabelText(/Find an area/)).toBeTruthy();   // ready for the next one
   });
+  it('warns, without blocking, while the name is still just the area\'s own name, and stops once the city is added', async () => {
+    render(<ExtraAreasForm initial={[]} />);
+    search('bani');
+    fireEvent.click(await screen.findByRole('button', { name: 'Bani Park, Jaipur, Rajasthan' }));
+    expect(screen.getByRole('note').textContent).toMatch(/Sellers will see just “Bani Park”, with no city.*“Hyderabad Bani Park”/);
+    fireEvent.change(screen.getByLabelText(/Name sellers will see/), { target: { value: 'Jaipur Bani Park' } });
+    expect(screen.queryByRole('note')).toBeNull();
+    fireEvent.change(screen.getByLabelText(/Name sellers will see/), { target: { value: 'bani park' } });   // same name in other letters: still no city
+    expect(screen.getByRole('note')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));   // the warning does not stop an admin who wants it as it is
+    await waitFor(() => expect(fetchMock.mock.calls.some(c => c[1]?.method === 'POST')).toBe(true));
+  });
   it('asks for a name before adding', async () => {
     render(<ExtraAreasForm initial={[]} />);
     search('bani');
