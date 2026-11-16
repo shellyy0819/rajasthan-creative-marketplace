@@ -1,7 +1,8 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { Hero } from '@/components/Hero';
+import { ExploreLink, Hero } from '@/components/Hero';
+import { HeroStall } from '@/components/HeroStall';
 import { HomeShelf } from '@/components/HomeShelf';
 import { DataVersionProvider } from '@/components/DataVersion';
 import { HomeWorkshops } from '@/components/HomeWorkshops';
@@ -32,15 +33,39 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function Home() {
-  // Only the theme (already loaded by the layout) and the city list block the page; products, trending and workshops stream in with no placeholder.
-  const [cities, theme, version, wording] = await Promise.all([listActiveCitiesCached(), getRenderTheme(), getDataVersion(), getCatalogWording()]);
+/** The stall's themed parts (sign, bunting, chalkboard, stickers). Streams in over the plain stall, which is already on screen. */
+async function ThemedStall() {
+  const theme = await getRenderTheme();
   const { sign, chalkLabel, chalkTitle, chalkSub, chalkHref, bunting, stickers } = theme.config;
+  return <HeroStall {...{ sign, chalkLabel, chalkTitle, chalkSub, ...(hasChalkboard(theme.config) ? { chalkHref: chalkHref ?? '/shop' } : {}), bunting, stickers }} />;
+}
+
+/** The few hero words that depend on what is on sale. Each streams in over its plain default; getCatalogWording is cached, so these share one lookup. */
+async function WordingProducts() { return (await getCatalogWording()).products; }
+async function WordingFinds() { return (await getCatalogWording()).finds; }
+async function WordingExplore() { return <ExploreLink wording={await getCatalogWording()} />; }
+
+// The hero is fixed markup and a plain stall, so it is in the first HTML. Everything that reads the database streams in below it.
+export default function Home() {
+  return (
+    <>
+      <SignedOutToast />
+      <Hero
+        art={<Suspense fallback={<HeroStall />}><ThemedStall /></Suspense>}
+        products={<Suspense fallback="products"><WordingProducts /></Suspense>}
+        finds={<Suspense fallback="finds"><WordingFinds /></Suspense>}
+        explore={<Suspense fallback={<ExploreLink />}><WordingExplore /></Suspense>}
+      />
+      <Suspense fallback={null}><HomeSections /></Suspense>
+    </>
+  );
+}
+
+async function HomeSections() {
+  const [cities, version, wording] = await Promise.all([listActiveCitiesCached(), getDataVersion(), getCatalogWording()]);
   const cityLabel = cityLabeller(cities);
   return (
     <DataVersionProvider version={version}>
-      <SignedOutToast />
-      <Hero stall={{ sign, chalkLabel, chalkTitle, chalkSub, ...(hasChalkboard(theme.config) ? { chalkHref: chalkHref ?? '/shop' } : {}), bunting, stickers }} wording={wording} />
       <ValueProps wording={wording} />
       <Suspense fallback={null}><TrendingSection /></Suspense>
       <section className="section" id="shop" aria-labelledby="shop-h">

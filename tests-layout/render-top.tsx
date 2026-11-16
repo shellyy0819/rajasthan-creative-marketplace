@@ -3,6 +3,7 @@ import { SessionProvider } from 'next-auth/react';
 import { ThemeBanner } from '@/components/theme/ThemeBanner';
 import { ThemeHead } from '@/components/theme/ThemeHead';
 import { Header } from '@/components/Header';
+import { HeroStall } from '@/components/HeroStall';
 import { Hero } from '@/components/Hero';
 import { PRESETS, type PresetKey } from '@/lib/themes/presets';
 import { themeCss } from '@/lib/themes/css';
@@ -21,7 +22,7 @@ export function renderTop(preset: PresetKey, css: string): string {
       <ThemeBanner text={config.banner} />
       <Header />
       <main id="main">
-        <Hero stall={{ sign: config.sign, chalkLabel: config.chalkLabel, chalkTitle: config.chalkTitle, chalkSub: config.chalkSub, bunting: config.bunting, stickers: config.stickers }} />
+        <Hero art={<HeroStall sign={config.sign} chalkLabel={config.chalkLabel} chalkTitle={config.chalkTitle} chalkSub={config.chalkSub} bunting={config.bunting} stickers={config.stickers} />} />
       </main>
     </SessionProvider>,
   );
