@@ -10,12 +10,13 @@ import { GET as LIST } from '@/app/api/admin/city-requests/route';
 import { PATCH as DECIDE } from '@/app/api/admin/city-requests/[id]/route';
 import { GET as PLACES, resetPlacesRateLimit } from '@/app/api/places/route';
 import { signCityRef, verifyCityRef } from '@/lib/city-ref';
-import { DAILY_LIMIT, cityRequestMail, createCityRequest, decideCityRequest, listCityRequests } from '@/lib/city-requests';
-import { getExtraAreas } from '@/lib/extra-areas';
-import { DEFAULT_EXTRA_AREAS } from '@/lib/extra-areas-shared';
+import { DAILY_LIMIT, GLOBAL_DAILY_LIMIT, cityRequestMail, createCityRequest, decideCityRequest, listCityRequests } from '@/lib/city-requests';
+import { addExtraArea, getExtraAreas, removeExtraArea } from '@/lib/extra-areas';
+import { DEFAULT_EXTRA_AREAS, SELLER_AREA_LIMIT } from '@/lib/extra-areas-shared';
 import { setMailSenderForTests, type Mail } from '@/lib/mailer';
 import { clearPlacesCache, searchPlacesToRequest } from '@/lib/places';
-import { resetTestDb } from './helpers/testdb';
+import { getTestDb, resetTestDb } from './helpers/testdb';
+import { appSettings } from '../src/db/schema';
 
 const SELLER = { email: 'seller@x.co', name: 'Lakshmi Bandhani' };
 const ref = (over: Partial<Parameters<typeof signCityRef>[0]> = {}) => signCityRef({ osmType: 'N', osmId: 424242, name: 'Nampally', state: 'Telangana', lat: 17.39, lng: 78.47, ...over });
@@ -74,6 +75,42 @@ describe('a seller adds a city', () => {
   it('writes the email so a plain-text reader gets the facts', () => {
     const m = cityRequestMail({ id: 'i', requestedBy: 'a@x.co', name: 'X Y', placeLabel: 'Y', status: 'live', createdAt: '2026-11-16T00:00:00Z' });
     expect(m.text).toMatch(/a@x\.co created a new city request/); expect(m.subject).toBe('New city request (auto-approved): X Y, by a@x.co');
+  });
+});
+
+describe('what stops it being misused', () => {
+  const place = (i: number) => ref({ osmId: 7000 + i, name: `Place ${i}` });
+  it('a place the admin removed stays removed: asking again does not put it back', async () => {
+    const { request } = await createCityRequest({ ref: place(1), name: 'Place 1' }, SELLER);
+    await decideCityRequest(request!.id, { decision: 'remove' }, 'boss@x.co');
+    await expect(createCityRequest({ ref: place(1), name: 'Place 1' }, { email: 'other@x.co' })).rejects.toMatchObject({ status: 409, message: expect.stringMatching(/removed this place.*write to us/) });
+    expect((await getExtraAreas()).some(a => a.osmId === 7001)).toBe(false);
+    await decideCityRequest(request!.id, { decision: 'approve' }, 'boss@x.co');   // the admin restores it
+    expect((await createCityRequest({ ref: place(1) }, { email: 'other@x.co' })).alreadyThere).toBe(true);
+  });
+  it('removing a seller\'s city from the Settings screen counts as removing the request too', async () => {
+    await createCityRequest({ ref: place(2), name: 'Place 2' }, SELLER);
+    await removeExtraArea({ osmType: 'N', osmId: 7002 }, 'boss@x.co');
+    expect((await listCityRequests())[0]).toMatchObject({ status: 'removed', decidedBy: 'boss@x.co' });
+    await expect(createCityRequest({ ref: place(2) }, { email: 'other@x.co' })).rejects.toMatchObject({ status: 409 });
+  });
+  it('all sellers together can add at most 50 a day', async () => {
+    for (let i = 0; i < GLOBAL_DAILY_LIMIT; i++) await createCityRequest({ ref: place(100 + i), name: `Place ${100 + i}` }, { email: `s${i % 10}@x.co` });
+    await expect(createCityRequest({ ref: place(999), name: 'Place 999' }, { email: 'fresh@x.co' })).rejects.toMatchObject({ status: 429, message: expect.stringMatching(/Many places were added today/) });
+  });
+  it('sellers cannot fill the list: the last places are kept for the admin', async () => {
+    const many = Array.from({ length: SELLER_AREA_LIMIT }, (_, i) => ({ name: `Area ${i}`, osmType: 'N', osmId: 100_000 + i, lat: 10, lng: 70, aliases: [] }));
+    await (await getTestDb()).insert(appSettings).values({ key: 'extra-areas', value: { areas: many }, updatedBy: 'a@x.co' });
+    await expect(createCityRequest({ ref: place(3), name: 'Place 3' }, SELLER)).rejects.toMatchObject({ status: 409, message: expect.stringMatching(/list is full for now/) });
+    expect((await addExtraArea({ ref: place(3), name: 'Place 3' }, 'boss@x.co')).length).toBe(SELLER_AREA_LIMIT + 1);   // the admin still can
+  });
+  it('requests at the same moment all land, and cannot slip past the daily limit', async () => {
+    await Promise.all([10, 11, 12, 13, 14, 15].map(i => createCityRequest({ ref: place(i), name: `Place ${i}` }, { email: `p${i}@x.co` })));
+    expect((await listCityRequests()).length).toBe(6);
+    const names = (await getExtraAreas()).map(a => a.name);
+    for (const i of [10, 11, 12, 13, 14, 15]) expect(names).toContain(`Place ${i}`);
+    const results = await Promise.allSettled(Array.from({ length: DAILY_LIMIT + 4 }, (_, i) => createCityRequest({ ref: place(300 + i), name: `Place ${300 + i}` }, { email: 'same@x.co' })));
+    expect(results.filter(r => r.status === 'fulfilled').length).toBe(DAILY_LIMIT);
   });
 });
 

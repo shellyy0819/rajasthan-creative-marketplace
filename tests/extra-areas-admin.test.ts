@@ -12,7 +12,8 @@ import { addExtraArea, getExtraAreas, removeExtraArea } from '@/lib/extra-areas'
 import { DEFAULT_EXTRA_AREAS, MAX_EXTRA_AREAS } from '@/lib/extra-areas-shared';
 import { signCityRef } from '@/lib/city-ref';
 import { clearPlacesCache, searchAreas } from '@/lib/places';
-import { resetTestDb } from './helpers/testdb';
+import { getTestDb, resetTestDb } from './helpers/testdb';
+import { appSettings } from '../src/db/schema';
 
 const photonFetch = (...features: unknown[]) => vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ features }) } as Response));
 const feature = (props: Record<string, unknown>, coords = [78.4006536, 17.4057955]) => ({ properties: { countrycode: 'IN', state: 'Telangana', ...props }, geometry: { coordinates: coords } });
@@ -70,11 +71,19 @@ describe('the saved list', () => {
     await expect(addExtraArea({ ref: p.ref, name: 'x'.repeat(81) }, 'a@x.co')).rejects.toMatchObject({ status: 400 });
     expect(await getExtraAreas()).toEqual([...DEFAULT_EXTRA_AREAS]);
   });
-  it('holds at most 100 areas', async () => {
-    await removeExtraArea({ osmType: 'N', osmId: 2935018020 }, 'a@x.co');   // start from an empty saved list
-    for (let i = 0; i < MAX_EXTRA_AREAS; i++) await addExtraArea({ ref: signCityRef({ osmType: 'N', osmId: 1000 + i, name: `Area ${i}`, lat: 10, lng: 70 }), name: `Area ${String(i).padStart(3, '0')}` }, 'a@x.co');
-    expect((await getExtraAreas()).length).toBe(MAX_EXTRA_AREAS + 1 - 1 + (DEFAULT_EXTRA_AREAS.length - DEFAULT_EXTRA_AREAS.length));
-    await expect(addExtraArea({ ref: signCityRef({ osmType: 'N', osmId: 5000, name: 'One more', lat: 10, lng: 70 }), name: 'One more' }, 'a@x.co')).rejects.toMatchObject({ status: 400 });
+  it('holds at most 500 areas', async () => {
+    const many = Array.from({ length: MAX_EXTRA_AREAS - 1 }, (_, i) => ({ name: `Area ${i}`, osmType: 'N', osmId: 1000 + i, lat: 10, lng: 70, aliases: [] }));
+    await (await getTestDb()).insert(appSettings).values({ key: 'extra-areas', value: { areas: many }, updatedBy: 'a@x.co' });
+    const one = (id: number) => addExtraArea({ ref: signCityRef({ osmType: 'N', osmId: id, name: `New ${id}`, lat: 10, lng: 70 }), name: `New ${id}` }, 'a@x.co');
+    expect((await one(5000)).length).toBe(MAX_EXTRA_AREAS);
+    await expect(one(5001)).rejects.toMatchObject({ status: 400 });
+    expect((await addExtraArea({ ref: signCityRef({ osmType: 'N', osmId: 5000, name: 'New 5000', lat: 10, lng: 70 }), name: 'Renamed' }, 'a@x.co')).length).toBe(MAX_EXTRA_AREAS);   // renaming one already there is still fine
+  });
+  it('two changes at the same moment both land', async () => {
+    const refs = [11, 12, 13, 14, 15, 16].map(i => signCityRef({ osmType: 'N', osmId: i, name: `Par ${i}`, lat: 10, lng: 70 }));
+    await Promise.all(refs.map((ref, i) => addExtraArea({ ref, name: `Par ${i}` }, 'a@x.co')));
+    const names = (await getExtraAreas()).map(a => a.name);
+    for (let i = 0; i < 6; i++) expect(names).toContain(`Par ${i}`);
   });
 });
 

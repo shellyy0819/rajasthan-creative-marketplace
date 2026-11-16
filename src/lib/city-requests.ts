@@ -3,7 +3,8 @@ import { getDb } from '../db/client';
 import { cityRequests, type CityRequestRow } from '../db/schema';
 import { signCityRef, verifyCityRef } from './city-ref';
 import { ApiError } from './errors';
-import { addExtraArea, getExtraAreas, removeExtraArea } from './extra-areas';
+import { addExtraArea, getExtraAreas, removeExtraArea, withExtraAreasLock } from './extra-areas';
+import { SELLER_AREA_LIMIT } from './extra-areas-shared';
 import { mailConfigured, sendMail } from './mailer';
 import { teamRecipients } from './workshop-notify';
 import { bad, obj, optionalText, text } from './validate';
@@ -15,8 +16,9 @@ export type CityRequest = {
 };
 /** The place a seller can pick in the City field straight away, with a fresh signed reference. */
 export type AddedPlace = { label: string; name: string; state?: string; ref: string };
-/** How many places one seller can add in a day. */
+/** How many places one seller can add in a day, and how many all sellers together can add in a day, so no one can use up the shared list. */
 export const DAILY_LIMIT = 10;
+export const GLOBAL_DAILY_LIMIT = 50;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const toRequest = (r: CityRequestRow): CityRequest => ({
@@ -59,20 +61,30 @@ export async function createCityRequest(input: unknown, actor: { email: string; 
   const name = text(raw.name ?? pick.name, 'name', 80);
   if (name.length < 2) throw bad('name must be 2 to 80 characters.');
   const note = optionalText(raw.note, 'note', 300);
-  const db = getDb();
-  const existing = (await getExtraAreas()).find(a => a.osmType === pick.osmType && a.osmId === pick.osmId);
-  if (existing) return { place: placeOf(existing, signCityRef(existing)), alreadyThere: true };
-  const [{ n }] = await db.select({ n: count() }).from(cityRequests).where(and(eq(cityRequests.requestedBy, actor.email), gt(cityRequests.createdAt, new Date(Date.now() - 86_400_000))));
-  if (n >= DAILY_LIMIT) throw new ApiError(429, 'You have added several places today. Please try again tomorrow, or write to us.');
-  const areas = await addExtraArea({ ref: raw.ref, name }, actor.email);
-  const area = areas.find(a => a.osmType === pick.osmType && a.osmId === pick.osmId)!;
-  const [row] = await db.insert(cityRequests).values({
-    requestedBy: actor.email, requestedByName: actor.name?.trim() || null, name: area.name, placeLabel: pick.state ? `${pick.name}, ${pick.state}` : pick.name,
-    state: area.state ?? null, osmType: area.osmType, osmId: area.osmId, lat: area.lat, lng: area.lng, note: note ?? null,
-  }).returning();
-  const request = toRequest(row);
-  await notifyTeam(request);
-  return { place: placeOf(area, signCityRef(area)), alreadyThere: false, request };
+  const since = new Date(Date.now() - 86_400_000);
+  // The checks and the changes happen under one lock, so two requests at the same moment cannot both slip past a limit or overwrite each other's change to the list.
+  const done = await withExtraAreasLock(async q => {
+    const areas = await getExtraAreas(q);
+    const existing = areas.find(a => a.osmType === pick.osmType && a.osmId === pick.osmId);
+    if (existing) return { place: placeOf(existing, signCityRef(existing)), alreadyThere: true as const };
+    // A place the team has removed stays removed: asking again does not put it back. The admin can restore it from Dashboard > City requests.
+    const [removed] = await q.select({ id: cityRequests.id }).from(cityRequests).where(and(eq(cityRequests.osmType, pick.osmType), eq(cityRequests.osmId, pick.osmId), eq(cityRequests.status, 'removed'))).limit(1);
+    if (removed) throw new ApiError(409, 'The Craftofy team has removed this place from the City field, so it cannot be added again. Please write to us if you need it.');
+    const [{ mine }] = await q.select({ mine: count() }).from(cityRequests).where(and(eq(cityRequests.requestedBy, actor.email), gt(cityRequests.createdAt, since)));
+    if (mine >= DAILY_LIMIT) throw new ApiError(429, 'You have added several places today. Please try again tomorrow, or write to us.');
+    const [{ all }] = await q.select({ all: count() }).from(cityRequests).where(gt(cityRequests.createdAt, since));
+    if (all >= GLOBAL_DAILY_LIMIT) throw new ApiError(429, 'Many places were added today. Please try again tomorrow, or write to us.');
+    if (areas.length >= SELLER_AREA_LIMIT) throw new ApiError(409, 'The city list is full for now. Please write to us and we will add your city.');
+    const saved = await addExtraArea({ ref: raw.ref, name }, actor.email, q);
+    const area = saved.find(a => a.osmType === pick.osmType && a.osmId === pick.osmId)!;
+    const [row] = await q.insert(cityRequests).values({
+      requestedBy: actor.email, requestedByName: actor.name?.trim() || null, name: area.name, placeLabel: pick.state ? `${pick.name}, ${pick.state}` : pick.name,
+      state: area.state ?? null, osmType: area.osmType, osmId: area.osmId, lat: area.lat, lng: area.lng, note: note ?? null,
+    }).returning();
+    return { place: placeOf(area, signCityRef(area)), alreadyThere: false as const, request: toRequest(row) };
+  });
+  if (!done.alreadyThere) await notifyTeam(done.request);
+  return done;
 }
 
 export async function listCityRequests(): Promise<CityRequest[]> {
@@ -84,16 +96,17 @@ export async function decideCityRequest(id: string, input: unknown, adminEmail: 
   const decision = obj(input).decision;
   if (decision !== 'approve' && decision !== 'remove') throw bad('decision must be approve or remove.');
   if (!UUID.test(id)) throw new ApiError(404, 'Request not found.');
-  const db = getDb();
-  const [row] = await db.select().from(cityRequests).where(eq(cityRequests.id, id));
-  if (!row) throw new ApiError(404, 'Request not found.');
-  const area = { osmType: row.osmType, osmId: row.osmId };
-  if (decision === 'remove') {
-    try { await removeExtraArea(area, adminEmail); } catch (e) { if (!(e instanceof ApiError && e.status === 404)) throw e; }   // already gone from the list
-  } else {
-    const present = (await getExtraAreas()).some(a => a.osmType === row.osmType && a.osmId === row.osmId);
-    if (!present) await addExtraArea({ ref: signCityRef({ osmType: row.osmType, osmId: row.osmId, name: row.name, ...(row.state ? { state: row.state } : {}), lat: row.lat, lng: row.lng }), name: row.name }, adminEmail);
-  }
-  const [updated] = await db.update(cityRequests).set({ status: decision === 'approve' ? 'approved' : 'removed', decidedAt: new Date(), decidedBy: adminEmail }).where(eq(cityRequests.id, id)).returning();
-  return toRequest(updated);
+  return withExtraAreasLock(async q => {
+    const [row] = await q.select().from(cityRequests).where(eq(cityRequests.id, id));
+    if (!row) throw new ApiError(404, 'Request not found.');
+    const area = { osmType: row.osmType, osmId: row.osmId };
+    if (decision === 'remove') {
+      try { await removeExtraArea(area, adminEmail, q); } catch (e) { if (!(e instanceof ApiError && e.status === 404)) throw e; }   // already gone from the list
+    } else {
+      const present = (await getExtraAreas(q)).some(a => a.osmType === row.osmType && a.osmId === row.osmId);
+      if (!present) await addExtraArea({ ref: signCityRef({ osmType: row.osmType, osmId: row.osmId, name: row.name, ...(row.state ? { state: row.state } : {}), lat: row.lat, lng: row.lng }), name: row.name }, adminEmail, q);
+    }
+    const [updated] = await q.update(cityRequests).set({ status: decision === 'approve' ? 'approved' : 'removed', decidedAt: new Date(), decidedBy: adminEmail }).where(eq(cityRequests.id, id)).returning();
+    return toRequest(updated);
+  });
 }
