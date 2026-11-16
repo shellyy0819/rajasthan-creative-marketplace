@@ -285,16 +285,29 @@ describe('LiveCatalog (workshops)', () => {
 });
 
 describe('loader', () => {
-  it('shows a non-blocking centred loader while results are being fetched and removes it afterwards', async () => {
+  const pending = async (kind: 'products' | 'workshops') => {
     let release!: (v: Response) => void;
     fetchMock.mockImplementation(() => new Promise<Response>(r => { release = r; }));
-    renderCat(<LiveCatalog cities={CITIES} kind="products" initialItems={[prod('p1', 'Alpha')]} initialValues={{}} />);
+    renderCat(kind === 'products'
+      ? <LiveCatalog cities={CITIES} kind="products" initialItems={[prod('p1', 'Alpha')]} initialValues={{}} />
+      : <LiveCatalog cities={CITIES} kind="workshops" initialItems={[ws('w1', 'Sunday Meetup') as never]} initialValues={{}} />);
     fireEvent.change(screen.getByLabelText('Filter by city'), { target: { value: 'jaipur' } });
     await act(async () => { await vi.advanceTimersByTimeAsync(10); });
+    return release;
+  };
+  it('the shop shows no centred spinner while results are fetched, but dims the old results', async () => {
+    const release = await pending('products');
+    expect(document.querySelector('.rr-page-loader')).toBeNull();
+    expect(document.querySelector('[aria-busy="true"]')).toBeTruthy();
+    await act(async () => { release({ ok: true, json: () => Promise.resolve([prod('p2', 'Beta')]) } as Response); await vi.advanceTimersByTimeAsync(10); });
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+  });
+  it('workshops keep their non-blocking centred loader while results are fetched, and remove it afterwards', async () => {
+    const release = await pending('workshops');
     const l = document.querySelector('.rr-page-loader')!;
     expect(l).toBeTruthy();
     expect(l.className).not.toContain('blocking');
-    await act(async () => { release({ ok: true, json: () => Promise.resolve([prod('p2', 'Beta')]) } as Response); await vi.advanceTimersByTimeAsync(10); });
+    await act(async () => { release({ ok: true, json: () => Promise.resolve([ws('w2', 'Other')]) } as Response); await vi.advanceTimersByTimeAsync(10); });
     expect(document.querySelector('.rr-page-loader')).toBeNull();
   });
 });

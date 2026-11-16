@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 import fs from 'node:fs';
 import React from 'react';
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
+const nav = vi.hoisted(() => ({ path: '/workshops' }));
+vi.mock('next/navigation', () => ({ usePathname: () => nav.path }));
 import Loading from '@/app/loading';
 import { readCss } from './helpers/css';
 
@@ -10,6 +12,12 @@ afterEach(cleanup);
 const css = readCss();
 
 describe('route loading state', () => {
+  it('shows nothing on the shop, where the product grid fills in on its own', () => {
+    nav.path = '/shop';
+    const { container } = render(<Loading />);
+    expect(container.innerHTML).toBe('');
+    nav.path = '/workshops';
+  });
   it('shows a status spinner while a page streams in, without blocking clicks', () => {
     render(<Loading />);
     const s = screen.getByRole('status');
