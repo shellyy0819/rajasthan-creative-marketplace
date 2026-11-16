@@ -58,7 +58,16 @@ export async function loadCatalogWording(): Promise<CatalogWording> {
  * Cached, and cleared by the same revalidatePath('/', 'layout') that every admin and seller save already calls, so the wording follows
  * the catalogue as soon as it changes. The time limit is only a safety net.
  */
-export const getCatalogWording = unstable_cache(loadCatalogWording, ['catalog-wording'], { revalidate: 300, tags: ['data-version'] });
+const cachedWording = unstable_cache(loadCatalogWording, ['catalog-wording'], { revalidate: 300, tags: ['data-version'] });
+
+/**
+ * The image build (DOCKER_BUILD=1) has no database, so pages prerendered then get the neutral wording. The running container never
+ * sets DOCKER_BUILD, so it always reads the live catalogue.
+ */
+export async function getCatalogWording(): Promise<CatalogWording> {
+  if (process.env.DOCKER_BUILD === '1') return NEUTRAL_WORDING;
+  return cachedWording();
+}
 
 /** The site-wide tagline and meta description, worded for what is actually on sale. */
 export const siteCopy = (w: CatalogWording) => ({
