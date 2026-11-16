@@ -15,7 +15,7 @@ beforeEach(() => {
   postResult = { status: 201, body: { place: ADDED, alreadyThere: false } };
   onSubmit.mockClear();
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-    if (url.startsWith('/api/places?')) return res(200, new URL(url, 'http://x').searchParams.get('q') === 'nampally' ? FOUND : []);
+    if (url.startsWith('/api/places?')) { const u = new URL(url, 'http://x'); return res(200, u.searchParams.get('type') === 'request' && u.searchParams.get('q') === 'nampally' ? FOUND : []); }   // the City field's own search finds nothing
     if (url === '/api/city-requests' && init?.method === 'POST') return res(postResult.status, postResult.body);
     return res(500, { error: 'unexpected ' + url });
   });
@@ -24,9 +24,9 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 const mount = (allowRequest = true) => render(<form onSubmit={onSubmit}><label><span>City</span><CityInput required allowRequest={allowRequest} /></label><button type="submit">Save</button></form>);
+const typeCity = (text: string) => fireEvent.change(document.querySelector('input[name="city"]')!, { target: { value: text } });
 const open = () => fireEvent.click(screen.getByRole('button', { name: 'Cannot find your city? Add it' }));
-const search = (q: string) => fireEvent.change(screen.getByLabelText('Find the place'), { target: { value: q } });
-const pickNampally = async () => { open(); search('nampally'); fireEvent.click(await screen.findByRole('button', { name: 'Nampally, Telangana' })); };
+const pickNampally = async () => { typeCity('nampally'); open(); fireEvent.click(await screen.findByRole('button', { name: 'Nampally, Telangana' })); };
 
 describe('CityInput: Cannot find your city? Add it', () => {
   it('is offered only where it is turned on (the seller\'s product form)', () => {
@@ -35,11 +35,27 @@ describe('CityInput: Cannot find your city? Add it', () => {
     cleanup(); mount(true);
     expect(screen.getByRole('button', { name: 'Cannot find your city? Add it' })).toBeTruthy();
   });
-  it('searches any kind of place, picks one and offers its name to edit', async () => {
+  it('searches by itself for what is already typed in the City field, with no second search box', async () => {
+    mount(); typeCity('nampally'); open();
+    expect(screen.queryByLabelText('Find the place')).toBeNull();
+    expect(await screen.findByRole('button', { name: 'Nampally, Telangana' })).toBeTruthy();
+    expect(fetchMock.mock.calls.map(c => c[0])).toContain('/api/places?q=nampally&type=request');
+    expect(screen.getByText(/Places we found for “nampally”/)).toBeTruthy();
+  });
+  it('picking a result offers its name to edit', async () => {
     mount(); await pickNampally();
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/places?q=nampally&type=request');
     expect((screen.getByLabelText('Name to show') as HTMLInputElement).value).toBe('Nampally');
     expect(screen.getByRole('note').textContent).toMatch(/It will show as just “Nampally”.*“Hyderabad Nampally”/);
+  });
+  it('asks the seller to type their city first when the City field is empty, then follows the field as it changes', async () => {
+    mount(); open();
+    expect(screen.getByText(/Type your city in the City field above/)).toBeTruthy();
+    expect(fetchMock.mock.calls.some(c => String(c[0]).includes('type=request'))).toBe(false);
+    typeCity('nampally');
+    expect(await screen.findByRole('button', { name: 'Nampally, Telangana' })).toBeTruthy();
+    typeCity('zzzz');
+    expect((await screen.findByRole('alert')).textContent).toMatch(/No place found for “zzzz”/);
+    expect(screen.queryByRole('button', { name: 'Nampally, Telangana' })).toBeNull();
   });
   it('adds it, makes it the chosen city straight away and says the team has been told', async () => {
     mount(); await pickNampally();
@@ -63,17 +79,19 @@ describe('CityInput: Cannot find your city? Add it', () => {
     expect(screen.getByRole('group', { name: 'Add a city' })).toBeTruthy();
     expect(document.querySelector('input[name="cityRef"]')).toBeNull();
   });
-  it('says so when nothing is found, and Cancel closes the panel without changing the city', async () => {
-    mount(); open(); search('zzzz');
-    expect((await screen.findByRole('alert')).textContent).toMatch(/No place found/);
+  it('says so when nothing is found, and Cancel closes the panel leaving what was typed', async () => {
+    mount(); typeCity('zzzz'); open();
+    expect((await screen.findByRole('alert')).textContent).toMatch(/No place found for “zzzz”.*City field above/);
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('group', { name: 'Add a city' })).toBeNull();
-    expect((document.querySelector('input[name="city"]') as HTMLInputElement).value).toBe('');
+    expect((document.querySelector('input[name="city"]') as HTMLInputElement).value).toBe('zzzz');   // what the seller typed is left as it was
+    expect(document.querySelector('input[name="cityRef"]')).toBeNull();
   });
-  it('pressing Enter inside the panel never submits the product form around it', async () => {
-    mount(); open();
-    const search_ = screen.getByLabelText('Find the place');
-    expect(fireEvent.keyDown(search_, { key: 'Enter' })).toBe(false);   // preventDefault was called
+  it('pressing Enter inside the panel never submits the product form around it; with a place picked it adds it', async () => {
+    mount(); await pickNampally();
+    expect(fireEvent.keyDown(screen.getByLabelText('Name to show'), { key: 'Enter' })).toBe(false);   // preventDefault was called
+    await waitFor(() => expect(fetchMock.mock.calls.some(c => c[1]?.method === 'POST')).toBe(true));
+    expect(onSubmit).not.toHaveBeenCalled();
     fireEvent.submit(screen.getByRole('button', { name: 'Save' }).closest('form')!); expect(onSubmit).toHaveBeenCalledTimes(1);   // the form itself still submits normally
   });
 });

@@ -6,11 +6,12 @@ export type AddedCity = { label: string; name: string; state?: string; ref: stri
 const JSON_HEADERS = { 'content-type': 'application/json' };
 
 /**
- * For a seller whose city the City field did not offer: search for the place, click it, check the name that will show, and Add. The place is live at once
- * (the seller picks it straight away, and so can every other seller) and the Craftofy team is told to review it. Used inside a form, so nothing here submits.
+ * For a seller whose city the City field did not offer. It searches by itself for what is already typed in the City field (`query`, and again if that text changes),
+ * so there is nothing to type here: click the place, check the name that will show, and Add. The place is live at once (the seller picks it straight away, and so can
+ * every other seller) and the Craftofy team is told. Used inside a form, so nothing here submits.
  */
-export function CityRequestPanel({ onAdded, onClose }: { onAdded: (city: AddedCity) => void; onClose: () => void }) {
-  const [q, setQ] = useState('');
+export function CityRequestPanel({ query, onAdded, onClose }: { query: string; onAdded: (city: AddedCity) => void; onClose: () => void }) {
+  const needle = query.trim();
   const [results, setResults] = useState<Found[]>([]);
   const [searching, setSearching] = useState(false);
   const [picked, setPicked] = useState<Found | null>(null);
@@ -20,8 +21,7 @@ export function CityRequestPanel({ onAdded, onClose }: { onAdded: (city: AddedCi
   const [error, setError] = useState('');
   const uid = useId();   // this panel sits inside the City field's label, so its fields are not labels themselves
 
-  useEffect(() => { // look the place up a moment after typing stops
-    const needle = q.trim();
+  useEffect(() => { // look the place up for the text in the City field, a moment after it stops changing
     if (picked || needle.length < 2) { setResults([]); setSearching(false); return; }
     let stale = false;
     const id = setTimeout(async () => {
@@ -32,12 +32,12 @@ export function CityRequestPanel({ onAdded, onClose }: { onAdded: (city: AddedCi
         if (stale) return;
         if (!r.ok) { setResults([]); setError((data as { error?: string } | null)?.error ?? 'Could not search places. Please try again.'); return; }
         setResults(data as Found[]);
-        if (!(data as Found[]).length) setError('No place found for that. Try another spelling, or a nearby town.');
+        if (!(data as Found[]).length) setError(`No place found for “${needle}”. Check the spelling in the City field above, or try a nearby town.`);
       } catch { if (!stale) { setResults([]); setError('Network error. Please try again.'); } }
       finally { if (!stale) setSearching(false); }
-    }, 350);
+    }, 250);
     return () => { stale = true; clearTimeout(id); };
-  }, [q, picked]);
+  }, [needle, picked]);
 
   async function add() {
     if (busy || !picked?.ref) return;
@@ -57,13 +57,11 @@ export function CityRequestPanel({ onAdded, onClose }: { onAdded: (city: AddedCi
 
   return (
     <div className="city-request" role="group" aria-label="Add a city" onKeyDown={guard}>
-      <p className="form-note">Cannot find your city? Search for it here and add it. It is approved straight away, so you can use it now, and we are told.</p>
+      {!picked && (needle.length < 2
+        ? <p className="form-note">Type your city in the City field above, and the places we can find will show here.</p>
+        : <p className="form-note" aria-live="polite">{searching ? `Looking for “${needle}”…` : results.length ? `Places we found for “${needle}”. Click yours to add it. It is approved straight away, so you can use it now, and we are told.` : ''}</p>)}
       {error && <p role="alert" className="field-error">{error}</p>}
-      {!picked ? (
-        <div className="field"><span className="lbl" id={`${uid}-find`}>Find the place</span>
-          <input type="search" name="cityRequestSearch" aria-labelledby={`${uid}-find`} value={q} onChange={e => { setQ(e.target.value); setError(''); }} placeholder="Type a city, town or area" autoComplete="off" maxLength={100} aria-busy={searching} />
-        </div>
-      ) : (
+      {picked && (
         <>
           <p className="form-note">Selected: <b>{picked.label}</b> <button type="button" className="text-link" onClick={() => { setPicked(null); setName(''); setError(''); }}>Choose another</button></p>
           <div className="field"><span className="lbl" id={`${uid}-name`}>Name to show</span>

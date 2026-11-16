@@ -96,7 +96,7 @@ export function CityInput({ name = 'city', defaultCity, defaultRef, required = f
       {down && <small role="alert" className="field-error">{CITY_SEARCH_DOWN}</small>}
       {added && !adding && <small role="status" className="field-hint">{added}</small>}
       {allowRequest && !adding && <button type="button" className="text-link city-request-link" onClick={() => { setAdding(true); setAdded(''); }}>Cannot find your city? Add it</button>}
-      {allowRequest && adding && <CityRequestPanel onAdded={adopt} onClose={() => setAdding(false)} />}
+      {allowRequest && adding && <CityRequestPanel query={value} onAdded={adopt} onClose={() => setAdding(false)} />}
     </>
   );
 }
