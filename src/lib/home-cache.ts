@@ -1,6 +1,7 @@
 import { unstable_cache } from 'next/cache';
 import { countProductsByCategory, listProducts } from './catalog';
 import { SHELF_PAGE_SIZE } from './catalog-shared';
+import { listHomeMakers } from './makers';
 import { trending } from './trending';
 
 /**
@@ -17,3 +18,4 @@ export const getHomeShelf = unstable_cache(
   ['home-shelf'], { revalidate: HOME_PRODUCTS_TTL, tags: ['home-products'] },
 );
 export const getHomeTrending = unstable_cache(() => trending({ limit: 6 }), ['home-trending'], { revalidate: HOME_TRENDING_TTL, tags: ['home-trending'] });
+export const getHomeMakers = unstable_cache(() => listHomeMakers(), ['home-makers'], { revalidate: HOME_PRODUCTS_TTL, tags: ['home-makers'] });
