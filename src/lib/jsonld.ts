@@ -6,9 +6,9 @@ const CTX = 'https://schema.org';
 
 export const serializeJsonLd = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
 
-export const organizationJsonLd = () => ({
+export const organizationJsonLd = (description: string = SITE.description) => ({
   '@context': CTX, '@type': 'Organization',
-  name: SITE.name, url: siteUrl(), description: SITE.description, email: contactEmail(),
+  name: SITE.name, url: siteUrl(), description, email: contactEmail(),
   logo: abs('/icons/icon-512.png'),
   sameAs: [`https://www.instagram.com/${INSTAGRAM_HANDLE}`],
   contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', email: contactEmail(), areaServed: 'IN', availableLanguage: ['en'] },
@@ -57,10 +57,10 @@ export const breadcrumbJsonLd = (items: { name: string; path: string }[]) => ({
   itemListElement: items.map((it, i) => ({ '@type': 'ListItem', position: i + 1, name: it.name, item: abs(it.path) })),
 });
 
-/** The exhibition page (/fair): a walk-around of handmade stalls. */
-export const fairJsonLd = (description: string) => ({
+/** The exhibition page (/fair): a walk-around of makers' stalls. */
+export const fairJsonLd = (description: string, about: string = 'Products and creative workshops from independent makers in India') => ({
   '@context': CTX, '@type': 'WebPage',
   name: 'Craftofy Fair', description, url: abs('/fair'), inLanguage: 'en-IN',
   isPartOf: { '@type': 'WebSite', name: SITE.name, url: siteUrl() },
-  about: 'Handmade products and creative workshops from independent makers in India',
+  about,
 });

@@ -1,3 +1,4 @@
+import { getCatalogWording } from '@/lib/catalog-wording';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
@@ -14,14 +15,15 @@ export const metadata: Metadata = pageMetadata({
 
 const crumbs = [{ name: 'Home', path: '/' }, { name: 'Blogs', path: '/blogs' }];
 
-export default function BlogsPage() {
+export default async function BlogsPage() {
+  const wording = await getCatalogWording();
   return (
     <>
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
       <Breadcrumbs items={crumbs} />
       <InfoPage eyebrow="BLOGS" title="Stories from the makers." intro="Maker stories, craft guides and workshop notes.">
         <p className="empty">Our first stories are coming soon.</p>
-        <p><Link className="text-link" href="/shop">Browse handmade finds →</Link> · <Link className="text-link" href="/workshops">Find a workshop →</Link></p>
+        <p><Link className="text-link" href="/shop">Browse {wording.finds} →</Link> · <Link className="text-link" href="/workshops">Find a workshop →</Link></p>
       </InfoPage>
     </>
   );

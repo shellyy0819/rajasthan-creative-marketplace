@@ -6,6 +6,10 @@ import { SITE } from '@/lib/site';
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 import { Hero } from '@/components/Hero';
+import { describeCatalog } from '@/lib/catalog-wording';
+
+const HANDMADE = describeCatalog([{ name: 'Handmade', countsAsHandmade: true, count: 5 }], 0, { products: 5, makers: 2, cities: 1 });
+const MIXED = describeCatalog([{ name: 'Handmade', countsAsHandmade: true, count: 5 }, { name: 'Curated', countsAsHandmade: false, count: 2 }], 0, { products: 7, makers: 2, cities: 1 });
 
 afterEach(cleanup);
 
@@ -19,7 +23,7 @@ describe('homepage hero', () => {
   });
   it('each destination is offered once: one link to the shop and one to workshops in the whole hero block', () => {
     const { container } = render(<Hero />);
-    expect(container.querySelectorAll('a[href^="/shop"]')).toHaveLength(1);   // /shop?q=handmade
+    expect(container.querySelectorAll('a[href^="/shop"]')).toHaveLength(1);   // /shop?source=Handmade
     expect(container.querySelectorAll('a[href="/workshops"]')).toHaveLength(1);
   });
   it('has exactly one h1 with the three-part headline', () => {
@@ -28,15 +32,23 @@ describe('homepage hero', () => {
     expect(h1).toHaveLength(1);
     expect(h1[0].textContent).toBe('Discover the Craft. Meet the Maker. Learn the Art.');
   });
-  it('shows the supporting text', () => {
-    render(<Hero />);
+  it('shows the supporting text, worded for what is on sale', () => {
+    render(<Hero wording={HANDMADE} />);
     expect(screen.getByText("Shop thoughtfully curated handmade products from India's independent artisans and book hands-on workshops to experience traditional crafts firsthand.")).toBeTruthy();
-  });
-  it('has two main buttons: Explore Handmade (the shop, searching handmade) and Find a Workshop (workshops)', () => {
+    cleanup();
+    render(<Hero wording={MIXED} />);
+    expect(screen.getByText(/curated handmade and curated products from India/)).toBeTruthy();
+    cleanup();
     render(<Hero />);
+    // With nothing known, the copy claims nothing (the stall illustration's own caption is a drawing, not page copy).
+    expect(document.querySelector('.hero-copy')!.textContent).not.toMatch(/handmade/i);
+    expect(document.querySelector('section.intro')!.textContent).not.toMatch(/handmade/i);
+  });
+  it('has two main buttons: Explore Handmade (the shop, filtered to the handmade type) and Find a Workshop (workshops)', () => {
+    render(<Hero wording={HANDMADE} />);
     const explore = screen.getByRole('link', { name: /Explore Handmade/ });
     const find = screen.getByRole('link', { name: /Find a Workshop/ });
-    expect(explore.getAttribute('href')).toBe('/shop?q=handmade');
+    expect(explore.getAttribute('href')).toBe('/shop?source=Handmade');
     expect(find.getAttribute('href')).toBe('/workshops');
     expect(explore.className).toContain('button');
     expect(find.className).toContain('button');
