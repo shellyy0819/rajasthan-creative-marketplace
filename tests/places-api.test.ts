@@ -4,6 +4,7 @@ const authMock = vi.hoisted(() => vi.fn());
 vi.mock('@/auth', () => ({ auth: authMock }));
 const searchMock = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/places', () => ({ searchPlaces: searchMock }));
+vi.mock('@/lib/extra-areas', () => ({ getExtraAreas: async () => [] }));   // the saved extra areas are covered in extra-areas-admin.test.ts
 
 import { GET, resetPlacesRateLimit } from '@/app/api/places/route';
 import { ApiError } from '@/lib/errors';
@@ -24,7 +25,7 @@ describe('GET /api/places', () => {
   it('city search is open to visitors but limited per address; other searches still need sign-in', async () => {
     const anon = () => GET(new Request('http://x/api/places?q=udai&type=city', { headers: { 'x-forwarded-for': '9.9.9.9' } }));
     expect((await anon()).status).toBe(200);
-    expect(searchMock).toHaveBeenCalledWith('udai', undefined, { cityOnly: true });
+    expect(searchMock).toHaveBeenCalledWith('udai', undefined, { cityOnly: true, areas: [] });
     for (let i = 0; i < 59; i++) await anon();
     expect((await anon()).status).toBe(429);
     expect((await get('udai')).status).toBe(401);
@@ -47,7 +48,7 @@ describe('GET /api/places', () => {
   it('type=city asks for city-only results', async () => {
     as('seller');
     await GET(new Request('http://x/api/places?q=udai&type=city'));
-    expect(searchMock).toHaveBeenCalledWith('udai', undefined, { cityOnly: true });
+    expect(searchMock).toHaveBeenCalledWith('udai', undefined, { cityOnly: true, areas: [] });
   });
   it('missing or one-character q returns [] without calling the service', async () => {
     as('seller');

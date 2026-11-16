@@ -1,5 +1,6 @@
 import { ApiError } from './errors';
 import { signCityRef } from './city-ref';
+import { DEFAULT_EXTRA_AREAS, type ExtraArea } from './extra-areas-shared';
 import { normalizeQuery } from './search';
 
 /** Photon (komoot) is a free, key-less type-ahead geocoder over OpenStreetMap data. Fair use only; see the README. */
@@ -20,6 +21,7 @@ const KIND_RANK: Record<string, number> = { city: 0, town: 1, suburb: 2, neighbo
 const kindOf = (p: Props) => KIND_RANK[str(p.osm_value)] ?? 5;
 
 const CITY_KINDS = new Set(['city', 'town', 'village']);
+const AREA_KINDS = new Set(['suburb', 'neighbourhood', 'quarter', 'locality']);
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
 /** "Name, street, area, state" with repeated parts removed ("Udaipur, Udaipur, Rajasthan" -> "Udaipur, Rajasthan"). */
@@ -30,14 +32,44 @@ export function placeLabel(p: Props): string {
 }
 
 type CacheEntry = { at: number; value: Place[] };
-const caches = { plain: new Map<string, CacheEntry>(), city: new Map<string, CacheEntry>() };
-export const clearPlacesCache = () => { caches.plain.clear(); caches.city.clear(); };
+const caches = { plain: new Map<string, CacheEntry>(), city: new Map<string, CacheEntry>(), area: new Map<string, CacheEntry>() };
+export const clearPlacesCache = () => { caches.plain.clear(); caches.city.clear(); caches.area.clear(); };
 
-export async function searchPlaces(q: string, fetchImpl: typeof fetch = fetch, opts: { cityOnly?: boolean } = {}): Promise<Place[]> {
+/**
+ * The extra areas that match what was typed. They go first when the typing is clearly about them (an alias, or words past the city's name:
+ * "shaik", "hyderabad sh") and after the ordinary results when it is only the city's name ("hyd", "hyderabad"), so the city itself stays on top.
+ */
+export function extraAreaMatches(q: string, areas: readonly ExtraArea[] = DEFAULT_EXTRA_AREAS): { top: Place[]; after: Place[] } {
+  const needle = normalizeQuery(q).toLowerCase(), out = { top: [] as Place[], after: [] as Place[] };
+  if (needle.length < 2) return out;
+  for (const { aliases, ...pick } of areas) {
+    const name = pick.name.toLowerCase(), alias = aliases.map(a => a.toLowerCase());
+    if (!(name.includes(needle) || alias.some(a => a.includes(needle)))) continue;
+    const place: Place = { label: pick.state ? `${pick.name}, ${pick.state}` : pick.name, name: pick.name, ...(pick.state ? { state: pick.state } : {}), ref: signCityRef(pick) };
+    (alias.some(a => a.startsWith(needle)) || needle.length > name.split(' ')[0].length ? out.top : out.after).push(place);
+  }
+  return out;
+}
+
+/** Place suggestions. For city search the extra areas are added to what Photon finds, and still answer when Photon is down. */
+export async function searchPlaces(q: string, fetchImpl: typeof fetch = fetch, opts: { cityOnly?: boolean; areas?: readonly ExtraArea[] } = {}): Promise<Place[]> {
+  if (!opts.cityOnly) return searchPhoton(q, fetchImpl, opts);
+  const extra = extraAreaMatches(q, opts.areas);
+  let found: Place[];
+  try { found = await searchPhoton(q, fetchImpl, opts); }
+  catch (e) { if (extra.top.length + extra.after.length) return [...extra.top, ...extra.after]; throw e; }
+  const seen = new Set<string>();
+  return [...extra.top, ...found, ...extra.after].filter(p => (seen.has(p.label.toLowerCase()) ? false : (seen.add(p.label.toLowerCase()), true)));
+}
+
+/** For the admin's area search: suburbs and neighbourhoods (the kinds the City field leaves out), each with the signed reference that adds it. */
+export const searchAreas = (q: string, fetchImpl: typeof fetch = fetch): Promise<Place[]> => searchPhoton(q, fetchImpl, { areaOnly: true });
+
+async function searchPhoton(q: string, fetchImpl: typeof fetch, opts: { cityOnly?: boolean; areaOnly?: boolean }): Promise<Place[]> {
   const needle = normalizeQuery(q);
   if (needle.length < 2) return [];
-  const cityOnly = !!opts.cityOnly;
-  const cache = cityOnly ? caches.city : caches.plain;
+  const areaOnly = !!opts.areaOnly, cityOnly = !!opts.cityOnly || areaOnly;
+  const cache = areaOnly ? caches.area : cityOnly ? caches.city : caches.plain;
   const key = needle.toLowerCase();
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value;
@@ -67,7 +99,7 @@ export async function searchPlaces(q: string, fetchImpl: typeof fetch = fetch, o
     if (!label || !name) continue;
     let ref: string | undefined;
     if (cityOnly) {
-      if (!CITY_KINDS.has(str(p.osm_value))) continue;
+      if (!(areaOnly ? AREA_KINDS : CITY_KINDS).has(str(p.osm_value))) continue;
       const c = f.geometry?.coordinates;
       const osmType = str(p.osm_type);
       if (!Array.isArray(c) || typeof c[0] !== 'number' || typeof c[1] !== 'number' || !Number.isFinite(c[0]) || !Number.isFinite(c[1])

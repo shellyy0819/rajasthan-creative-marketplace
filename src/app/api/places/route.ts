@@ -3,6 +3,8 @@ import { clientIp } from '@/lib/actors';
 import { handle, json } from '@/lib/api';
 import { requireUser } from '@/lib/authz';
 import { ApiError } from '@/lib/errors';
+import { getExtraAreas } from '@/lib/extra-areas';
+import { DEFAULT_EXTRA_AREAS } from '@/lib/extra-areas-shared';
 import { searchPlaces } from '@/lib/places';
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +32,7 @@ export const GET = (req: Request) => handle(async () => {
   const q = params.get('q') ?? '';
   if (q.trim().length < 2) return json([], 200, { 'cache-control': 'private, max-age=60' });
   limit(key);
-  const found = cityOnly ? await searchPlaces(q, undefined, { cityOnly: true }) : await searchPlaces(q);
-  return json(found, 200, { 'cache-control': 'private, max-age=300' });
+  // The extra areas an admin saved are read on every city search, and the browser does not keep the answer, so a change shows up at once.
+  const found = cityOnly ? await searchPlaces(q, undefined, { cityOnly: true, areas: await getExtraAreas().catch(() => DEFAULT_EXTRA_AREAS) }) : await searchPlaces(q);
+  return json(found, 200, { 'cache-control': cityOnly ? 'private, no-store' : 'private, max-age=300' });
 });
