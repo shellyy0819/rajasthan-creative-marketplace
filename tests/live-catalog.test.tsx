@@ -10,6 +10,7 @@ vi.mock('@/components/ReserveButton', () => ({ ReserveButton: ({ workshop }: any
 
 import { QueryClient, QueryClientProvider, notifyManager } from '@tanstack/react-query';
 import { LiveCatalog } from '@/components/LiveCatalog';
+import { DataVersionProvider } from '@/components/DataVersion';
 
 // A fresh client per render, with retries off so a failed request surfaces at once.
 const renderCat = (ui: React.ReactElement) => {
@@ -52,7 +53,7 @@ describe('LiveCatalog (products)', () => {
     fireEvent.change(screen.getByLabelText('Filter by city'), { target: { value: 'jaipur' } });
     await flush(0);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/products?city=jaipur');
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/products?city=jaipur&limit=12&offset=0');
     expect(screen.getByText('Jaipur Only')).toBeTruthy();
     expect(screen.queryByText('Initial Bowl')).toBeNull();
     expect(screen.getByRole('status').textContent).toMatch(/1 find /);
@@ -65,7 +66,7 @@ describe('LiveCatalog (products)', () => {
     expect(Array.from(select.options).map(o => o.textContent)).toEqual(['All types', 'Handmade', 'Curated']);
     fireEvent.change(select, { target: { value: 'Curated' } });
     await flush(0);
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/products?source=Curated');
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/products?source=Curated&limit=12&offset=0');
     expect(screen.getByText('Curated Thing')).toBeTruthy();
   });
   it('has no type filter when no types are offered', () => {
@@ -80,10 +81,10 @@ describe('LiveCatalog (products)', () => {
     await flush(0);
     fireEvent.change(screen.getByLabelText('Filter by category'), { target: { value: 'Pottery' } });
     await flush(0);
-    expect(fetchMock.mock.calls[1][0]).toBe('/api/products?city=jaipur&category=Pottery');
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/products?city=jaipur&category=Pottery&limit=12&offset=0');
     fireEvent.change(screen.getByLabelText('Filter by city'), { target: { value: '' } });
     await flush(0);
-    expect(fetchMock.mock.calls[2][0]).toBe('/api/products?category=Pottery');
+    expect(fetchMock.mock.calls[2][0]).toBe('/api/products?category=Pottery&limit=12&offset=0');
   });
 
   it('debounces search: rapid typing produces one request after 300ms', async () => {
@@ -97,7 +98,7 @@ describe('LiveCatalog (products)', () => {
     expect(fetchMock).not.toHaveBeenCalled();
     await flush(300);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/products?q=blue');
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/products?q=blue&limit=12&offset=0');
     expect(screen.getByText('Blue Thing')).toBeTruthy();
   });
 
@@ -162,7 +163,72 @@ describe('LiveCatalog (products)', () => {
     renderCat(<LiveCatalog cities={CITIES} kind="products" initialItems={initial as any} initialValues={{ city: 'Jaipur', q: 'x' }} />);
     fireEvent.click(screen.getByText('Clear'));
     await flush(0);
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/products');
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/products?limit=12&offset=0');
+  });
+});
+
+describe('LiveCatalog (products) loads a page at a time', () => {
+  const four = [prod('p1', 'One'), prod('p2', 'Two'), prod('p3', 'Three'), prod('p4', 'Four')];
+  const withTotal = (data: unknown[], total: number) => Promise.resolve({ ok: true, json: () => Promise.resolve(data), headers: { get: (k: string) => (k === 'X-Total-Count' ? String(total) : null) } } as unknown as Response);
+  const mountPaged = () => renderCat(<LiveCatalog cities={CITIES} kind="products" initialItems={four.slice(0, 2) as any} initialTotal={4} initialValues={{}} />);
+  const titles = () => [...document.querySelectorAll('.product-card h3')].map(h => h.textContent);
+
+  it('says how many finds there are in all, not how many are loaded', () => {
+    mountPaged();
+    expect(screen.getByRole('status').textContent).toMatch(/^4 finds /);
+    expect(titles()).toEqual(['One', 'Two']);
+  });
+  it('Show more fetches the next page by position, appends it, then stops offering more', async () => {
+    fetchMock.mockReturnValue(withTotal(four.slice(2), 4));
+    mountPaged();
+    fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
+    await flush(0);
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/products?limit=12&offset=2');
+    expect(titles()).toEqual(['One', 'Two', 'Three', 'Four']);
+    expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull();
+    expect(screen.getByRole('status').textContent).toMatch(/^4 finds /);
+  });
+  it('offers no Show more when the first page already holds everything', () => {
+    renderCat(<LiveCatalog cities={CITIES} kind="products" initialItems={four.slice(0, 2) as any} initialTotal={2} initialValues={{}} />);
+    expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull();
+  });
+  it('a new filter starts again from the first page, with its own total', async () => {
+    fetchMock.mockReturnValue(withTotal([four[3]], 1));
+    mountPaged();
+    fireEvent.change(screen.getByLabelText('Filter by city'), { target: { value: 'jaipur' } });
+    await flush(0);
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/products?city=jaipur&limit=12&offset=0');
+    expect(titles()).toEqual(['Four']);
+    expect(screen.getByRole('status').textContent).toMatch(/^1 find /);
+    expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull();
+  });
+});
+
+describe('LiveCatalog cache follows the data version', () => {
+  const initial = [prod('p1', 'Initial Bowl')];
+  const shop = (client: QueryClient, version: string) => (
+    <QueryClientProvider client={client}><DataVersionProvider version={version}><LiveCatalog cities={CITIES} kind="products" initialItems={initial as any} initialValues={{}} /></DataVersionProvider></QueryClientProvider>
+  );
+  const pick = (city: string) => fireEvent.change(screen.getByLabelText('Filter by city'), { target: { value: city } });
+  const newClient = () => new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
+
+  it('reuses a search it already ran, even after leaving the page, while nothing was changed', async () => {
+    fetchMock.mockReturnValue(reply([prod('p3', 'Jaipur Only')]));
+    const client = newClient();
+    render(shop(client, 'v1')); pick('jaipur'); await flush(0);
+    cleanup();
+    render(shop(client, 'v1')); pick('jaipur'); await flush(0);
+    expect(screen.getByText('Jaipur Only')).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+  it('searches again once the server reports a new version', async () => {
+    fetchMock.mockReturnValue(reply([prod('p3', 'Jaipur Only')]));
+    const client = newClient();
+    const { rerender } = render(shop(client, 'v1')); pick('jaipur'); await flush(0);
+    rerender(shop(client, 'v2')); await flush(0);
+    expect(client.getQueryCache().findAll({ queryKey: ['data'] }).every(q => q.queryKey[1] === 'v2')).toBe(true);
+    await flush(0);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -170,10 +236,10 @@ describe('LiveCatalog city filter', () => {
   it('LiveCatalog lists the cities it is given', () => {
     renderCat(<LiveCatalog cities={[{ name: 'Kota', slug: 'kota' }, { name: 'Pune', slug: 'pune' }]} kind="products" initialItems={[]} initialValues={{}} />);
     const sel = screen.getByLabelText('Filter by city') as HTMLSelectElement;
-    expect(Array.from(sel.options).map(o => [o.value, o.textContent])).toEqual([['', 'All'], ['kota', 'Kota'], ['pune', 'Pune']]);
+    expect(Array.from(sel.options).map(o => [o.value, o.textContent])).toEqual([['', 'All Cities'], ['kota', 'Kota'], ['pune', 'Pune']]);
     cleanup();
     renderCat(<LiveCatalog cities={[{ name: 'Kota', slug: 'kota' }]} kind="workshops" initialItems={[]} initialValues={{}} />);
-    expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All', 'Kota']);
+    expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All Cities', 'Kota']);
   });
   it('a filter value given by slug selects the matching city instead of falling back to All', () => {
     renderCat(<LiveCatalog cities={[{ name: 'Kota', slug: 'kota' }]} kind="products" initialItems={[]} initialValues={{ city: 'kota' }} />);
@@ -192,11 +258,11 @@ describe('LiveCatalog city filter', () => {
     renderCat(<LiveCatalog cities={two} kind="products" initialItems={[]} initialValues={{}} />);
     const sel = screen.getByLabelText('Filter by city') as HTMLSelectElement;
     expect(Array.from(sel.options).map(o => [o.value, o.textContent])).toEqual([
-      ['', 'All'], ['jaipur', 'Jaipur'], ['udaipur', 'Udaipur, Rajasthan'], ['udaipur-tripura', 'Udaipur, Tripura'],
+      ['', 'All Cities'], ['jaipur', 'Jaipur'], ['udaipur', 'Udaipur, Rajasthan'], ['udaipur-tripura', 'Udaipur, Tripura'],
     ]);
     fireEvent.change(sel, { target: { value: 'udaipur-tripura' } });
     await flush(0);
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/products?city=udaipur-tripura');
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/products?city=udaipur-tripura&limit=12&offset=0');
     expect((screen.getByLabelText('Filter by city') as HTMLSelectElement).value).toBe('udaipur-tripura');
     expect(screen.getByRole('status').textContent).toMatch(/in Udaipur, Tripura/);
   });

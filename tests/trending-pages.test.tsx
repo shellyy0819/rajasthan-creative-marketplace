@@ -151,14 +151,14 @@ describe('city listings come from active cities', () => {
       : !React.isValidElement(node) ? node
       : [TrendingSection, HomeShelf, HomeWorkshops].includes(node.type as never) ? null
       : (node.props as any)?.children === undefined ? node : React.cloneElement(node, { children: drop((node.props as any).children) } as any);
-    render(drop(await Home()));
+    render(<QueryClientProvider client={new QueryClient()}>{drop(await Home())}</QueryClientProvider>);
     const row = screen.getByRole('navigation', { name: 'Explore by city' });
     expect(Array.from(row.querySelectorAll('a')).map(a => a.getAttribute('href'))).toEqual(['/cities/jodhpur', '/cities/udaipur']);
   });
   it('shop and workshops pages pass the active cities to the filter and no longer name the three launch cities', async () => {
     const Shop = await import('@/app/shop/page');
     render(<QueryClientProvider client={new QueryClient()}>{await Shop.default({ searchParams: Promise.resolve({}) })}</QueryClientProvider>);
-    expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All', 'Jaipur', 'Jodhpur', 'Udaipur']);
+    expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All Cities', 'Jaipur', 'Jodhpur', 'Udaipur']);
     const shopMeta = await Shop.generateMetadata({ searchParams: Promise.resolve({}) });
     expect(String(shopMeta.description)).not.toMatch(/Udaipur|Jaipur|Jodhpur/);
     expect(document.querySelector('.page-head')!.textContent).not.toMatch(/Udaipur|Jaipur|Jodhpur/);
@@ -166,7 +166,7 @@ describe('city listings come from active cities', () => {
     await archiveJaipur();
     const Ws = await import('@/app/workshops/page');
     render(<QueryClientProvider client={new QueryClient()}>{await Ws.default({ searchParams: Promise.resolve({}) })}</QueryClientProvider>);
-    expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All', 'Jodhpur', 'Udaipur']);
+    expect(Array.from((screen.getByLabelText('Filter by city') as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['All Cities', 'Jodhpur', 'Udaipur']);
     expect(String((await Ws.generateMetadata({ searchParams: Promise.resolve({}) })).description)).not.toMatch(/Udaipur|Jaipur|Jodhpur/);
   });
 });

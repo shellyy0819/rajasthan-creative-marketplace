@@ -4,6 +4,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 
 const isFairOpen = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/catalog-wording', async orig => ({ ...(await orig<typeof import('@/lib/catalog-wording')>()), getCatalogWording: async () => ({ adjective: 'handmade', products: 'handmade products', finds: 'handmade finds', handmadeType: 'Handmade', stats: { products: 3, makers: 2, cities: 1 } }) })); // the real one reads the database
 vi.mock('@/lib/fair-settings', () => ({ isFairOpen }));
 vi.mock('@/lib/request-origin', () => ({ requestOrigin: async () => 'https://rr.test' }));
 vi.mock('@/lib/cities', () => ({ listActiveCities: async () => [] }));

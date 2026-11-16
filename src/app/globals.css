@@ -552,7 +552,11 @@ h2 em {
   flex: 1;
 }
 .filters select {
-  min-width: 155px;
+  /* A fixed width: the box must not resize to the text of the chosen option, or the search field beside it changes width. */
+  flex: 0 0 190px;
+  width: 190px;
+  min-width: 0;
+  text-overflow: ellipsis;
 }
 .product-grid {
   display: grid;
@@ -3682,8 +3686,10 @@ body.modal-open {
   gap: 8px;
 }
 .product-card .price {
-  font-size: 22px;
-  letter-spacing: -0.01em;
+  /* Same type as the category tag at the top of the card */
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.25;
   color: #fff;
 }
 .product-card .contact-btn {
@@ -3697,11 +3703,16 @@ body.modal-open {
 }
 .product-card .contact-btn.contact-icon-btn {
   flex: none;
-  width: 44px;
-  height: 44px;
+  /* Same height as the heart button at the top of the card */
+  width: 30px;
+  height: 30px;
   padding: 0;
   display: inline-grid;
   place-items: center;
+}
+.product-card .contact-handset {
+  width: 14px;
+  height: 14px;
 }
 .contact-handset {
   width: 20px;
@@ -3789,7 +3800,7 @@ body.modal-open {
     background: var(--green);
     color: var(--on-green);
   }
-  .contact-handset {
+  .product-card .contact-handset {
     width: 18px;
     height: 18px;
   }
@@ -4554,6 +4565,8 @@ button.fair-opt:hover { background: var(--cream); }
 @media (prefers-reduced-motion: reduce) { .toggle-switch-track, .toggle-switch-knob { transition: none; } }
 .fair-toolbar .button[aria-pressed="true"] { border-color: var(--green); }
 .fair-time { position: absolute; left: 10px; top: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px 7px 10px; border-radius: 30px; background: var(--stall-board); color: var(--stall-chalk); font: 600 11px var(--font-sans); pointer-events: none; }
+.fair-mela-tag { position: absolute; left: 10px; top: 46px; z-index: 2; max-width: calc(100% - 20px); padding: 6px 12px; border-radius: 30px; background: var(--orange); color: #fffdf9; font: 600 11px var(--font-sans); pointer-events: none; }
+.fair-mela p { margin: 0 0 6px; }
 .fair-time-icon { width: 12px; height: 12px; border-radius: 50%; background: #ffd27a; box-shadow: 0 0 9px #ffd27a; }
 .fair-time.afternoon .fair-time-icon { background: #ffe27a; box-shadow: 0 0 12px #ffd24a; }
 .fair-time.evening .fair-time-icon { background: #ff9a4a; box-shadow: 0 0 9px #ff9a4a; }
@@ -4666,3 +4679,6 @@ button.fair-opt:hover { background: var(--cream); }
 @media (prefers-reduced-motion: reduce) {
   .makers-dots button { transition: none; }
 }
+/* Home shelf: the "Show more" row under the grid. Scrolling to it loads the next page by itself. */
+.craft-more { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 28px; }
+.craft-more p { margin: 0; font-size: 12px; color: var(--danger); }

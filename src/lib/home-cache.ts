@@ -1,5 +1,6 @@
 import { unstable_cache } from 'next/cache';
-import { listProducts } from './catalog';
+import { countProductsByCategory, listProducts } from './catalog';
+import { SHELF_PAGE_SIZE } from './catalog-shared';
 import { listHomeMakers } from './makers';
 import { trending } from './trending';
 
@@ -11,6 +12,10 @@ import { trending } from './trending';
 export const HOME_PRODUCTS_TTL = 60;
 export const HOME_TRENDING_TTL = 300;
 
-export const getHomeProducts = unstable_cache(() => listProducts(), ['home-products'], { revalidate: HOME_PRODUCTS_TTL, tags: ['home-products'] });
+/** The home shelf's first page plus its category tabs. Later pages come from /api/products as the visitor scrolls. */
+export const getHomeShelf = unstable_cache(
+  async () => ({ items: await listProducts({ limit: SHELF_PAGE_SIZE }), categories: await countProductsByCategory() }),
+  ['home-shelf'], { revalidate: HOME_PRODUCTS_TTL, tags: ['home-products'] },
+);
 export const getHomeTrending = unstable_cache(() => trending({ limit: 6 }), ['home-trending'], { revalidate: HOME_TRENDING_TTL, tags: ['home-trending'] });
 export const getHomeMakers = unstable_cache(() => listHomeMakers(), ['home-makers'], { revalidate: HOME_PRODUCTS_TTL, tags: ['home-makers'] });

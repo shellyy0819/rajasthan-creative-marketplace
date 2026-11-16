@@ -13,5 +13,5 @@ export const LOOK_IDS = ['f1', 'f2', 'f3', 'f4', 'f5', 'm1', 'm2', 'm3', 'm4', '
 export type LookId = (typeof LOOK_IDS)[number];
 export const isLookId = (v: unknown): v is LookId => typeof v === 'string' && (LOOK_IDS as readonly string[]).includes(v);
 /** The daily quests a fair can offer. */
-export const QUEST_IDS = ['meet3', 'gift500', 'tryon', 'selfie', 'craft', 'note', 'emote'] as const;
+export const QUEST_IDS = ['meet3', 'gift500', 'tryon', 'selfie', 'craft', 'note', 'emote', 'dip'] as const;
 export type QuestId = (typeof QUEST_IDS)[number];

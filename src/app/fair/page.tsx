@@ -8,14 +8,19 @@ import { isFairOpen } from '@/lib/fair-settings';
 import { getFairData } from '@/lib/fair-data';
 import { breadcrumbJsonLd, fairJsonLd } from '@/lib/jsonld';
 import { money } from '@/lib/money';
+import { capitalize, getCatalogWording } from '@/lib/catalog-wording';
 import { pageMetadata } from '@/lib/meta';
 
 export const dynamic = 'force-dynamic';
 
-const DESCRIPTION = 'Walk through a virtual exhibition of handmade stalls. Meet the makers at their counters, watch a craft being made, try on earrings at the mirror and see who else is visiting.';
-export const metadata: Metadata = pageMetadata({ title: 'Craftofy Fair: a walk-around handmade exhibition', description: DESCRIPTION, path: '/fair' });
+const describe = (products: string) => `Walk through a virtual exhibition of makers' stalls with ${products} to discover. Meet the makers at their counters, watch a craft being made, try on earrings at the mirror and see who else is visiting.`;
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMetadata({ title: 'Craftofy Fair: a walk-around exhibition', description: describe((await getCatalogWording()).products), path: '/fair' });
+}
 
 export default async function FairPage() {
+  const wording = await getCatalogWording();
+  const DESCRIPTION = describe(wording.products);
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Fair', path: '/fair' }];
   if (!(await isFairOpen())) {
     // An admin has closed the exhibition: say so plainly and keep the page out of search results until it opens again.
@@ -26,8 +31,8 @@ export default async function FairPage() {
         <div className="page-head">
           <span className="eyebrow">WALK THE EXHIBITION</span>
           <h1>The Craftofy Fair is closed for now</h1>
-          <p>The exhibition is not open at the moment. Please check back soon. In the meantime you can shop handmade from our makers.</p>
-          <p><Link className="button primary" href="/shop">Shop handmade</Link></p>
+          <p>The exhibition is not open at the moment. Please check back soon. In the meantime you can shop {wording.products} from our makers.</p>
+          <p><Link className="button primary" href="/shop">Browse the shop</Link></p>
         </div>
       </>
     );
@@ -36,7 +41,7 @@ export default async function FairPage() {
   return (
     <>
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
-      <JsonLd data={fairJsonLd(DESCRIPTION)} />
+      <JsonLd data={fairJsonLd(DESCRIPTION, `${capitalize(wording.products)} and creative workshops from independent makers in India`)} />
       <Breadcrumbs items={crumbs} />
       <div className="page-head">
         <span className="eyebrow">WALK THE EXHIBITION</span>

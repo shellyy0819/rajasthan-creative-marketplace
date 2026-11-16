@@ -6,6 +6,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
 import { contactEmail } from '@/lib/site';
+import { getCatalogWording } from '@/lib/catalog-wording';
 
 export const metadata: Metadata = pageMetadata({
   title: 'How it works',
@@ -23,20 +24,21 @@ type Role = {
   cta: { label: string; href: string; external?: boolean };
 };
 
-export default function HelpPage() {
+export default async function HelpPage() {
   const email = contactEmail();
+  const wording = await getCatalogWording();
   const HOST = `mailto:${email}?subject=${encodeURIComponent('Hosting a Craftofy workshop')}`;
   const roles: Role[] = [
     {
       id: 'shoppers', pill: 'Shoppers', eyebrow: 'FOR SHOPPERS', title: 'Find it, love it, talk to the maker.',
       intro: 'No account and no cart. You deal with the person who made it.',
       steps: [
-        { head: 'Find.', text: 'Browse handmade finds, filter by city or category, and tap the heart on the ones you like.' },
+        { head: 'Find.', text: `Browse ${wording.finds}, filter by city or category, and tap the heart on the ones you like.` },
         { head: 'Connect.', text: 'Tap Contact artist to see the phone, email or Instagram the maker chose to share.' },
         { head: 'Buy.', text: 'Agree the details and pay the maker directly. Craftofy does not take payments.' },
       ],
       benefits: ['No marketplace commission added to the price', 'Every piece comes straight from the maker', 'Ask for changes, sizes or custom orders'],
-      scene: <ShopperScene />, cta: { label: 'Shop handmade', href: '/shop' },
+      scene: <ShopperScene />, cta: { label: wording.handmadeType ? 'Shop handmade' : 'Browse the shop', href: '/shop' },
     },
     {
       id: 'makers', pill: 'Makers', eyebrow: 'FOR MAKERS', title: 'Open your own stall in minutes.',

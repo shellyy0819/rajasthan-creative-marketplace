@@ -40,9 +40,9 @@ export const crowdAt = (hour: number) => Math.max(0, Math.min(MAX_CROWD, Math.ro
 
 export function phaseAt(hour: number): DayPhase {
   const h = ((hour % 24) + 24) % 24;
-  return h < 5 || h >= 20 ? 'night' : h < 11 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+  return h < 5 || h >= 20 ? 'night' : h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
 }
-export const PHASE_LABEL: Record<DayPhase, string> = { morning: 'Sunny morning', afternoon: 'Busy afternoon', evening: 'Golden evening', night: 'Chilly night' };
+export const PHASE_LABEL: Record<DayPhase, string> = { morning: 'Busy morning', afternoon: 'Busy afternoon', evening: 'Golden evening', night: 'Chilly night' };
 export const hourOf = (d: Date) => d.getHours() + d.getMinutes() / 60;
 /** `?time=night` (or morning, afternoon, evening) and `?hour=13.5` let anyone preview another time of day. */
 const PHASE_HOUR: Record<DayPhase, number> = { morning: 8, afternoon: 14, evening: 18.5, night: 23 };

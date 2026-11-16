@@ -12,6 +12,7 @@ import { visualIndex } from "@/components/ProductCard";
 import { ProductPlaceholder } from "@/components/ProductPlaceholder";
 import { getProductBySlug, productSlug } from "@/lib/catalog";
 import { breadcrumbJsonLd, productJsonLd } from "@/lib/jsonld";
+import { isHandmade, madeByPhrase } from "@/lib/handmade";
 import { pageMetadata } from "@/lib/meta";
 import { money } from "@/lib/money";
 import { instagramHandle, instagramUrl, youtubeUrl } from "@/lib/social";
@@ -23,8 +24,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = await getProductBySlug((await params).slug);
   if (!p) return { title: "Product not found", robots: { index: false } };
   return pageMetadata({
-    title: `${p.name} — handmade in ${p.city}`,
-    description: `${p.description} Handmade by ${p.seller} in ${p.city}. ${money(p.pricePaise)}.`,
+    title: isHandmade(p) ? `${p.name} — handmade in ${p.city}` : `${p.name} — from ${p.city}`,
+    description: `${p.description} ${madeByPhrase(p)} ${p.seller} in ${p.city}. ${money(p.pricePaise)}.`,
     path: `/products/${productSlug(p)}`,
     image: false,
   });

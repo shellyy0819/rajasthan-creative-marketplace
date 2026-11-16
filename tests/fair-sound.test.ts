@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { AMBIENCE_GAIN, MASTER_GAIN, MUTE_KEY, ambienceFor, createSound } from '@/components/fair/sound';
+import { AMBIENCE_GAIN, MASTER_GAIN, MUTE_KEY, STEP_GAIN, ambienceFor, createSound } from '@/components/fair/sound';
 
 /** A stand-in for the browser's audio system that only counts what is made. */
 function fakeAudio() {
@@ -89,5 +89,44 @@ describe('createSound', () => {
     s.ambience('afternoon', 0); expect(a.made.noise).toBe(0);
     s.ambience('afternoon', 8); expect(a.made.noise).toBe(1);
     s.setMuted(true); s.ambience('afternoon', 12); expect(a.made.noise).toBe(1);
+  });
+});
+
+describe('footsteps', () => {
+  /** Records the level every gain is set to and the pitch of every tone, so the loudness of one effect can be checked. */
+  function recording() {
+    const gains: number[] = [], pitches: number[] = [];
+    const param = (sink?: number[]) => ({ value: 0, setValueAtTime: vi.fn((v: number) => { sink?.push(v); }), linearRampToValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn(), cancelScheduledValues: vi.fn() });
+    const node = (): Record<string, unknown> => { const n: Record<string, unknown> = { connect: vi.fn(() => n), disconnect: vi.fn() }; return n; };
+    const ctx = {
+      state: 'running', currentTime: 0, sampleRate: 8000, destination: {}, resume: vi.fn(async () => undefined), close: vi.fn(async () => undefined),
+      createGain: () => Object.assign(node(), { gain: param(gains) }),
+      createOscillator: () => Object.assign(node(), { type: 'sine', frequency: param(pitches), start: vi.fn(), stop: vi.fn() }),
+      createBiquadFilter: () => Object.assign(node(), { type: 'lowpass', frequency: param(), Q: param() }),
+      createBuffer: (_c: number, len: number) => ({ getChannelData: () => new Float32Array(len) }),
+      createBufferSource: () => Object.assign(node(), { buffer: null, loop: false, playbackRate: param(), start: vi.fn(), stop: vi.fn() }),
+    };
+    return { ctx: ctx as unknown as AudioContext, gains, pitches };
+  }
+  it('are loud enough to hear and low enough to be comfortable', () => {
+    const r = recording(), s = createSound(memory(), () => r.ctx); s.unlock();
+    r.gains.length = 0; r.pitches.length = 0;
+    s.sfx('step');
+    expect(Math.max(...r.gains)).toBeGreaterThanOrEqual(.2);        // the first version peaked at .09 and could not be heard
+    expect(Math.max(...r.gains)).toBeLessThanOrEqual(.3);           // never louder than the stamp
+    expect(STEP_GAIN * MASTER_GAIN).toBeGreaterThan(.05);           // after the master volume
+  });
+  it('have a thump that small speakers can play, and alternate between two feet', () => {
+    const r = recording(), s = createSound(memory(), () => r.ctx); s.unlock();
+    r.pitches.length = 0;
+    s.sfx('step'); s.sfx('step');
+    expect(r.pitches).toHaveLength(2);
+    for (const hz of r.pitches) expect(hz).toBeGreaterThanOrEqual(140);
+    expect(r.pitches[0]).not.toBe(r.pitches[1]);
+  });
+  it('are silent while muted', () => {
+    const r = recording(), s = createSound(memory({ [MUTE_KEY]: '1' }), () => r.ctx); s.unlock();
+    r.gains.length = 0; s.sfx('step');
+    expect(r.gains).toEqual([]);
   });
 });

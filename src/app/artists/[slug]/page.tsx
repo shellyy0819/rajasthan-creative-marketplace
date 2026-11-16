@@ -8,6 +8,7 @@ import { TrackOnMount } from '@/components/TrackOnMount';
 import { TrackSellerProfileView } from '@/components/TrackSellerProfileView';
 import { getArtist } from '@/lib/artists';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
+import { isHandmade } from '@/lib/handmade';
 import { pageMetadata } from '@/lib/meta';
 
 export const dynamic = 'force-dynamic';
@@ -18,9 +19,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = (await params).slug;
   const a = await getArtist(slug);
   if (!a) return { title: 'Artist not found', robots: { index: false } };
+  const allHandmade = a.products.every(isHandmade);
   return pageMetadata({
-    title: `${a.name} — handmade by an independent artist`,
-    description: `${a.products[0].description} Shop ${a.products.length} handmade ${a.products.length === 1 ? 'piece' : 'pieces'} by ${a.name}.`,
+    // "Handmade" is claimed only when every product on the page counts as handmade.
+    title: allHandmade ? `${a.name} — handmade by an independent artist` : `${a.name} — an independent artist`,
+    description: `${a.products[0].description} Shop ${a.products.length} ${allHandmade ? 'handmade ' : ''}${a.products.length === 1 ? 'piece' : 'pieces'} by ${a.name}.`,
     path: `/artists/${a.slug}`,
     image: false,
   });
