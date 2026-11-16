@@ -898,6 +898,12 @@ describe('PostsAdmin stock dropdown', () => {
       expect(stockSelect('Boat Charm').value).toBe('250');
       expect([...stockSelect('Boat Charm').options].map(o => o.textContent)).toContain('250 in stock');   // the dropdown shows it truthfully now
     });
+    it('stays open when a late close event arrives from an earlier close (React runs effects twice in development)', async () => {
+      const dlg = await openOther();
+      fireEvent(dlg, new Event('close'));   // the dialog itself is still open, so this one does not count
+      expect(screen.getByRole('dialog')).toBeTruthy();
+      expect(screen.getByLabelText(/Number in stock/)).toBeTruthy();
+    });
     it('Enter saves, and 0 means sold out', async () => {
       await openOther(); type('0'); fireEvent.submit(screen.getByRole('dialog').querySelector('form')!);
       await waitFor(() => expect(summary('Boat Charm')).toMatch(/Sold out/));

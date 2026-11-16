@@ -7,6 +7,9 @@ const BAD = `Enter a whole number from 0 to ${MAX_STOCK.toLocaleString('en-IN')}
 export const parseStock = (v: string): number | null => (/^\d{1,6}$/.test(v.trim()) && Number(v) <= MAX_STOCK ? Number(v) : null);
 
 /**
+ * (The close handler only counts a dialog that is really closed: in development React runs the effect twice, so the first close() sends a late 'close' event
+ * that must not shut the dialog that was just opened again.)
+ *
  * A small dialog in the middle of the screen for a stock the dropdown does not offer. `onSave` saves it and returns null when it worked or the reason when it did not
  * (shown here, because a toast behind the dialog would be hidden). Escape, Cancel, the cross and a click outside close it without saving.
  */
@@ -37,7 +40,7 @@ export function StockDialog({ name, current, onSave, onClose }: { name: string; 
   }
 
   return (
-    <dialog ref={ref} aria-labelledby={`${uid}-h`} className="stock-dialog" onClose={onClose} onClick={e => { if (e.target === ref.current) onClose(); }}>
+    <dialog ref={ref} aria-labelledby={`${uid}-h`} className="stock-dialog" onClose={() => { if (!ref.current?.open) onClose(); }} onClick={e => { if (e.target === ref.current) onClose(); }}>
       <div className="dialog-head">
         <h2 id={`${uid}-h`}>Set stock</h2>
         <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
