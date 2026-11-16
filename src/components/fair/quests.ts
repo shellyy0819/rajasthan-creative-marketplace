@@ -1,7 +1,7 @@
 import { hash32, rng } from '@/lib/fair-characters';
 import type { QuestId } from '@/lib/fair-constants';
 import type { FairData } from '@/lib/fair-types';
-import { MELA_QUESTS, melaPhaseOf } from '@/lib/fair-mela';
+import { MELA_QUESTS, melaPhaseOf, type MelaSchedule } from '@/lib/fair-mela';
 import { isWearable } from './wear';
 import { lakeIndex } from './world';
 
@@ -23,7 +23,7 @@ export const DAILY_COUNT = 3;
 export const dayKey = (now = new Date()) => new Date(now.getTime() + 5.5 * 3_600_000).toISOString().slice(0, 10);
 
 /** The quests this fair can offer, given its makers and (when given) the day: the holy dip is offered on Kartik Purnima, when Pushkar Lake is on the floor. */
-export function availableQuests(data: FairData, day?: string): Quest[] {
+export function availableQuests(data: FairData, day?: string, mela?: MelaSchedule | null): Quest[] {
   const makers = data.makers, mirror = makers.find(m => m.mirror);
   const hasGift = makers.some(m => m.items.some(i => i.pricePaise <= GIFT_LIMIT_PAISE));
   const hasWearable = !!mirror && mirror.items.some(isWearable);
@@ -35,16 +35,16 @@ export function availableQuests(data: FairData, day?: string): Quest[] {
   if (makers.length >= 1) out.push({ id: 'craft', title: 'Watch a maker at work', hint: 'Tap a maker to see their craft.', target: 1 });
   if (mirror) out.push({ id: 'note', title: 'Leave a note on the mirror wall', hint: 'Tap the note icon by the mirror.', target: 1 });
   out.push({ id: 'emote', title: 'Say hello', hint: 'Wave or say namaste.', target: 1 });
-  if (day && melaPhaseOf(day) === 'purnima' && lakeIndex(data.stalls) >= 0) out.push({ id: 'dip', title: 'Take the holy dip', hint: 'Click Pushkar Lake and join the devotees.', target: 1 });
+  if (day && melaPhaseOf(day, mela) === 'purnima' && lakeIndex(data.stalls) >= 0) out.push({ id: 'dip', title: 'Take the holy dip', hint: 'Click Pushkar Lake and join the devotees.', target: 1 });
   return out;
 }
 /**
  * Three quests for the day: the same for everyone on the same day, different from day to day.
  * During the Pushkar Camel Fair week each part of the mela asks for its own three (see MELA_QUESTS), topped up with others when the fair cannot offer one.
  */
-export function questsFor(data: FairData, day: string): Quest[] {
-  const pool = availableQuests(data, day), r = rng(hash32(`quests:${day}`));
-  const picked: Quest[] = [], phase = melaPhaseOf(day);
+export function questsFor(data: FairData, day: string, mela?: MelaSchedule | null): Quest[] {
+  const pool = availableQuests(data, day, mela), r = rng(hash32(`quests:${day}`));
+  const picked: Quest[] = [], phase = melaPhaseOf(day, mela);
   for (const id of phase ? MELA_QUESTS[phase] : []) {
     const i = pool.findIndex(q => q.id === id);
     if (i >= 0 && picked.length < DAILY_COUNT) picked.push(pool.splice(i, 1)[0]);

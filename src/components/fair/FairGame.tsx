@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CODE_RE } from '@/lib/fair-constants';
 import { characterFor, formatCode, lookFor, normalizeCode } from '@/lib/fair-characters';
 import type { LookId } from '@/lib/fair-constants';
-import { ACTIVITIES, dayFromSearch, melaOf, type ActivityId } from '@/lib/fair-mela';
+import { ACTIVITIES, dayFromSearch, melaOf, type ActivityId, type MelaSchedule } from '@/lib/fair-mela';
 import type { Emote, FairData, FairItem } from '@/lib/fair-types';
 import { money } from '@/lib/money';
 import { PageLoader } from '../PageLoader';
@@ -28,7 +28,7 @@ const PLACE_NOTE: Record<Place, string> = { lake: 'Holy dip on Kartik Purnima', 
 const EMOTE_LABEL: Record<Emote, string> = { wave: 'Wave', namaste: 'Namaste', hello: 'Say hello' };
 
 /** The walk-around exhibition: the canvas on the left, the maker you are nearest, your player code, quests and other visitors on the right. */
-export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boolean }) {
+export function FairGame({ data, diyas = true, schedule }: { data: FairData; diyas?: boolean; /** This year's mela dates; omitted means the built-in ones, null means no mela. */ schedule?: MelaSchedule | null }) {
   const real = data.source === 'real';
   const makerIds = useMemo(() => new Set(data.makers.map(m => m.id)), [data]);
   const items = useMemo(() => new Map<string, { item: FairItem; maker: typeof data.makers[number] }>(data.makers.flatMap(m => m.items.map(i => [i.key, { item: i, maker: m }] as const))), [data]);
@@ -36,11 +36,11 @@ export function FairGame({ data, diyas = true }: { data: FairData; diyas?: boole
   const realDay = useMemo(() => dayKey(), []);
   const day = useMemo(() => (typeof window === 'undefined' ? null : dayFromSearch(window.location.search)) ?? realDay, [realDay]);
   const simulated = day !== realDay;
-  const mela = useMemo(() => melaOf(day), [day]);
+  const mela = useMemo(() => melaOf(day, schedule), [day, schedule]);
   const places = useMemo(() => (mela ? placeIndexes(data.stalls) : null), [mela, data.stalls]);
   const placeAt = (i: number): Place | null => (places ? (['lake', 'music', 'sports'] as const).find(p => places[p] === i) ?? null : null);
   const folkRef = useRef<{ stop(): void } | null>(null);
-  const quests = useMemo(() => questsFor(data, day), [data, day]);
+  const quests = useMemo(() => questsFor(data, day, schedule), [data, day, schedule]);
   const mirrorMaker = data.makers.find(m => m.mirror) ?? null;
   const wearables = useMemo(() => (mirrorMaker?.items ?? []).filter(isWearable), [mirrorMaker]);
 

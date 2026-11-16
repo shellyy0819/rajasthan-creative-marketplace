@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { dayFromSearch, melaOf, melaPhaseOf } from '@/lib/fair-mela';
+import { dayFromSearch, melaOf, melaPhaseOf, parseMelaSchedule } from '@/lib/fair-mela';
 import { applyEvent, availableQuests, emptyState, isDone, questsFor } from '@/components/fair/quests';
 import { buildSlots, lakeIndex, walkable } from '@/components/fair/world';
 import { sampleFairData } from '@/lib/fair-sample';
@@ -22,6 +22,31 @@ describe('melaPhaseOf', () => {
   it('labels each part for the visitor', () => {
     expect(melaOf('2026-11-18')).toMatchObject({ phase: 'trade', label: 'Livestock trading · 17 to 20 Nov' });
     expect(melaOf('2026-11-24')?.blurb).toMatch(/holy dip/i);
+  });
+});
+
+describe('a schedule set by an admin', () => {
+  const next = { trade: ['2027-11-06', '2027-11-09'] as [string, string], culture: ['2027-11-10', '2027-11-12'] as [string, string], purnima: '2027-11-13' };
+  it('moves the whole week, and labels follow the dates', () => {
+    expect(melaPhaseOf('2026-11-18', next)).toBeNull();
+    expect(melaPhaseOf('2027-11-07', next)).toBe('trade');
+    expect(melaOf('2027-11-13', next)?.label).toBe('Kartik Purnima · 13 Nov');
+    expect(melaOf('2027-11-07', next)?.label).toBe('Livestock trading · 6 to 9 Nov');
+    expect(melaOf('2027-11-11', { ...next, culture: ['2027-11-30', '2027-12-02'], purnima: '2027-12-03' })).toBeNull();
+    expect(melaOf('2027-11-30', { ...next, culture: ['2027-11-30', '2027-12-02'], purnima: '2027-12-03' })?.label).toBe('Cultural events · 30 Nov to 2 Dec');
+  });
+  it('null means no mela at all, and quests carry no Pushkar dip', () => {
+    expect(melaOf('2026-11-18', null)).toBeNull();
+    expect(ids(sample, '2026-11-24').length).toBe(3); // default dates still apply when no schedule is passed
+    expect(questsFor(sample, '2026-11-24', null).map(q => q.id)).not.toContain('dip');
+  });
+  it('is read from stored JSON only when complete, real and in order', () => {
+    expect(parseMelaSchedule(next)).toEqual(next);
+    expect(parseMelaSchedule(null)).toBeNull();
+    expect(parseMelaSchedule({ ...next, purnima: '2027-11-12' })).toBeNull();
+    expect(parseMelaSchedule({ ...next, trade: ['2027-11-09', '2027-11-06'] })).toBeNull();
+    expect(parseMelaSchedule({ ...next, purnima: '2027-02-30' })).toBeNull();
+    expect(parseMelaSchedule({ trade: ['2027-11-06'], culture: next.culture, purnima: next.purnima })).toBeNull();
   });
 });
 

@@ -11,6 +11,7 @@ import { POST as HISTORY } from '@/app/api/fair/quests/history/route';
 import { DELETE as DELETE_NOTE } from '@/app/api/admin/fair/notes/[id]/route';
 import { GET, PUT } from '@/app/api/admin/settings/fair/route';
 import { getFairSettings } from '@/lib/fair-settings';
+import { DEFAULT_MELA } from '@/lib/fair-mela';
 import { listNotes } from '@/lib/fair-notes';
 import { resetTestDb } from './helpers/testdb';
 
@@ -121,20 +122,33 @@ describe('admin: notes and settings', () => {
     expect((await DELETE_NOTE(new Request('http://x'), ctx)).status).toBe(404);
   });
   it('the fair settings default to sample makers and are admin only', async () => {
-    expect(await getFairSettings()).toEqual({ enabled: true, source: 'sample' });
+    expect(await getFairSettings()).toEqual({ enabled: true, source: 'sample', mela: DEFAULT_MELA });
     expect((await GET()).status).toBe(401);
     for (const role of ['customer', 'seller']) { as(role); expect((await GET()).status).toBe(403); expect((await PUT(put({ source: 'real' }))).status).toBe(403); }
   });
   it('saves the switch, reads it back and rejects anything else', async () => {
     as('admin');
     expect((await PUT(put({ source: 'real' }))).status).toBe(200);
-    expect(await (await GET()).json()).toEqual({ enabled: true, source: 'real' });
-    expect(await getFairSettings()).toEqual({ enabled: true, source: 'real' });
+    expect(await (await GET()).json()).toEqual({ enabled: true, source: 'real', mela: DEFAULT_MELA });
+    expect(await getFairSettings()).toEqual({ enabled: true, source: 'real', mela: DEFAULT_MELA });
     expect((await PUT(put({ source: 'sample' }))).status).toBe(200);
-    expect(await getFairSettings()).toEqual({ enabled: true, source: 'sample' });
+    expect(await getFairSettings()).toEqual({ enabled: true, source: 'sample', mela: DEFAULT_MELA });
     expect((await PUT(put({ source: 'both' }))).status).toBe(400);
     expect((await PUT(put({ enabled: 'no' }))).status).toBe(400);
     expect((await PUT(put({}))).status).toBe(400);
+  });
+  it('keeps the Pushkar dates an admin sets, switches the week off with null, and refuses dates that do not hold together', async () => {
+    as('admin');
+    const next = { trade: ['2027-11-06', '2027-11-09'], culture: ['2027-11-10', '2027-11-12'], purnima: '2027-11-13' };
+    expect((await PUT(put({ mela: next }))).status).toBe(200);
+    expect((await getFairSettings()).mela).toEqual(next);
+    expect((await PUT(put({ enabled: false }))).status).toBe(200); // other fields leave the dates alone
+    expect((await getFairSettings()).mela).toEqual(next);
+    expect((await PUT(put({ mela: { ...next, purnima: '2027-11-08' } }))).status).toBe(400); // out of order
+    expect((await PUT(put({ mela: { ...next, purnima: '2027-13-40' } }))).status).toBe(400); // not a date
+    expect((await getFairSettings()).mela).toEqual(next);
+    expect((await PUT(put({ mela: null }))).status).toBe(200);
+    expect((await getFairSettings()).mela).toBeNull();
   });
 });
 
@@ -143,15 +157,15 @@ describe('closing the whole fair', () => {
     as('admin');
     await PUT(put({ source: 'real' }));
     expect((await PUT(put({ enabled: false }))).status).toBe(200);
-    expect(await getFairSettings()).toEqual({ enabled: false, source: 'real' });
+    expect(await getFairSettings()).toEqual({ enabled: false, source: 'real', mela: DEFAULT_MELA });
     expect((await PUT(put({ enabled: true }))).status).toBe(200);
-    expect(await getFairSettings()).toEqual({ enabled: true, source: 'real' });
+    expect(await getFairSettings()).toEqual({ enabled: true, source: 'real', mela: DEFAULT_MELA });
   });
   it('an older saved value without the switch counts as open', async () => {
     const { getDb } = await import('@/db/client');
     const { appSettings } = await import('@/db/schema');
     await getDb().insert(appSettings).values({ key: 'fair', value: { source: 'real' }, updatedBy: 'x@x.co' });
-    expect(await getFairSettings()).toEqual({ enabled: true, source: 'real' });
+    expect(await getFairSettings()).toEqual({ enabled: true, source: 'real', mela: DEFAULT_MELA });
   });
   it('every visitor endpoint answers 404 and stores nothing while it is closed', async () => {
     as('admin'); await PUT(put({ enabled: false })); authMock.mockResolvedValue(null);
