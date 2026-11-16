@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { JsonLd } from "@/components/JsonLd";
+import { ArtistAvatar } from "@/components/ArtistAvatar";
 import { ContactArtistButton } from "@/components/ContactArtistButton";
 import { LikeButton } from "@/components/LikeButton";
 import { TrackOnMount } from "@/components/TrackOnMount";
@@ -66,27 +67,31 @@ export default async function ProductPage({ params }: Props) {
           <TrackOnMount productId={p.id} type="view" />
           <p className="lead">{p.description}</p>
           <dl>
-            <dt>
-              <span className="detail-label">
-                <svg
-                  className="detail-icon"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 21a8 8 0 0 1 16 0" />
-                </svg>
-                Artist
-              </span>
-            </dt>
-            <dd>
-              {p.sellerSlug ? (
-                <Link href={`/artists/${p.sellerSlug}?from=${p.id}`}>
-                  {p.seller}
-                </Link>
-              ) : (
-                p.seller
-              )}
+            <dd className="detail-artist-row">
+              {(() => {
+                const who = (
+                  <>
+                    <span className="detail-artist-av" aria-hidden="true">
+                      <ArtistAvatar
+                        key={p.sellerLogo ?? "none"}
+                        src={p.sellerLogo}
+                        initial={p.seller.trim().charAt(0).toUpperCase()}
+                      />
+                    </span>
+                    <span>{p.seller}</span>
+                  </>
+                );
+                return p.sellerSlug ? (
+                  <Link
+                    className="detail-artist"
+                    href={`/artists/${p.sellerSlug}?from=${p.id}`}
+                  >
+                    {who}
+                  </Link>
+                ) : (
+                  <span className="detail-artist">{who}</span>
+                );
+              })()}
             </dd>
             <dt>
               <span className="detail-label">
