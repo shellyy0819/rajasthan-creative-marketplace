@@ -6,12 +6,14 @@ import { useEffect, useState } from 'react';
 const TABS = [
   { href: '/dashboard/posts', label: 'Artists’ posts' },
   { href: '/dashboard/users', label: 'Users' },
+  { href: '/dashboard/requests', label: 'Requests' },
   { href: '/dashboard/listing-requests', label: 'Listing requests' },
   { href: '/dashboard/workshop-requests', label: 'Workshop requests' },
   { href: '/dashboard/fair-notes', label: 'Fair feedback' },
   { href: '/dashboard/trending', label: 'Trending' },
   { href: '/dashboard/sourcing-types', label: 'Sourcing types' },
   { href: '/dashboard/theme', label: 'Festive themes' },
+  { href: '/dashboard/city-requests', label: 'City requests' },
   { href: '/dashboard/settings', label: 'Settings' },
 ];
 

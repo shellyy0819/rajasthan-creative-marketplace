@@ -5,14 +5,15 @@ vi.mock('@/auth', () => ({ auth: authMock }));
 const revalidate = vi.hoisted(() => vi.fn());
 vi.mock('next/cache', () => ({ revalidatePath: revalidate, revalidateTag: vi.fn(), unstable_cache: (fn: unknown) => fn }));
 
-import { GET as AREAS_GET, POST as AREAS_POST, DELETE as AREAS_DELETE } from '@/app/api/admin/settings/areas/route';
+import { GET as AREAS_GET, POST as AREAS_POST, PATCH as AREAS_PATCH, DELETE as AREAS_DELETE } from '@/app/api/admin/settings/areas/route';
 import { GET as AREAS_SEARCH } from '@/app/api/admin/settings/areas/search/route';
 import { GET as PLACES, resetPlacesRateLimit } from '@/app/api/places/route';
-import { addExtraArea, getExtraAreas, removeExtraArea } from '@/lib/extra-areas';
+import { addExtraArea, getExtraAreas, removeExtraArea, renameExtraArea } from '@/lib/extra-areas';
 import { DEFAULT_EXTRA_AREAS, MAX_EXTRA_AREAS } from '@/lib/extra-areas-shared';
 import { signCityRef } from '@/lib/city-ref';
 import { clearPlacesCache, searchAreas } from '@/lib/places';
-import { resetTestDb } from './helpers/testdb';
+import { getTestDb, resetTestDb } from './helpers/testdb';
+import { appSettings } from '../src/db/schema';
 
 const photonFetch = (...features: unknown[]) => vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ features }) } as Response));
 const feature = (props: Record<string, unknown>, coords = [78.4006536, 17.4057955]) => ({ properties: { countrycode: 'IN', state: 'Telangana', ...props }, geometry: { coordinates: coords } });
@@ -70,11 +71,46 @@ describe('the saved list', () => {
     await expect(addExtraArea({ ref: p.ref, name: 'x'.repeat(81) }, 'a@x.co')).rejects.toMatchObject({ status: 400 });
     expect(await getExtraAreas()).toEqual([...DEFAULT_EXTRA_AREAS]);
   });
-  it('holds at most 100 areas', async () => {
-    await removeExtraArea({ osmType: 'N', osmId: 2935018020 }, 'a@x.co');   // start from an empty saved list
-    for (let i = 0; i < MAX_EXTRA_AREAS; i++) await addExtraArea({ ref: signCityRef({ osmType: 'N', osmId: 1000 + i, name: `Area ${i}`, lat: 10, lng: 70 }), name: `Area ${String(i).padStart(3, '0')}` }, 'a@x.co');
-    expect((await getExtraAreas()).length).toBe(MAX_EXTRA_AREAS + 1 - 1 + (DEFAULT_EXTRA_AREAS.length - DEFAULT_EXTRA_AREAS.length));
-    await expect(addExtraArea({ ref: signCityRef({ osmType: 'N', osmId: 5000, name: 'One more', lat: 10, lng: 70 }), name: 'One more' }, 'a@x.co')).rejects.toMatchObject({ status: 400 });
+  it('holds at most 500 areas', async () => {
+    const many = Array.from({ length: MAX_EXTRA_AREAS - 1 }, (_, i) => ({ name: `Area ${i}`, osmType: 'N', osmId: 1000 + i, lat: 10, lng: 70, aliases: [] }));
+    await (await getTestDb()).insert(appSettings).values({ key: 'extra-areas', value: { areas: many }, updatedBy: 'a@x.co' });
+    const one = (id: number) => addExtraArea({ ref: signCityRef({ osmType: 'N', osmId: id, name: `New ${id}`, lat: 10, lng: 70 }), name: `New ${id}` }, 'a@x.co');
+    expect((await one(5000)).length).toBe(MAX_EXTRA_AREAS);
+    await expect(one(5001)).rejects.toMatchObject({ status: 400 });
+    expect((await addExtraArea({ ref: signCityRef({ osmType: 'N', osmId: 5000, name: 'New 5000', lat: 10, lng: 70 }), name: 'Renamed' }, 'a@x.co')).length).toBe(MAX_EXTRA_AREAS);   // renaming one already there is still fine
+  });
+  it('two changes at the same moment both land', async () => {
+    const refs = [11, 12, 13, 14, 15, 16].map(i => signCityRef({ osmType: 'N', osmId: i, name: `Par ${i}`, lat: 10, lng: 70 }));
+    await Promise.all(refs.map((ref, i) => addExtraArea({ ref, name: `Par ${i}` }, 'a@x.co')));
+    const names = (await getExtraAreas()).map(a => a.name);
+    for (let i = 0; i < 6; i++) expect(names).toContain(`Par ${i}`);
+  });
+});
+
+describe('renaming an area', () => {
+  it('changes its name, keeps the old name as an alias so it still finds it, and keeps the list sorted', async () => {
+    const list = await renameExtraArea({ osmType: 'N', osmId: 2935018020, name: 'Shaikpet Hyderabad' }, 'a@x.co');
+    expect(list.find(a => a.osmId === 2935018020)).toMatchObject({ name: 'Shaikpet Hyderabad' });
+    expect(list.find(a => a.osmId === 2935018020)!.aliases).toEqual(expect.arrayContaining(['Shaikpet', 'Hyderabad Shaikpet']));
+    expect(await getExtraAreas()).toEqual(list);
+  });
+  it('does nothing when the name is the same, and never lists its own name as an alias', async () => {
+    const same = await renameExtraArea({ osmType: 'N', osmId: 2935018020, name: 'Hyderabad Shaikpet' }, 'a@x.co');
+    expect(same.find(a => a.osmId === 2935018020)!.aliases).toEqual(['Shaikpet']);
+    const back = await renameExtraArea({ osmType: 'N', osmId: 2935018020, name: 'Shaikpet' }, 'a@x.co');   // back to the original name
+    expect(back.find(a => a.osmId === 2935018020)!.aliases).not.toContain('Shaikpet');
+  });
+  it('rejects an unknown area and a bad name', async () => {
+    await expect(renameExtraArea({ osmType: 'N', osmId: 1, name: 'Zed Area' }, 'a@x.co')).rejects.toMatchObject({ status: 404 });
+    for (const name of [undefined, 'H', 'x'.repeat(81)]) await expect(renameExtraArea({ osmType: 'N', osmId: 2935018020, name }, 'a@x.co')).rejects.toMatchObject({ status: 400 });
+    await expect(renameExtraArea({ name: 'Zed Area' }, 'a@x.co')).rejects.toMatchObject({ status: 400 });
+  });
+  it('is an admin-only API that refreshes the site', async () => {
+    as('seller'); expect((await AREAS_PATCH(req('PATCH', { osmType: 'N', osmId: 2935018020, name: 'Zed Area' }))).status).toBe(403);
+    as('admin');
+    const res = await AREAS_PATCH(req('PATCH', { osmType: 'N', osmId: 2935018020, name: 'Zed Area' }));
+    expect(res.status).toBe(200); expect(revalidate).toHaveBeenCalledTimes(1);
+    expect(((await res.json()) as { areas: { name: string }[] }).areas.map(a => a.name)).toContain('Zed Area');
   });
 });
 

@@ -22,6 +22,7 @@ const kindOf = (p: Props) => KIND_RANK[str(p.osm_value)] ?? 5;
 
 const CITY_KINDS = new Set(['city', 'town', 'village']);
 const AREA_KINDS = new Set(['suburb', 'neighbourhood', 'quarter', 'locality']);
+const ANY_KINDS = new Set([...CITY_KINDS, ...AREA_KINDS, 'hamlet']);
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
 /** "Name, street, area, state" with repeated parts removed ("Udaipur, Udaipur, Rajasthan" -> "Udaipur, Rajasthan"). */
@@ -32,8 +33,8 @@ export function placeLabel(p: Props): string {
 }
 
 type CacheEntry = { at: number; value: Place[] };
-const caches = { plain: new Map<string, CacheEntry>(), city: new Map<string, CacheEntry>(), area: new Map<string, CacheEntry>() };
-export const clearPlacesCache = () => { caches.plain.clear(); caches.city.clear(); caches.area.clear(); };
+const caches = { plain: new Map<string, CacheEntry>(), city: new Map<string, CacheEntry>(), area: new Map<string, CacheEntry>(), request: new Map<string, CacheEntry>() };
+export const clearPlacesCache = () => { caches.plain.clear(); caches.city.clear(); caches.area.clear(); caches.request.clear(); };
 
 /**
  * The extra areas that match what was typed. They go first when the typing is clearly about them (an alias, or words past the city's name:
@@ -64,12 +65,14 @@ export async function searchPlaces(q: string, fetchImpl: typeof fetch = fetch, o
 
 /** For the admin's area search: suburbs and neighbourhoods (the kinds the City field leaves out), each with the signed reference that adds it. */
 export const searchAreas = (q: string, fetchImpl: typeof fetch = fetch): Promise<Place[]> => searchPhoton(q, fetchImpl, { areaOnly: true });
+/** For a seller adding a place the City field did not offer: cities, towns, villages, hamlets, suburbs and neighbourhoods, each with the signed reference that adds it. */
+export const searchPlacesToRequest = (q: string, fetchImpl: typeof fetch = fetch): Promise<Place[]> => searchPhoton(q, fetchImpl, { anyPlace: true });
 
-async function searchPhoton(q: string, fetchImpl: typeof fetch, opts: { cityOnly?: boolean; areaOnly?: boolean }): Promise<Place[]> {
+async function searchPhoton(q: string, fetchImpl: typeof fetch, opts: { cityOnly?: boolean; areaOnly?: boolean; anyPlace?: boolean }): Promise<Place[]> {
   const needle = normalizeQuery(q);
   if (needle.length < 2) return [];
-  const areaOnly = !!opts.areaOnly, cityOnly = !!opts.cityOnly || areaOnly;
-  const cache = areaOnly ? caches.area : cityOnly ? caches.city : caches.plain;
+  const areaOnly = !!opts.areaOnly, anyPlace = !!opts.anyPlace, cityOnly = !!opts.cityOnly || areaOnly || anyPlace;
+  const cache = anyPlace ? caches.request : areaOnly ? caches.area : cityOnly ? caches.city : caches.plain;
   const key = needle.toLowerCase();
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value;
@@ -99,7 +102,7 @@ async function searchPhoton(q: string, fetchImpl: typeof fetch, opts: { cityOnly
     if (!label || !name) continue;
     let ref: string | undefined;
     if (cityOnly) {
-      if (!(areaOnly ? AREA_KINDS : CITY_KINDS).has(str(p.osm_value))) continue;
+      if (!(anyPlace ? ANY_KINDS : areaOnly ? AREA_KINDS : CITY_KINDS).has(str(p.osm_value))) continue;
       const c = f.geometry?.coordinates;
       const osmType = str(p.osm_type);
       if (!Array.isArray(c) || typeof c[0] !== 'number' || typeof c[1] !== 'number' || !Number.isFinite(c[0]) || !Number.isFinite(c[1])

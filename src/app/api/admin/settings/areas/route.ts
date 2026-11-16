@@ -2,7 +2,7 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import { handle, json, readJson } from '@/lib/api';
 import { requireAdmin } from '@/lib/authz';
-import { addExtraArea, getExtraAreas, removeExtraArea } from '@/lib/extra-areas';
+import { addExtraArea, getExtraAreas, removeExtraArea, renameExtraArea } from '@/lib/extra-areas';
 export const dynamic = 'force-dynamic';
 const NO_STORE = { 'cache-control': 'no-store' };
 
@@ -14,6 +14,13 @@ export const GET = () => handle(async () => {
 export const POST = (req: Request) => handle(async () => {
   const admin = requireAdmin(await auth());
   const areas = await addExtraArea(await readJson(req), admin.email);
+  revalidatePath('/', 'layout');
+  return json({ areas }, 200, NO_STORE);
+});
+/** PATCH { osmType, osmId, name } renames an area; the old name still finds it. */
+export const PATCH = (req: Request) => handle(async () => {
+  const admin = requireAdmin(await auth());
+  const areas = await renameExtraArea(await readJson(req), admin.email);
   revalidatePath('/', 'layout');
   return json({ areas }, 200, NO_STORE);
 });
