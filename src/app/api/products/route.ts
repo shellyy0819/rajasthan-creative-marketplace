@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { handle, json, readJson } from '@/lib/api';
 import { actorOf, requireStaff } from '@/lib/authz';
 import { createProduct } from '@/lib/admin';
-import { listProducts } from '@/lib/catalog';
+import { countProducts, listProducts } from '@/lib/catalog';
 import { PRODUCTS_PAGE_MAX } from '@/lib/catalog-shared';
 import { ApiError } from '@/lib/errors';
 export const dynamic = 'force-dynamic';
@@ -19,7 +19,11 @@ export const GET = (req: Request) => handle(async () => {
   const limit = pageNumber(sp.get('limit'), 'limit', 1, PRODUCTS_PAGE_MAX);
   const offset = pageNumber(sp.get('offset'), 'offset', 0, Number.MAX_SAFE_INTEGER);
   if (offset !== undefined && limit === undefined) throw new ApiError(400, 'offset needs a limit');
-  return json(await listProducts({ city: sp.get('city') ?? undefined, category: sp.get('category') ?? undefined, source: sp.get('source') ?? undefined, q: sp.get('q') ?? undefined, ...(limit !== undefined ? { limit, offset: offset ?? 0 } : {}) }));
+  const filter = { city: sp.get('city') ?? undefined, category: sp.get('category') ?? undefined, source: sp.get('source') ?? undefined, q: sp.get('q') ?? undefined };
+  if (limit === undefined) return json(await listProducts(filter));
+  // A page also says how many products match in all, so the list knows when it has everything.
+  const [items, total] = await Promise.all([listProducts({ ...filter, limit, offset: offset ?? 0 }), countProducts(filter)]);
+  return json(items, 200, { 'X-Total-Count': String(total) });
 });
 export const POST = (req: Request) => handle(async () => {
   const user = requireStaff(await auth());

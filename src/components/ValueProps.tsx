@@ -1,14 +1,16 @@
+import { NEUTRAL_WORDING, type CatalogWording } from '@/lib/catalog-wording';
+
 const ICON = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
 
-const PROMISES = [
+const promises = (products: string) => [
   {
     title: 'No Commission, Just Honest Prices',
-    text: 'Shop unique handmade creations without additional marketplace commission fees.',
+    text: `Shop unique ${products} without additional marketplace commission fees.`,
     icon: <><path d="M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" /><path d="m9 15 6-6M9.5 9.5h.01M14.5 14.5h.01" /></>,
   },
   {
-    title: 'Straight from the Artist',
-    text: 'Every creation comes directly from the hands of the artist who made it.',
+    title: 'Deal Directly with the Seller',
+    text: 'Every listing shows who is selling it, so you can talk to them directly.',
     icon: <><path d="M3 7l9-4 9 4v10l-9 4-9-4V7Z" /><path d="m3 7 9 4 9-4M12 11v10" /></>,
   },
   {
@@ -19,7 +21,8 @@ const PROMISES = [
 ];
 
 /** Three promises to buyers and makers, shown on the home page right after the hero. */
-export function ValueProps() {
+export function ValueProps({ wording = NEUTRAL_WORDING }: { wording?: CatalogWording }) {
+  const PROMISES = promises(wording.products);
   return (
     <section className="value-props" aria-label="Why Craftofy">
       <ul>

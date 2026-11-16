@@ -18,14 +18,17 @@ import { themeInitScript, splashInitScript } from '@/lib/init-scripts';
 import { ThemeBanner } from '@/components/theme/ThemeBanner';
 import { ThemeHead } from '@/components/theme/ThemeHead';
 import { ThemePreviewBar } from '@/components/theme/ThemePreviewBar';
+import { getCatalogWording, siteCopy } from '@/lib/catalog-wording';
 import { getRenderTheme } from '@/lib/themes/render';
 
 const sans = DM_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'], style: ['normal', 'italic'], variable: '--font-sans', display: 'swap' });
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = siteCopy(await getCatalogWording());
+  return {
   metadataBase: new URL(siteUrl()),
-  title: { default: `${SITE.name} — ${SITE.tagline}`, template: `%s | ${SITE.name}` },
-  description: SITE.description,
+  title: { default: `${SITE.name} — ${copy.tagline}`, template: `%s | ${SITE.name}` },
+  description: copy.description,
   applicationName: SITE.name,
   openGraph: { siteName: SITE.name, locale: SITE.locale, type: 'website' },
   twitter: { card: 'summary_large_image' },
@@ -41,19 +44,20 @@ export const metadata: Metadata = {
     ],
   },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } },
-};
+  };
+}
 
 export const viewport: Viewport = { themeColor: '#c8553d', colorScheme: 'light dark', width: 'device-width', initialScale: 1 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [theme, fairOpen] = await Promise.all([getRenderTheme(), isFairOpen()]);
+  const [theme, fairOpen, wording] = await Promise.all([getRenderTheme(), isFairOpen(), getCatalogWording()]);
   return (
     <html lang="en-IN" className={sans.variable} data-festival={theme.preset} suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: `${themeInitScript};${splashInitScript}` }} /><ThemeHead preset={theme.preset} css={theme.css} /></head>
       <body>
         <SplashScreen />
         <a className="skip-link" href="#main">Skip to content</a>
-        <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
+        <JsonLd data={[organizationJsonLd(siteCopy(wording).description), websiteJsonLd()]} />
         <AuthProvider>
         <QueryProvider>
         <StoreProvider>

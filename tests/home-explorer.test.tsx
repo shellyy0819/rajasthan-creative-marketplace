@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 vi.mock('@/components/ContactArtistButton', () => ({ ContactArtistButton: () => <button>add</button> }));
 import { HomeCraftExplorer } from '@/components/HomeCraftExplorer';
+import { DataVersionProvider } from '@/components/DataVersion';
 
 afterEach(cleanup);
 // Product cards read like counts through React Query, so every render needs a client.
@@ -42,7 +43,7 @@ describe('HomeCraftExplorer uses only real data', () => {
   it('with no products there are no filter buttons, just the empty state', () => {
     render(<HomeCraftExplorer initialItems={[]} categories={[]} />);
     expect(screen.queryByRole("group", { name: /category/i })).toBeNull();
-    expect(screen.getByText('No handmade finds yet. Check back soon.')).toBeTruthy();
+    expect(screen.getByText('No finds yet. Check back soon.')).toBeTruthy();
     expect(document.body.textContent).not.toContain('Try another city');
   });
 });
@@ -98,6 +99,44 @@ describe('HomeCraftExplorer loads a page at a time', () => {
     expect(names()).toEqual(['Lily Bouquet', 'Frock']);
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(names()).toHaveLength(4));
+  });
+});
+
+describe('HomeCraftExplorer cache follows the home data version', () => {
+  const fetchMock = vi.fn();
+  beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal('fetch', fetchMock); fetchMock.mockImplementation(route(() => ok([PRODUCTS[2]]))); });
+  afterEach(() => vi.unstubAllGlobals());
+  const client = () => new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const shelf = (c: QueryClient, version: string) => (
+    <QueryClientProvider client={c}><DataVersionProvider version={version}><HomeCraftExplorer initialItems={PRODUCTS} categories={COUNTS} /></DataVersionProvider></QueryClientProvider>
+  );
+  const openResin = async () => { fireEvent.click(screen.getByRole('button', { name: /Resin Art/ })); await waitFor(() => expect(names()).toEqual(['Coaster Set'])); };
+
+  it('keeps what it fetched when the visitor leaves and comes back, as long as nothing was changed', async () => {
+    const c = client();
+    plainRender(shelf(c, 'v1')); await openResin();
+    cleanup();
+    plainRender(shelf(c, 'v1'));
+    fireEvent.click(screen.getByRole('button', { name: /Resin Art/ }));
+    expect(names()).toEqual(['Coaster Set']);
+    expect(pageUrls(fetchMock)).toHaveLength(1);
+  });
+  it('fetches again, and drops the old copies, once the server reports a new version', async () => {
+    const c = client();
+    const { rerender } = plainRender(shelf(c, 'v1')); await openResin();
+    rerender(shelf(c, 'v2'));
+    await waitFor(() => expect(c.getQueryCache().findAll({ queryKey: ['data'] }).every(q => q.queryKey[1] === 'v2')).toBe(true));
+    // The category that was open is loaded again under the new version.
+    await waitFor(() => expect(pageUrls(fetchMock)).toHaveLength(2));
+    await waitFor(() => expect(names()).toEqual(['Coaster Set']));
+  });
+  it('never refetches by itself: no timer, no refetch on focus or reconnect', async () => {
+    const c = client();
+    plainRender(shelf(c, 'v1')); await openResin();
+    window.dispatchEvent(new Event('focus')); window.dispatchEvent(new Event('online'));
+    fireEvent.click(screen.getByRole('button', { name: /^All/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Resin Art/ }));
+    expect(pageUrls(fetchMock)).toHaveLength(1);
   });
 });
 

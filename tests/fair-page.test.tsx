@@ -5,11 +5,12 @@ import { render, screen, cleanup, within } from '@testing-library/react';
 
 const getFairData = vi.hoisted(() => vi.fn());
 const isFairOpen = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/catalog-wording', async orig => ({ ...(await orig<typeof import('@/lib/catalog-wording')>()), getCatalogWording: async () => ({ adjective: 'handmade', products: 'handmade products', finds: 'handmade finds', handmadeType: 'Handmade', stats: { products: 3, makers: 2, cities: 1 } }) })); // the real one reads the database
 vi.mock('@/lib/fair-data', () => ({ getFairData }));
 vi.mock('@/lib/fair-settings', () => ({ isFairOpen }));
 vi.mock('@/components/fair/FairGame', () => ({ FairGame: ({ data }: { data: { source: string } }) => <div data-testid="game">{data.source}</div> }));
 
-import FairPage, { metadata } from '@/app/fair/page';
+import FairPage, { generateMetadata } from '@/app/fair/page';
 import { SAMPLE_MAKERS, sampleFairData } from '@/lib/fair-sample';
 
 afterEach(cleanup);
@@ -17,7 +18,8 @@ beforeEach(() => { isFairOpen.mockReset(); isFairOpen.mockResolvedValue(true); }
 const ld = () => [...document.querySelectorAll('script[type="application/ld+json"]')].map(s => JSON.parse(s.textContent!));
 
 describe('/fair metadata', () => {
-  it('has a title, description, canonical address and social cards', () => {
+  it('has a title, description, canonical address and social cards', async () => {
+    const metadata = await generateMetadata();
     expect(metadata.title).toMatch(/Craftofy Fair/);
     expect(String(metadata.description).length).toBeGreaterThan(60);
     expect(String(metadata.description).length).toBeLessThanOrEqual(160);
@@ -72,7 +74,7 @@ describe('/fair while an admin has closed it', () => {
     expect(getFairData).not.toHaveBeenCalled();
     expect(document.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex');
     expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toBeTruthy();
-    const back = screen.getByRole('link', { name: 'Shop handmade' });
+    const back = screen.getByRole('link', { name: 'Browse the shop' });
     expect(back.getAttribute('href')).toBe('/shop');
     expect(back.className).toContain('primary');
   });

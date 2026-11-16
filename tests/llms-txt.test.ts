@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
+vi.mock('@/lib/catalog-wording', async orig => ({ ...(await orig<typeof import('@/lib/catalog-wording')>()), getCatalogWording: async () => ({ adjective: 'handmade', products: 'handmade products', finds: 'handmade finds', handmadeType: 'Handmade', stats: { products: 3, makers: 2, cities: 1 } }) })); // the real one reads the database
 vi.mock('@/lib/request-origin', () => ({ requestOrigin: async () => 'https://rr.test' }));
 vi.mock('@/lib/cities', () => ({ listActiveCities: async () => [{ id: 1, name: 'Udaipur', slug: 'udaipur', state: 'Rajasthan' }] }));
 

@@ -4,12 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import type { Product } from "@/lib/types";
 import { SHELF_PAGE_SIZE } from "@/lib/catalog-shared";
+import { dataKey, useDataVersion } from "./DataVersion";
 import { PageLoader } from "./PageLoader";
 import { ProductGrid } from "./ProductGrid";
 
-/** A fetched page is reused for this long (the same time the server keeps the home data), then refreshed quietly in the background. */
-export const SHELF_STALE_MS = 60_000;
-const SHELF_KEEP_MS = 30 * 60_000;
+/** Fetched pages never go stale on their own: they are replaced only when the data version changes (see DataVersion). */
+const SHELF_KEEP_MS = 60 * 60_000;
 
 async function fetchPage(category: string, offset: number, signal?: AbortSignal): Promise<Product[]> {
   const sp = new URLSearchParams({ limit: String(SHELF_PAGE_SIZE), offset: String(offset) });
@@ -22,15 +22,16 @@ async function fetchPage(category: string, offset: number, signal?: AbortSignal)
 
 /**
  * Home-page browser. The server sends the first page and the category counts; the rest of each category arrives a page at a time as the
- * visitor scrolls (or taps "Show more"), and every page fetched is kept, so going back to a category costs nothing.
+ * visitor scrolls (or taps "Show more"), and every page fetched is kept until an admin or seller changes something, so going back to a category costs nothing.
  */
-export function HomeCraftExplorer({ initialItems, categories }: { initialItems: Product[]; categories: { name: string; count: number }[] }) {
+export function HomeCraftExplorer({ initialItems, categories, emptyMessage = "No finds yet. Check back soon." }: { initialItems: Product[]; categories: { name: string; count: number }[]; emptyMessage?: string }) {
+  const version = useDataVersion();
   const [category, setCategory] = useState("");
   const all = useMemo(() => categories.reduce((n, c) => n + c.count, 0), [categories]);
   const total = category ? (categories.find((c) => c.name === category)?.count ?? 0) : all;
 
   const query = useInfiniteQuery({
-    queryKey: ["home-shelf", category],
+    queryKey: dataKey(version, "shelf", category),
     initialPageParam: 0,
     queryFn: ({ pageParam, signal }) => fetchPage(category, pageParam, signal),
     getNextPageParam: (last, pages) => {
@@ -39,7 +40,7 @@ export function HomeCraftExplorer({ initialItems, categories }: { initialItems: 
     },
     // The page the server already rendered seeds "All"; other categories load their first page when first opened.
     initialData: category === "" ? { pages: [initialItems], pageParams: [0] } : undefined,
-    staleTime: SHELF_STALE_MS,
+    staleTime: Infinity,
     gcTime: SHELF_KEEP_MS,
   });
   const { hasNextPage, isFetchingNextPage, isError, fetchNextPage, refetch } = query;
@@ -83,7 +84,7 @@ export function HomeCraftExplorer({ initialItems, categories }: { initialItems: 
 
       <div className="craft-results" aria-live="polite">
         <div className="craft-results-heading">{category && <h3>{category}</h3>}</div>
-        <ProductGrid products={items} emptyMessage={isError ? "Could not load these finds. Please try again." : openingCategory ? "Loading finds…" : "No handmade finds yet. Check back soon."} />
+        <ProductGrid products={items} emptyMessage={isError ? "Could not load these finds. Please try again." : openingCategory ? "Loading finds…" : emptyMessage} />
         {(hasNextPage || isError) && (
           <div ref={sentinel} className="craft-more">
             {isError && items.length > 0 && <p role="alert">Could not load more. Please try again.</p>}

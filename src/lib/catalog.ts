@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, or, sql, type SQL } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { productsQuery, sellerNameSql, toProduct, toWorkshop, workshopsQuery } from '../db/mappers';
-import { products as productsT, sourcingTypes, workshops as workshopsT } from '../db/schema';
+import { cities, products as productsT, sellerProfiles, sourcingTypes, users, workshops as workshopsT } from '../db/schema';
 import { getCityByNameOrSlug } from './cities';
 import { normalizeQuery, textSearch } from './search';
 import { productSlug, workshopSlug } from './catalog-shared';
@@ -33,11 +33,12 @@ async function sourcingScope(f: ProductFilter): Promise<{ source?: string; q: st
   return hit ? { source: hit.name, q, orText: true } : { q };
 }
 
-export async function listProducts(f: ProductFilter = {}): Promise<Product[]> {
+/** The conditions every product listing and its count share. Null when the filter names a city that does not exist (nothing can match). */
+async function productScope(f: ProductFilter) {
   const where: (SQL | undefined)[] = [eq(productsT.status, 'APPROVED')];
   if (!anyCity(f.city)) {
     const city = await getCityByNameOrSlug(f.city!);
-    if (!city) return [];
+    if (!city) return null;
     where.push(eq(productsT.cityId, city.id));
   }
   if (f.category && f.category !== 'All categories') where.push(eq(productsT.category, f.category));
@@ -47,9 +48,29 @@ export async function listProducts(f: ProductFilter = {}): Promise<Product[]> {
   const ofType = scope.source ? sql`${productsT.sourcingTypeId} in (select id from sourcing_types where lower(name) = ${scope.source.toLowerCase()})` : undefined;
   if (ofType && scope.orText && search.where) where.push(or(ofType, search.where));
   else { if (ofType) where.push(ofType); where.push(search.where); }
+  return { where, search };
+}
+
+export async function listProducts(f: ProductFilter = {}): Promise<Product[]> {
+  const scope = await productScope(f);
+  if (!scope) return [];
+  const { where, search } = scope;
   const ordered = productsQuery(getDb()).where(and(...where)).orderBy(...(search.rank ? [desc(search.rank)] : []), ...idOrder(productsT));
   const rows = f.limit === undefined ? await ordered : await ordered.limit(f.limit).offset(f.offset ?? 0);
   return rows.map(toProduct);
+}
+
+/** How many published products match the filter (ignoring `limit` and `offset`): the total a paged list works toward. */
+export async function countProducts(f: ProductFilter = {}): Promise<number> {
+  const scope = await productScope(f);
+  if (!scope) return 0;
+  const [row] = await getDb().select({ n: sql<number>`count(*)::int` }).from(productsT)
+    .innerJoin(cities, eq(cities.id, productsT.cityId))
+    .leftJoin(sourcingTypes, eq(sourcingTypes.id, productsT.sourcingTypeId))
+    .innerJoin(users, eq(users.id, productsT.sellerId))
+    .leftJoin(sellerProfiles, eq(sellerProfiles.userId, users.id))
+    .where(and(...scope.where));
+  return row.n;
 }
 
 /** Published products per category, A to Z: the home shelf's filter tabs, without loading every product. */

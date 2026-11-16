@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { countProductsByCategory, listProducts } from '@/lib/catalog';
+import { countProducts, countProductsByCategory, listProducts } from '@/lib/catalog';
 import { GET } from '@/app/api/products/route';
 import { resetTestDb } from './helpers/testdb';
 
@@ -47,5 +47,35 @@ describe('GET /api/products paging', () => {
       expect((await res.json()).error).toContain(word);
     }
     expect((await get('?offset=2')).status).toBe(400);
+  });
+});
+
+describe('countProducts', () => {
+  it('counts exactly the products the same filter lists, ignoring limit and offset', async () => {
+    const all = await listProducts();
+    const category = all[0].category;
+    expect(await countProducts()).toBe(all.length);
+    expect(await countProducts({ category })).toBe((await listProducts({ category })).length);
+    expect(await countProducts({ q: all[0].name })).toBe((await listProducts({ q: all[0].name })).length);
+    expect(await countProducts({ limit: 1, offset: 1 })).toBe(all.length);
+  });
+  it('is zero for a city that does not exist, like the list is empty', async () => {
+    expect(await countProducts({ city: 'Nowhereville' })).toBe(0);
+    expect(await listProducts({ city: 'Nowhereville' })).toEqual([]);
+  });
+});
+
+describe('GET /api/products total', () => {
+  it('a page says how many products match in all (X-Total-Count); the whole list does not need to', async () => {
+    const total = (await listProducts()).length;
+    const res = await get('?limit=2&offset=0');
+    expect(res.headers.get('X-Total-Count')).toBe(String(total));
+    expect(res.headers.get('X-Total-Count')).toBe(String(await countProducts()));
+    expect((await get('')).headers.get('X-Total-Count')).toBeNull();
+  });
+  it('the total follows the filters, not the page', async () => {
+    const category = (await listProducts())[0].category;
+    const res = await get(`?limit=1&category=${encodeURIComponent(category)}`);
+    expect(res.headers.get('X-Total-Count')).toBe(String(await countProducts({ category })));
   });
 });

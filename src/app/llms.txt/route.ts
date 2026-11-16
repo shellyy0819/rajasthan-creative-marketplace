@@ -3,6 +3,7 @@ import { listActiveCities } from '@/lib/cities';
 import { cityLabeller } from '@/lib/city-label';
 import { isFairOpen } from '@/lib/fair-settings';
 import { SITE, contactEmail } from '@/lib/site';
+import { capitalize, getCatalogWording, siteCopy } from '@/lib/catalog-wording';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,19 +13,21 @@ export async function GET() {
   const cities = await listActiveCities().catch(() => []);
   const fairOpen = await isFairOpen();
   const label = cityLabeller(cities);
+  const wording = await getCatalogWording();
+  const copy = siteCopy(wording);
   const body = [
     `# ${SITE.name}`,
     '',
-    `> ${SITE.description} ${SITE.name} lists independent makers and creative workshops across India. Buyers contact the maker directly to order; ${SITE.name} takes no commission.`,
+    `> ${copy.description} ${SITE.name} lists independent makers and creative workshops across India. Buyers contact the maker directly to order; ${SITE.name} takes no commission.`,
     '',
     '## Key pages',
-    `- [Shop](${origin}/shop): handmade products from independent makers, filterable by category and city`,
+    `- [Shop](${origin}/shop): ${wording.products} from independent makers, filterable by category and city`,
     `- [Workshops](${origin}/workshops): creative workshops, meetups and pop-up experiences hosted by local makers`,
-    ...(fairOpen ? [`- [Fair](${origin}/fair): a walk-around exhibition of handmade stalls where visitors meet makers, watch crafts being made and shortlist products`] : []),
+    ...(fairOpen ? [`- [Fair](${origin}/fair): a walk-around exhibition of makers' stalls where visitors meet makers, watch crafts being made and shortlist products`] : []),
     `- [About](${origin}/about): who ${SITE.name} is and how it works`,
     `- [Help](${origin}/help): ordering, selling and account questions`,
     `- [Contact](${origin}/contact): reach the ${SITE.name} team (${contactEmail()})`,
-    ...(cities.length ? ['', '## Cities', ...cities.map(c => `- [Handmade and workshops in ${label(c)}](${origin}/cities/${c.slug})`)] : []),
+    ...(cities.length ? ['', '## Cities', ...cities.map(c => `- [${capitalize(wording.finds)} and workshops in ${label(c)}](${origin}/cities/${c.slug})`)] : []),
     '',
     '## Optional',
     `- [Sitemap](${origin}/sitemap.xml)`,

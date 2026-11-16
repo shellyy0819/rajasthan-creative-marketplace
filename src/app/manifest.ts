@@ -1,11 +1,13 @@
 import type { MetadataRoute } from 'next';
+import { getCatalogWording, siteCopy } from '@/lib/catalog-wording';
 import { SITE } from '@/lib/site';
 
 const sizes = [48, 72, 96, 128, 144, 152, 192, 256, 384, 512];
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const copy = siteCopy(await getCatalogWording());
   return {
-    name: SITE.name, short_name: SITE.name, description: SITE.description, start_url: '/', display: 'standalone',
+    name: SITE.name, short_name: SITE.name, description: copy.description, start_url: '/', display: 'standalone',
     background_color: '#f6efe4', theme_color: '#c8553d', lang: 'en-IN',
     icons: [
       ...sizes.map(n => ({ src: `/icons/icon-${n}.png`, sizes: `${n}x${n}`, type: 'image/png', purpose: 'any' as const })),

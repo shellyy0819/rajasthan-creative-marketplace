@@ -1,5 +1,9 @@
+import { capitalize, getCatalogWording } from '@/lib/catalog-wording';
 import { renderOg, ogSize } from '@/lib/og';
-export const alt = 'Craftofy — handmade finds and creative workshops';
+export const alt = 'Craftofy — products and creative workshops';
 export const size = ogSize;
 export const contentType = 'image/png';
-export default function Image() { return renderOg('Discover the Craft. Meet the Maker. Learn the Art.', 'Handmade finds & workshops across India'); }
+export default async function Image() {
+  const w = await getCatalogWording();
+  return renderOg('Discover the Craft. Meet the Maker. Learn the Art.', `${capitalize(w.finds)} & workshops across India`);
+}
