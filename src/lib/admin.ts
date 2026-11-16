@@ -52,7 +52,8 @@ const inputOf = (p: typeof productsT.$inferSelect): ProductInput => ({
   stock: p.stock, status: p.status, workshopId: p.workshopId ?? undefined,
   pickupLocation: p.pickupLocation ?? undefined,
 });
-const contentOf = (p: ProductInput) => { const { status: _s, ...rest } = toProductRow(p); return JSON.stringify(rest); };
+// What a reviewer approves: everything except the status and the stock. How many are left is not reviewed, so changing it never sends a live listing back to review.
+const contentOf = (p: ProductInput) => { const { status: _s, stock: _k, ...rest } = toProductRow(p); return JSON.stringify(rest); };
 
 async function requireWorkshop(tx: Tx, id: string | undefined) {
   if (!id) return;
@@ -149,6 +150,22 @@ export async function updateProduct(id: string, input: unknown, actor: Actor): P
   });
   await dropStoredPhotos(removedKeys);
   return product;
+}
+
+/**
+ * Changes only how many are in stock (0 is sold out). A seller can do it on their own products and an admin on any, whatever the status,
+ * and it takes effect at once: it never waits for review and never changes the status.
+ */
+export async function setProductStock(id: string, input: unknown, actor: Actor): Promise<AdminProduct> {
+  const stock = int(obj(input).stock, 'stock', 0, 100_000);
+  const seller = actor.role === 'seller';
+  return getDb().transaction(async tx => {
+    const me = await ensureUser(tx, actor.email);
+    const [row] = await tx.select().from(productsT).where(eq(productsT.id, id)).for('update');
+    if (!row || (seller && row.sellerId !== me.id)) throw new ApiError(404, 'Product not found.');   // a seller must not learn that someone else's product exists
+    await tx.update(productsT).set({ stock, updatedAt: new Date() }).where(eq(productsT.id, id));
+    return loadAdminProduct(tx, id);
+  });
 }
 
 export async function deleteProduct(id: string): Promise<void> {

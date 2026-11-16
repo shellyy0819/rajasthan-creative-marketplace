@@ -24,6 +24,11 @@ const POST_STATUSES = [
 ] as const;
 const JSON_HEADERS = { "content-type": "application/json" };
 
+/** The numbers offered in a row's stock dropdown, always including what the product has now. 0 is shown as Sold out. */
+const STOCK_STEPS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50, 75, 100];
+export const stockChoices = (current: number) => [...new Set([...STOCK_STEPS, current])].sort((a, b) => a - b);
+export const stockLabel = (n: number) => (n > 0 ? `${n} in stock` : "Sold out");
+
 function explain(status: number, body: { error?: string } | null): string {
   if (status === 401) return "Your session expired. Please sign in again.";
   // 403s carry a specific reason (e.g. "Only an admin can publish a product."): show it.
@@ -71,6 +76,7 @@ export function PostsAdmin({
   const [editing, setEditing] = useState<Product | "new" | null>(() => (openNew ? "new" : null));
   const [confirming, setConfirming] = useState<Product | null>(null);
   const [changingStatus, setChangingStatus] = useState<string | null>(null);
+  const [changingStock, setChangingStock] = useState<string | null>(null);
   const [pageBusy, setPageBusy] = useState(""); // label of the page-wide loader ("" = idle)
   const [deleting, setDeleting] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
@@ -189,6 +195,22 @@ export function PostsAdmin({
       await refresh();
     }
     setChangingStatus(null);
+    setPageBusy("");
+  };
+
+  /** Stock changes apply at once, for sellers too: no review. The row updates in place and a toast says how it went. */
+  const changeStock = async (p: Product, next: number) => {
+    if (next === p.stock) return;
+    setChangingStock(p.id);
+    setPageBusy("Updating stock…");
+    setToast(null);
+    const err = await call(`/api/products/${p.id}/stock`, "PATCH", { stock: next });
+    if (err) notify("error", err);
+    else {
+      setProducts((list) => list.map((x) => (x.id === p.id ? { ...x, stock: next } : x)));
+      notify("success", "Stock is published successfully.");
+    }
+    setChangingStock(null);
     setPageBusy("");
   };
 
@@ -329,7 +351,7 @@ export function PostsAdmin({
                   </h3>
                   <p>
                     {!seller && <>{p.seller}{p.sellerEmail ? ` (${p.sellerEmail})` : ""} · </>}{p.category} · {p.city} · {money(p.pricePaise)}{" "}
-                    · {p.stock} in stock
+                    · {stockLabel(p.stock)}
                   </p>
                   <p className="admin-status-line">
                     <span
@@ -382,6 +404,21 @@ export function PostsAdmin({
                     <label className="sr-only" htmlFor={`status-${p.id}`}>
                       Change status for {p.name}
                     </label>
+                    <label className="sr-only" htmlFor={`stock-${p.id}`}>
+                      Change stock for {p.name}
+                    </label>
+                    <select
+                      id={`stock-${p.id}`}
+                      className="admin-status-select"
+                      aria-label={`Change stock for ${p.name}`}
+                      value={p.stock}
+                      disabled={changingStock === p.id}
+                      onChange={(e) => void changeStock(p, Number(e.target.value))}
+                    >
+                      {stockChoices(p.stock).map((n) => (
+                        <option value={n} key={n}>{stockLabel(n)}</option>
+                      ))}
+                    </select>
                     <select
                       id={`status-${p.id}`}
                       className="admin-status-select"
