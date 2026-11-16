@@ -3,7 +3,7 @@ import { getDb } from '../db/client';
 import { appSettings, cityRequests, type CityRequestRow } from '../db/schema';
 import { signCityRef, verifyCityRef } from './city-ref';
 import { ApiError } from './errors';
-import { addExtraArea, getExtraAreas, isRemovedPlace, markPlaceRemoved, removeExtraArea, withExtraAreasLock } from './extra-areas';
+import { addExtraArea, getExtraAreas, isRemovedPlace, markPlaceRemoved, removeExtraArea, renameExtraArea, withExtraAreasLock } from './extra-areas';
 import { SELLER_AREA_LIMIT } from './extra-areas-shared';
 import { mailConfigured, sendMail } from './mailer';
 import { teamRecipients } from './workshop-notify';
@@ -111,15 +111,23 @@ export async function listCityRequests(): Promise<CityRequest[]> {
   return (await getDb().select().from(cityRequests).orderBy(desc(cityRequests.createdAt)).limit(500)).map(toRequest);
 }
 
-/** Requests are auto-approved, and the admin can change one whenever she needs: confirm it ('approve', which also restores a removed one) or take its place out of the City field ('remove'). Cities already created from it, and their products, stay either way. */
+/** Requests are auto-approved, and the admin can change one whenever she needs: confirm it ('approve', which also restores a removed one), take its place out of the City field ('remove'), or give it another name ('rename'). Cities already created from it, and their products, stay either way. */
 export async function decideCityRequest(id: string, input: unknown, adminEmail: string): Promise<CityRequest> {
-  const decision = obj(input).decision;
-  if (decision !== 'approve' && decision !== 'remove') throw bad('decision must be approve or remove.');
+  const body = obj(input), decision = body.decision;
+  if (decision !== 'approve' && decision !== 'remove' && decision !== 'rename') throw bad('decision must be approve, remove or rename.');
   if (!UUID.test(id)) throw new ApiError(404, 'Request not found.');
   return withExtraAreasLock(async q => {
     const [row] = await q.select().from(cityRequests).where(eq(cityRequests.id, id));
     if (!row) throw new ApiError(404, 'Request not found.');
     const area = { osmType: row.osmType, osmId: row.osmId };
+    if (decision === 'rename') {   // the status stays as it is; only the name changes
+      const name = text(body.name, 'name', 80);
+      if (name.length < 2) throw bad('name must be 2 to 80 characters.');
+      if ((await getExtraAreas(q)).some(x => x.osmType === row.osmType && x.osmId === row.osmId)) await renameExtraArea({ ...area, name }, adminEmail, q);
+      else await q.update(cityRequests).set({ name }).where(eq(cityRequests.id, id));   // a removed one: only the request's name changes, and a later restore uses it
+      const [renamed] = await q.select().from(cityRequests).where(eq(cityRequests.id, id));
+      return toRequest(renamed);
+    }
     if (decision === 'remove') {
       try { await removeExtraArea(area, adminEmail, q); } catch (e) { if (!(e instanceof ApiError && e.status === 404)) throw e; }   // already gone from the list
       await markPlaceRemoved(area, adminEmail, q);

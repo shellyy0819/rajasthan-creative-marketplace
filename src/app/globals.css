@@ -2706,6 +2706,10 @@ main {
   background: #dbe8dc;
   color: var(--green);
 }
+.status-pill.removed { background: #f1ddd6; color: #8a3a22; }
+.city-actions { white-space: nowrap; }
+.city-rename { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.city-rename input { min-width: 180px; height: var(--control-h); padding: 0 10px; border: 1px solid var(--control-border); border-radius: 3px; background: var(--white); color: var(--ink); font: 400 13px var(--font-sans); }
 .admin-table td .button {
   min-height: 30px;
   padding: 0 12px;
@@ -4636,3 +4640,11 @@ button.fair-opt:hover { background: var(--cream); }
 .city-request .field { display: grid; gap: 6px; }
 .city-request .form-note { margin: 0; }
 .field-hint { display: block; margin-top: 6px; color: var(--green); }
+
+/* Dashboard > Requests: one heading per kind of request, the requests numbered under it. */
+.requests-overview { display: grid; gap: 28px; padding: 20px 8.5% 80px; }
+.requests-block h2 { margin: 0 0 10px; font: 600 20px var(--font-display); }
+.requests-count { display: inline-block; margin-left: 6px; padding: 1px 9px; border-radius: 30px; background: var(--cream); color: var(--muted); font: 700 12px var(--font-sans); vertical-align: 3px; }
+.requests-list { margin: 0 0 10px; padding-left: 22px; display: grid; gap: 8px; }
+.requests-list li { padding-left: 4px; line-height: 1.5; }
+.requests-list .muted { margin-left: 2px; }

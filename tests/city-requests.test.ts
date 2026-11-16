@@ -9,14 +9,16 @@ import { POST as REQUEST } from '@/app/api/city-requests/route';
 import { GET as LIST } from '@/app/api/admin/city-requests/route';
 import { PATCH as DECIDE } from '@/app/api/admin/city-requests/[id]/route';
 import { GET as PLACES, resetPlacesRateLimit } from '@/app/api/places/route';
+import { eq } from 'drizzle-orm';
 import { signCityRef, verifyCityRef } from '@/lib/city-ref';
+import { upsertCity } from '@/lib/cities';
 import { DAILY_LIMIT, GLOBAL_DAILY_LIMIT, cityRequestMail, createCityRequest, decideCityRequest, listCityRequests } from '@/lib/city-requests';
 import { addExtraArea, getExtraAreas, removeExtraArea } from '@/lib/extra-areas';
 import { DEFAULT_EXTRA_AREAS, SELLER_AREA_LIMIT } from '@/lib/extra-areas-shared';
 import { setMailSenderForTests, type Mail } from '@/lib/mailer';
-import { clearPlacesCache, searchPlacesToRequest } from '@/lib/places';
+import { clearPlacesCache, searchPlaces, searchPlacesToRequest } from '@/lib/places';
 import { getTestDb, resetTestDb } from './helpers/testdb';
-import { appSettings } from '../src/db/schema';
+import { appSettings, cities } from '../src/db/schema';
 
 const SELLER = { email: 'seller@x.co', name: 'Lakshmi Bandhani' };
 const ref = (over: Partial<Parameters<typeof signCityRef>[0]> = {}) => signCityRef({ osmType: 'N', osmId: 424242, name: 'Nampally', state: 'Telangana', lat: 17.39, lng: 78.47, ...over });
@@ -170,6 +172,45 @@ describe('the admin decides', () => {
     await expect(decideCityRequest(request!.id, { decision: 'maybe' }, 'b@x.co')).rejects.toMatchObject({ status: 400 });
     await expect(decideCityRequest('not-an-id', { decision: 'approve' }, 'b@x.co')).rejects.toMatchObject({ status: 404 });
     await expect(decideCityRequest('00000000-0000-4000-8000-000000000000', { decision: 'approve' }, 'b@x.co')).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('the admin renames a city', () => {
+  it('changes what the City field shows and the request, keeps the status, and the old name still finds it', async () => {
+    const { request } = await createCityRequest({ ref: ref(), name: 'Nampally' }, SELLER);
+    const r = await decideCityRequest(request!.id, { decision: 'rename', name: 'Hyderabad Nampally' }, 'boss@x.co');
+    expect(r).toMatchObject({ name: 'Hyderabad Nampally', status: 'live' });
+    const area = (await getExtraAreas()).find(a => a.osmId === 424242)!;
+    expect(area).toMatchObject({ name: 'Hyderabad Nampally' }); expect(area.aliases).toContain('Nampally');
+    expect((await searchPlaces('nampally', (() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ features: [] }) } as Response)) as never, { cityOnly: true, areas: await getExtraAreas() })).map(p => p.name)).toEqual(['Hyderabad Nampally']);
+    expect((await listCityRequests())[0].name).toBe('Hyderabad Nampally');
+  });
+  it('also renames a city already created from it, so buyers see the new name, and leaves its web address alone', async () => {
+    const db = await getTestDb();
+    const { place, request } = await createCityRequest({ ref: ref(), name: 'Nampally' }, SELLER);
+    const city = await upsertCity(db, verifyCityRef(place.ref));   // a seller used it in a product
+    await decideCityRequest(request!.id, { decision: 'rename', name: 'Hyderabad Nampally' }, 'boss@x.co');
+    const [row] = await db.select().from(cities).where(eq(cities.id, city.id));
+    expect(row).toMatchObject({ name: 'Hyderabad Nampally', slug: city.slug });
+  });
+  it('a removed request can be renamed too, and a restore then brings it back under the new name', async () => {
+    const { request } = await createCityRequest({ ref: ref(), name: 'Nampally' }, SELLER);
+    await decideCityRequest(request!.id, { decision: 'remove' }, 'boss@x.co');
+    expect(await decideCityRequest(request!.id, { decision: 'rename', name: 'Hyderabad Nampally' }, 'boss@x.co')).toMatchObject({ name: 'Hyderabad Nampally', status: 'removed' });
+    expect((await getExtraAreas()).some(a => a.osmId === 424242)).toBe(false);
+    await decideCityRequest(request!.id, { decision: 'approve' }, 'boss@x.co');
+    expect((await getExtraAreas()).find(a => a.osmId === 424242)!.name).toBe('Hyderabad Nampally');
+  });
+  it('needs a name of 2 to 80 letters', async () => {
+    const { request } = await createCityRequest({ ref: ref(), name: 'Nampally' }, SELLER);
+    for (const name of [undefined, '', ' ', 'H', 'x'.repeat(81), 5]) await expect(decideCityRequest(request!.id, { decision: 'rename', name }, 'b@x.co')).rejects.toMatchObject({ status: 400 });
+    expect((await listCityRequests())[0].name).toBe('Nampally');
+  });
+  it('is for admins only, through the API', async () => {
+    const { request } = await createCityRequest({ ref: ref(), name: 'Nampally' }, SELLER);
+    const call = (body: unknown) => DECIDE(jsonReq('PATCH', body), { params: Promise.resolve({ id: request!.id }) });
+    as('seller@x.co', 'seller'); expect((await call({ decision: 'rename', name: 'Hyderabad Nampally' })).status).toBe(403);
+    as('boss@x.co', 'admin'); expect((await call({ decision: 'rename', name: 'Hyderabad Nampally' })).status).toBe(200);
   });
 });
 

@@ -1,6 +1,6 @@
 import { and, eq, ne, sql } from 'drizzle-orm';
 import { getDb, type Q } from '../db/client';
-import { appSettings, cityRequests } from '../db/schema';
+import { appSettings, cities, cityRequests } from '../db/schema';
 import { verifyCityRef } from './city-ref';
 import { ApiError } from './errors';
 import { DEFAULT_EXTRA_AREAS, MAX_EXTRA_AREAS, type ExtraArea } from './extra-areas-shared';
@@ -80,6 +80,29 @@ export async function addExtraArea(input: unknown, actorEmail: string, q?: Q): P
     const removed = await readRemoved(tx);   // adding a place again (by an admin, or restoring it) lifts the ban on asking for it
     if (removed.some(p => sameArea(p, area))) await writeRemoved(tx, removed.filter(p => !sameArea(p, area)), actorEmail);
     return saved;
+  }, q);
+}
+
+/**
+ * Renames an area: what the City field shows, the request that made it, and any city already created from it, so buyers see the new name in the filters too
+ * (the city's web address stays as it was). The old name stays searchable as an alias, so sellers who know it by that name still find it.
+ */
+export async function renameExtraArea(input: unknown, actorEmail: string, q?: Q): Promise<ExtraArea[]> {
+  const raw = obj(input);
+  if (typeof raw.osmType !== 'string' || typeof raw.osmId !== 'number') throw bad('osmType and osmId are required.');
+  const name = text(raw.name, 'name', 80);
+  if (name.length < 2) throw bad('name must be 2 to 80 characters.');
+  const target = { osmType: raw.osmType, osmId: raw.osmId };
+  return withExtraAreasLock(async tx => {
+    const current = await getExtraAreas(tx);
+    const area = current.find(a => sameArea(a, target));
+    if (!area) throw new ApiError(404, 'That area is not in the list.');
+    if (area.name === name) return current;
+    const aliases = [...new Set([...area.aliases, area.name])].filter(a => a.toLowerCase() !== name.toLowerCase()).slice(-5);   // the old name keeps finding it
+    const next = await save(tx, current.map(a => (sameArea(a, target) ? { ...a, name, aliases } : a)).sort((a, b) => a.name.localeCompare(b.name)), actorEmail);
+    await tx.update(cityRequests).set({ name }).where(and(eq(cityRequests.osmType, target.osmType), eq(cityRequests.osmId, target.osmId)));
+    await tx.update(cities).set({ name }).where(and(eq(cities.osmType, target.osmType), eq(cities.osmId, target.osmId)));
+    return next;
   }, q);
 }
 

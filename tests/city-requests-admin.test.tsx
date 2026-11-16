@@ -17,9 +17,10 @@ beforeEach(() => {
     const m = /^\/api\/admin\/city-requests\/(.+)$/.exec(url);
     if (!m || init?.method !== 'PATCH') return res(500, { error: 'unexpected' });
     if (fail) return res(500, { error: fail });
-    const d = JSON.parse(String(init.body)).decision as 'approve' | 'remove';
+    const b = JSON.parse(String(init.body)) as { decision: 'approve' | 'remove' | 'rename'; name?: string };
     const base = INITIAL.find(r => r.id === m[1])!;
-    return res(200, { ...base, status: d === 'approve' ? 'approved' : 'removed', decidedBy: 'boss@x.co' });
+    if (b.decision === 'rename') return res(200, { ...base, name: b.name! });
+    return res(200, { ...base, status: b.decision === 'approve' ? 'approved' : 'removed', decidedBy: 'boss@x.co' });
   });
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -36,11 +37,11 @@ describe('CityRequestsAdmin', () => {
     expect(within(row('Talwandi')).getByText('Removed')).toBeTruthy();
     expect(screen.getAllByRole('status').map(x => x.textContent).join(' ')).toMatch(/1 auto-approved and not yet looked at/);
   });
-  it('offers what makes sense for each state: Confirm and Remove, Remove, or Restore', () => {
+  it('offers what makes sense for each state, and Rename for every one', () => {
     render(<CityRequestsAdmin initial={INITIAL} />);
-    expect(within(row('Nampally')).getAllByRole('button').map(b => b.textContent)).toEqual(['Confirm', 'Remove']);
-    expect(within(row('Bani Park')).getAllByRole('button').map(b => b.textContent)).toEqual(['Remove']);
-    expect(within(row('Talwandi')).getAllByRole('button').map(b => b.textContent)).toEqual(['Restore']);
+    expect(within(row('Nampally')).getAllByRole('button').map(b => b.textContent)).toEqual(['Confirm', 'Rename', 'Remove']);
+    expect(within(row('Bani Park')).getAllByRole('button').map(b => b.textContent)).toEqual(['Rename', 'Remove']);
+    expect(within(row('Talwandi')).getAllByRole('button').map(b => b.textContent)).toEqual(['Restore', 'Rename']);
   });
   it('confirms, removes and restores, with a toast each time', async () => {
     render(<CityRequestsAdmin initial={INITIAL} />);
@@ -64,6 +65,55 @@ describe('CityRequestsAdmin', () => {
   });
   it('says so when there are none', () => {
     render(<CityRequestsAdmin initial={[]} />);
-    expect(screen.getByText('No requests yet.')).toBeTruthy();
+    expect(screen.getByText('No city requests yet.')).toBeTruthy();
+  });
+});
+
+describe('CityRequestsAdmin: Rename', () => {
+  const open = (city: string) => fireEvent.click(screen.getByRole('button', { name: `Rename ${city}` }));
+  it('turns the name into a box to edit, and saves the new name with a toast', async () => {
+    render(<CityRequestsAdmin initial={INITIAL} />);
+    open('Hyderabad Nampally');
+    const box = screen.getByLabelText('New name for Hyderabad Nampally') as HTMLInputElement;
+    expect(box.value).toBe('Hyderabad Nampally');
+    fireEvent.change(box, { target: { value: 'Nampally Hyderabad' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save name for Hyderabad Nampally' }));
+    await waitFor(() => expect(within(row('Nampally Hyderabad')).getByText('Auto-approved')).toBeTruthy());   // the status did not change
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({ decision: 'rename', name: 'Nampally Hyderabad' });
+    expect(screen.getAllByRole('status').map(x => x.textContent).join(' ')).toMatch(/Renamed to “Nampally Hyderabad”.*Buyers see the new name too/);
+    expect(screen.queryByLabelText(/New name for/)).toBeNull();
+  });
+  it('Enter saves, Escape and Cancel leave the name as it was', async () => {
+    render(<CityRequestsAdmin initial={INITIAL} />);
+    open('Jaipur Bani Park');
+    fireEvent.keyDown(screen.getByLabelText('New name for Jaipur Bani Park'), { key: 'Escape' });
+    expect(screen.queryByLabelText(/New name for/)).toBeNull(); expect(fetchMock).not.toHaveBeenCalled();
+    open('Jaipur Bani Park');
+    fireEvent.click(within(row('Bani Park')).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByLabelText(/New name for/)).toBeNull();
+    open('Jaipur Bani Park');
+    fireEvent.change(screen.getByLabelText('New name for Jaipur Bani Park'), { target: { value: 'Bani Park Jaipur' } });
+    fireEvent.keyDown(screen.getByLabelText('New name for Jaipur Bani Park'), { key: 'Enter' });
+    await waitFor(() => expect(within(row('Bani Park Jaipur')).getByText('Confirmed')).toBeTruthy());
+  });
+  it('does not send a name that is too short or unchanged', async () => {
+    render(<CityRequestsAdmin initial={INITIAL} />);
+    open('Hyderabad Nampally');
+    fireEvent.change(screen.getByLabelText('New name for Hyderabad Nampally'), { target: { value: 'H' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save name for Hyderabad Nampally' }));
+    expect(screen.getByRole('alert').textContent).toMatch(/at least 2 letters/);
+    fireEvent.change(screen.getByLabelText('New name for Hyderabad Nampally'), { target: { value: 'Hyderabad Nampally' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save name for Hyderabad Nampally' }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText(/New name for/)).toBeNull();
+  });
+  it('shows the reason and keeps the box open when saving fails', async () => {
+    fail = 'Something broke.';
+    render(<CityRequestsAdmin initial={INITIAL} />);
+    open('Hyderabad Nampally');
+    fireEvent.change(screen.getByLabelText('New name for Hyderabad Nampally'), { target: { value: 'Nampally Hyderabad' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save name for Hyderabad Nampally' }));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Something broke/));
+    expect(screen.getByLabelText('New name for Hyderabad Nampally')).toBeTruthy();
   });
 });

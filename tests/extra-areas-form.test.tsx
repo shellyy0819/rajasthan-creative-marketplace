@@ -19,6 +19,7 @@ beforeEach(() => {
     if (failNext) { const f = failNext; failNext = null; return res(f.status, { error: f.error }); }
     if (url.startsWith('/api/admin/settings/areas/search?')) return res(200, new URL(url, 'http://x').searchParams.get('q') === 'bani' ? [{ label: 'Bani Park, Jaipur, Rajasthan', name: 'Bani Park', state: 'Rajasthan', ref: 'REF-BANI' }] : []);
     if (url === '/api/admin/settings/areas' && method === 'POST') { const b = JSON.parse(String(init!.body)); saved = [...saved, { ...BANI, name: b.name }]; return res(200, { areas: saved }); }
+    if (url === '/api/admin/settings/areas' && method === 'PATCH') { const b = JSON.parse(String(init!.body)); saved = saved.map(a => (a.osmId === b.osmId ? { ...a, name: b.name } : a)); return res(200, { areas: saved }); }
     if (url === '/api/admin/settings/areas' && method === 'DELETE') { const b = JSON.parse(String(init!.body)); saved = saved.filter(a => a.osmId !== b.osmId); return res(200, { areas: saved }); }
     return res(500, { error: 'unexpected ' + method + ' ' + url });
   });
@@ -98,5 +99,35 @@ describe('ExtraAreasForm', () => {
     failNext = { status: 502, error: 'Place search is unavailable.' };
     search('yyyy');
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Place search is unavailable/));
+  });
+  it('renames a saved area in place, with a toast, and does not send an unchanged or too short name', async () => {
+    render(<ExtraAreasForm initial={[SHAIKPET]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Rename Hyderabad Shaikpet' }));
+    const box = screen.getByLabelText('New name for Hyderabad Shaikpet') as HTMLInputElement;
+    expect(box.value).toBe('Hyderabad Shaikpet');
+    fireEvent.change(box, { target: { value: 'H' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save name for Hyderabad Shaikpet' }));
+    expect(screen.getAllByRole('alert').map(a => a.textContent).join(' ')).toMatch(/at least 2 letters/);
+    fireEvent.change(box, { target: { value: 'Hyderabad Shaikpet' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save name for Hyderabad Shaikpet' }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Rename Hyderabad Shaikpet' }));
+    fireEvent.change(screen.getByLabelText('New name for Hyderabad Shaikpet'), { target: { value: 'Shaikpet Hyderabad' } });
+    fireEvent.keyDown(screen.getByLabelText('New name for Hyderabad Shaikpet'), { key: 'Enter' });
+    await waitFor(() => expect(within(saved_()).getByText('Shaikpet Hyderabad')).toBeTruthy());
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({ osmType: 'N', osmId: 2935018020, name: 'Shaikpet Hyderabad' });
+    expect(screen.getByRole('status').textContent).toMatch(/Renamed to “Shaikpet Hyderabad”.*old name still finds it/);
+  });
+  it('Escape leaves the name as it was, and a failed rename shows the reason and keeps the box', async () => {
+    render(<ExtraAreasForm initial={[SHAIKPET]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Rename Hyderabad Shaikpet' }));
+    fireEvent.keyDown(screen.getByLabelText('New name for Hyderabad Shaikpet'), { key: 'Escape' });
+    expect(screen.queryByLabelText(/New name for/)).toBeNull();
+    failNext = { status: 500, error: 'Something broke.' };
+    fireEvent.click(screen.getByRole('button', { name: 'Rename Hyderabad Shaikpet' }));
+    fireEvent.change(screen.getByLabelText('New name for Hyderabad Shaikpet'), { target: { value: 'Shaikpet Hyderabad' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save name for Hyderabad Shaikpet' }));
+    await waitFor(() => expect(screen.getAllByRole('alert').map(a => a.textContent).join(' ')).toMatch(/Something broke/));
+    expect(screen.getByLabelText('New name for Hyderabad Shaikpet')).toBeTruthy();
   });
 });

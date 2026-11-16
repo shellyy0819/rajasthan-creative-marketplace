@@ -12,7 +12,13 @@ export default async function CityRequestsPage() {
   return (
     <>
       <Breadcrumbs items={crumbs} />
-      <CityRequestsAdmin initial={await listCityRequests()} />
+      <section className="admin-posts">
+        <div className="page-head">
+          <h1>City requests</h1>
+          <p>Cities that sellers added because they could not find theirs in the City field. They are approved automatically, so the seller can carry on at once, and you get an email each time. Change any of them whenever you need: confirm it, rename it, remove it from the City field, or restore it.</p>
+        </div>
+        <CityRequestsAdmin initial={await listCityRequests()} />
+      </section>
     </>
   );
 }

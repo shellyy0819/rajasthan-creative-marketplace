@@ -19,6 +19,7 @@ export function ExtraAreasForm({ initial }: { initial: ExtraArea[] }) {
   const [picked, setPicked] = useState<Place | null>(null);
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
+  const [renaming, setRenaming] = useState<{ key: string; name: string } | null>(null);
   const [error, setError] = useState('');
   const [toast, setToast] = useState<ToastState>(null);
   const closeToast = useCallback(() => setToast(null), []);
@@ -46,7 +47,7 @@ export function ExtraAreasForm({ initial }: { initial: ExtraArea[] }) {
   const pick = (p: Place) => { setPicked(p); setName(p.name); setResults([]); setError(''); };
   const cancelPick = () => { setPicked(null); setName(''); setError(''); };
 
-  async function call(method: 'POST' | 'DELETE', body: unknown): Promise<ExtraArea[] | null> {
+  async function call(method: 'POST' | 'PATCH' | 'DELETE', body: unknown): Promise<ExtraArea[] | null> {
     setBusy(true); setError('');
     try {
       const r = await fetch('/api/admin/settings/areas', { method, headers: JSON_HEADERS, body: JSON.stringify(body) });
@@ -55,6 +56,16 @@ export function ExtraAreasForm({ initial }: { initial: ExtraArea[] }) {
       return (data as { areas: ExtraArea[] }).areas;
     } catch { setError('Network error. Please try again.'); notify('error', 'Network error. Please try again.'); return null; }
     finally { setBusy(false); }
+  }
+
+  async function saveName(a: ExtraArea) {
+    const name = renaming?.name.trim() ?? '';
+    if (name.length < 2) { notify('error', 'Enter the name sellers will see, at least 2 letters.'); return; }
+    if (name === a.name) { setRenaming(null); return; }
+    const next = await call('PATCH', { osmType: a.osmType, osmId: a.osmId, name });
+    if (!next) return;
+    setAreas(next); setRenaming(null);
+    notify('success', `Renamed to “${name}”. The old name still finds it.`);
   }
 
   return (
@@ -99,9 +110,17 @@ export function ExtraAreasForm({ initial }: { initial: ExtraArea[] }) {
         <h3 className="area-list-h">In the City field now</h3>
         {areas.length === 0 ? <p className="form-note">No extra areas yet.</p> : (
           <ul className="area-list">
-            {areas.map(a => (
-              <li key={`${a.osmType}${a.osmId}`}>
-                <span><b>{a.name}</b>{a.state ? <small>{a.state}</small> : null}</span>
+            {areas.map(a => { const key = `${a.osmType}${a.osmId}`, editing = renaming?.key === key; return (
+              <li key={key}>
+                {editing ? (
+                  <span className="city-rename">
+                    <input aria-label={`New name for ${a.name}`} value={renaming.name} maxLength={80} autoFocus onChange={e => setRenaming({ key, name: e.target.value })}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void saveName(a); } else if (e.key === 'Escape') setRenaming(null); }} />
+                    <button type="button" className="button primary" disabled={busy} aria-label={`Save name for ${a.name}`} onClick={() => void saveName(a)}>Save</button>
+                    <button type="button" className="button" onClick={() => setRenaming(null)}>Cancel</button>
+                  </span>
+                ) : <span><b>{a.name}</b>{a.state ? <small>{a.state}</small> : null}</span>}
+                {!editing && <button type="button" className="button" aria-label={`Rename ${a.name}`} disabled={busy} onClick={() => setRenaming({ key, name: a.name })}>Rename</button>}
                 <button type="button" className="button danger-outline" aria-label={`Remove ${a.name}`} disabled={busy} onClick={async () => {
                   const next = await call('DELETE', { osmType: a.osmType, osmId: a.osmId });
                   if (!next) return;
@@ -109,7 +128,7 @@ export function ExtraAreasForm({ initial }: { initial: ExtraArea[] }) {
                   notify('success', `Removed “${a.name}”. Cities already created from it stay.`);
                 }}>Remove</button>
               </li>
-            ))}
+            ); })}
           </ul>
         )}
       </section>
