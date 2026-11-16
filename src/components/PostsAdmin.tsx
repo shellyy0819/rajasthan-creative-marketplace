@@ -7,6 +7,7 @@ import type { AdminArtist } from "@/lib/admin-posts";
 import { artistKey } from "@/lib/artist";
 import { productSlug } from "@/lib/catalog-shared";
 import { money } from "@/lib/money";
+import { StockDialog } from "./StockDialog";
 import { ProductImage } from "./ProductImage";
 import { ProductPlaceholder } from "./ProductPlaceholder";
 import { PhotoButton } from "./PhotoButton";
@@ -24,8 +25,9 @@ const POST_STATUSES = [
 ] as const;
 const JSON_HEADERS = { "content-type": "application/json" };
 
-/** The numbers offered in a row's stock dropdown, always including what the product has now. 0 is shown as Sold out. */
-const STOCK_STEPS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50, 75, 100];
+/** The numbers offered in a row's stock dropdown (Sold out, then 1 to 10), always including what the product has now. "Other number…" opens a dialog for any other. */
+const STOCK_STEPS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const OTHER_STOCK = "other";
 export const stockChoices = (current: number) => [...new Set([...STOCK_STEPS, current])].sort((a, b) => a - b);
 export const stockLabel = (n: number) => (n > 0 ? `${n} in stock` : "Sold out");
 
@@ -77,6 +79,7 @@ export function PostsAdmin({
   const [confirming, setConfirming] = useState<Product | null>(null);
   const [changingStatus, setChangingStatus] = useState<string | null>(null);
   const [changingStock, setChangingStock] = useState<string | null>(null);
+  const [stockDialog, setStockDialog] = useState<Product | null>(null);
   const [pageBusy, setPageBusy] = useState(""); // label of the page-wide loader ("" = idle)
   const [deleting, setDeleting] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
@@ -199,8 +202,8 @@ export function PostsAdmin({
   };
 
   /** Stock changes apply at once, for sellers too: no review. The row updates in place and a toast says how it went. */
-  const changeStock = async (p: Product, next: number) => {
-    if (next === p.stock) return;
+  const changeStock = async (p: Product, next: number): Promise<string | null> => {
+    if (next === p.stock) return null;
     setChangingStock(p.id);
     setPageBusy("Updating stock…");
     setToast(null);
@@ -212,6 +215,7 @@ export function PostsAdmin({
     }
     setChangingStock(null);
     setPageBusy("");
+    return err;   // null when it worked; the stock dialog shows the reason itself
   };
 
   const viewing = products.find((x) => x.id === viewingId) ?? null; // always the latest data for the open post
@@ -251,6 +255,7 @@ export function PostsAdmin({
         </p>
       </div>
       <Toast toast={toast} onClose={closeToast} />
+      {stockDialog && <StockDialog name={stockDialog.name} current={products.find((x) => x.id === stockDialog.id)?.stock ?? stockDialog.stock} onSave={(n) => changeStock(stockDialog, n)} onClose={() => setStockDialog(null)} />}
       <PageLoader show={!!pageBusy} label={pageBusy} />
 
       <div className={seller ? "admin-grid admin-grid-solo" : "admin-grid"}>
@@ -413,11 +418,12 @@ export function PostsAdmin({
                       aria-label={`Change stock for ${p.name}`}
                       value={p.stock}
                       disabled={changingStock === p.id}
-                      onChange={(e) => void changeStock(p, Number(e.target.value))}
+                      onChange={(e) => { if (e.target.value === OTHER_STOCK) { setToast(null); setStockDialog(p); } else void changeStock(p, Number(e.target.value)); }}
                     >
                       {stockChoices(p.stock).map((n) => (
                         <option value={n} key={n}>{stockLabel(n)}</option>
                       ))}
+                      <option value={OTHER_STOCK}>Other number…</option>
                     </select>
                     <select
                       id={`status-${p.id}`}
