@@ -3,8 +3,6 @@ import { getCatalogWording, siteCopy } from '@/lib/catalog-wording';
 import { SITE } from '@/lib/site';
 
 const sizes = [48, 72, 96, 128, 144, 152, 192, 256, 384, 512];
-// Reads the catalogue wording from the database, which is not reachable while the image is built, so render per request.
-export const dynamic = 'force-dynamic';
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const copy = siteCopy(await getCatalogWording());
