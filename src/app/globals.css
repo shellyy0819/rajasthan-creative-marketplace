@@ -4642,6 +4642,27 @@ button.fair-opt:hover { background: var(--cream); }
   .maker-info { padding: 22px 20px 26px; }
   .maker-frame { width: 46%; font-size: 60px; }
 }
+/* Phone: the card and its type follow the rest of the home page (section headings 24px like the maker call-to-action, card titles ~20px, body 12-14px). */
+@media (max-width: 600px) {
+  .makers-band h2 { font-size: 24px; letter-spacing: -0.5px; }
+  .makers-rail { margin-top: 20px; }
+  .maker-card { min-height: 0; }
+  .maker-stall { min-height: 0; }
+  .maker-scene { min-height: 150px; }
+  .maker-arch-2 { inset: 22px 17% 0; }
+  .maker-frame { width: 34%; max-width: 110px; bottom: 10px; font-size: 40px; border-width: 4px; }
+  .maker-frame:has(.ah-logo) { width: 36%; max-width: 120px; bottom: 10px; }
+  .maker-post { width: 7px; }
+  .maker-counter { height: 10px; }
+  .maker-info { padding: 14px 16px 16px; gap: 8px; }
+  .maker-tags { gap: 6px; }
+  .maker-tags li { padding: 3px 9px; font-size: 10px; }
+  .maker-info h3 { font-size: 20px; line-height: 1.15; letter-spacing: -0.02em; }
+  .maker-where { margin-top: -3px; font-size: 12px; }
+  .maker-quote { font-size: 14px; line-height: 1.45; }
+  .maker-actions { margin-top: 2px; }
+  .makers-controls { margin-top: 12px; }
+}
 @media (prefers-reduced-motion: reduce) {
   .makers-dots button { transition: none; }
 }
