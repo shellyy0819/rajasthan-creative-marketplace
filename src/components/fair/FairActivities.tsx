@@ -65,8 +65,8 @@ function TugScene({ pos, clock, heave, result }: { pos: number; clock: number; h
       <path d={`M10 86 Q200 ${86 + sag} 390 86`} stroke="var(--stall-chalk)" strokeWidth="3.5" fill="none" strokeLinecap="round" />
       <path d={`M10 86 Q200 ${86 + sag} 390 86`} stroke="var(--stall-wood)" strokeWidth="1.2" strokeDasharray="3 3" fill="none" />
       <path d={`M${markX - 7} ${86 + sag * .6} h14 l-7 22 z`} fill="#b3262e" />
-      <text x="8" y="164" fontSize="11" fontWeight="600" fill="var(--muted)" fontFamily="var(--font-sans)">Village team</text>
-      <text x="392" y="164" fontSize="11" fontWeight="600" textAnchor="end" fill="var(--muted)" fontFamily="var(--font-sans)">Your team</text>
+      <text x="8" y="164" fontSize="11" fontWeight="600" fill="var(--muted)">Village team</text>
+      <text x="392" y="164" fontSize="11" fontWeight="600" textAnchor="end" fill="var(--muted)">Your team</text>
     </svg>
   );
 }
