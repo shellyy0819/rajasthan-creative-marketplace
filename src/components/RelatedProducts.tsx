@@ -9,15 +9,6 @@ export async function RelatedProducts({ product }: { product: Product }) {
   if (!fromMaker.length && !similar.length) return null;
   return (
     <>
-      {fromMaker.length > 0 && (
-        <section className="section" aria-labelledby="more-maker-h">
-          <div className="section-heading">
-            <div><span className="eyebrow">FROM THE SAME MAKER</span><h2 id="more-maker-h">More from {product.seller}</h2></div>
-            {product.sellerSlug && <Link className="text-link" href={`/artists/${product.sellerSlug}`}>View all →</Link>}
-          </div>
-          <ProductGrid products={fromMaker} />
-        </section>
-      )}
       {similar.length > 0 && (
         <section className="section" aria-labelledby="similar-h">
           <div className="section-heading">
@@ -25,6 +16,15 @@ export async function RelatedProducts({ product }: { product: Product }) {
             <Link className="text-link" href={`/shop?category=${encodeURIComponent(product.category)}`}>See all {product.category} →</Link>
           </div>
           <ProductGrid products={similar} />
+        </section>
+      )}
+      {fromMaker.length > 0 && (
+        <section className="section" aria-labelledby="more-maker-h">
+          <div className="section-heading">
+            <div><span className="eyebrow">FROM THE SAME MAKER</span><h2 id="more-maker-h">More from {product.seller}</h2></div>
+            {product.sellerSlug && <Link className="text-link" href={`/artists/${product.sellerSlug}`}>View all →</Link>}
+          </div>
+          <ProductGrid products={fromMaker} />
         </section>
       )}
     </>
