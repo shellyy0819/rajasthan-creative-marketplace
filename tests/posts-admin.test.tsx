@@ -18,6 +18,7 @@ const PLACES = [{ label: 'Kota, Rajasthan', name: 'Kota', state: 'Rajasthan', re
 let db: Product[];
 let fetchMock: ReturnType<typeof vi.fn>;
 let postDelay: Promise<void> | null;
+let stockError: string | null;
 
 const artistsOf = (list: Product[]) => {
   const m = new Map<string, any>();
@@ -32,7 +33,7 @@ const res = (status: number, body: unknown) => Promise.resolve({ ok: status < 40
 
 beforeEach(() => {
   db = [mk('p3', 'Draft Dish', 'Neel Mitti', 'DRAFT'), mk('p2', 'Boat Charm', 'Lake City Knots'), mk('p1', 'Lily Bouquet', 'Shauk and Stuff', 'APPROVED', { imageUrl: 'https://cdn.example.com/l.jpg' })];
-  postDelay = null;
+  postDelay = null; stockError = null;
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
     if (url.startsWith('/api/places?')) return res(200, PLACES);
@@ -45,6 +46,14 @@ beforeEach(() => {
       if (body.description === 'REJECT') return res(400, { error: 'description is not allowed.' });
       const p = mk('p9', body.name, 'Me Studio', body.status, { pricePaise: body.pricePaise });
       db = [p, ...db]; return res(201, p);
+    }
+    const st = /^\/api\/products\/([^/]+)\/stock$/.exec(url);
+    if (st && method === 'PATCH') {
+      const i = db.findIndex(p => p.id === st[1]);
+      if (i < 0) return res(404, { error: 'Product not found.' });
+      const { stock } = JSON.parse(String(init!.body));
+      if (stockError) return res(500, { error: stockError });
+      db[i] = { ...db[i], stock }; return res(200, db[i]);
     }
     const m = /^\/api\/products\/(.+)$/.exec(url);
     if (m && method === 'PATCH') {
@@ -816,5 +825,121 @@ describe('wantsNewPost (page parsing)', () => {
     expect(wantsNewPost({ new: '1' })).toBe(true);
     for (const v of [undefined, '0', '', 'true', ['1', '1']]) expect(wantsNewPost({ new: v })).toBe(false);
     expect(wantsNewPost({})).toBe(false);
+  });
+});
+
+describe('PostsAdmin stock dropdown', () => {
+  const stockSelect = (name: string) => screen.getByLabelText(`Change stock for ${name}`) as HTMLSelectElement;
+  const rowOf = (name: string) => screen.getAllByTestId('post-row').find(r => within(r).queryByText(name))!;
+  const summary = (name: string) => rowOf(name).querySelector('.admin-row-main p')!.textContent ?? '';   // the line under the title, not the dropdown's options
+  it('shows every row\'s stock as a dropdown with Sold out first, and the current number selected', async () => {
+    mount('admin'); await screen.findByText('Boat Charm');
+    const sel = stockSelect('Boat Charm');
+    expect(sel.value).toBe('3');
+    expect([...sel.options].map(o => o.textContent)).toEqual(['Sold out', ...Array.from({ length: 10 }, (_, i) => `${i + 1} in stock`), 'Other number…']);   // 1 to 10 by default, then the way to type any other
+  });
+  it('offers a stock that is not one of the usual steps, so the dropdown never shows something untrue', async () => {
+    db = [mk('p7', 'Big Batch', 'Shauk and Stuff', 'APPROVED', { stock: 37 })];
+    mount('admin'); await screen.findByText('Big Batch');
+    expect(stockSelect('Big Batch').value).toBe('37');
+    expect([...stockSelect('Big Batch').options].map(o => o.textContent)).toContain('37 in stock');
+  });
+  it('saves the new stock straight away, updates the row and shows a success toast', async () => {
+    mount('admin'); await screen.findByText('Boat Charm');
+    fireEvent.change(stockSelect('Boat Charm'), { target: { value: '9' } });
+    await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/Stock is published successfully/));
+    const call = fetchMock.mock.calls.find(c => String(c[0]) === '/api/products/p2/stock')!;
+    expect(call[1].method).toBe('PATCH'); expect(JSON.parse(call[1].body)).toEqual({ stock: 9 });
+    expect(summary('Boat Charm')).toMatch(/9 in stock/);
+    expect(stockSelect('Boat Charm').value).toBe('9');
+  });
+  it('Sold out saves 0 and the row says Sold out', async () => {
+    mount('seller'); await screen.findByText('Boat Charm');
+    fireEvent.change(stockSelect('Boat Charm'), { target: { value: '0' } });
+    await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/Stock is published successfully/));
+    expect(JSON.parse(fetchMock.mock.calls.find(c => String(c[0]) === '/api/products/p2/stock')![1].body)).toEqual({ stock: 0 });
+    expect(summary('Boat Charm')).toMatch(/Sold out/);
+  });
+  it('shows an error toast and keeps the old stock when saving fails', async () => {
+    stockError = 'Something broke on the server.';
+    mount('admin'); await screen.findByText('Boat Charm');
+    fireEvent.change(stockSelect('Boat Charm'), { target: { value: '9' } });
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Something broke on the server/));
+    expect(screen.queryByText(/Stock is published successfully/)).toBeNull();
+    expect(stockSelect('Boat Charm').value).toBe('3');
+    expect(summary('Boat Charm')).toMatch(/3 in stock/);
+  });
+  it('says so when the connection is down', async () => {
+    mount('admin'); await screen.findByText('Boat Charm');
+    fetchMock.mockImplementationOnce(() => Promise.reject(new Error('offline')));
+    fireEvent.change(stockSelect('Boat Charm'), { target: { value: '5' } });
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Network error/));
+    expect(stockSelect('Boat Charm').value).toBe('3');
+  });
+  describe('Other number…', () => {
+    const openOther = async (name = 'Boat Charm') => { mount('admin'); await screen.findByText(name); fireEvent.change(stockSelect(name), { target: { value: 'other' } }); return screen.getByRole('dialog'); };
+    const type = (v: string) => fireEvent.change(screen.getByLabelText(/Number in stock/), { target: { value: v } });
+    const save = () => fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    const stockCalls = () => fetchMock.mock.calls.filter(c => String(c[0]).endsWith('/stock'));
+    it('opens a dialog for the product with the current stock filled in, and leaves the dropdown as it was', async () => {
+      const dlg = await openOther();
+      expect(within(dlg).getByRole('heading', { name: 'Set stock' })).toBeTruthy();
+      expect(within(dlg).getByText('Boat Charm')).toBeTruthy();
+      expect((screen.getByLabelText(/Number in stock/) as HTMLInputElement).value).toBe('3');
+      expect(stockSelect('Boat Charm').value).toBe('3');
+      expect(stockCalls()).toHaveLength(0);
+    });
+    it('saves a number the dropdown does not have, closes, updates the row and shows the success toast', async () => {
+      await openOther(); type('250'); save();
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      expect(JSON.parse(stockCalls()[0][1].body)).toEqual({ stock: 250 });
+      expect(summary('Boat Charm')).toMatch(/250 in stock/);
+      expect(screen.getByRole('status').textContent).toMatch(/Stock is published successfully/);
+      expect(stockSelect('Boat Charm').value).toBe('250');
+      expect([...stockSelect('Boat Charm').options].map(o => o.textContent)).toContain('250 in stock');   // the dropdown shows it truthfully now
+    });
+    it('stays open when a late close event arrives from an earlier close (React runs effects twice in development)', async () => {
+      const dlg = await openOther();
+      fireEvent(dlg, new Event('close'));   // the dialog itself is still open, so this one does not count
+      expect(screen.getByRole('dialog')).toBeTruthy();
+      expect(screen.getByLabelText(/Number in stock/)).toBeTruthy();
+    });
+    it('Enter saves, and 0 means sold out', async () => {
+      await openOther(); type('0'); fireEvent.submit(screen.getByRole('dialog').querySelector('form')!);
+      await waitFor(() => expect(summary('Boat Charm')).toMatch(/Sold out/));
+      expect(JSON.parse(stockCalls()[0][1].body)).toEqual({ stock: 0 });
+    });
+    it('rejects anything that is not a whole number from 0 to 100000, in the dialog, without sending it', async () => {
+      await openOther();
+      for (const bad of ['', '-1', '1.5', '100001', 'abc', '1e3']) { type(bad); save(); expect(screen.getByRole('alert').textContent).toMatch(/whole number from 0 to 1,00,000/); }
+      expect(stockCalls()).toHaveLength(0); expect(screen.getByRole('dialog')).toBeTruthy();
+      type('100000'); save(); await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      expect(JSON.parse(stockCalls()[0][1].body)).toEqual({ stock: 100000 });
+    });
+    it('saving the number it already has just closes', async () => {
+      await openOther(); save();
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      expect(stockCalls()).toHaveLength(0);
+    });
+    it('Cancel, the cross and a click outside close it without saving', async () => {
+      for (const how of ['cancel', 'cross', 'outside'] as const) {
+        const dlg = await openOther(); type('77');
+        if (how === 'cancel') fireEvent.click(within(dlg).getByRole('button', { name: 'Cancel' }));
+        else if (how === 'cross') fireEvent.click(within(dlg).getByRole('button', { name: 'Close' }));
+        else fireEvent.click(dlg);
+        expect(screen.queryByRole('dialog')).toBeNull();
+        cleanup();
+      }
+      expect(stockCalls()).toHaveLength(0);
+    });
+    it('shows the reason inside the dialog and keeps it open when saving fails, and a retry can work', async () => {
+      stockError = 'Something broke on the server.';
+      await openOther(); type('250'); save();
+      await waitFor(() => expect(within(screen.getByRole('dialog')).getByRole('alert').textContent).toMatch(/Something broke on the server/));
+      expect(summary('Boat Charm')).toMatch(/3 in stock/);
+      stockError = null; save();
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      expect(summary('Boat Charm')).toMatch(/250 in stock/);
+    });
   });
 });

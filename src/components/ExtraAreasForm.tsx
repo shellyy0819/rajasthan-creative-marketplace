@@ -96,8 +96,11 @@ export function ExtraAreasForm({ initial }: { initial: ExtraArea[] }) {
               <p className="form-note">Selected: <b>{picked.label}</b> <button type="button" className="text-link" onClick={cancelPick}>Choose another</button></p>
               <label><span className="lbl">Name sellers will see</span>
                 <input name="areaName" value={name} onChange={e => { setName(e.target.value); setError(''); }} maxLength={80} required />
-                <small>Add the city in front if people know the place that way, for example &ldquo;Hyderabad Shaikpet&rdquo;.</small>
+                <small>This is the name that shows in the City field and on the site.</small>
               </label>
+              {name.trim().toLowerCase() === picked.name.toLowerCase() && (
+                <p className="form-note area-name-hint" role="note">Sellers will see just &ldquo;{picked.name}&rdquo;, with no city. If people know this place with its city, put the city in front, for example &ldquo;Hyderabad {picked.name}&rdquo;, so a search for the city finds it too. You can still add it as it is.</p>
+              )}
               <div className="admin-actions"><button type="submit" className="button primary" disabled={busy} aria-busy={busy}>Add</button></div>
             </>
           )}
