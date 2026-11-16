@@ -4622,3 +4622,10 @@ button.fair-opt:hover { background: var(--cream); }
 /* Home shelf: the "Show more" row under the grid. Scrolling to it loads the next page by itself. */
 .craft-more { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 28px; }
 .craft-more p { margin: 0; font-size: 12px; color: var(--danger); }
+
+/* Dashboard > Settings > Extra city areas. */
+.area-results, .area-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.area-results .button { width: 100%; justify-content: flex-start; text-align: left; }
+.area-list-h { margin: 22px 0 10px; font: 600 11px var(--font-sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.area-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); }
+.area-list small { display: block; color: var(--muted); font-size: 12px; }
