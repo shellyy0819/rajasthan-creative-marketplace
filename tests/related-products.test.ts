@@ -26,7 +26,7 @@ beforeEach(async () => {
   b = await makeSeller('b@x.co', 'Studio B');
   for (const name of ['Paintings', 'Oil Paintings', 'Pottery']) await createCategory({ name }, 'a@x.co');
   // The form never allows % in a name; a row added some other way must still be matched literally.
-  await (await getTestDb()).insert(categories).values({ name: '%' });
+  await (await getTestDb()).insert(categories).values([{ name: '%' }, { name: 'a_c' }, { name: 'abc' }]);
 });
 
 describe('getRelatedProducts: more from the maker', () => {
@@ -74,6 +74,16 @@ describe('getRelatedProducts: similar products', () => {
     await add(b, 'T-B1', '%');
     await add(b, 'T-B2', 'Pottery'); // newer, so it would come first if "%" were a wildcard
     expect(mine((await getRelatedProducts(p1)).similar)).toEqual(['T-B1', 'T-B2']);
+  });
+  it('a "%" or "_" in another product\'s category is not a wildcard against the current one', async () => {
+    const pottery = await add(a, 'T-A1', 'Pottery');
+    await add(b, 'T-B1', 'Pottery');
+    await add(b, 'T-B2', '%'); // newer: would come first if its "%" acted as a wildcard
+    expect(mine((await getRelatedProducts(pottery)).similar)).toEqual(['T-B1', 'T-B2']);
+    const abc = await add(a, 'T-A2', 'abc');
+    await add(b, 'T-B3', 'abc');
+    await add(b, 'T-B4', 'a_c'); // newer: "_" must not stand for the "b"
+    expect(mine((await getRelatedProducts(abc)).similar).slice(0, 2)).toEqual(['T-B3', 'T-B4']);
   });
   it('is capped at 8 and fills from other categories when matches run out', async () => {
     const p1 = await add(a, 'T-A1', 'Paintings');

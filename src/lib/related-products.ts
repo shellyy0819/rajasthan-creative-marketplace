@@ -2,7 +2,6 @@ import { and, eq, ne, not, notInArray, sql, type SQL } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { productsQuery, toProduct } from '../db/mappers';
 import { products } from '../db/schema';
-import { artistIdPrefix } from './artist-slug';
 import type { Product } from './types';
 
 export const MAKER_LIMIT = 4;
@@ -27,16 +26,13 @@ const newestFirst = [sql`length(${products.id}) desc`, sql`${products.id} desc`]
 /** More from the same maker, then similar products: matching category first, other categories to fill up. */
 export async function getRelatedProducts(p: Product): Promise<Related> {
   const db = getDb();
-  const prefix = artistIdPrefix(p.sellerSlug ?? '');
-  const makerWhere = prefix ? sql`replace(${products.sellerId}::text, '-', '') like ${prefix + '%'}` : undefined;
+  // The maker is the current product's seller, matched by their exact id (indexed), not by the public slug.
+  const currentSeller = sql`(select seller_id from products where id = ${p.id})`;
   const base = [eq(products.status, 'APPROVED'), ne(products.id, p.id)];
 
-  const fromMaker = makerWhere
-    ? (await productsQuery(db).where(and(...base, makerWhere)).orderBy(...newestFirst)).map(toProduct)
-        .filter(x => x.sellerSlug === p.sellerSlug).slice(0, MAKER_LIMIT)
-    : [];
+  const fromMaker = (await productsQuery(db).where(and(...base, eq(products.sellerId, currentSeller))).orderBy(...newestFirst).limit(MAKER_LIMIT)).map(toProduct);
 
-  const others = makerWhere ? [...base, not(makerWhere)] : base;
+  const others = [...base, ne(products.sellerId, currentSeller)];
   const matching = (await productsQuery(db).where(and(...others, categoryMatches(p.category))).orderBy(...newestFirst).limit(SIMILAR_LIMIT)).map(toProduct);
   const filler = matching.length >= SIMILAR_LIMIT ? [] : (await productsQuery(db)
     .where(and(...others, not(categoryMatches(p.category)), ...(matching.length ? [notInArray(products.id, matching.map(x => x.id))] : [])))
