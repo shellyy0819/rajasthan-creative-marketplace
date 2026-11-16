@@ -337,9 +337,34 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
     ctx.beginPath(); ctx.ellipse(62, -107 + chew, 12, 8, -.12, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(72, -103 + chew, 7, 6, 0, 0, TAU); ctx.fill();
     ctx.fillStyle = dark; ctx.beginPath(); ctx.ellipse(54, -114, 3, 5, -.4, 0, TAU); ctx.fill(); ctx.fillStyle = C.hair; ctx.beginPath(); ctx.arc(64, -110 + chew, 1.6, 0, TAU); ctx.fill();
     ctx.strokeStyle = dark; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-44, -66); ctx.quadraticCurveTo(-54, -54, -50 + sway, -38); ctx.stroke();
-    ctx.fillStyle = C[c.rug]; ctx.beginPath(); ctx.roundRect(-30, -78, 46, 28, 5); ctx.fill();
-    ctx.fillStyle = C.chalk; ctx.fillRect(-30, -68, 46, 4); ctx.fillStyle = C.mustard; for (let x = -26; x <= 10; x += 9) { ctx.beginPath(); ctx.arc(x + 4, -50, 2.6, 0, TAU); ctx.fill(); }
-    ctx.strokeStyle = C.orange; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(52, -98); ctx.quadraticCurveTo(48, -78, 40, -62); ctx.stroke();
+    // Fair-day finery: a red-and-gold embroidered saddle cloth with a swan, a crocheted net over the neck and shoulder with pompoms, bead strings, a tufted headstall and tassels that swing.
+    const PINK = '#e0457b', GREEN = '#2f9e5b', BLUE = '#3f6fd1', RED = '#c8283a', GOLD = '#e8b63a', tas = (x: number, y: number, len: number, col: string, ph: number) => {
+      const sw = reduce ? 0 : Math.sin(t * 2.4 + ph + c.seed) * 1.6;
+      ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + sw, y + len); ctx.stroke();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x + sw, y + len + 2, 2.2, 3.4, 0, 0, TAU); ctx.fill();
+    };
+    // net over the neck and shoulder: a mesh of gold lines clipped to the shape, pompoms on the knots
+    ctx.save(); ctx.beginPath(); ctx.moveTo(30, -68); ctx.quadraticCurveTo(54, -80, 50, -104); ctx.lineTo(61, -104); ctx.quadraticCurveTo(64, -78, 44, -50); ctx.lineTo(-8, -52); ctx.lineTo(-8, -80); ctx.closePath(); ctx.clip();
+    ctx.fillStyle = c.rug === 'indigo' ? BLUE : c.rug === 'mustard' ? GREEN : PINK; ctx.globalAlpha = .5; ctx.fillRect(-10, -110, 80, 70); ctx.globalAlpha = 1;
+    ctx.strokeStyle = GOLD; ctx.lineWidth = 1; ctx.beginPath(); for (let i = -20; i < 80; i += 7) { ctx.moveTo(i, -110); ctx.lineTo(i - 24, -40); ctx.moveTo(i - 24, -110); ctx.lineTo(i, -40); } ctx.stroke();
+    ctx.restore();
+    [[52, -100, PINK], [57, -90, GOLD], [53, -80, GREEN], [47, -70, BLUE], [38, -62, PINK], [26, -58, GOLD], [14, -56, GREEN]].forEach(([x, y, col], i) => { ctx.fillStyle = col as string; ctx.beginPath(); ctx.arc(x as number, y as number, 2.8, 0, TAU); ctx.fill(); if (i % 2 === 0) tas(x as number, (y as number) + 2, 9, col as string, i); });
+    // bead strings and the white pompom collar along the throat
+    ctx.fillStyle = C.chalk; for (let i = 0; i < 6; i++) { const u = i / 5; ctx.beginPath(); ctx.arc(64 - u * 20 - u * u * 4, -100 + u * 44, 2.4, 0, TAU); ctx.fill(); }
+    // headstall, drawn on the head itself (it moves with the chewing): a rope that wraps round the nose in a reverse C, and a strap back to the ear, and a tuft on the poll behind the ear
+    ctx.strokeStyle = RED; ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.ellipse(70, -103 + chew, 8.5, 7.2, 0, -Math.PI / 2 - .25, Math.PI / 2 + .25); ctx.stroke();
+    ctx.strokeStyle = GOLD; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(69, -110 + chew); ctx.quadraticCurveTo(64, -116 + chew, 55, -113 + chew * .5); ctx.stroke();
+    ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(53, -117 + chew * .5, 4.2, 0, TAU); ctx.fill(); ctx.fillStyle = GOLD; ctx.beginPath(); ctx.arc(52, -121 + chew * .5, 2.8, 0, TAU); ctx.fill(); ctx.fillStyle = PINK; ctx.beginPath(); ctx.arc(56, -116 + chew * .5, 2.2, 0, TAU); ctx.fill();
+    tas(70, -95.5 + chew, 6, GREEN, 9); tas(64, -97 + chew, 7, PINK, 11);
+    // saddle cloth: coloured by the camel, with a gold border, a swan medallion and a fringe
+    ctx.fillStyle = c.rug === 'indigo' ? '#2a3f8f' : c.rug === 'mustard' ? '#b5341c' : RED; ctx.beginPath(); ctx.roundRect(-34, -80, 52, 34, 5); ctx.fill();
+    ctx.strokeStyle = GOLD; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(-34, -80, 52, 34, 5); ctx.stroke();
+    ctx.lineWidth = .8; ctx.beginPath(); ctx.roundRect(-30, -76, 44, 26, 3); ctx.stroke();
+    ctx.beginPath(); ctx.arc(-8, -63, 9, 0, TAU); ctx.stroke(); ctx.fillStyle = C.chalk; ctx.beginPath(); ctx.ellipse(-9, -61, 4.6, 3, 0, 0, TAU); ctx.fill(); ctx.strokeStyle = C.chalk; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(-5, -62); ctx.quadraticCurveTo(-2, -69, -5, -70); ctx.stroke();
+    ctx.fillStyle = GOLD; for (let x = -32; x <= 16; x += 4) ctx.fillRect(x, -46, 1.6, 4);
+    [[-28, RED], [-20, GREEN], [-12, BLUE], [-4, PINK], [4, GOLD], [12, GREEN]].forEach(([x, col], i) => tas(x as number, -42, 12 + (i % 2) * 4, col as string, i * 1.3));
+    // bright knots on the hump
+    [[-18, -84, PINK], [-6, -88, GOLD], [8, -84, GREEN]].forEach(([x, y, col]) => { ctx.fillStyle = col as string; ctx.beginPath(); ctx.arc(x as number, y as number, 3.4, 0, TAU); ctx.fill(); });
     ctx.restore();
   }
   /** One devotee standing in the water up to the chest. They duck under, come up with their hands raised and let the water run off. y is the waterline, k the size for their row. */

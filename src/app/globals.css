@@ -324,25 +324,17 @@ nav a:hover,
   font-weight: 600;
   color: var(--muted);
 }
-.seller-login-link {
-  border: 0;
-  padding: 0;
-  background: transparent;
-  font: inherit;
-  font-weight: 700;
-  color: var(--green);
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+/* The login buttons are .button.outline (same as "Host a workshop"); the phone one only shows on small screens. */
+.seller-prompt {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
 }
-.seller-login-link:hover {
-  color: var(--orange);
+.seller-prompt .button {
+  padding: 12px;
 }
-.seller-login-btn {
+nav .seller-login-btn {
   display: none;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 8px 13px;
 }
 .hero {
   padding: 65px 9% 72px;
@@ -515,12 +507,13 @@ h2 em {
   line-height: 1.8;
 }
 .section {
-  padding: 75px 8.5% 90px;
+  padding: 90px 8.5% 100px;
 }
 .section-heading {
   display: flex;
   align-items: end;
   justify-content: space-between;
+  margin-bottom: 36px;
 }
 .section-heading h2 {
   margin-bottom: 0;
@@ -531,8 +524,8 @@ h2 em {
 }
 .filters {
   display: flex;
-  gap: 10px;
-  margin: 28px 0 25px;
+  gap: 12px;
+  margin: 32px 0 36px;
 }
 .filters input,
 .filters select,
@@ -561,7 +554,7 @@ h2 em {
 .product-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
+  gap: 40px;
 }
 .product-card {
   background: var(--white);
@@ -916,6 +909,7 @@ form label select {
   }
   .product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 18px;
   }
   .workshop-band {
     padding-left: 6%;
@@ -966,8 +960,12 @@ form label select {
   .seller-prompt {
     display: none;
   }
-  .seller-login-btn {
-    display: inline-block;
+  nav .seller-login-btn {
+    display: inline-flex;
+    padding: 10px;
+  }
+  .button {
+    padding: 10px 12px;
   }
   .hero {
     grid-template-columns: 1fr;
@@ -1007,7 +1005,7 @@ form label select {
     min-width: 0;
   }
   .product-grid {
-    gap: 10px;
+    gap: 16px 12px;
   }
   .product-visual {
     height: 150px;
@@ -1225,7 +1223,7 @@ form label select {
   color: var(--orange);
 }
 .page-head {
-  padding: 40px 8.5% 0;
+  padding: 56px 8.5% 12px;
 }
 .page-head h1 {
   font: 500 clamp(34px, 4.5vw, 52px)/1.1 var(--font-display);
@@ -1268,6 +1266,40 @@ form label select {
 }
 .detail dt {
   color: var(--muted);
+}
+.detail dl {
+  align-items: center;
+}
+.detail dd.detail-artist-row {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+/* Artist row on the product page: round photo (or initial) in front of a larger name */
+.detail-artist {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+a.detail-artist:hover {
+  color: var(--orange);
+}
+.detail-artist-av {
+  flex: none;
+  overflow: hidden;
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--green);
+  color: #fff;
+  font-size: 19px;
+  font-weight: 700;
 }
 .detail .price {
   font-size: 22px;
@@ -3825,6 +3857,15 @@ body.modal-open {
   .product-card .product-info p.pc-who {
     font-size: 11px;
   }
+  /* Maker and city: up to 2 lines, then an ellipsis (not one line cut off) */
+  .pc-who span:last-child {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
   .product-card .price {
     font-size: 15px;
   }
@@ -3844,9 +3885,28 @@ body.modal-open {
     transform: none;
   }
 }
-/* Cards fill edge to edge (the product page keeps the whole photo visible). */
+/* Cards: same frame for every photo, the whole photo always visible (never cropped). A blurred copy fills the rest of the frame. */
 .product-card .product-photo {
   object-fit: contain;
+  /* leave the bottom for the title / maker / price so they never sit on the picture */
+  inset: 44px 0 108px;
+  width: 100%;
+  height: calc(100% - 152px);
+}
+.product-photo-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(22px) saturate(1.1);
+  transform: scale(1.15);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.product-photo-bg.is-loaded { opacity: 0.9; }
+@media (max-width: 600px) {
+  .product-card .product-photo { inset: 0; height: 100%; }
 }
 /* Click a photo in the dashboard to see it full size. */
 .photo-open {
@@ -4648,3 +4708,41 @@ button.fair-opt:hover { background: var(--cream); }
 .requests-list { margin: 0 0 10px; padding-left: 22px; display: grid; gap: 8px; }
 .requests-list li { padding-left: 4px; line-height: 1.5; }
 .requests-list .muted { margin-left: 2px; }
+
+/* Back-to-top button: appears at the end of the home page */
+.scroll-top {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 0;
+  border: 1px solid var(--control-border);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 4px 14px #00000026;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s, color 0.2s, border-color 0.2s;
+}
+.scroll-top.show {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.scroll-top:hover {
+  color: var(--orange);
+  border-color: var(--orange);
+}
+@media (max-width: 600px) {
+  .scroll-top { right: 14px; bottom: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-top { transition: none; }
+}

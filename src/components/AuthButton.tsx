@@ -61,10 +61,10 @@ export function AuthButton({ dashboardUrl = '' }: { dashboardUrl?: string }) {
     return (
       <>
         <span className="seller-prompt">
-          Are you a seller?{' '}
-          <button type="button" className="seller-login-link" onClick={login}>Login here</button>
+          Are you a seller?
+          <button type="button" className="button outline" onClick={login}>Login here</button>
         </span>
-        <button type="button" className="cart-btn seller-login-btn" onClick={login}>Login here</button>
+        <button type="button" className="button outline seller-login-btn" onClick={login}>Login here</button>
       </>
     );
   }

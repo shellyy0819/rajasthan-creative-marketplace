@@ -7,6 +7,7 @@ import { HomeShelf } from '@/components/HomeShelf';
 import { DataVersionProvider } from '@/components/DataVersion';
 import { HomeWorkshops } from '@/components/HomeWorkshops';
 import { TrendingSection } from '@/components/TrendingSection';
+import { ScrollToTop } from '@/components/ScrollToTop';
 import { SignedOutToast } from '@/components/SignedOutToast';
 import { ValueProps } from '@/components/ValueProps';
 import { capitalize, getCatalogWording, siteCopy } from '@/lib/catalog-wording';
@@ -57,6 +58,7 @@ export default function Home() {
         explore={<Suspense fallback={<ExploreLink />}><WordingExplore /></Suspense>}
       />
       <Suspense fallback={null}><HomeSections /></Suspense>
+      <ScrollToTop />
     </>
   );
 }

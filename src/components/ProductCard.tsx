@@ -15,7 +15,7 @@ export function ProductCard({ p, eager = false }: { p: Product; eager?: boolean 
   const low = p.stock > 0 && p.stock <= 2;
   return (
     <article className="product-card">
-      <div className={`product-visual visual-${i % 4}`}><ProductImage src={p.imageUrl} alt={p.name} fallback={<ProductPlaceholder />} eager={eager} /></div>
+      <div className={`product-visual visual-${i % 4}`}><ProductImage src={p.imageUrl} alt={p.name} fallback={<ProductPlaceholder />} eager={eager} backdrop /></div>
       <div className="pc-top">
         <span className="pc-chips">
           <span className="pc-chip">{p.category}</span>
