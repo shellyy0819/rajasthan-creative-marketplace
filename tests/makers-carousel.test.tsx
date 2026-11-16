@@ -77,3 +77,16 @@ describe('MakersCarousel', () => {
     expect(block.replace(/#28190a38/, '')).not.toMatch(/#[0-9a-f]{3,8}\b/i);
   });
 });
+
+describe('MakersCarousel: the time an admin chooses', () => {
+  it('moves on after the seconds it was given, not the default', () => {
+    render(<MakersCarousel makers={makers} rotateSeconds={12} />);
+    tick(11_000); expect(scrollTo).not.toHaveBeenCalled();
+    tick(1_000); expect(scrollTo).toHaveBeenCalledTimes(1);
+  });
+  it('uses the default when the value is missing or out of range', () => {
+    render(<MakersCarousel makers={makers} rotateSeconds={0} />);
+    tick(MAKERS_ROTATE_MS - 1); expect(scrollTo).not.toHaveBeenCalled();
+    tick(1); expect(scrollTo).toHaveBeenCalledTimes(1);
+  });
+});

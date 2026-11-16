@@ -3,16 +3,18 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArtistAvatar } from './ArtistAvatar';
 import { StallAwning } from './StallAwning';
+import { DEFAULT_HOME_SETTINGS, validRotateSeconds } from '@/lib/home-settings-shared';
 import type { HomeMaker } from '@/lib/makers';
 
-/** Time between slides while nobody is touching the carousel. */
-export const MAKERS_ROTATE_MS = 1000;
+/** Time between slides while nobody is touching the carousel, unless an admin chose another (Dashboard > Home settings). */
+export const MAKERS_ROTATE_MS = DEFAULT_HOME_SETTINGS.makersRotateSeconds * 1000;
 /** How long the carousel stays still after a hover leaves, or after a touch, key or wheel input. */
 const AFTER_HOVER_MS = 1200;
 const AFTER_INPUT_MS = 3000;
 
 /** One maker at a time, in front of a small market stall. Rotates by itself, swipes sideways, and rests while hovered, focused or touched. */
-export function MakersCarousel({ makers }: { makers: HomeMaker[] }) {
+export function MakersCarousel({ makers, rotateSeconds }: { makers: HomeMaker[]; rotateSeconds?: number }) {
+  const rotateMs = validRotateSeconds(rotateSeconds) ? rotateSeconds * 1000 : MAKERS_ROTATE_MS;
   const railRef = useRef<HTMLDivElement>(null);
   const indexRef = useRef(0);
   const holdUntil = useRef(0);
@@ -40,9 +42,9 @@ export function MakersCarousel({ makers }: { makers: HomeMaker[] }) {
     const t = setInterval(() => {
       if (document.hidden || Date.now() < holdUntil.current) return;
       go(indexRef.current + 1 >= n ? 0 : indexRef.current + 1);
-    }, MAKERS_ROTATE_MS);
+    }, rotateMs);
     return () => clearInterval(t);
-  }, [reduce, n, go]);
+  }, [reduce, n, go, rotateMs]);
 
   const holdFor = (ms: number) => { holdUntil.current = Date.now() + ms; };
   const step = (d: number) => { holdFor(AFTER_INPUT_MS); go((indexRef.current + d + n) % n); };
