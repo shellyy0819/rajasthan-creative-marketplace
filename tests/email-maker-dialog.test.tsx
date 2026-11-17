@@ -43,8 +43,13 @@ describe('EmailMakerButton', () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(sendEvent).not.toHaveBeenCalled();
   });
+  it('shows who the email goes to, address included, before sending', () => {
+    open();
+    expect((screen.getByLabelText(/^to/i) as HTMLInputElement).value).toBe('Studio A <shop@studio.co>');
+    expect((screen.getByLabelText(/^to/i) as HTMLInputElement).readOnly).toBe(true);
+  });
   it('sends name, email and the message, then shows the buyer the mail that went out', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ seller: 'Studio A', subject: 'Enquiry about Vase on Craftofy', text: 'BODY TEXT' }), { status: 201 }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ seller: 'Studio A', to: 'shop@studio.co', subject: 'Enquiry about Vase on Craftofy', text: 'BODY TEXT' }), { status: 201 }));
     vi.stubGlobal('fetch', fetchMock);
     open(); fill();
     fireEvent.click(screen.getByRole('button', { name: /send email/i }));
@@ -56,6 +61,7 @@ describe('EmailMakerButton', () => {
     expect(d.textContent).toContain('Studio A');
     expect(d.textContent).toContain('Enquiry about Vase on Craftofy');
     expect(d.textContent).toContain('BODY TEXT');
+    expect(d.textContent).toContain('Studio A <shop@studio.co>');
     expect(d.textContent).toContain('asha@buyer.co');
     expect(sendEvent).toHaveBeenCalledWith('contact_email', 'p1');
     expect(gaContactSeller).toHaveBeenCalledWith({ sellerSlug: 'studio-a-1', method: 'email', productId: 'p1' });

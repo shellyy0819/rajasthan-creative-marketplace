@@ -12,7 +12,7 @@ const oneLine = (v: string) => v.replace(/[\r\n]+/g, ' ').trim();
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
 /** What the buyer is shown after sending: the mail exactly as the seller received it. */
-export type SentEnquiry = { seller: string; subject: string; text: string };
+export type SentEnquiry = { seller: string; to: string; subject: string; text: string };
 
 /**
  * A buyer's email to the maker of a product. It goes only to the seller's public address (never one the buyer supplies), from Craftofy's sender,
@@ -40,7 +40,7 @@ export async function sendProductEnquiry(productId: string, raw: unknown, opts: 
     `Product: ${abs(`/products/${productSlug(p)}`)}`,
     'Sent through Craftofy. Reply to this email to answer the buyer.',
   ].join('\n');
-  const sent = { seller: p.seller, subject, text };
+  const sent = { seller: p.seller, to: p.email, subject, text };
 
   if (str(b.companyWebsite)) return sent; // hidden field only bots fill: pretend it went out
   if (!(await mailConfigured())) throw new ApiError(503, 'Email is not available right now.');

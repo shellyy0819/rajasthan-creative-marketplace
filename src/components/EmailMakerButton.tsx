@@ -7,7 +7,7 @@ import { gaContactSeller } from '@/lib/ga-events';
 import { sendEvent } from '@/lib/track';
 import type { Product } from '@/lib/types';
 
-type Sent = { seller: string; subject: string; text: string; from: string };
+type Sent = { seller: string; to: string; subject: string; text: string; from: string };
 
 /**
  * "Email" on the product page: a small form with the default message filled in. Signed-in buyers send from their account email;
@@ -46,7 +46,7 @@ export function EmailMakerButton({ product: p, className, children, icon }: { pr
               <div className="enquiry-sent">
                 <p>Your email was sent to {sent.seller}. Their reply will come to <b>{sent.from}</b>.</p>
                 <dl className="enquiry-mail">
-                  <dt>To</dt><dd>{sent.seller}</dd>
+                  <dt>To</dt><dd>{sent.seller} &lt;{sent.to}&gt;</dd>
                   <dt>From</dt><dd>{sent.from}</dd>
                   <dt>Subject</dt><dd>{sent.subject}</dd>
                 </dl>
@@ -67,7 +67,7 @@ export function EmailMakerButton({ product: p, className, children, icon }: { pr
                   if (!r.ok) { setError({ text: data?.error ?? 'Something went wrong. Please try again.', offerMailto: r.status === 502 || r.status === 503 }); setSending(false); return; }
                   sendEvent('contact_email', p.id);
                   if (p.sellerSlug) gaContactSeller({ sellerSlug: p.sellerSlug, method: 'email', productId: p.id });
-                  setSent({ seller: data.seller, subject: data.subject, text: data.text, from: body.email });
+                  setSent({ seller: data.seller, to: data.to, subject: data.subject, text: data.text, from: body.email });
                   setSending(false);
                 } catch { setError({ text: 'Network error. Please try again.', offerMailto: true }); setSending(false); }
               }}>
@@ -78,6 +78,7 @@ export function EmailMakerButton({ product: p, className, children, icon }: { pr
                     {error.offerMailto && p.email && <> <a className="text-link" href={`mailto:${p.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`}>Open in your email app</a></>}
                   </p>
                 )}
+                <label><span className="lbl">To</span><input name="to" readOnly value={`${p.seller} <${p.email}>`} /></label>
                 <label><span className="lbl">Your name</span><input name="name" required maxLength={100} autoComplete="name" autoFocus defaultValue={session?.user?.name ?? ''} /></label>
                 <label><span className="lbl">Your email</span>
                   <input name="email" type="email" required maxLength={254} autoComplete="email" key={accountEmail} defaultValue={accountEmail} readOnly={!!accountEmail} />
