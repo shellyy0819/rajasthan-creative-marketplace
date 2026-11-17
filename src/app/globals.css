@@ -1292,6 +1292,9 @@ form label select {
   border: 1px solid var(--line-green-2);
   border-radius: 14px;
 }
+.maker-card.compact {
+  max-width: 440px;
+}
 .maker-head {
   display: flex;
   align-items: center;

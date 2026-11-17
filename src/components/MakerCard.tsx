@@ -59,7 +59,7 @@ export function MakerCard({ product: p }: { product: Product }) {
     </>
   );
   return (
-    <section className="maker-card" aria-label="About the maker">
+    <section className={`maker-card${rest.length <= 2 ? ' compact' : ''}`} aria-label="About the maker">
       {p.sellerSlug ? <Link className="maker-head" href={`/artists/${p.sellerSlug}?from=${p.id}`}>{name}</Link> : <div className="maker-head">{name}</div>}
       {main ? (
         <>
