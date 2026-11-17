@@ -8,4 +8,8 @@ describe('navbar seller prompt block (source contract)', () => {
     expect(css).toMatch(/\.button\.seller-prompt \{[^}]*gap: 5px;/);
     expect(css).not.toMatch(/(^|[ }])\.seller-prompt \{[^}]*gap:/);   // a bare .seller-prompt rule would lose to .button
   });
+  it('on phones the block is hidden (with the same specificity as its desktop rule, so it really wins) and only the plain Login here button on the right shows', () => {
+    expect(css).toMatch(/@media \(max-width: \d+px\) \{[^@]*\.button\.seller-prompt \{ display: none; \} nav \.seller-login-btn \{ display: inline-flex;/);
+    expect(css).toMatch(/nav \.seller-login-btn \{ display: none; \}/);                     // and it is hidden on desktop
+  });
 });
