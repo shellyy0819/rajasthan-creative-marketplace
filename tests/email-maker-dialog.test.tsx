@@ -25,7 +25,7 @@ describe('shared', () => {
   it('highlights the maker’s name in the heading', () => {
     const d = open();
     expect(d.querySelector('h2 .enquiry-maker')!.textContent).toBe('Studio A');
-    expect(screen.getByRole('heading', { name: 'Email Studio A' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Email to Studio A' })).toBeTruthy();
   });
   it('shows the maker’s address (no name) in a read-only field that is not a tab stop', () => {
     const d = open();

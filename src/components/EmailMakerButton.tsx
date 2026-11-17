@@ -40,7 +40,7 @@ export function EmailMakerButton({ product: p, className, children, icon }: { pr
         <div className="contact-backdrop admin-modal" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
           <div role="dialog" aria-modal="true" aria-labelledby={`enquiry-title-${p.id}`} className="contact-card">
             <div className="dialog-head">
-              <h2 id={`enquiry-title-${p.id}`}>{sent ? 'Email sent' : <>Email <span className="enquiry-maker">{p.seller}</span></>}</h2>
+              <h2 id={`enquiry-title-${p.id}`}>{sent ? 'Email sent' : <>Email to <span className="enquiry-maker">{p.seller}</span></>}</h2>
               <button type="button" className="icon-btn" aria-label="Close" onClick={close} disabled={sending}>✕</button>
             </div>
             {sent ? (
