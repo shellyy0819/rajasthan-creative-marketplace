@@ -1,31 +1,53 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { eq } from 'drizzle-orm';
 vi.mock('@/auth', () => ({ auth: async () => null }));
-const send = vi.fn(async () => ({ seller: 'S', subject: 's', text: 't' }));
-vi.mock('@/lib/product-enquiry', () => ({ sendProductEnquiry: (...a: unknown[]) => send(...(a as [])) }));
 import { POST } from '@/app/api/products/[id]/enquiry/route';
+import { createProduct } from '@/lib/admin';
 import { resetLimitersForTests } from '@/lib/engagement-limits';
+import { setMailSenderForTests, type Mail } from '@/lib/mailer';
+import { sellerProfiles } from '@/db/schema';
+import { getTestDb, makeSeller, resetTestDb } from './helpers/testdb';
+import { cityRef } from './helpers/cities';
+import { admin } from './helpers/actors';
 
-let n = 0;
+let sent: Mail[]; let pid: string; let n = 0;
 /** Every call fakes a new address and a new typed email, as a script would. */
-const call = (id = 'p1') => POST(new Request(`http://x/api/products/${id}/enquiry`, {
+const call = (id = pid, over: Record<string, unknown> = {}) => POST(new Request(`http://x/api/products/${id}/enquiry`, {
   method: 'POST', headers: { 'content-type': 'application/json', 'x-forwarded-for': `10.0.0.${++n}` },
-  body: JSON.stringify({ name: 'A', email: `a${n}@b.co`, message: 'hi' }),
+  body: JSON.stringify({ name: 'A', email: `a${n}@b.co`, message: 'hi', ...over }),
 }), { params: Promise.resolve({ id }) });
 
-beforeEach(() => { n = 0; send.mockClear(); resetLimitersForTests(); });
+beforeEach(async () => {
+  await resetTestDb(); resetLimitersForTests(); n = 0; sent = [];
+  setMailSenderForTests(async m => { sent.push(m); });
+  const s = await makeSeller('a@x.co', 'Studio A');
+  await (await getTestDb()).update(sellerProfiles).set({ publicEmail: 'shop@studio.co' }).where(eq(sellerProfiles.userId, s.id));
+  pid = (await createProduct({ name: 'T-Vase', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 100, description: 'd', stock: 1, status: 'APPROVED', sellerId: s.id }, admin)).id;
+});
+afterEach(() => setMailSenderForTests(null));
 
 describe('enquiry route: anonymous senders cannot dodge the limits by faking their address or email', () => {
-  it('stops after 10 anonymous emails for one product, however the sender varies IP and email', async () => {
+  it('stops after 10 emails for one product, however the sender varies IP and email', async () => {
     for (let i = 0; i < 10; i++) expect((await call()).status).toBe(201);
     expect((await call()).status).toBe(429);
-    expect(send).toHaveBeenCalledTimes(10);
+    expect(sent).toHaveLength(10);
+  });
+  it('junk requests do not use the quota up: invalid, unknown product, bots, failed sends', async () => {
+    for (let i = 0; i < 12; i++) await call(pid, { name: '' });                 // invalid
+    for (let i = 0; i < 12; i++) await call('p99999');                          // no such product
+    for (let i = 0; i < 12; i++) await call(pid, { companyWebsite: 'spam' });   // bot
+    setMailSenderForTests(async () => { throw new Error('down'); });
+    expect((await call()).status).toBe(502);                                    // fails after the quota check: counts once, see below
+    setMailSenderForTests(async m => { sent.push(m); });
+    for (let i = 0; i < 9; i++) expect((await call()).status).toBe(201);
+    expect((await call()).status).toBe(429);
   });
   it('another product is unaffected', async () => {
-    for (let i = 0; i < 10; i++) await call('p1');
-    expect((await call('p2')).status).toBe(201);
+    for (let i = 0; i < 10; i++) await call();
+    expect((await call('p99999')).status).toBe(404);
   });
   it('a bad id is a 404 and sends nothing', async () => {
     expect((await call('x')).status).toBe(404);
-    expect(send).not.toHaveBeenCalled();
+    expect(sent).toHaveLength(0);
   });
 });
