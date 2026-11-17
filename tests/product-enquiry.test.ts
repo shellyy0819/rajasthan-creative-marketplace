@@ -30,7 +30,7 @@ describe('sendProductEnquiry', () => {
     expect(sent[0].replyTo).toBe('asha@buyer.co');
     expect(sent[0].subject).toBe('Enquiry about T-Vase on Craftofy');
     expect(sent[0].text).toContain(good.message);
-    expect(sent[0].text).toContain('Asha Buyer <asha@buyer.co>');
+    expect(sent[0].text).toContain('Buyer: Asha Buyer <asha@buyer.co>');
     expect(sent[0].text).toMatch(/\/products\/t-vase-p\d+/i);
     expect(r).toEqual({ seller: 'Studio A', to: 'shop@studio.co', from: 'Craftofy', replyTo: 'asha@buyer.co', subject: sent[0].subject, text: sent[0].text });
   });
@@ -60,7 +60,7 @@ describe('sendProductEnquiry', () => {
     await setup('shop@studio.co');
     await sendProductEnquiry(pid, { ...good, name: 'Asha\r\nBcc: x@y.co' });
     expect(sent[0].subject).not.toMatch(/[\r\n]/);
-    expect(sent[0].text).toContain('Asha Bcc: x@y.co <asha@buyer.co>');
+    expect(sent[0].text).toContain('Buyer: Asha Bcc: x@y.co <asha@buyer.co>');
   });
   it('the hidden website field marks a bot: pretends success, sends nothing', async () => {
     await setup('shop@studio.co');

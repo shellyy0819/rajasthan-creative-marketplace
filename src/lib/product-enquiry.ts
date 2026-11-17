@@ -36,8 +36,8 @@ export async function sendProductEnquiry(productId: string, raw: unknown, opts: 
   const subject = oneLine(`Enquiry about ${p.name} on Craftofy`);
   const text = [
     message, '', '--',
-    `From: ${name} <${email}>`,
-    opts.signedInEmail ? 'The sender was signed in to Craftofy with this email address.' : 'The sender typed this email address in: it is not verified.',
+    `Buyer: ${name} <${email}>`,
+    opts.signedInEmail ? 'The buyer was signed in to Craftofy with this email address.' : 'The buyer typed this email address in: it is not verified.',
     `Product: ${abs(`/products/${productSlug(p)}`)}`,
     'Sent through Craftofy. Reply to this email to answer the buyer.',
   ].join('\n');
