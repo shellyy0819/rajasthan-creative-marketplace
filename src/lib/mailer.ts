@@ -5,7 +5,8 @@ import { resolveMailConfig, type SmtpConfig } from './settings';
  * `from` overrides the saved sender for Resend only (the address must be on the verified domain). SMTP servers only send as the account
  * that logged in, so over SMTP it is ignored and the saved sender is used.
  */
-export type Mail = { to: string | string[]; subject: string; text: string; replyTo?: string; from?: string };
+export type Attachment = { filename: string; content: Buffer; contentType?: string };
+export type Mail = { to: string | string[]; subject: string; text: string; replyTo?: string; from?: string; attachments?: Attachment[] };
 type Send = (mail: Mail) => Promise<void>;
 
 let override: Send | null = null;
@@ -25,7 +26,7 @@ async function sendSmtp(cfg: SmtpConfig, mail: Mail): Promise<void> {
     connectionTimeout: TIMEOUT_MS, greetingTimeout: TIMEOUT_MS, socketTimeout: TIMEOUT_MS,
   });
   try {
-    await transport.sendMail({ from: cfg.from, to: mail.to, subject: mail.subject, text: mail.text, ...(mail.replyTo ? { replyTo: mail.replyTo } : {}) });
+    await transport.sendMail({ from: cfg.from, to: mail.to, subject: mail.subject, text: mail.text, ...(mail.replyTo ? { replyTo: mail.replyTo } : {}), ...(mail.attachments?.length ? { attachments: mail.attachments } : {}) });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'no details';
     throw new Error(`SMTP server refused the email: ${msg.split(cfg.pass).join('***')}`); // never echo the password back
@@ -43,7 +44,7 @@ export async function sendMail(mail: Mail): Promise<void> {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { authorization: `Bearer ${cfg.apiKey}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ from: mail.from ?? cfg.from, to: Array.isArray(mail.to) ? mail.to : [mail.to], subject: mail.subject, text: mail.text, ...(mail.replyTo ? { reply_to: mail.replyTo } : {}) }),
+    body: JSON.stringify({ from: mail.from ?? cfg.from, to: Array.isArray(mail.to) ? mail.to : [mail.to], subject: mail.subject, text: mail.text, ...(mail.replyTo ? { reply_to: mail.replyTo } : {}), ...(mail.attachments?.length ? { attachments: mail.attachments.map(a => ({ filename: a.filename, content: a.content.toString('base64') })) } : {}) }),
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) {

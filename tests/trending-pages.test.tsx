@@ -174,11 +174,15 @@ describe('city listings come from active cities', () => {
 import fs from 'node:fs';
 describe('product page wiring (source contract)', () => {
   const src = fs.readFileSync('src/app/products/[slug]/page.tsx', 'utf8');
-  it('records a view, links to the artist page with the product id, and tracks all four contact links', () => {
+  const card = fs.readFileSync('src/components/MakerCard.tsx', 'utf8');
+  it('records a view and shows the like button; contact lives in MakerCard', () => {
     expect(src).toContain('<TrackOnMount productId={p.id} type="view" />');
-    expect(src).toContain('/artists/${p.sellerSlug}?from=${p.id}');
-    expect(src.match(/<TrackedLink productId=\{p\.id\} sellerSlug=\{p\.sellerSlug\} method="(instagram|youtube|call|email)" type="contact"/g)).toHaveLength(4);   // instagram, youtube, phone, email, each with its GA method
     expect(src).toContain('<LikeButton');
-    expect(src).not.toMatch(/<a href=\{(instagramUrl|youtubeUrl)/);                         // no untracked social links left
+    expect(src).toContain('<MakerCard product={p} />');
+  });
+  it('MakerCard links to the artist page with the product id and sends every contact link through TrackedLink', () => {
+    expect(card).toContain('/artists/${p.sellerSlug}?from=${p.id}');
+    expect(card).toContain('<TrackedLink');
+    expect(card).not.toMatch(/<a /);
   });
 });

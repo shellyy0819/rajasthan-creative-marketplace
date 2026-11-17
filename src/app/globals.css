@@ -598,7 +598,45 @@ h2 em {
   letter-spacing: 0.8px;
   text-transform: uppercase;
 }
-.detail-like { margin-top: 16px; }
+/* "Appreciate the craft": a soft strip with a heart, a line asking for a like, and the like button on the right */
+.detail-like {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 14px;
+  margin-top: 20px;
+  padding: 14px 18px;
+  max-width: 560px;
+  background: color-mix(in srgb, var(--orange) 7%, var(--white));
+  border: 1px solid color-mix(in srgb, var(--orange) 28%, var(--line));
+  border-radius: 14px;
+}
+/* The like button is the heart on the left of the strip: a round button, no count shown */
+.detail-like .like-btn {
+  flex: none;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+}
+.detail-like-text {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.detail-like-text b {
+  font-size: 14px;
+}
+.detail-like-text span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
 .detail-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 12px; }
 /* How the product was sourced (Curated, Resold ...): shown on the product page only, never on cards */
 .source-tag {
@@ -1238,21 +1276,24 @@ form label select {
 }
 .detail {
   display: grid;
-  grid-template-columns: 1.25fr 1fr;
+  grid-template-columns: 1.1fr 1fr;
   gap: 5%;
   padding: 40px 6% 80px;
   align-items: start;
+  max-width: 1280px;
+  margin-inline: auto;
 }
 .detail .product-visual,
 .detail .detail-art {
-  height: clamp(380px, 60vh, 560px);
+  height: clamp(460px, 82vh, 800px);
 }
 .detail h1 {
   font: 500 clamp(30px, 4vw, 44px)/1.1 var(--font-display);
   letter-spacing: -1px;
-  margin: 10px 0 16px;
+  margin: 10px 0 10px;
 }
 .detail .lead {
+  margin: 0;
   font-size: 14px;
   line-height: 1.8;
   color: var(--muted-2);
@@ -1270,36 +1311,152 @@ form label select {
 .detail dl {
   align-items: center;
 }
-.detail dd.detail-artist-row {
-  grid-column: 1 / -1;
-  margin: 0;
+/* Price under the title on the product page */
+.detail-price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0 0 12px;
 }
-/* Artist row on the product page: round photo (or initial) in front of a larger name */
-.detail-artist {
-  display: inline-flex;
+.detail-price small {
+  color: var(--muted);
+  font-size: 12px;
+}
+/* Who made it and how to reach them: softly green card, one main button, the other methods as pills */
+.maker-card {
+  display: grid;
+  gap: 16px;
+  margin: 24px 0;
+  padding: 22px;
+  background: color-mix(in srgb, var(--green) 8%, var(--white));
+  border: 1px solid var(--line-green-2);
+  border-radius: 14px;
+}
+/* Main button and the small ones. Many buttons: WhatsApp on its own full-width row, the rest below. With few buttons (compact) everything
+   sits on one line, WhatsApp in the same pill shape and size as the others. */
+.maker-actions {
+  display: grid;
+  gap: 16px;
+}
+.maker-card.compact {
+  max-width: 560px;
+}
+.maker-card.compact .maker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.maker-card.compact .maker-chips {
+  display: contents;
+}
+.maker-head {
+  display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
+  gap: 14px;
 }
-a.detail-artist:hover {
+a.maker-head:hover .maker-name {
   color: var(--orange);
 }
-.detail-artist-av {
+.maker-avatar {
   flex: none;
   overflow: hidden;
   display: inline-grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  border: 2px solid var(--line);
   background: var(--green);
   color: #fff;
-  font-size: 19px;
+  font-size: 22px;
   font-weight: 700;
+}
+.maker-who {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.maker-eyebrow {
+  color: var(--orange);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.maker-name {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.maker-city {
+  color: var(--muted);
+  font-size: 12px;
+}
+.maker-main {
+  gap: 10px;
+  width: 100%;
+  padding: 16px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.maker-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.maker-brand {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+.maker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.maker-chip {
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 30px;
+  border: 1px solid var(--line-green-2);
+  background: var(--white);
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 600;
+}
+.detail dd b {
+  font-weight: 700;
+}
+/* Trust pills under the details */
+.detail-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+.detail-pills li {
+  padding: 9px 16px;
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  background: var(--white);
+  font-size: 12px;
+  font-weight: 700;
+}
+.maker-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 .detail .price {
   font-size: 22px;
@@ -4882,4 +5039,75 @@ button.fair-opt:hover { background: var(--cream); }
   .req-done-facts div {
     grid-template-columns: 1fr;
   }
+}
+/* "Email sent" dialog: the mail as the maker received it */
+.enquiry-mail {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 14px;
+  margin: 14px 0 10px;
+  font-size: 12px;
+}
+.enquiry-mail dt {
+  color: var(--muted);
+}
+.enquiry-mail dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.enquiry-body {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font: 400 12px/1.6 var(--font-sans);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.enquiry-maker {
+  color: var(--orange);
+}
+/* The maker's address in the email form: a grey read-only field. The text can be selected and copied, but it is not a tab stop and shows no focus ring. */
+.enquiry-to input {
+  background-color: var(--chip-grey);
+  color: var(--chip-grey-ink);
+  cursor: default;
+}
+.enquiry-to input:focus,
+.enquiry-to input:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-color: var(--line);
+}
+.button.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Desktop: the photo sits against the details column (not floating in the middle of a wide empty frame), thumbnails follow it */
+@media (min-width: 901px) {
+  .detail .gallery-slide {
+    place-items: center end;
+  }
+  .detail .gallery-thumbs {
+    justify-content: flex-start;
+  }
+  .detail .gallery-thumbs .gallery-thumb:last-child {
+    margin-right: 0;
+  }
+}
+/* The maker's own words, when they have shared a bio */
+.maker-bio {
+  margin: 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--orange);
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }

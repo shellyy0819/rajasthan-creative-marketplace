@@ -4,7 +4,7 @@ export type AdminSourcingType = SourcingType & { productCount: number };
 export type Product = {
   id: string; name: string; category: string; city: string; cityId: number; citySlug: string; cityState?: string; pricePaise: number | null;
   seller: string; description: string; stock: number; status: string;
-  instagram?: string; youtube?: string; phone?: string; email?: string; imageUrl?: string; workshopId?: string;
+  instagram?: string; youtube?: string; phone?: string; whatsapp?: string; email?: string; imageUrl?: string; workshopId?: string;
   sourcing?: Pick<SourcingType, 'id' | 'name' | 'countsAsHandmade' | 'showBadge'>;
   images?: string[]; likeCount?: number; sellerSlug?: string; sellerLogo?: string; artistBio?: string; artistCity?: string;
 };

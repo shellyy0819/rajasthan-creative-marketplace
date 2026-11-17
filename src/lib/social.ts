@@ -12,10 +12,20 @@ export function instagramUrl(value: string) {
   return `https://www.instagram.com/${encodeURIComponent(instagramName(value))}/`;
 }
 
+/** Opens a direct-message chat with the account on Instagram (the app on phones, the website on computers). Instagram cannot prefill text. */
+export const instagramDmUrl = (value: string) => `https://ig.me/m/${encodeURIComponent(instagramName(value))}`;
+
 /** "@name" for display, whichever form was stored. */
 export const instagramHandle = (value: string) => `@${instagramName(value)}`;
 
 export function youtubeUrl(value: string) {
   if (/^https:\/\/(www\.)?youtube\.com\//i.test(value) || /^https:\/\/youtu\.be\//i.test(value)) return value;
   return `https://www.youtube.com/@${encodeURIComponent(value.replace(/^@/, ''))}`;
+}
+
+/** wa.me click-to-chat link: opens the buyer's own WhatsApp with `text` typed in, so it costs the seller nothing. Indian numbers only (10 digits, optionally +91 / 91 / 0 in front). */
+export function whatsappUrl(number: string, text: string) {
+  const digits = number.replace(/\D/g, '').replace(/^0/, '');
+  const full = digits.length === 10 ? `91${digits}` : digits;
+  return `https://wa.me/${full}?text=${encodeURIComponent(text)}`;
 }
