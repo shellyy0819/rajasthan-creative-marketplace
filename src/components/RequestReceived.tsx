@@ -1,3 +1,4 @@
+'use client';
 export type RequestDone = { name: string; email: string; from: string; to: string; confirmed: boolean; notified: boolean };
 
 const STEPS = (email: string) => [
