@@ -1,0 +1,37 @@
+/* Category pages (/categories and /categories/[slug]) */
+.cat-pages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 8px 6% 64px;
+  font-size: 13px;
+}
+.cat-pages-count {
+  color: var(--muted);
+}
+.cat-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0 6% 64px;
+  list-style: none;
+}
+.cat-list a {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-weight: 700;
+}
+.cat-list a:hover {
+  border-color: var(--orange);
+}
+.cat-list small {
+  color: var(--muted);
+  font-weight: 500;
+}
