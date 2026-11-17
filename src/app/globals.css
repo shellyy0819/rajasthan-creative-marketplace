@@ -1242,7 +1242,7 @@ form label select {
   gap: 5%;
   padding: 40px 6% 80px;
   align-items: start;
-  max-width: 1320px;
+  max-width: 1200px;
   margin-inline: auto;
 }
 .detail .product-visual,
