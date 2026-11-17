@@ -28,6 +28,7 @@ export const productSelect = {
   sellerName: sellerNameSql,
   sellerEmail: users.email,
   publicPhone: sellerProfiles.publicPhone,
+  whatsapp: sellerProfiles.whatsapp,
   contactMethods: sellerProfiles.contactMethods,
   publicEmail: sellerProfiles.publicEmail,
   instagram: sellerProfiles.instagram,
@@ -45,7 +46,7 @@ export const productSelect = {
 };
 export type ProductJoinRow = {
   p: ProductRow; cityName: string; citySlug: string; cityState: string | null; sellerName: string; sellerEmail: string;
-  publicPhone: string | null; contactMethods: string[] | null; publicEmail: string | null; instagram: string | null; youtube: string | null; artistBio: string | null; sellerLogo?: string | null; artistCityName: string | null;
+  publicPhone: string | null; whatsapp?: string | null; contactMethods: string[] | null; publicEmail: string | null; instagram: string | null; youtube: string | null; artistBio: string | null; sellerLogo?: string | null; artistCityName: string | null;
   sourcingName: string | null; sourcingHandmade: boolean | null; sourcingBadge: boolean | null;
   publishedByEmail: string | null; workshopTitle: string | null; likeCount: number; images: string[] | string;
 };
@@ -67,12 +68,16 @@ const imagesOf = (v: string[] | string): string[] => (typeof v === 'string' ? (J
 export const publicPhoneOf = (phone: string | null | undefined, methods: readonly string[] | null | undefined): string | undefined =>
   phone && (!methods?.length || methods.includes('phone')) ? phone : undefined;
 
+/** A seller's WhatsApp number is public only while WhatsApp is one of their chosen contact methods. */
+export const publicWhatsappOf = (whatsapp: string | null | undefined, methods: readonly string[] | null | undefined): string | undefined =>
+  whatsapp && methods?.includes('whatsapp') ? whatsapp : undefined;
+
 export const toProduct = (r: ProductJoinRow): Product => ({
   id: r.p.id, name: r.p.name, category: r.p.category, city: r.cityName, cityId: r.p.cityId, citySlug: r.citySlug, pricePaise: r.p.pricePaise,
   ...opt('cityState', r.cityState),
   ...(r.p.sourcingTypeId != null && r.sourcingName != null ? { sourcing: { id: r.p.sourcingTypeId, name: r.sourcingName, countsAsHandmade: !!r.sourcingHandmade, showBadge: !!r.sourcingBadge } } : {}),
   seller: r.sellerName, description: r.p.description, stock: r.p.stock, status: r.p.status,
-  ...opt('instagram', r.instagram), ...opt('youtube', r.youtube), ...opt('phone', publicPhoneOf(r.publicPhone, r.contactMethods)),
+  ...opt('instagram', r.instagram), ...opt('youtube', r.youtube), ...opt('phone', publicPhoneOf(r.publicPhone, r.contactMethods)), ...opt('whatsapp', publicWhatsappOf(r.whatsapp, r.contactMethods)),
   ...opt('email', r.publicEmail), ...opt('workshopId', r.p.workshopId),
   ...(imagesOf(r.images).length ? { images: imagesOf(r.images), imageUrl: imagesOf(r.images)[0] } : {}),
   likeCount: r.likeCount, sellerSlug: artistSlug(r.sellerName, r.p.sellerId),
@@ -87,7 +92,7 @@ export const toAdminProduct = (r: ProductJoinRow): AdminProduct => ({
   createdAt: r.p.createdAt.toISOString(), updatedAt: r.p.updatedAt.toISOString(),
 });
 
-export type ProductInput = Omit<Product, 'id' | 'seller' | 'instagram' | 'youtube' | 'phone' | 'email' | 'city' | 'citySlug' | 'cityState' | 'sourcing'> & { pickupLocation?: string; sourcingTypeId: number | null };
+export type ProductInput = Omit<Product, 'id' | 'seller' | 'instagram' | 'youtube' | 'phone' | 'whatsapp' | 'email' | 'city' | 'citySlug' | 'cityState' | 'sourcing'> & { pickupLocation?: string; sourcingTypeId: number | null };
 /** undefined → null so that UPDATE really clears a field (Drizzle ignores undefined keys). */
 export const toProductRow = (p: ProductInput) => ({
   name: p.name, category: p.category, cityId: p.cityId, sourcingTypeId: p.sourcingTypeId, pricePaise: p.pricePaise, description: p.description,

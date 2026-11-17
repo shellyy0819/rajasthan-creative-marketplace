@@ -124,4 +124,34 @@ describe('LikeButton', () => {
     render(<LikeButton productId="p9" productName="Thing" />);
     expect(btn(/Like Thing/).getAttribute('aria-label')).toBe('Like Thing (0 likes)');
   });
+  it('showCount={false} hides the number for everyone, but the like still counts and toggles', async () => {
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (url.startsWith('/api/likes')) return res(200, { counts: { p1: 3 }, liked: [] });
+      return res(200, { liked: init?.method === 'POST', count: init?.method === 'POST' ? 4 : 3 });
+    });
+    render(<LikeButton productId="p1" initialCount={3} productName="Bag" showCount={false} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Like Bag' })).toBeTruthy());   // no "(3 likes)" in the name
+    expect(screen.getByRole('button').textContent).not.toMatch(/\d/);
+    fireEvent.click(screen.getByRole('button', { name: 'Like Bag' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Unlike Bag' }).getAttribute('aria-pressed')).toBe('true'));
+    expect(screen.getByRole('button').textContent).not.toMatch(/\d/);
+    expect(fetchMock.mock.calls.some(([u, i]) => String(u).includes('/api/products/p1/like') && (i as RequestInit).method === 'POST')).toBe(true);
+  });
+  it('quiet: no spinner and no busy state while saving, the heart flips at once, and it is put back if the server refuses', async () => {
+    let finish!: (r: Response) => void;
+    fetchMock.mockImplementation((url: string) => {
+      if (url.startsWith('/api/likes')) return res(200, { counts: { p1: 3 }, liked: [] });
+      return new Promise<Response>(resolve => { finish = resolve; });
+    });
+    render(<LikeButton productId="p1" initialCount={3} productName="Bag" quiet showCount={false} />);
+    await waitFor(() => expect(btn(/Like Bag/)).toBeTruthy());
+    fireEvent.click(btn(/Like Bag/));
+    const heart = btn(/Unlike Bag/);                                  // flipped immediately, before the server answers
+    expect(heart.textContent).toBe('♥');
+    await waitFor(() => expect(finish).toBeTruthy());
+    expect(heart.querySelector('.rr-spinner')).toBeNull();
+    expect(heart.hasAttribute('aria-busy')).toBe(false);
+    await act(async () => { finish({ ok: false, status: 500, json: () => Promise.resolve({}) } as Response); });
+    await waitFor(() => expect(btn(/Like Bag/).textContent).toBe('♡'));   // refused: back to how it was
+  });
 });
