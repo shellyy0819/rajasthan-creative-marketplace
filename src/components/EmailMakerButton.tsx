@@ -73,7 +73,6 @@ export function EmailMakerButton({ product: p, className, children, icon }: { pr
                   setSending(false);
                 } catch { setError({ text: 'Network error. Please try again.', offerMailto: true }); setSending(false); }
               }}>
-                <p className="form-note"><b>*</b> Required. Craftofy sends this to {p.seller} for you.</p>
                 {error && (
                   <p role="alert" className="admin-error">
                     {error.text}
