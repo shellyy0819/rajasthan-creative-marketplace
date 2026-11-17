@@ -99,7 +99,21 @@ export default async function ProductPage({ params }: Props) {
               </span>
             </dt>
             <dd>{p.stock > 0 ? `${p.stock} in stock` : "Sold out"}</dd>
+            <dt>
+              <span className="detail-label">How it’s made</span>
+            </dt>
+            <dd>
+              <b>
+                {isHandmade(p)
+                  ? "Handmade by the artist"
+                  : `${madeByPhrase(p)} ${p.seller}`}
+              </b>
+            </dd>
           </dl>
+          <ul className="detail-pills">
+            {isHandmade(p) && <li>Direct from the maker</li>}
+            <li>No commission</li>
+          </ul>
           <div className="detail-like">
             <LikeButton
               productId={p.id}

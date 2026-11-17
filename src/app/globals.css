@@ -1282,16 +1282,15 @@ form label select {
   color: var(--muted);
   font-size: 12px;
 }
-/* Who made it and how to reach them: white card, one main button, the other methods as chips */
+/* Who made it and how to reach them: softly green card, one main button, the other methods as pills */
 .maker-card {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   margin: 24px 0;
-  padding: 18px;
-  background: var(--white);
-  border: 1px solid var(--line);
-  border-top: 3px solid var(--green);
-  border-radius: 6px;
+  padding: 22px;
+  background: color-mix(in srgb, var(--green) 8%, var(--white));
+  border: 1px solid var(--line-green-2);
+  border-radius: 14px;
 }
 .maker-head {
   display: flex;
@@ -1306,13 +1305,12 @@ a.maker-head:hover .maker-name {
   overflow: hidden;
   display: inline-grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  border: 2px solid var(--line);
   background: var(--green);
   color: #fff;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
 }
 .maker-who {
@@ -1328,7 +1326,7 @@ a.maker-head:hover .maker-name {
   text-transform: uppercase;
 }
 .maker-name {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -1340,6 +1338,10 @@ a.maker-head:hover .maker-name {
 .maker-main {
   gap: 10px;
   width: 100%;
+  padding: 16px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
 }
 .maker-icon {
   flex: none;
@@ -1358,7 +1360,33 @@ a.maker-head:hover .maker-name {
 }
 .maker-chip {
   gap: 8px;
-  padding: 9px 13px;
+  padding: 11px 18px;
+  border-radius: 30px;
+  border: 1px solid var(--line-green-2);
+  background: var(--white);
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 600;
+}
+.detail dd b {
+  font-weight: 700;
+}
+/* Trust pills under the details */
+.detail-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+.detail-pills li {
+  padding: 9px 16px;
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  background: var(--white);
+  font-size: 12px;
+  font-weight: 700;
 }
 .maker-note {
   margin: 0;

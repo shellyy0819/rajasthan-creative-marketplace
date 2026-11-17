@@ -46,7 +46,7 @@ describe('MakerCard', () => {
     const wa = screen.getByRole('link', { name: /message on whatsapp/i });
     expect(wa.getAttribute('href')).toContain('wa.me/919876543210');
     const text = new URL(wa.getAttribute('href')!).searchParams.get('text')!;
-    expect(text).toBe('Hi Meera Textile Studio, I saw Crochet flower tie-back (₹1,000) on Craftofy and I’m interested.');
+    expect(text).toBe('Hi Meera, I saw Crochet flower tie-back (₹1,000) on Craftofy and I’m interested.');
     expect(screen.getByText(/your message will start with/i)).toBeTruthy();
     expect(screen.getByRole('link', { name: /call/i }).getAttribute('href')).toBe('tel:9123456789');
     expect(screen.getByRole('link', { name: /email/i }).getAttribute('href')).toBe('mailto:m@x.co');
