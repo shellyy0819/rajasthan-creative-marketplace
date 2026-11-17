@@ -4868,12 +4868,13 @@ button.fair-opt:hover { background: var(--cream); }
 .enquiry-maker {
   color: var(--orange);
 }
-/* The maker's address in the email form: plain text, not a field */
+/* The maker's address in the email form: looks like a field but is read-only and never takes focus (no tab stop, no click, no ring) */
 .enquiry-to {
-  display: grid;
-  gap: 4px;
+  cursor: default;
 }
-.enquiry-to-value {
-  font-size: 14px;
-  overflow-wrap: anywhere;
+.enquiry-to input {
+  pointer-events: none;
+  cursor: default;
+  outline: none;
+  user-select: text;
 }

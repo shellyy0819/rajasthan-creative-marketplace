@@ -78,7 +78,7 @@ export function EmailMakerButton({ product: p, className, children, icon }: { pr
                     {error.offerMailto && p.email && <> <a className="text-link" href={`mailto:${p.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`}>Open in your email app</a></>}
                   </p>
                 )}
-                <div className="enquiry-to"><span className="lbl">To</span><span className="enquiry-to-value">{p.email}</span></div>
+                <label className="enquiry-to" onClick={e => e.preventDefault()}><span className="lbl">To</span><input name="to" readOnly tabIndex={-1} value={p.email ?? ''} /></label>
                 <label><span className="lbl">Your name</span><input name="name" required maxLength={100} autoComplete="name" autoFocus defaultValue={session?.user?.name ?? ''} /></label>
                 <label><span className="lbl">Your email</span>
                   <input name="email" type="email" required maxLength={254} autoComplete="email" key={accountEmail} defaultValue={accountEmail} readOnly={!!accountEmail} />
