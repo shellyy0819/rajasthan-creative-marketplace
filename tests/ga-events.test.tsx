@@ -17,12 +17,17 @@ describe('GA4 business events', () => {
     expect(ga.gaEvent).toHaveBeenCalledTimes(1);
     expect(ga.gaEvent).toHaveBeenCalledWith('view_seller_profile', { seller_id: 'a-1' });
   });
-  it('contact_seller always fires; whatsapp, call and email add their own event', () => {
-    gaContactSeller({ sellerSlug: 'a-1', method: 'whatsapp', productId: 'p1' });
-    expect(ga.gaEvent.mock.calls.map(c => c[0])).toEqual(['contact_seller', 'contact_whatsapp']);
-    ga.gaEvent.mockClear();
-    gaContactSeller({ sellerSlug: 'a-1', method: 'youtube' });
-    expect(ga.gaEvent.mock.calls).toEqual([['contact_seller', { seller_id: 'a-1', contact_method: 'youtube' }]]);
+  it('contact_seller always fires; every social action also sends its own named event with the same parameters', () => {
+    for (const [method, event] of [['whatsapp', 'contact_whatsapp'], ['call', 'contact_call'], ['email', 'contact_email'], ['instagram', 'contact_instagram'], ['youtube', 'contact_youtube']] as const) {
+      ga.gaEvent.mockClear();
+      gaContactSeller({ sellerSlug: 'a-1', method, productId: 'p1' });
+      const params = { seller_id: 'a-1', contact_method: method, product_id: 'p1' };
+      expect(ga.gaEvent.mock.calls).toEqual([['contact_seller', params], [event, params]]);
+    }
+  });
+  it('copying a phone or email only sends contact_seller (it is not a separate channel)', () => {
+    gaContactSeller({ sellerSlug: 'a-1', method: 'copy' });
+    expect(ga.gaEvent.mock.calls).toEqual([['contact_seller', { seller_id: 'a-1', contact_method: 'copy' }]]);
   });
   it('sign_up and listing_submit carry their parameters', () => {
     gaSignUp('google');
