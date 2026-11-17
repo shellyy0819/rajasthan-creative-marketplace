@@ -7,6 +7,7 @@ import { sendProductEnquiry } from '@/lib/product-enquiry';
 export const dynamic = 'force-dynamic';
 type Ctx = { params: Promise<{ id: string }> };
 
+
 /** A buyer emails a product's maker. Open to visitors who are not signed in: their typed address is marked unverified in the mail, and anonymous mail has extra caps. */
 export const POST = (req: Request, { params }: Ctx) => handle(async () => {
   const { id } = await params;

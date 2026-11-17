@@ -17,6 +17,7 @@ import { isHandmade, madeByPhrase } from "@/lib/handmade";
 import { pageMetadata } from "@/lib/meta";
 import { hasSharePhoto } from "@/lib/share-image";
 import { money } from "@/lib/money";
+import { abs } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ slug: string }> };
@@ -69,7 +70,7 @@ export default async function ProductPage({ params }: Props) {
             <small>Price set by the maker</small>
           </p>
           <p className="lead">{p.description}</p>
-          <MakerCard product={p} />
+          <MakerCard product={p} productUrl={abs(`/products/${productSlug(p)}`)} />
           <dl>
             <dt>
               <span className="detail-label">

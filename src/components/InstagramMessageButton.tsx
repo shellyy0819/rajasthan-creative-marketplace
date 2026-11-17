@@ -1,8 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { abs } from '@/lib/site';
-import { productSlug } from '@/lib/catalog-shared';
 import { enquiryMessage } from '@/lib/enquiry-message';
 import { gaContactSeller, gaContactStep } from '@/lib/ga-events';
 import { instagramDmUrl, instagramHandle } from '@/lib/social';
@@ -13,13 +11,13 @@ import type { Product } from '@/lib/types';
  * "Instagram" on the product page. Instagram cannot prefill a direct message, so the buyer edits the message here, and one click copies it
  * and opens the chat with the maker; they paste it and press Send. Nothing is sent by Craftofy.
  */
-export function InstagramMessageButton({ product: p, className, icon, children }: { product: Product; className: string; icon?: React.ReactNode; children?: React.ReactNode }) {
+export function InstagramMessageButton({ product: p, productUrl, className, icon, children }: { product: Product; productUrl: string; className: string; icon?: React.ReactNode; children?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [copy, setCopy] = useState<'idle' | 'copied' | 'manual'>('idle');
   const trigger = useRef<HTMLButtonElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
   const handle = p.instagram ? instagramHandle(p.instagram) : '';
-  const initial = `${enquiryMessage(p)}\n\n${abs(`/products/${productSlug(p)}`)}`;
+  const initial = `${enquiryMessage(p)}\n\n${productUrl}`;
 
   const close = () => { setOpen(false); trigger.current?.focus(); };
   useEffect(() => {

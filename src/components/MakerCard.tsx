@@ -5,9 +5,7 @@ import { TrackedLink } from '@/components/TrackedLink';
 import type { GaContactMethod } from '@/lib/ga-events';
 import { EmailMakerButton } from '@/components/EmailMakerButton';
 import { InstagramMessageButton } from '@/components/InstagramMessageButton';
-import { productSlug } from '@/lib/catalog-shared';
 import { enquiryMessage } from '@/lib/enquiry-message';
-import { abs } from '@/lib/site';
 import { instagramHandle, instagramUrl, whatsappUrl, youtubeUrl } from '@/lib/social';
 import type { TrackType } from '@/lib/track';
 import type { Product } from '@/lib/types';
@@ -45,10 +43,10 @@ const icon = (key: string, onGreen = false) => BRAND[key]
  * WhatsApp with a message typed in: free for both sides); the other methods the maker shares follow as buttons.
  * Without WhatsApp or phone, the first shared method becomes the main button.
  */
-export function MakerCard({ product: p }: { product: Product }) {
+/** `productUrl` is the product page's full public address. The page (a server component) builds it, because the browser bundle may not know the site's address. */
+export function MakerCard({ product: p, productUrl }: { product: Product; productUrl: string }) {
   const waNumber = p.whatsapp ?? p.phone;
   const message = enquiryMessage(p);
-  const productUrl = abs(`/products/${productSlug(p)}`);
   const waText = `${message}\n\n${productUrl}`; // WhatsApp turns the link into a preview card (name, price, maker) the maker can tap to see every photo
   const methods: Method[] = [
     ...(waNumber ? [{ key: 'whatsapp' as const, label: 'WhatsApp', href: whatsappUrl(waNumber, waText), type: 'contact' as const, external: true }] : []),
@@ -60,7 +58,7 @@ export function MakerCard({ product: p }: { product: Product }) {
   const [main, ...rest] = methods;
   const compact = rest.length <= 2;
   const link = (m: Method, className: string, onGreen = false) => m.form && m.key === 'instagram' ? (
-    <InstagramMessageButton key={m.key} product={p} className={className} icon={icon(m.key, onGreen)}>{m.label}</InstagramMessageButton>
+    <InstagramMessageButton key={m.key} product={p} productUrl={productUrl} className={className} icon={icon(m.key, onGreen)}>{m.label}</InstagramMessageButton>
   ) : m.form ? (
     <EmailMakerButton key={m.key} product={p} className={className} icon={icon(m.key, onGreen)}>{m.label}</EmailMakerButton>
   ) : (

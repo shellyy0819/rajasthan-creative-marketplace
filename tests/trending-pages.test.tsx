@@ -178,7 +178,7 @@ describe('product page wiring (source contract)', () => {
   it('records a view and shows the like button; contact lives in MakerCard', () => {
     expect(src).toContain('<TrackOnMount productId={p.id} type="view" />');
     expect(src).toContain('<LikeButton');
-    expect(src).toContain('<MakerCard product={p} />');
+    expect(src).toContain('<MakerCard product={p} productUrl={abs(`/products/${productSlug(p)}`)} />');
   });
   it('MakerCard links to the artist page with the product id and sends every contact link through TrackedLink', () => {
     expect(card).toContain('/artists/${p.sellerSlug}?from=${p.id}');
