@@ -12,6 +12,9 @@ export function instagramUrl(value: string) {
   return `https://www.instagram.com/${encodeURIComponent(instagramName(value))}/`;
 }
 
+/** Opens a direct-message chat with the account on Instagram (the app on phones, the website on computers). Instagram cannot prefill text. */
+export const instagramDmUrl = (value: string) => `https://ig.me/m/${encodeURIComponent(instagramName(value))}`;
+
 /** "@name" for display, whichever form was stored. */
 export const instagramHandle = (value: string) => `@${instagramName(value)}`;
 

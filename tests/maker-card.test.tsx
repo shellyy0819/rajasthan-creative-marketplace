@@ -51,7 +51,7 @@ describe('MakerCard', () => {
     expect(screen.getByText(/your message will start with/i)).toBeTruthy();
     expect(screen.getByRole('link', { name: /call/i }).getAttribute('href')).toBe('tel:9123456789');
     expect(screen.getByRole('button', { name: /email/i }).getAttribute('aria-haspopup')).toBe('dialog');
-    expect(screen.getByRole('link', { name: /instagram/i }).getAttribute('href')).toContain('instagram.com/meera');
+    expect(screen.getByRole('button', { name: /instagram/i }).getAttribute('aria-haspopup')).toBe('dialog');
     expect(screen.getByRole('link', { name: /youtube/i }).getAttribute('href')).toContain('youtube.com');
     expect(screen.getByRole('link', { name: /Meera Textile Studio/ }).getAttribute('href')).toBe('/artists/meera-textile-studio-abc?from=p1');
   });
@@ -66,7 +66,7 @@ describe('MakerCard', () => {
     expect(screen.queryByRole('link', { name: /whatsapp/i })).toBeNull();
     expect(screen.queryByText(/your message will start with/i)).toBeNull();
     expect(screen.getByRole('button', { name: /email/i }).className).toContain('primary');
-    expect(screen.getByRole('link', { name: /instagram/i }).className).not.toContain('primary');
+    expect(screen.getByRole('button', { name: /instagram/i }).className).not.toContain('primary');
   });
 
   it('says so when the maker shares nothing, and never shows a dead link', () => {

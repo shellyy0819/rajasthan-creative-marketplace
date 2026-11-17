@@ -4,6 +4,7 @@ import { ArtistAvatar } from '@/components/ArtistAvatar';
 import { TrackedLink } from '@/components/TrackedLink';
 import type { GaContactMethod } from '@/lib/ga-events';
 import { EmailMakerButton } from '@/components/EmailMakerButton';
+import { InstagramMessageButton } from '@/components/InstagramMessageButton';
 import { productSlug } from '@/lib/catalog-shared';
 import { enquiryMessage } from '@/lib/enquiry-message';
 import { abs } from '@/lib/site';
@@ -52,11 +53,13 @@ export function MakerCard({ product: p }: { product: Product }) {
     ...(waNumber ? [{ key: 'whatsapp' as const, label: 'Message on WhatsApp', href: whatsappUrl(waNumber, waText), type: 'contact' as const, external: true }] : []),
     ...(p.phone ? [{ key: 'call' as const, label: 'Call', href: `tel:${p.phone.replace(/[^\d+]/g, '')}`, type: 'contact_call' as const }] : []),
     ...(p.email ? [{ key: 'email' as const, label: 'Email', href: `mailto:${p.email}`, type: 'contact_email' as const, form: true }] : []),
-    ...(p.instagram ? [{ key: 'instagram' as const, label: 'Instagram', href: instagramUrl(p.instagram), type: 'contact_instagram' as const, external: true }] : []),
+    ...(p.instagram ? [{ key: 'instagram' as const, label: 'Instagram', href: instagramUrl(p.instagram), type: 'contact_instagram' as const, external: true, form: true }] : []),
     ...(p.youtube ? [{ key: 'youtube' as const, label: 'YouTube', href: youtubeUrl(p.youtube), type: 'contact_youtube' as const, external: true }] : []),
   ];
   const [main, ...rest] = methods;
-  const link = (m: Method, className: string) => m.form ? (
+  const link = (m: Method, className: string) => m.form && m.key === 'instagram' ? (
+    <InstagramMessageButton key={m.key} product={p} className={className} icon={icon(m.key)}>{m.label}</InstagramMessageButton>
+  ) : m.form ? (
     <EmailMakerButton key={m.key} product={p} className={className} icon={icon(m.key)}>{m.label}</EmailMakerButton>
   ) : (
     <TrackedLink key={m.key} className={className} productId={p.id} sellerSlug={p.sellerSlug} method={m.key} type={m.type} href={m.href}
