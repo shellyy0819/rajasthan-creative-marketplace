@@ -6,7 +6,7 @@ const ga = vi.hoisted(() => ({ gaEvent: vi.fn() }));
 vi.mock('@/lib/analytics', () => ga);
 
 import { TrackSellerProfileView } from '@/components/TrackSellerProfileView';
-import { gaContactSeller, gaListingSubmit, gaSignUp } from '@/lib/ga-events';
+import { gaContactSeller, gaContactStep, gaListingSubmit, gaSignUp } from '@/lib/ga-events';
 
 beforeEach(() => ga.gaEvent.mockClear());
 
@@ -28,6 +28,15 @@ describe('GA4 business events', () => {
   it('copying a phone or email only sends contact_seller (it is not a separate channel)', () => {
     gaContactSeller({ sellerSlug: 'a-1', method: 'copy' });
     expect(ga.gaEvent.mock.calls).toEqual([['contact_seller', { seller_id: 'a-1', contact_method: 'copy' }]]);
+  });
+  it('dialog funnel steps are named per method and carry the seller and product', () => {
+    ga.gaEvent.mockClear();
+    gaContactStep({ sellerSlug: 'a-1', method: 'email', step: 'modal_open', productId: 'p1' });
+    gaContactStep({ sellerSlug: 'a-1', method: 'email', step: 'button_click', productId: 'p1' });
+    gaContactStep({ sellerSlug: 'a-1', method: 'instagram', step: 'modal_open', productId: 'p1' });
+    gaContactStep({ sellerSlug: 'a-1', method: 'instagram', step: 'button_click', productId: 'p1' });
+    expect(ga.gaEvent.mock.calls.map(c => c[0])).toEqual(['contact_email_modal_open', 'contact_email_button_click', 'contact_instagram_modal_open', 'contact_instagram_button_click']);
+    expect(ga.gaEvent.mock.calls[0][1]).toEqual({ seller_id: 'a-1', contact_method: 'email', product_id: 'p1' });
   });
   it('sign_up and listing_submit carry their parameters', () => {
     gaSignUp('google');

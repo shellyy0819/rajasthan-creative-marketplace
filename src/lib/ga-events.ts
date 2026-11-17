@@ -14,6 +14,15 @@ export function gaContactSeller(p: { sellerSlug: string; method: GaContactMethod
   if (specific) gaEvent(specific, params);
 }
 
+/**
+ * GA4 funnel steps for the two contact methods that open a dialog first (Email, Instagram), so drop-off between the steps can be seen:
+ * `contact_<method>_modal_open` when the dialog opens, `contact_<method>_button_click` when the buyer presses its main button
+ * (Send email / Copy message & open Instagram). The real contact action is still `gaContactSeller` (contact_seller + contact_<method>).
+ */
+export function gaContactStep(p: { sellerSlug: string; method: 'email' | 'instagram'; step: 'modal_open' | 'button_click'; productId: string }): void {
+  gaEvent(`contact_${p.method}_${p.step}`, { seller_id: p.sellerSlug, contact_method: p.method, product_id: p.productId });
+}
+
 /** GA4: a seller profile page was rendered, whatever the URL parameters. */
 export function gaViewSellerProfile(sellerSlug: string): void {
   gaEvent('view_seller_profile', { seller_id: sellerSlug });

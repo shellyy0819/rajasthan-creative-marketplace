@@ -8,8 +8,9 @@ import type { Product } from '@/lib/types';
 const sendEvent = vi.fn();
 vi.mock('@/lib/track', () => ({ sendEvent: (...a: unknown[]) => sendEvent(...a) }));
 const gaContactSeller = vi.fn();
-vi.mock('@/lib/ga-events', () => ({ gaContactSeller: (...a: unknown[]) => gaContactSeller(...a) }));
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); sendEvent.mockClear(); gaContactSeller.mockClear(); });
+const gaContactStep = vi.fn();
+vi.mock('@/lib/ga-events', () => ({ gaContactSeller: (...a: unknown[]) => gaContactSeller(...a), gaContactStep: (...a: unknown[]) => gaContactStep(...a) }));
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); sendEvent.mockClear(); gaContactSeller.mockClear(); gaContactStep.mockClear(); });
 
 const P: Product = { id: 'p1', name: 'Vase', category: 'Pottery', city: 'Jaipur', cityId: 1, citySlug: 'jaipur', pricePaise: 100000, seller: 'Studio A', description: 'd', stock: 1, status: 'APPROVED', instagram: '@studio.a', sellerSlug: 'studio-a-1' };
 const open = () => { render(<InstagramMessageButton product={P} className="button maker-chip">Instagram</InstagramMessageButton>); fireEvent.click(screen.getByRole('button', { name: /instagram/i })); return screen.getByRole('dialog'); };
@@ -63,5 +64,14 @@ describe('InstagramMessageButton', () => {
     cleanup(); open();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('tracks the funnel: dialog opened, then the Copy & open button pressed', () => {
+    stubClipboard(async () => {});
+    open();
+    expect(gaContactStep.mock.calls).toEqual([[{ sellerSlug: 'studio-a-1', method: 'instagram', step: 'modal_open', productId: 'p1' }]]);
+    fireEvent.click(link());
+    expect(gaContactStep).toHaveBeenLastCalledWith({ sellerSlug: 'studio-a-1', method: 'instagram', step: 'button_click', productId: 'p1' });
+    expect(gaContactStep).toHaveBeenCalledTimes(2);
   });
 });

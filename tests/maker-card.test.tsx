@@ -11,9 +11,10 @@ vi.mock('next/link', () => ({ default: ({ href, children, ...r }: { href: string
 const sendEvent = vi.fn();
 vi.mock('@/lib/track', () => ({ sendEvent: (...a: unknown[]) => sendEvent(...a) }));
 const gaContactSeller = vi.fn();
-vi.mock('@/lib/ga-events', () => ({ gaContactSeller: (...a: unknown[]) => gaContactSeller(...a) }));
+const gaContactStep = vi.fn();
+vi.mock('@/lib/ga-events', () => ({ gaContactSeller: (...a: unknown[]) => gaContactSeller(...a), gaContactStep: (...a: unknown[]) => gaContactStep(...a) }));
 
-afterEach(() => { cleanup(); sendEvent.mockClear(); gaContactSeller.mockClear(); });
+afterEach(() => { cleanup(); sendEvent.mockClear(); gaContactSeller.mockClear(); gaContactStep.mockClear(); });
 
 const product = (extra: Partial<Product> = {}): Product => ({
   id: 'p1', name: 'Crochet flower tie-back', category: 'Crochet', city: 'Jaipur', cityId: 1, citySlug: 'jaipur', pricePaise: 100000,
