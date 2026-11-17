@@ -4873,6 +4873,8 @@ button.fair-opt:hover { background: var(--cream); }
   cursor: default;
 }
 .enquiry-to input {
+  background-color: var(--chip-grey);
+  color: var(--chip-grey-ink);
   pointer-events: none;
   cursor: default;
   outline: none;
