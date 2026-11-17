@@ -87,9 +87,11 @@ export const sellerProfiles = pgTable('seller_profiles', {
 export const categories = pgTable('categories', {
   id: serial('id').primaryKey(),
   name: text('name').notNull().unique(),
+  /** Stable address of the category page. Made by the database (trigger `categories_set_slug`, function `category_slug_unique`), never in code. */
+  slug: text('slug').notNull().default(''),
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
-}, t => [uniqueIndex('categories_name_lower_idx').on(sql`lower(${t.name})`)]);
+}, t => [uniqueIndex('categories_name_lower_idx').on(sql`lower(${t.name})`), uniqueIndex('categories_slug_idx').on(t.slug).where(sql`${t.slug} <> ''`)]);
 
 /**
  * Admin-managed ways a product came to be listed (Handmade, Curated, Resold, ...). `countsAsHandmade` is the only thing that lets the
