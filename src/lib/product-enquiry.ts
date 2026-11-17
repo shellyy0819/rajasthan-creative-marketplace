@@ -4,6 +4,7 @@ import { productsQuery, toProduct } from '../db/mappers';
 import { products } from '../db/schema';
 import { productSlug } from './catalog';
 import { enquiryMessage } from './enquiry-message';
+import { fetchProductPhotos, type Photo } from './enquiry-photos';
 import { ApiError } from './errors';
 import { mailConfigured, sendMail } from './mailer';
 import { resolveMailConfig } from './settings';
@@ -23,7 +24,7 @@ const oneLine = (v: string) => v.replace(/[\r\n]+/g, ' ').trim();
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
 /** What the buyer is shown after sending: the mail exactly as the seller received it. */
-export type SentEnquiry = { seller: string; to: string; from: string; replyTo: string; subject: string; text: string };
+export type SentEnquiry = { seller: string; to: string; from: string; replyTo: string; subject: string; text: string; attachments: string[] };
 
 /**
  * A buyer's email to the maker of a product. It goes only to the seller's public address (never one the buyer supplies), from Craftofy's sender,
@@ -47,19 +48,22 @@ export async function sendProductEnquiry(productId: string, raw: unknown, opts: 
 
 
   const subject = oneLine(`Enquiry about ${p.name} on Craftofy`);
-  const text = [
+  const compose = (photos: Photo[]) => [
     message, '', '--',
     `Buyer: ${name} <${email}>`,
     opts.signedInEmail ? 'The buyer was signed in to Craftofy with this email address.' : 'The buyer typed this email address in: it is not verified.',
     `Product: ${abs(`/products/${productSlug(p)}`)}`,
+    ...(photos.length ? [`Photos of the product are attached (${photos.length}).`] : []),
     'Sent through Craftofy. Reply to this email to answer the buyer.',
   ].join('\n');
-  const sent: SentEnquiry = { seller: p.seller, to: p.email, from: 'Craftofy', replyTo: email, subject, text };
+  const sent: SentEnquiry = { seller: p.seller, to: p.email, from: 'Craftofy', replyTo: email, subject, text: compose([]), attachments: [] };
 
   if (str(b.companyWebsite)) return sent; // hidden field only bots fill: pretend it went out
   if (!(await mailConfigured())) throw new ApiError(503, 'Email is not available right now.');
   opts.beforeSend?.(); // quotas are spent only by mail that is really about to go out, so junk requests cannot use them up
-  try { await sendMail({ to: p.email, subject, text, replyTo: email }); }
+  const photos = await fetchProductPhotos(p.images ?? (p.imageUrl ? [p.imageUrl] : []), p.name);
+  sent.text = compose(photos); sent.attachments = photos.map(x => x.filename);
+  try { await sendMail({ to: p.email, subject, text: sent.text, replyTo: email, ...(photos.length ? { attachments: photos } : {}) }); }
   catch (e) { console.error('could not send product enquiry', productId, (e as Error)?.message ?? 'error'); throw new ApiError(502, 'We could not send your email. Please try again.'); }
   sent.from = (await resolveMailConfig().catch(() => null))?.from ?? 'Craftofy'; // the address the mail really came from
   return sent;

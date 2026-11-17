@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { createProduct } from '@/lib/admin';
 import { setMailSenderForTests, type Mail } from '@/lib/mailer';
 import { sendProductEnquiry } from '@/lib/product-enquiry';
-import { sellerProfiles } from '@/db/schema';
+import { productImages, sellerProfiles } from '@/db/schema';
 import { getTestDb, makeSeller, resetTestDb } from './helpers/testdb';
 import { cityRef } from './helpers/cities';
 import { admin } from './helpers/actors';
@@ -32,7 +32,7 @@ describe('sendProductEnquiry', () => {
     expect(sent[0].text).toContain(good.message);
     expect(sent[0].text).toContain('Buyer: Asha Buyer <asha@buyer.co>');
     expect(sent[0].text).toMatch(/\/products\/t-vase-p\d+/i);
-    expect(r).toEqual({ seller: 'Studio A', to: 'shop@studio.co', from: 'Craftofy', replyTo: 'asha@buyer.co', subject: sent[0].subject, text: sent[0].text });
+    expect(r).toEqual({ seller: 'Studio A', to: 'shop@studio.co', from: 'Craftofy', replyTo: 'asha@buyer.co', subject: sent[0].subject, text: sent[0].text, attachments: [] });
   });
   it('never mails an address the buyer supplies: only the seller’s public one', async () => {
     await setup('shop@studio.co');
@@ -110,5 +110,34 @@ describe('sendProductEnquiry', () => {
     await setup('shop@studio.co');
     setMailSenderForTests(async () => { throw new Error('Resend refused the email (403): secret details'); });
     await expect(sendProductEnquiry(pid, good)).rejects.toMatchObject({ status: 502, message: expect.not.stringContaining('secret') });
+  });
+  it('attaches the product’s own photos, says so in the mail, and returns their names', async () => {
+    vi.stubEnv('S3_BUCKET', 'b'); vi.stubEnv('S3_REGION', 'r');
+    const s = await makeSeller('p@x.co', 'Studio P');
+    await (await getTestDb()).update(sellerProfiles).set({ publicEmail: 'p@studio.co' }).where(eq(sellerProfiles.userId, s.id));
+    const base = 'https://b.s3.r.amazonaws.com/products';
+    const made = await createProduct({ name: 'Photo Vase', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 100, description: 'd', stock: 1, status: 'APPROVED', sellerId: s.id, } as never, admin);
+    await (await getTestDb()).insert(productImages).values([{ productId: made.id, url: `${base}/${s.id}/a.jpg`, position: 0 }, { productId: made.id, url: `${base}/${s.id}/b.png`, position: 1 }]);
+    const f = vi.fn(async (u: string) => new Response(new Uint8Array([1, 2, 3]), { headers: { 'content-type': u.endsWith('.png') ? 'image/png' : 'image/jpeg' } }));
+    vi.stubGlobal('fetch', f);
+    try {
+      const r = await sendProductEnquiry(made.id, good);
+      expect(r.attachments).toEqual(['photo-vase-1.jpg', 'photo-vase-2.png']);
+      expect(sent[0].attachments?.map(a => a.filename)).toEqual(r.attachments);
+      expect(sent[0].text).toContain('Photos of the product are attached (2).');
+      expect(r.text).toBe(sent[0].text);
+    } finally { vi.unstubAllGlobals(); vi.unstubAllEnvs(); }
+  });
+  it('a photo that cannot be fetched does not stop the email', async () => {
+    vi.stubEnv('S3_BUCKET', 'b'); vi.stubEnv('S3_REGION', 'r');
+    const s = await makeSeller('q@x.co', 'Studio Q');
+    await (await getTestDb()).update(sellerProfiles).set({ publicEmail: 'q@studio.co' }).where(eq(sellerProfiles.userId, s.id));
+    const made = await createProduct({ name: 'Gone Vase', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 100, description: 'd', stock: 1, status: 'APPROVED', sellerId: s.id, } as never, admin);
+    await (await getTestDb()).insert(productImages).values({ productId: made.id, url: `https://b.s3.r.amazonaws.com/products/${s.id}/a.jpg`, position: 0 });
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 404 })));
+    try {
+      const r = await sendProductEnquiry(made.id, good);
+      expect(sent).toHaveLength(1); expect(r.attachments).toEqual([]); expect(sent[0].text).not.toContain('attached');
+    } finally { vi.unstubAllGlobals(); vi.unstubAllEnvs(); }
   });
 });

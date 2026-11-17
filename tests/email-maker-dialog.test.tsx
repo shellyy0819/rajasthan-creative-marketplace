@@ -80,7 +80,7 @@ describe('signed in: Craftofy sends it and shows the mail that went out', () => 
   });
   it('sends name, email and message, then shows the mail to the buyer', async () => {
     signIn();
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ seller: 'Studio A', to: 'shop@studio.co', from: 'Craftofy <hello@craftofy.online>', replyTo: 'asha@buyer.co', subject: 'Enquiry about Vase on Craftofy', text: 'BODY TEXT' }), { status: 201 }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ seller: 'Studio A', to: 'shop@studio.co', from: 'Craftofy <hello@craftofy.online>', replyTo: 'asha@buyer.co', subject: 'Enquiry about Vase on Craftofy', text: 'BODY TEXT', attachments: ['vase-1.jpg', 'vase-2.png'] }), { status: 201 }));
     vi.stubGlobal('fetch', fetchMock);
     open();
     fireEvent.click(screen.getByRole('button', { name: /send email/i }));
@@ -89,7 +89,7 @@ describe('signed in: Craftofy sends it and shows the mail that went out', () => 
     expect(url).toBe('/api/products/p1/enquiry');
     expect(JSON.parse((init as RequestInit).body as string)).toMatchObject({ name: 'Asha B', email: 'asha@buyer.co', message: MSG });
     const d = screen.getByRole('dialog');
-    for (const t of ['Studio A <shop@studio.co>', 'Craftofy <hello@craftofy.online>', 'Reply-to', 'Enquiry about Vase on Craftofy', 'BODY TEXT', 'asha@buyer.co']) expect(d.textContent).toContain(t);
+    for (const t of ['Studio A <shop@studio.co>', 'Craftofy <hello@craftofy.online>', 'Reply-to', 'vase-1.jpg, vase-2.png', 'Enquiry about Vase on Craftofy', 'BODY TEXT', 'asha@buyer.co']) expect(d.textContent).toContain(t);
     expect(sendEvent).toHaveBeenCalledWith('contact_email', 'p1');
     expect(gaContactSeller).toHaveBeenCalledWith({ sellerSlug: 'studio-a-1', method: 'email', productId: 'p1' });
   });
