@@ -29,7 +29,7 @@
     "@aws-sdk/s3-presigned-post": "~3.1161.0",
     "@tanstack/react-query": "~5.106.0",
     "drizzle-orm": "~0.45.4",
-    "next": "16.4.1",
+    "next": "16.4.6",
     "next-auth": "~4.24.15",
     "nodemailer": "~7.0.13",
     "postgres": "~3.4.9",
