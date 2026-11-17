@@ -7,7 +7,7 @@ describe('product page like prompt (source contract)', () => {
     const i = src.indexOf('If you really liked the product, give it a like');
     expect(i).toBeGreaterThan(-1);
     expect(src.indexOf('<LikeButton')).toBeGreaterThan(i);
-    expect(src.indexOf('<LikeButton') - i).toBeLessThan(200);
+    expect(src.indexOf('<LikeButton') - i).toBeLessThan(260);
   });
 });
 

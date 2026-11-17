@@ -598,8 +598,48 @@ h2 em {
   letter-spacing: 0.8px;
   text-transform: uppercase;
 }
-.detail-like { margin-top: 16px; }
-.detail-like-prompt { margin: 0 0 10px; color: var(--muted); font-size: 12px; }
+/* "Appreciate the craft": a soft strip with a heart, a line asking for a like, and the like button on the right */
+.detail-like {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 14px;
+  margin-top: 20px;
+  padding: 14px 18px;
+  max-width: 560px;
+  background: color-mix(in srgb, var(--orange) 7%, var(--white));
+  border: 1px solid color-mix(in srgb, var(--orange) 28%, var(--line));
+  border-radius: 14px;
+}
+.detail-like-art {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--orange) 16%, var(--white));
+}
+.detail-like-art svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--orange);
+}
+.detail-like-text {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.detail-like-text b {
+  font-size: 14px;
+}
+.detail-like-text span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
 .detail-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 12px; }
 /* How the product was sourced (Curated, Resold ...): shown on the product page only, never on cards */
 .source-tag {
