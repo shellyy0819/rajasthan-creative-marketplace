@@ -137,4 +137,21 @@ describe('LikeButton', () => {
     expect(screen.getByRole('button').textContent).not.toMatch(/\d/);
     expect(fetchMock.mock.calls.some(([u, i]) => String(u).includes('/api/products/p1/like') && (i as RequestInit).method === 'POST')).toBe(true);
   });
+  it('quiet: no spinner and no busy state while saving, the heart flips at once, and it is put back if the server refuses', async () => {
+    let finish!: (r: Response) => void;
+    fetchMock.mockImplementation((url: string) => {
+      if (url.startsWith('/api/likes')) return res(200, { counts: { p1: 3 }, liked: [] });
+      return new Promise<Response>(resolve => { finish = resolve; });
+    });
+    render(<LikeButton productId="p1" initialCount={3} productName="Bag" quiet showCount={false} />);
+    await waitFor(() => expect(btn(/Like Bag/)).toBeTruthy());
+    fireEvent.click(btn(/Like Bag/));
+    const heart = btn(/Unlike Bag/);                                  // flipped immediately, before the server answers
+    expect(heart.textContent).toBe('♥');
+    await waitFor(() => expect(finish).toBeTruthy());
+    expect(heart.querySelector('.rr-spinner')).toBeNull();
+    expect(heart.hasAttribute('aria-busy')).toBe(false);
+    await act(async () => { finish({ ok: false, status: 500, json: () => Promise.resolve({}) } as Response); });
+    await waitFor(() => expect(btn(/Like Bag/).textContent).toBe('♡'));   // refused: back to how it was
+  });
 });

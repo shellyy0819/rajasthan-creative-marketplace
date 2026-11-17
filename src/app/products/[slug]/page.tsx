@@ -124,6 +124,7 @@ export default async function ProductPage({ params }: Props) {
               initialCount={p.likeCount ?? 0}
               productName={p.name}
               showCount={false}
+              quiet
             />
             <p className="detail-like-text">
               <b>Appreciate the craft</b>

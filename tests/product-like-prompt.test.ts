@@ -8,7 +8,8 @@ describe('product page like prompt (source contract)', () => {
     expect(i).toBeGreaterThan(-1);
     expect(src.indexOf('<LikeButton')).toBeGreaterThan(-1);
     expect(src.indexOf('<LikeButton')).toBeLessThan(i);        // the heart sits on the left, before the text
-    expect(src).toContain('showCount={false}');                 // the number is not shown to visitors
+    expect(src).toContain('showCount={false}');
+    expect(src).toMatch(/showCount=\{false\}\s+quiet/);          // and no spinner while it saves                 // the number is not shown to visitors
     expect(src).not.toContain('detail-like-art');               // no static heart
   });
 });
