@@ -42,6 +42,17 @@ describe('enquiry route: anonymous senders cannot dodge the limits by faking the
     for (let i = 0; i < 9; i++) expect((await call()).status).toBe(201);
     expect((await call()).status).toBe(429);
   });
+  it('a site-wide backstop of 100 anonymous emails an hour holds across products', async () => {
+    const db = await getTestDb();
+    const s = await makeSeller('b@x.co', 'Studio B');
+    await db.update(sellerProfiles).set({ publicEmail: 'b@studio.co' }).where(eq(sellerProfiles.userId, s.id));
+    const ids: string[] = [];
+    for (let i = 0; i < 10; i++) ids.push((await createProduct({ name: `T-P${i}`, category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 100, description: 'd', stock: 1, status: 'APPROVED', sellerId: s.id }, admin)).id);
+    let ok = 0;
+    for (const id of ids) for (let i = 0; i < 10; i++) if ((await call(id)).status === 201) ok++;
+    expect(ok).toBe(100);
+    expect((await call(pid)).status).toBe(429);
+  });
   it('another product is unaffected', async () => {
     for (let i = 0; i < 10; i++) await call();
     expect((await call('p99999')).status).toBe(404);
