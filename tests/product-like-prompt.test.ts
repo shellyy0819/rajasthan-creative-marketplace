@@ -10,3 +10,11 @@ describe('product page like prompt (source contract)', () => {
     expect(src.indexOf('<LikeButton') - i).toBeLessThan(200);
   });
 });
+
+describe('product page place (source contract)', () => {
+  it('shows City, State, Country: the city links to its page, the state is skipped when unknown, the country is India', () => {
+    const src = fs.readFileSync('src/app/products/[slug]/page.tsx', 'utf8');
+    expect(src).toContain('{p.cityState ? `, ${p.cityState}` : ""}, India');
+    expect(src).toContain('<Link href={`/cities/${p.citySlug}`}>{p.city}</Link>');
+  });
+});

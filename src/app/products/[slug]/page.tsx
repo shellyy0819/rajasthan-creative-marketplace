@@ -86,6 +86,7 @@ export default async function ProductPage({ params }: Props) {
             </dt>
             <dd>
               <Link href={`/cities/${p.citySlug}`}>{p.city}</Link>
+              {p.cityState ? `, ${p.cityState}` : ""}, India
             </dd>
             <dt>
               <span className="detail-label">
