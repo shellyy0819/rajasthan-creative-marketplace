@@ -42,9 +42,9 @@ describe('whatsappUrl', () => {
 });
 
 describe('MakerCard', () => {
-  it('leads with Message on WhatsApp, prefilled with the maker, product and price', () => {
+  it('leads with WhatsApp, prefilled with the maker, product and price', () => {
     render(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co', instagram: '@meera', youtube: '@meeratv' })} />);
-    const wa = screen.getByRole('link', { name: /message on whatsapp/i });
+    const wa = screen.getByRole('link', { name: /whatsapp/i });
     expect(wa.getAttribute('href')).toContain('wa.me/919876543210');
     const text = new URL(wa.getAttribute('href')!).searchParams.get('text')!;
     expect(text).toBe('Hi Meera Textile Studio, I saw Crochet flower tie-back (₹1,000) on Craftofy and I’m interested.\n\nhttp://localhost:3000/products/crochet-flower-tie-back-p1');
@@ -58,7 +58,7 @@ describe('MakerCard', () => {
 
   it('falls back to the public phone for WhatsApp when no WhatsApp number is shared', () => {
     render(<MakerCard product={product({ phone: '9123456789' })} />);
-    expect(screen.getByRole('link', { name: /message on whatsapp/i }).getAttribute('href')).toContain('wa.me/919123456789');
+    expect(screen.getByRole('link', { name: /whatsapp/i }).getAttribute('href')).toContain('wa.me/919123456789');
   });
 
   it('with no phone either, the first shared method becomes the main button and there is no WhatsApp line', () => {
@@ -83,7 +83,7 @@ describe('MakerCard', () => {
 
   it('records a WhatsApp click as a contact and GA hears the method', () => {
     render(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co' })} />);
-    fireEvent.click(screen.getByRole('link', { name: /message on whatsapp/i }));
+    fireEvent.click(screen.getByRole('link', { name: /whatsapp/i }));
     expect(sendEvent).toHaveBeenLastCalledWith('contact', 'p1');
     expect(gaContactSeller).toHaveBeenLastCalledWith({ sellerSlug: 'meera-textile-studio-abc', method: 'whatsapp', productId: 'p1' });
   });

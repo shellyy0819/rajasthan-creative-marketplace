@@ -50,7 +50,7 @@ export function MakerCard({ product: p }: { product: Product }) {
   const productUrl = abs(`/products/${productSlug(p)}`);
   const waText = `${message}\n\n${productUrl}`; // WhatsApp turns the link into a preview card (name, price, maker) the maker can tap to see every photo
   const methods: Method[] = [
-    ...(waNumber ? [{ key: 'whatsapp' as const, label: 'Message on WhatsApp', href: whatsappUrl(waNumber, waText), type: 'contact' as const, external: true }] : []),
+    ...(waNumber ? [{ key: 'whatsapp' as const, label: 'WhatsApp', href: whatsappUrl(waNumber, waText), type: 'contact' as const, external: true }] : []),
     ...(p.phone ? [{ key: 'call' as const, label: 'Call', href: `tel:${p.phone.replace(/[^\d+]/g, '')}`, type: 'contact_call' as const }] : []),
     ...(p.email ? [{ key: 'email' as const, label: 'Email', href: `mailto:${p.email}`, type: 'contact_email' as const, form: true }] : []),
     ...(p.instagram ? [{ key: 'instagram' as const, label: 'Instagram', href: instagramUrl(p.instagram), type: 'contact_instagram' as const, external: true, form: true }] : []),
