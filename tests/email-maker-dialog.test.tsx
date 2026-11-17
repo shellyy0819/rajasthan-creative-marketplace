@@ -43,14 +43,13 @@ describe('EmailMakerButton', () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(sendEvent).not.toHaveBeenCalled();
   });
-  it('shows the maker’s email address (no name) in a read-only field that can never take focus', () => {
+  it('shows the maker’s email address (no name) in a read-only field that is not a tab stop', () => {
     const d = open();
     const to = d.querySelector('input[name="to"]') as HTMLInputElement;
     expect(to.value).toBe('shop@studio.co');
     expect(to.readOnly).toBe(true);
     expect(to.tabIndex).toBe(-1);
-    fireEvent.click(to.closest('label')!);          // clicking the label must not move focus into it
-    expect(document.activeElement).not.toBe(to);
+    expect(getComputedStyle(to).pointerEvents).not.toBe('none'); // the text must stay selectable
   });
   it('highlights the maker’s name in the heading', () => {
     const d = open();

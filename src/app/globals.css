@@ -4868,15 +4868,15 @@ button.fair-opt:hover { background: var(--cream); }
 .enquiry-maker {
   color: var(--orange);
 }
-/* The maker's address in the email form: looks like a field but is read-only and never takes focus (no tab stop, no click, no ring) */
-.enquiry-to {
-  cursor: default;
-}
+/* The maker's address in the email form: a grey read-only field. The text can be selected and copied, but it is not a tab stop and shows no focus ring. */
 .enquiry-to input {
   background-color: var(--chip-grey);
   color: var(--chip-grey-ink);
-  pointer-events: none;
   cursor: default;
+}
+.enquiry-to input:focus,
+.enquiry-to input:focus-visible {
   outline: none;
-  user-select: text;
+  box-shadow: none;
+  border-color: var(--line);
 }
