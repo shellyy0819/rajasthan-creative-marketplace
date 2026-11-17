@@ -112,10 +112,11 @@ export default async function ProductPage({ params }: Props) {
               </b>
             </dd>
           </dl>
-          <ul className="detail-pills">
-            {isHandmade(p) && <li>Direct from the maker</li>}
-            <li>No commission</li>
-          </ul>
+          {isHandmade(p) && (
+            <ul className="detail-pills">
+              <li>Direct from the maker</li>
+            </ul>
+          )}
           <div className="detail-like">
             <LikeButton
               productId={p.id}
