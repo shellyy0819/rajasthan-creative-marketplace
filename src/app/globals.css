@@ -1242,6 +1242,8 @@ form label select {
   gap: 5%;
   padding: 40px 6% 80px;
   align-items: start;
+  max-width: 1320px;
+  margin-inline: auto;
 }
 .detail .product-visual,
 .detail .detail-art {
@@ -1250,9 +1252,10 @@ form label select {
 .detail h1 {
   font: 500 clamp(30px, 4vw, 44px)/1.1 var(--font-display);
   letter-spacing: -1px;
-  margin: 10px 0 16px;
+  margin: 10px 0 10px;
 }
 .detail .lead {
+  margin: 0;
   font-size: 14px;
   line-height: 1.8;
   color: var(--muted-2);
@@ -1276,7 +1279,7 @@ form label select {
   align-items: baseline;
   flex-wrap: wrap;
   gap: 4px 14px;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
 }
 .detail-price small {
   color: var(--muted);
@@ -4886,4 +4889,31 @@ button.fair-opt:hover { background: var(--cream); }
 .button.is-disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Desktop: the photo sits against the details column (not floating in the middle of a wide empty frame), thumbnails follow it */
+@media (min-width: 901px) {
+  .detail .gallery-slide {
+    place-items: center end;
+  }
+  .detail .gallery-thumbs {
+    justify-content: flex-start;
+  }
+  .detail .gallery-thumbs .gallery-thumb:last-child {
+    margin-right: 0;
+  }
+}
+/* The maker's own words, when they have shared a bio */
+.maker-bio {
+  margin: 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--orange);
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }

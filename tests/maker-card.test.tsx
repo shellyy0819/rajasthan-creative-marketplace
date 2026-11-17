@@ -94,4 +94,11 @@ describe('MakerCard', () => {
     rerender(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co', instagram: '@meera' })} />);
     expect(container.querySelector('.maker-card')!.classList.contains('compact')).toBe(false);
   });
+
+  it('highlights the maker’s bio when they have shared one, and shows nothing extra when not', () => {
+    const { container, rerender } = render(<MakerCard product={product({ whatsapp: '9876543210', artistBio: 'Third-generation maker of block-printed textiles.' })} />);
+    expect(container.querySelector('.maker-bio')!.textContent).toBe('Third-generation maker of block-printed textiles.');
+    rerender(<MakerCard product={product({ whatsapp: '9876543210' })} />);
+    expect(container.querySelector('.maker-bio')).toBeNull();
+  });
 });
