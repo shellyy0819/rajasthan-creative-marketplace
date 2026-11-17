@@ -999,7 +999,7 @@ form label select {
   nav > a.nav-fair {
     display: inline-flex;
   }
-  .seller-prompt {
+  .button.seller-prompt {
     display: none;
   }
   nav .seller-login-btn {
