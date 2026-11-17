@@ -110,4 +110,11 @@ describe('MakerCard', () => {
     for (const c of ['#25D366', '#EA4335', '#4285F4', '#34A853', '#FF0000']) expect(fills).toContain(c);
     expect(container.querySelector('svg.maker-brand linearGradient')).not.toBeNull();
   });
+
+  it('the Gmail mark has no white background: nothing in it is filled white', () => {
+    const { container } = render(<MakerCard product={product({ email: 'm@x.co' })} />);
+    const fills = [...container.querySelectorAll('svg.maker-brand [fill]')].map(e => e.getAttribute('fill'));
+    expect(fills).toContain('#EA4335');
+    expect(fills).not.toContain('#fff');
+  });
 });

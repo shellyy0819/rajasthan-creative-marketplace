@@ -18,7 +18,6 @@ const WA_PATH = 'M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.
 const BRAND: Record<string, React.ReactNode> = {
   whatsapp: <><circle cx="12" cy="12" r="12" fill="#fff" /><path transform="translate(3.4 3.4) scale(.717)" fill="#25D366" d={WA_PATH} /></>,
   email: <>
-    <path fill="#fff" d="M5.5 9.4 12 14.3l6.5-4.9V19h-13Z" />
     <path fill="#4285F4" d="M2 7.6 5.5 10.2V19H3a1 1 0 0 1-1-1V7.6Z" />
     <path fill="#34A853" d="M22 7.6 18.5 10.2V19H21a1 1 0 0 0 1-1V7.6Z" />
     <path fill="#FBBC04" d="M18.5 5.4V10.2L22 7.6V6.2c0-1.7-1.9-2.6-3.3-1.6l-.2.2Z" />
