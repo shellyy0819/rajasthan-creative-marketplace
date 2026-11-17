@@ -48,6 +48,6 @@ describe('categories index page', () => {
     const m = await generateMetadata();
     expect(m.alternates?.canonical).toBe('/categories');
     expect(m.robots).toBeUndefined();
-    expect(String(m.title)).toMatch(/Categories/);
+    expect(String(m.title)).toMatch(/Shop by Category/);
   });
 });
