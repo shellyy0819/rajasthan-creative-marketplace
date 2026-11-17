@@ -320,7 +320,8 @@ nav a:hover,
   margin-left: 4px;
 }
 /* Desktop: "Are you a seller?" and "Login here" live together in one outlined block (one button). The phone shows only the .seller-login-btn. */
-.seller-prompt {
+/* .button comes later in this file and sets gap: 20px and padding, so the block needs the extra class to win. */
+.button.seller-prompt {
   display: inline-flex;
   align-items: center;
   gap: 5px;
