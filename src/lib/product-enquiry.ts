@@ -28,6 +28,9 @@ export async function sendProductEnquiry(productId: string, raw: unknown, opts: 
   if (!email || email.length > 254 || !EMAIL_RE.test(email)) throw new ApiError(400, 'Enter a valid email address.', 'email');
   if (!message || message.length > 1000) throw new ApiError(400, 'Write a message (1000 characters or fewer).', 'message');
 
+  // A visitor's address is unverified, so their text cannot carry links: a Craftofy-sent mail with a stranger's link is a phishing vehicle.
+  if (!opts.signedInEmail && /https?:\/\/|www\.|[a-z0-9-]+\.(com|in|co|net|org|io|me|link|ly)\b/i.test(`${message} ${name}`)) throw new ApiError(400, 'Links are not allowed in a message from a visitor. Remove the link, or sign in to include it.', 'message');
+
   const [row] = await productsQuery(getDb()).where(and(eq(products.id, productId), eq(products.status, 'APPROVED')));
   const p = row && toProduct(row);
   if (!p) throw new ApiError(404, 'Product not found.');

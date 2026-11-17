@@ -74,4 +74,9 @@ describe('enquiry route: anonymous senders cannot dodge the limits by faking the
     expect((await call()).status).toBe(201);
     expect(sent[0].text).toMatch(/not verified/i);
   });
+  it('signed-in and anonymous quotas are separate: an anonymous flood on one email key does not block the account of that name', async () => {
+    for (let i = 0; i < 3; i++) await call(pid, { email: 'me@buyer.co' }); // anonymous, typing the same address: 2 allowed, then the pair limit
+    session = { user: { email: 'me@buyer.co' } };
+    expect((await call(pid)).status).toBe(201);
+  });
 });

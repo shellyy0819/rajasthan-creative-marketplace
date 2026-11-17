@@ -58,15 +58,25 @@ describe('sendProductEnquiry', () => {
   });
   it('a newline in the buyer’s name cannot add mail headers or lines to the subject', async () => {
     await setup('shop@studio.co');
-    await sendProductEnquiry(pid, { ...good, name: 'Asha\r\nBcc: x@y.co' });
+    await sendProductEnquiry(pid, { ...good, name: 'Asha\r\nBcc: someone' });
     expect(sent[0].subject).not.toMatch(/[\r\n]/);
-    expect(sent[0].text).toContain('Buyer: Asha Bcc: x@y.co <asha@buyer.co>');
+    expect(sent[0].text).toContain('Buyer: Asha Bcc: someone <asha@buyer.co>');
   });
   it('the hidden website field marks a bot: pretends success, sends nothing', async () => {
     await setup('shop@studio.co');
     const r = await sendProductEnquiry(pid, { ...good, companyWebsite: 'http://spam' });
     expect(sent).toHaveLength(0);
     expect(r.seller).toBe('Studio A');
+  });
+  it.each(['see http://evil.example/x', 'visit www.evil.co now', 'go to evil.com'])('a visitor’s message cannot carry a link: %s', async message => {
+    await setup('shop@studio.co');
+    await expect(sendProductEnquiry(pid, { ...good, message })).rejects.toMatchObject({ status: 400 });
+    expect(sent).toHaveLength(0);
+  });
+  it('a signed-in buyer may include a link', async () => {
+    await setup('shop@studio.co');
+    await sendProductEnquiry(pid, { ...good, message: 'like http://x.example/photo' }, { signedInEmail: 'me@buyer.co' });
+    expect(sent).toHaveLength(1);
   });
   it('says in the mail that a typed-in address is not verified', async () => {
     await setup('shop@studio.co');
