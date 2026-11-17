@@ -26,7 +26,7 @@ const ICONS: Record<string, React.ReactNode> = {
  */
 export function MakerCard({ product: p }: { product: Product }) {
   const waNumber = p.whatsapp ?? p.phone;
-  const message = `Hi ${p.seller.trim().split(/\s+/)[0]}, I saw ${p.name} (${money(p.pricePaise)}) on Craftofy and I’m interested.`;
+  const message = `${p.seller} I saw ${p.name} (${money(p.pricePaise)}) on Craftofy and I’m interested.`;
   const methods: Method[] = [
     ...(waNumber ? [{ key: 'whatsapp' as const, label: 'Message on WhatsApp', href: whatsappUrl(waNumber, message), type: 'contact' as const, external: true }] : []),
     ...(p.phone ? [{ key: 'call' as const, label: 'Call', href: `tel:${p.phone.replace(/[^\d+]/g, '')}`, type: 'contact_call' as const }] : []),
