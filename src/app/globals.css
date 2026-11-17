@@ -323,7 +323,7 @@ nav a:hover,
 .seller-prompt {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 5px;
   padding: 12px 16px;
 }
 .seller-prompt-q {
