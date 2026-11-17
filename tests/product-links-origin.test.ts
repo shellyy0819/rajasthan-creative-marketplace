@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { requestOrigin } from '@/lib/public-origin';
 
 describe('browser components never work out the site address themselves', () => {
   it('no "use client" component imports abs() or siteUrl(): the browser bundle may not know the address (NEXT_PUBLIC_ values are fixed at build time), so a live page could show localhost', () => {
@@ -11,10 +12,28 @@ describe('browser components never work out the site address themselves', () => 
     });
     expect(offenders).toEqual([]);
   });
-  it('the mail link is built from the configured site address only, never from request headers (a forged Host header must not decide where a Craftofy email points)', () => {
-    const lib = fs.readFileSync('src/lib/product-enquiry.ts', 'utf8');
-    const route = fs.readFileSync('src/app/api/products/[id]/enquiry/route.ts', 'utf8');
-    expect(lib).toContain("abs(`/products/${productSlug(p)}`)");
-    expect(route).not.toMatch(/x-forwarded-host|headers\.get\(['"]host['"]\)|publicOrigin/i);
+});
+
+const h = (o: Record<string, string>) => ({ get: (k: string) => o[k.toLowerCase()] ?? null });
+
+describe('requestOrigin: the mail link uses the host the buyer was on, but only Craftofy\'s own domain', () => {
+  it('uses the browser Origin first, then Referer, then the forwarded host, then Host', () => {
+    expect(requestOrigin(h({ origin: 'https://craftofy.online', host: 'api.craftofy.online' }))).toBe('https://craftofy.online');
+    expect(requestOrigin(h({ referer: 'https://www.craftofy.online/products/x-p1', host: 'api.craftofy.online' }))).toBe('https://www.craftofy.online');
+    expect(requestOrigin(h({ 'x-forwarded-host': 'craftofy.online, other', host: 'internal' }))).toBe('https://craftofy.online');
+    expect(requestOrigin(h({ host: 'api.craftofy.online' }))).toBe('https://api.craftofy.online');
+  });
+  it('is always https for Craftofy hosts, and http for localhost (development)', () => {
+    expect(requestOrigin(h({ origin: 'http://craftofy.online' }))).toBe('https://craftofy.online');
+    expect(requestOrigin(h({ host: 'localhost:3000' }))).toBe('http://localhost:3000');
+  });
+  it('refuses any other host, including look-alikes, so a forged header cannot redirect the link', () => {
+    for (const bad of ['evil.example', 'craftofy.online.evil.example', 'notcraftofy.online', 'craftofy.online@evil.example', 'craftofy.online:80@evil', 'evil.example/craftofy.online', 'xcraftofy.online']) {
+      expect(requestOrigin(h({ origin: `https://${bad}`, host: bad, 'x-forwarded-host': bad }))).toBeNull();
+    }
+    expect(requestOrigin(h({}))).toBeNull();
+  });
+  it('skips a refused value and keeps looking: a forged Origin does not stop a genuine Host being used', () => {
+    expect(requestOrigin(h({ origin: 'https://evil.example', host: 'craftofy.online' }))).toBe('https://craftofy.online');
   });
 });

@@ -3,6 +3,7 @@ import { clientIp } from '@/lib/actors';
 import { handle, json, readJson } from '@/lib/api';
 import { ApiError } from '@/lib/errors';
 import * as limits from '@/lib/engagement-limits';
+import { requestOrigin } from '@/lib/public-origin';
 import { sendProductEnquiry } from '@/lib/product-enquiry';
 export const dynamic = 'force-dynamic';
 type Ctx = { params: Promise<{ id: string }> };
@@ -29,5 +30,5 @@ export const POST = (req: Request, { params }: Ctx) => handle(async () => {
     if (!limits.enquiryAnonLimiter.check('all')) throw new ApiError(429, 'Many emails are being sent right now. Please sign in to send yours, or try again later.');
     limits.enquiryProductLimiter.hit(id); limits.enquiryAnonLimiter.hit('all');
   };
-  return json(await sendProductEnquiry(id, body, { ...(signedInEmail ? { signedInEmail } : {}), beforeSend }), 201, { 'cache-control': 'no-store' });
+  return json(await sendProductEnquiry(id, body, { ...(signedInEmail ? { signedInEmail } : {}), beforeSend, ...(requestOrigin(req.headers) ? { origin: requestOrigin(req.headers)! } : {}) }), 201, { 'cache-control': 'no-store' });
 });

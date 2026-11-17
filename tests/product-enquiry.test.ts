@@ -140,4 +140,17 @@ describe('sendProductEnquiry', () => {
       expect(sent).toHaveLength(1); expect(r.attachments).toEqual([]); expect(sent[0].text).not.toContain('attached');
     } finally { vi.unstubAllGlobals(); vi.unstubAllEnvs(); }
   });
+  it('the signature is short and exactly: Buyer, verified note, Product Link, photos, Sent through (with the buyer\'s address)', async () => {
+    await setup('shop@studio.co');
+    await sendProductEnquiry(pid, { ...good, name: 'Shelly', email: 'test@gmail.com' }, { origin: 'https://api.craftofy.online' });
+    const lines = sent[0].text.split('\n');
+    const i = lines.indexOf('--');
+    expect(lines.slice(i)).toEqual([
+      '--',
+      'Buyer: Shelly <test@gmail.com>',
+      'The buyer typed this email address in: It is not verified.',
+      expect.stringMatching(/^Product Link: https:\/\/api\.craftofy\.online\/products\/t-vase-p\d+$/),
+      'Sent through Craftofy. Reply to this email "test@gmail.com" to answer the buyer.',
+    ]);
+  });
 });

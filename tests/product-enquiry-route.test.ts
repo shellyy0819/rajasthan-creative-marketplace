@@ -79,13 +79,17 @@ describe('enquiry route: anonymous senders cannot dodge the limits by faking the
     session = { user: { email: 'me@buyer.co' } };
     expect((await call(pid)).status).toBe(201);
   });
-  it('a forged Host header cannot change where the product link in the mail points', async () => {
-    const r = await POST(new Request(`http://internal/api/products/${pid}/enquiry`, {
-      method: 'POST', headers: { 'content-type': 'application/json', host: 'evil.example', 'x-forwarded-host': 'evil.example', 'x-forwarded-proto': 'https' },
-      body: JSON.stringify({ name: 'A', email: 'typed@b.co', message: 'hi' }),
-    }), { params: Promise.resolve({ id: pid }) });
-    expect(r.status).toBe(201);
+  const post = (headers: Record<string, string>) => POST(new Request(`http://internal/api/products/${pid}/enquiry`, {
+    method: 'POST', headers: { 'content-type': 'application/json', ...headers },
+    body: JSON.stringify({ name: 'A', email: 'typed@b.co', message: 'hi' }),
+  }), { params: Promise.resolve({ id: pid }) });
+  it('the product link uses the host the buyer was on (Origin), not an environment value', async () => {
+    expect((await post({ origin: 'https://craftofy.online', host: 'api.craftofy.online' })).status).toBe(201);
+    expect(sent[0].text).toMatch(/Product Link: https:\/\/craftofy\.online\/products\/t-vase-p\d+/);
+  });
+  it('a forged Host / Origin outside Craftofy\'s domain cannot change where the link points', async () => {
+    expect((await post({ origin: 'https://evil.example', host: 'evil.example', 'x-forwarded-host': 'evil.example', 'x-forwarded-proto': 'https' })).status).toBe(201);
     expect(sent[0].text).not.toContain('evil.example');
-    expect(sent[0].text).toMatch(/Product: http:\/\/localhost:3000\/products\/t-vase-p\d+/);   // the configured (default) address
+    expect(sent[0].text).toMatch(/Product Link: http:\/\/localhost:3000\/products\/t-vase-p\d+/);   // the configured (default) address
   });
 });
