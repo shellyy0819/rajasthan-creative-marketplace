@@ -1270,36 +1270,102 @@ form label select {
 .detail dl {
   align-items: center;
 }
-.detail dd.detail-artist-row {
-  grid-column: 1 / -1;
-  margin: 0;
+/* Price under the title on the product page */
+.detail-price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0 0 16px;
 }
-/* Artist row on the product page: round photo (or initial) in front of a larger name */
-.detail-artist {
-  display: inline-flex;
+.detail-price small {
+  color: var(--muted);
+  font-size: 12px;
+}
+/* Who made it and how to reach them: white card, one main button, the other methods as chips */
+.maker-card {
+  display: grid;
+  gap: 14px;
+  margin: 24px 0;
+  padding: 18px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--green);
+  border-radius: 6px;
+}
+.maker-head {
+  display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
+  gap: 14px;
 }
-a.detail-artist:hover {
+a.maker-head:hover .maker-name {
   color: var(--orange);
 }
-.detail-artist-av {
+.maker-avatar {
   flex: none;
   overflow: hidden;
   display: inline-grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   border: 2px solid var(--line);
   background: var(--green);
   color: #fff;
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 700;
+}
+.maker-who {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.maker-eyebrow {
+  color: var(--orange);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.maker-name {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.maker-city {
+  color: var(--muted);
+  font-size: 12px;
+}
+.maker-main {
+  gap: 10px;
+  width: 100%;
+}
+.maker-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.maker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.maker-chip {
+  gap: 8px;
+  padding: 9px 13px;
+}
+.maker-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 .detail .price {
   font-size: 22px;

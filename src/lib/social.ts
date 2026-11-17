@@ -19,3 +19,10 @@ export function youtubeUrl(value: string) {
   if (/^https:\/\/(www\.)?youtube\.com\//i.test(value) || /^https:\/\/youtu\.be\//i.test(value)) return value;
   return `https://www.youtube.com/@${encodeURIComponent(value.replace(/^@/, ''))}`;
 }
+
+/** wa.me click-to-chat link: opens the buyer's own WhatsApp with `text` typed in, so it costs the seller nothing. Indian numbers only (10 digits, optionally +91 / 91 / 0 in front). */
+export function whatsappUrl(number: string, text: string) {
+  const digits = number.replace(/\D/g, '').replace(/^0/, '');
+  const full = digits.length === 10 ? `91${digits}` : digits;
+  return `https://wa.me/${full}?text=${encodeURIComponent(text)}`;
+}

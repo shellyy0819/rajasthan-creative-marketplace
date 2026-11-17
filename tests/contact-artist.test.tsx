@@ -180,11 +180,11 @@ describe('iconOnly', () => {
 });
 
 describe('Add to bag is gone from the whole storefront (source contract)', () => {
-  it('cards and the product page use ContactArtistButton and nothing references the cart button', async () => {
+  it('cards use ContactArtistButton, the product page uses MakerCard, and nothing references the cart button', async () => {
     const fs = await import('node:fs');
-    for (const f of ['src/components/ProductCard.tsx', 'src/app/products/[slug]/page.tsx']) {
+    for (const [f, used] of [['src/components/ProductCard.tsx', /<ContactArtistButton product=\{p\}( iconOnly)? \/>/], ['src/app/products/[slug]/page.tsx', /<MakerCard product=\{p\} \/>/]] as const) {
       const src = fs.readFileSync(f, 'utf8');
-      expect(src).toMatch(/<ContactArtistButton product=\{p\}( iconOnly)? \/>/);
+      expect(src).toMatch(used);
       expect(src).not.toMatch(/AddToCart|Add to bag|Demo checkout/);
     }
     expect(fs.existsSync('src/components/AddToCartButton.tsx')).toBe(false);

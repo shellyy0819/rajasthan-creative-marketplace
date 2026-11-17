@@ -7,6 +7,6 @@ type Props = AnchorHTMLAttributes<HTMLAnchorElement> & { productId: string; type
 
 /** A normal link that also records an engagement event (e.g. a contact click) without delaying the navigation. */
 export function TrackedLink({ productId, type, sellerSlug, method, onClick, onAuxClick, ...rest }: Props) {
-  const track = () => { sendEvent(type, productId); if (type === 'contact' && sellerSlug && method) gaContactSeller({ sellerSlug, method, productId }); };
+  const track = () => { sendEvent(type, productId); if (type.startsWith('contact') && sellerSlug && method) gaContactSeller({ sellerSlug, method, productId }); };
   return <a {...rest} onClick={e => { track(); onClick?.(e); }} onAuxClick={e => { if (e.button === 1) track(); onAuxClick?.(e); }} />;
 }
