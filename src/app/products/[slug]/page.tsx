@@ -15,6 +15,7 @@ import { getProductBySlug, productSlug } from "@/lib/catalog";
 import { breadcrumbJsonLd, productJsonLd } from "@/lib/jsonld";
 import { isHandmade, madeByPhrase } from "@/lib/handmade";
 import { pageMetadata } from "@/lib/meta";
+import { hasSharePhoto } from "@/lib/share-image";
 import { money } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: isHandmade(p) ? `${p.name} — handmade in ${p.city}` : `${p.name} — from ${p.city}`,
     description: `${p.description} ${madeByPhrase(p)} ${p.seller} in ${p.city}. ${money(p.pricePaise)}.`,
     path: `/products/${productSlug(p)}`,
-    image: false,
+    // A small copy of the first photo when there is one (so WhatsApp and others show the real product); otherwise the generated card.
+    image: hasSharePhoto(p) ? `/products/${productSlug(p)}/share-image` : false,
   });
 }
 

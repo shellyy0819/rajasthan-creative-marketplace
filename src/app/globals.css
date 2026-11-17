@@ -1245,7 +1245,7 @@ form label select {
 }
 .detail .product-visual,
 .detail .detail-art {
-  height: clamp(380px, 60vh, 560px);
+  height: clamp(460px, 82vh, 800px);
 }
 .detail h1 {
   font: 500 clamp(30px, 4vw, 44px)/1.1 var(--font-display);
