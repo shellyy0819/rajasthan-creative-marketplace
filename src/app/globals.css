@@ -1295,8 +1295,21 @@ form label select {
   border: 1px solid var(--line-green-2);
   border-radius: 14px;
 }
+/* Few buttons: the card is exactly as wide as the small buttons side by side. The main button, note and bio fill that width
+   but do not set it (width: 0 + min-width: 100% keeps them out of the card's natural width). */
 .maker-card.compact {
-  max-width: 440px;
+  width: fit-content;
+  max-width: 100%;
+}
+.maker-card.compact .maker-chips {
+  flex-wrap: nowrap;
+}
+.maker-card.compact .maker-main,
+.maker-card.compact .maker-note,
+.maker-card.compact .maker-bio {
+  width: 0;
+  min-width: 100%;
+  box-sizing: border-box;
 }
 .maker-head {
   display: flex;
