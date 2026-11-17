@@ -1295,8 +1295,8 @@ form label select {
   border: 1px solid var(--line-green-2);
   border-radius: 14px;
 }
-/* The buttons (main + small ones) are one block. With few buttons that block is only as wide as the small buttons side by side and the
-   main button fills it; the card itself is wider, so the bio and note have room. */
+/* Main button and the small ones. Many buttons: WhatsApp on its own full-width row, the rest below. With few buttons (compact) everything
+   sits on one line, WhatsApp in the same pill shape and size as the others. */
 .maker-actions {
   display: grid;
   gap: 16px;
@@ -1305,16 +1305,20 @@ form label select {
   max-width: 560px;
 }
 .maker-card.compact .maker-actions {
-  width: fit-content;
-  max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .maker-card.compact .maker-chips {
-  flex-wrap: nowrap;
+  display: contents;
 }
 .maker-card.compact .maker-main {
-  width: 0;
-  min-width: 100%;
-  box-sizing: border-box;
+  width: auto;
+  padding: 11px 18px;
+  border-radius: 30px;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
 }
 .maker-head {
   display: flex;
