@@ -64,6 +64,7 @@ export function AuthButton({ dashboardUrl = '' }: { dashboardUrl?: string }) {
           <span className="seller-prompt-q">Are you a seller?</span>{' '}
           <span className="seller-prompt-cta">Login here</span>
         </button>
+        <button type="button" className="button outline seller-login-btn" onClick={login}>Login here</button>
       </>
     );
   }
