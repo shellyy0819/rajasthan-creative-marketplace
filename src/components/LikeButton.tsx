@@ -28,7 +28,8 @@ function loadState(id: string): Promise<Info> {
   });
 }
 
-export function LikeButton({ productId, initialCount = 0, productName = 'this product' }: { productId: string; initialCount?: number; productName?: string }) {
+/** `showCount: false` hides the number (visually and for screen readers); likes are still counted. */
+export function LikeButton({ productId, initialCount = 0, productName = 'this product', showCount = true }: { productId: string; initialCount?: number; productName?: string; showCount?: boolean }) {
   const qc = useQueryClient();
   const key = ['like', productId] as const;
   // Still one batched request per tick (see loadState); React Query adds caching, so navigating back shows the hearts at once.
@@ -61,8 +62,8 @@ export function LikeButton({ productId, initialCount = 0, productName = 'this pr
 
   return (
     <button type="button" className={`like-btn${liked ? ' liked' : ''}`} aria-pressed={liked} aria-busy={busy}
-      aria-label={`${liked ? 'Unlike' : 'Like'} ${productName} (${count} ${count === 1 ? 'like' : 'likes'})`} onClick={onClick}>
-      {busy ? <span className="rr-spinner" aria-hidden="true" /> : <span aria-hidden="true">{liked ? '♥' : '♡'}</span>} <span className="like-count" aria-hidden="true">{count}</span>
+      aria-label={`${liked ? 'Unlike' : 'Like'} ${productName}${showCount ? ` (${count} ${count === 1 ? 'like' : 'likes'})` : ''}`} onClick={onClick}>
+      {busy ? <span className="rr-spinner" aria-hidden="true" /> : <span aria-hidden="true">{liked ? '♥' : '♡'}</span>}{showCount && <> <span className="like-count" aria-hidden="true">{count}</span></>}
     </button>
   );
 }

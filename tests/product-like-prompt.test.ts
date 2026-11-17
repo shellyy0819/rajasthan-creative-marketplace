@@ -2,12 +2,14 @@ import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 describe('product page like prompt (source contract)', () => {
-  it('asks the buyer to like the product, right above the like button', () => {
+  it('asks the buyer to like the product, beside a heart button that shows no count', () => {
     const src = fs.readFileSync('src/app/products/[slug]/page.tsx', 'utf8');
     const i = src.indexOf('If you really liked the product, give it a like');
     expect(i).toBeGreaterThan(-1);
-    expect(src.indexOf('<LikeButton')).toBeGreaterThan(i);
-    expect(src.indexOf('<LikeButton') - i).toBeLessThan(260);
+    expect(src.indexOf('<LikeButton')).toBeGreaterThan(-1);
+    expect(src.indexOf('<LikeButton')).toBeLessThan(i);        // the heart sits on the left, before the text
+    expect(src).toContain('showCount={false}');                 // the number is not shown to visitors
+    expect(src).not.toContain('detail-like-art');               // no static heart
   });
 });
 

@@ -124,4 +124,17 @@ describe('LikeButton', () => {
     render(<LikeButton productId="p9" productName="Thing" />);
     expect(btn(/Like Thing/).getAttribute('aria-label')).toBe('Like Thing (0 likes)');
   });
+  it('showCount={false} hides the number for everyone, but the like still counts and toggles', async () => {
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (url.startsWith('/api/likes')) return res(200, { counts: { p1: 3 }, liked: [] });
+      return res(200, { liked: init?.method === 'POST', count: init?.method === 'POST' ? 4 : 3 });
+    });
+    render(<LikeButton productId="p1" initialCount={3} productName="Bag" showCount={false} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Like Bag' })).toBeTruthy());   // no "(3 likes)" in the name
+    expect(screen.getByRole('button').textContent).not.toMatch(/\d/);
+    fireEvent.click(screen.getByRole('button', { name: 'Like Bag' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Unlike Bag' }).getAttribute('aria-pressed')).toBe('true'));
+    expect(screen.getByRole('button').textContent).not.toMatch(/\d/);
+    expect(fetchMock.mock.calls.some(([u, i]) => String(u).includes('/api/products/p1/like') && (i as RequestInit).method === 'POST')).toBe(true);
+  });
 });

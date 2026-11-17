@@ -611,19 +611,16 @@ h2 em {
   border: 1px solid color-mix(in srgb, var(--orange) 28%, var(--line));
   border-radius: 14px;
 }
-.detail-like-art {
+/* The like button is the heart on the left of the strip: a round button, no count shown */
+.detail-like .like-btn {
   flex: none;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--orange) 16%, var(--white));
-}
-.detail-like-art svg {
-  width: 20px;
-  height: 20px;
-  fill: var(--orange);
+  font-size: 20px;
+  line-height: 1;
 }
 .detail-like-text {
   display: grid;

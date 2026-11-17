@@ -119,18 +119,16 @@ export default async function ProductPage({ params }: Props) {
             </ul>
           )}
           <div className="detail-like">
-            <span className="detail-like-art" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.9c0 5.4-7.5 10-7.5 10Z" /></svg>
-            </span>
-            <p className="detail-like-text">
-              <b>Appreciate the craft</b>
-              <span>If you really liked the product, give it a like</span>
-            </p>
             <LikeButton
               productId={p.id}
               initialCount={p.likeCount ?? 0}
               productName={p.name}
+              showCount={false}
             />
+            <p className="detail-like-text">
+              <b>Appreciate the craft</b>
+              <span>If you really liked the product, give it a like</span>
+            </p>
           </div>
         </div>
       </article>
