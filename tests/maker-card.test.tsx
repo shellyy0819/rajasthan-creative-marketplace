@@ -47,7 +47,7 @@ describe('MakerCard', () => {
     const wa = screen.getByRole('link', { name: /message on whatsapp/i });
     expect(wa.getAttribute('href')).toContain('wa.me/919876543210');
     const text = new URL(wa.getAttribute('href')!).searchParams.get('text')!;
-    expect(text).toBe('Hi Meera Textile Studio, I saw Crochet flower tie-back (₹1,000) on Craftofy and I’m interested.');
+    expect(text).toBe('Hi Meera Textile Studio, I saw Crochet flower tie-back (₹1,000) on Craftofy and I’m interested.\n\nhttp://localhost:3000/products/crochet-flower-tie-back-p1');
     expect(screen.getByText(/your message will start with/i)).toBeTruthy();
     expect(screen.getByRole('link', { name: /call/i }).getAttribute('href')).toBe('tel:9123456789');
     expect(screen.getByRole('button', { name: /email/i }).getAttribute('aria-haspopup')).toBe('dialog');

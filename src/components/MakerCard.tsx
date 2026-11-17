@@ -4,7 +4,9 @@ import { ArtistAvatar } from '@/components/ArtistAvatar';
 import { TrackedLink } from '@/components/TrackedLink';
 import type { GaContactMethod } from '@/lib/ga-events';
 import { EmailMakerButton } from '@/components/EmailMakerButton';
+import { productSlug } from '@/lib/catalog-shared';
 import { enquiryMessage } from '@/lib/enquiry-message';
+import { abs } from '@/lib/site';
 import { instagramHandle, instagramUrl, whatsappUrl, youtubeUrl } from '@/lib/social';
 import type { TrackType } from '@/lib/track';
 import type { Product } from '@/lib/types';
@@ -28,8 +30,10 @@ const ICONS: Record<string, React.ReactNode> = {
 export function MakerCard({ product: p }: { product: Product }) {
   const waNumber = p.whatsapp ?? p.phone;
   const message = enquiryMessage(p);
+  const productUrl = abs(`/products/${productSlug(p)}`);
+  const waText = `${message}\n\n${productUrl}`; // WhatsApp turns the link into a preview card (name, price, maker) the maker can tap to see every photo
   const methods: Method[] = [
-    ...(waNumber ? [{ key: 'whatsapp' as const, label: 'Message on WhatsApp', href: whatsappUrl(waNumber, message), type: 'contact' as const, external: true }] : []),
+    ...(waNumber ? [{ key: 'whatsapp' as const, label: 'Message on WhatsApp', href: whatsappUrl(waNumber, waText), type: 'contact' as const, external: true }] : []),
     ...(p.phone ? [{ key: 'call' as const, label: 'Call', href: `tel:${p.phone.replace(/[^\d+]/g, '')}`, type: 'contact_call' as const }] : []),
     ...(p.email ? [{ key: 'email' as const, label: 'Email', href: `mailto:${p.email}`, type: 'contact_email' as const, form: true }] : []),
     ...(p.instagram ? [{ key: 'instagram' as const, label: 'Instagram', href: instagramUrl(p.instagram), type: 'contact_instagram' as const, external: true }] : []),
@@ -61,7 +65,7 @@ export function MakerCard({ product: p }: { product: Product }) {
         <>
           {link(main, 'button primary maker-main')}
           {rest.length > 0 && <div className="maker-chips">{rest.map(m => link(m, 'button maker-chip'))}</div>}
-          {main.key === 'whatsapp' && <p className="maker-note">Your message will start with: “{message}”</p>}
+          {main.key === 'whatsapp' && <p className="maker-note">Your message will start with: “{message}” and include a link to this product.</p>}
         </>
       ) : <p className="maker-note">This artist has not shared contact details yet.</p>}
     </section>
