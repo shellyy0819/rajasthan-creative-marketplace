@@ -22,8 +22,10 @@ export const POST = (req: Request, { params }: Ctx) => handle(async () => {
   // Signed-in buyers are keyed on their account, which cannot be forged.
   const beforeSend = () => {
     if (signedInEmail) return;
-    if (!limits.enquiryProductLimiter.hit(id)) throw new ApiError(429, 'This maker has received many emails today. Please sign in to send yours, or try again later.');
-    if (!limits.enquiryAnonLimiter.hit('all')) throw new ApiError(429, 'Many emails are being sent right now. Please sign in to send yours, or try again later.');
+    // Check both before spending either, so a refusal by one never uses up the other's quota.
+    if (!limits.enquiryProductLimiter.check(id)) throw new ApiError(429, 'This maker has received many emails today. Please sign in to send yours, or try again later.');
+    if (!limits.enquiryAnonLimiter.check('all')) throw new ApiError(429, 'Many emails are being sent right now. Please sign in to send yours, or try again later.');
+    limits.enquiryProductLimiter.hit(id); limits.enquiryAnonLimiter.hit('all');
   };
   return json(await sendProductEnquiry(id, body, { ...(signedInEmail ? { signedInEmail } : {}), beforeSend }), 201, { 'cache-control': 'no-store' });
 });
