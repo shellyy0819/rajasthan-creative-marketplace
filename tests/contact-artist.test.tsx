@@ -116,7 +116,8 @@ describe('ContactArtistButton', () => {
     expect(track.gaEvent).toHaveBeenCalledWith('contact_call', prm);
     expect(track.gaEvent).toHaveBeenCalledWith('contact_email', { ...prm, contact_method: 'email' });
     expect(track.gaEvent).toHaveBeenCalledWith('contact_seller', { ...prm, contact_method: 'instagram' });
-    expect(track.gaEvent).not.toHaveBeenCalledWith('contact_instagram', expect.anything());
+    expect(track.gaEvent).toHaveBeenCalledWith('contact_instagram', { ...prm, contact_method: 'instagram' });
+    expect(track.gaEvent).toHaveBeenCalledWith('contact_youtube', { ...prm, contact_method: 'youtube' });
   });
   it('method clicks from the artist page carry source=artist', () => {
     render(<ContactArtistButton product={P} artistLevel />);

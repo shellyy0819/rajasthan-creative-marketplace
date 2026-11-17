@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
 import { Toast, type ToastState } from '@/components/Toast';
 import { enquiryMessage } from '@/lib/enquiry-message';
-import { gaContactSeller } from '@/lib/ga-events';
+import { gaContactSeller, gaContactStep } from '@/lib/ga-events';
 import { sendEvent } from '@/lib/track';
 import type { Product } from '@/lib/types';
 
@@ -37,7 +37,10 @@ export function EmailMakerButton({ product: p, className, children, icon }: { pr
 
   return (
     <>
-      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setError(null); setOpen(true); }}>{icon}{children ?? 'Email'}</button>
+      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => {
+        setError(null); setOpen(true);
+        if (p.sellerSlug) gaContactStep({ sellerSlug: p.sellerSlug, method: 'email', step: 'modal_open', productId: p.id });
+      }}>{icon}{children ?? 'Email'}</button>
       {open && createPortal(
         <div className="contact-backdrop admin-modal" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
           <div role="dialog" aria-modal="true" aria-labelledby={`enquiry-title-${p.id}`} className="contact-card">
@@ -48,6 +51,7 @@ export function EmailMakerButton({ product: p, className, children, icon }: { pr
               <form className="admin-form" onSubmit={async e => {
                 e.preventDefault();
                 if (sending) return;
+                if (p.sellerSlug) gaContactStep({ sellerSlug: p.sellerSlug, method: 'email', step: 'button_click', productId: p.id });
                 setSending(true); setError(null);
                 const f = new FormData(e.currentTarget);
                 const val = (k: string) => String(f.get(k) ?? '').trim();

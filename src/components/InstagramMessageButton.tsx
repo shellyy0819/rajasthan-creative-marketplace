@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { abs } from '@/lib/site';
 import { productSlug } from '@/lib/catalog-shared';
 import { enquiryMessage } from '@/lib/enquiry-message';
-import { gaContactSeller } from '@/lib/ga-events';
+import { gaContactSeller, gaContactStep } from '@/lib/ga-events';
 import { instagramDmUrl, instagramHandle } from '@/lib/social';
 import { sendEvent } from '@/lib/track';
 import type { Product } from '@/lib/types';
@@ -33,6 +33,7 @@ export function InstagramMessageButton({ product: p, className, icon, children }
   const manual = () => { setCopy('manual'); box.current?.focus(); box.current?.select(); };
   // Runs inside the click on the link, so the browser still opens the chat in a new tab; the copy happens alongside.
   const onOpen = () => {
+    if (p.sellerSlug) gaContactStep({ sellerSlug: p.sellerSlug, method: 'instagram', step: 'button_click', productId: p.id });
     sendEvent('contact_instagram', p.id);
     if (p.sellerSlug) gaContactSeller({ sellerSlug: p.sellerSlug, method: 'instagram', productId: p.id });
     const text = box.current?.value ?? initial;
@@ -42,7 +43,10 @@ export function InstagramMessageButton({ product: p, className, icon, children }
 
   return (
     <>
-      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setCopy('idle'); setOpen(true); }}>{icon}{children ?? 'Instagram'}</button>
+      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => {
+        setCopy('idle'); setOpen(true);
+        if (p.sellerSlug) gaContactStep({ sellerSlug: p.sellerSlug, method: 'instagram', step: 'modal_open', productId: p.id });
+      }}>{icon}{children ?? 'Instagram'}</button>
       {open && createPortal(
         <div className="contact-backdrop admin-modal" onClick={e => { if (e.target === e.currentTarget) close(); }}>
           <div role="dialog" aria-modal="true" aria-labelledby={`ig-title-${p.id}`} className="contact-card">
