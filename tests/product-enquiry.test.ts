@@ -68,10 +68,24 @@ describe('sendProductEnquiry', () => {
     expect(sent).toHaveLength(0);
     expect(r.seller).toBe('Studio A');
   });
-  it.each(['see http://evil.example/x', 'visit www.evil.co now', 'go to evil.com'])('a visitor’s message cannot carry a link: %s', async message => {
+  it.each(['see http://evil.example/x', 'visit www.evil.co now', 'go to evil.com', 'evil.xyz', 'evil.shop/pay', 'evil\u3002com', 'evil\uff0ecom', 'evil\u200b.com', 'ev\u200bil.com', 'ＥＶＩＬ．ｃｏｍ', 'open 203.0.113.9 now', 'javascript:alert(1)', 'www evil'])('a visitor’s message cannot carry a link: %s', async message => {
     await setup('shop@studio.co');
     await expect(sendProductEnquiry(pid, { ...good, message })).rejects.toMatchObject({ status: 400 });
     expect(sent).toHaveLength(0);
+  });
+  it('plain sentences are not mistaken for links', async () => {
+    await setup('shop@studio.co');
+    await sendProductEnquiry(pid, { ...good, message: 'Hi Studio A, I saw T-Vase (₹1,000) on Craftofy and I’m interested. Is it 3.5 cm wide? Price: ₹1,000.' });
+    expect(sent).toHaveLength(1);
+  });
+  it('the default message is accepted even when a product or maker name has a dot in it', async () => {
+    const s = await makeSeller('d@x.co', 'Dr.Mehta Crafts');
+    await (await getTestDb()).update(sellerProfiles).set({ publicEmail: 'd@studio.co' }).where(eq(sellerProfiles.userId, s.id));
+    const made = await createProduct({ name: 'Vase v2.0 Mr.Fix', category: 'Pottery', cityRef: cityRef('Jaipur'), pricePaise: 100, description: 'd', stock: 1, status: 'APPROVED', sellerId: s.id }, admin);
+    const dflt = 'Hi Dr.Mehta Crafts, I saw Vase v2.0 Mr.Fix (₹1) on Craftofy and I’m interested.';
+    await sendProductEnquiry(made.id, { ...good, message: dflt });
+    expect(sent).toHaveLength(1);
+    await expect(sendProductEnquiry(made.id, { ...good, message: `${dflt} see evil.com` })).rejects.toMatchObject({ status: 400 });
   });
   it('a signed-in buyer may include a link', async () => {
     await setup('shop@studio.co');
