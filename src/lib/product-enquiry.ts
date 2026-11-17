@@ -8,7 +8,7 @@ import { fetchProductPhotos, type Photo } from './enquiry-photos';
 import { ApiError } from './errors';
 import { mailConfigured, sendMail } from './mailer';
 import { resolveMailConfig } from './settings';
-import { siteUrl } from './site';
+import { abs } from './site';
 import { EMAIL_RE } from './validate';
 
 /**
@@ -30,7 +30,7 @@ export type SentEnquiry = { seller: string; to: string; from: string; replyTo: s
  * A buyer's email to the maker of a product. It goes only to the seller's public address (never one the buyer supplies), from Craftofy's sender,
  * with Reply set to the buyer. `beforeSend` runs once the request is valid and the mail is about to be sent (it may throw to refuse). `signedInEmail` (from the session) overrides the typed address, which is otherwise unverified and says so in the mail.
  */
-export async function sendProductEnquiry(productId: string, raw: unknown, opts: { signedInEmail?: string; beforeSend?: () => void; origin?: string } = {}): Promise<SentEnquiry> {
+export async function sendProductEnquiry(productId: string, raw: unknown, opts: { signedInEmail?: string; beforeSend?: () => void } = {}): Promise<SentEnquiry> {
   const b = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
   const name = oneLine(str(b.name));
   const email = opts.signedInEmail ?? str(b.email);
@@ -52,7 +52,7 @@ export async function sendProductEnquiry(productId: string, raw: unknown, opts: 
     message, '', '--',
     `Buyer: ${name} <${email}>`,
     opts.signedInEmail ? 'The buyer was signed in to Craftofy with this email address.' : 'The buyer typed this email address in: it is not verified.',
-    `Product: ${opts.origin ?? siteUrl()}/products/${productSlug(p)}`,
+    `Product: ${abs(`/products/${productSlug(p)}`)}`,
     ...(photos.length ? [`Photos of the product are attached (${photos.length}).`] : []),
     'Sent through Craftofy. Reply to this email to answer the buyer.',
   ].join('\n');

@@ -4,7 +4,6 @@ import { handle, json, readJson } from '@/lib/api';
 import { ApiError } from '@/lib/errors';
 import * as limits from '@/lib/engagement-limits';
 import { sendProductEnquiry } from '@/lib/product-enquiry';
-import { publicOrigin } from '@/lib/public-origin';
 export const dynamic = 'force-dynamic';
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -30,5 +29,5 @@ export const POST = (req: Request, { params }: Ctx) => handle(async () => {
     if (!limits.enquiryAnonLimiter.check('all')) throw new ApiError(429, 'Many emails are being sent right now. Please sign in to send yours, or try again later.');
     limits.enquiryProductLimiter.hit(id); limits.enquiryAnonLimiter.hit('all');
   };
-  return json(await sendProductEnquiry(id, body, { ...(signedInEmail ? { signedInEmail } : {}), beforeSend, origin: publicOrigin(req.headers) }), 201, { 'cache-control': 'no-store' });
+  return json(await sendProductEnquiry(id, body, { ...(signedInEmail ? { signedInEmail } : {}), beforeSend }), 201, { 'cache-control': 'no-store' });
 });
