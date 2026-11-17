@@ -43,10 +43,16 @@ describe('EmailMakerButton', () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(sendEvent).not.toHaveBeenCalled();
   });
-  it('shows who the email goes to, address included, before sending', () => {
-    open();
-    expect((screen.getByLabelText(/^to/i) as HTMLInputElement).value).toBe('Studio A <shop@studio.co>');
-    expect((screen.getByLabelText(/^to/i) as HTMLInputElement).readOnly).toBe(true);
+  it('shows the maker’s email address (no name) as plain text, not a field that can take focus', () => {
+    const d = open();
+    expect(d.querySelector('.enquiry-to-value')!.textContent).toBe('shop@studio.co');
+    expect(d.querySelector('input[name="to"]')).toBeNull();
+    expect(document.activeElement?.closest('.enquiry-to')).toBeNull();
+  });
+  it('highlights the maker’s name in the heading', () => {
+    const d = open();
+    expect(d.querySelector('h2 .enquiry-maker')!.textContent).toBe('Studio A');
+    expect(screen.getByRole('heading', { name: 'Email Studio A' })).toBeTruthy();
   });
   it('sends name, email and the message, then shows the buyer the mail that went out', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ seller: 'Studio A', to: 'shop@studio.co', subject: 'Enquiry about Vase on Craftofy', text: 'BODY TEXT' }), { status: 201 }));

@@ -39,7 +39,7 @@ export function EmailMakerButton({ product: p, className, children, icon }: { pr
         <div className="contact-backdrop admin-modal" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
           <div role="dialog" aria-modal="true" aria-labelledby={`enquiry-title-${p.id}`} className="contact-card">
             <div className="dialog-head">
-              <h2 id={`enquiry-title-${p.id}`}>{sent ? 'Email sent' : `Email ${p.seller}`}</h2>
+              <h2 id={`enquiry-title-${p.id}`}>{sent ? 'Email sent' : <>Email <span className="enquiry-maker">{p.seller}</span></>}</h2>
               <button type="button" className="icon-btn" aria-label="Close" onClick={close} disabled={sending}>✕</button>
             </div>
             {sent ? (
@@ -78,7 +78,7 @@ export function EmailMakerButton({ product: p, className, children, icon }: { pr
                     {error.offerMailto && p.email && <> <a className="text-link" href={`mailto:${p.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`}>Open in your email app</a></>}
                   </p>
                 )}
-                <label><span className="lbl">To</span><input name="to" readOnly value={`${p.seller} <${p.email}>`} /></label>
+                <div className="enquiry-to"><span className="lbl">To</span><span className="enquiry-to-value">{p.email}</span></div>
                 <label><span className="lbl">Your name</span><input name="name" required maxLength={100} autoComplete="name" autoFocus defaultValue={session?.user?.name ?? ''} /></label>
                 <label><span className="lbl">Your email</span>
                   <input name="email" type="email" required maxLength={254} autoComplete="email" key={accountEmail} defaultValue={accountEmail} readOnly={!!accountEmail} />

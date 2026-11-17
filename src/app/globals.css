@@ -4865,3 +4865,15 @@ button.fair-opt:hover { background: var(--cream); }
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.enquiry-maker {
+  color: var(--orange);
+}
+/* The maker's address in the email form: plain text, not a field */
+.enquiry-to {
+  display: grid;
+  gap: 4px;
+}
+.enquiry-to-value {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
