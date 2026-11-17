@@ -1312,14 +1312,6 @@ form label select {
 .maker-card.compact .maker-chips {
   display: contents;
 }
-.maker-card.compact .maker-main {
-  width: auto;
-  padding: 11px 18px;
-  border-radius: 30px;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-}
 .maker-head {
   display: flex;
   align-items: center;

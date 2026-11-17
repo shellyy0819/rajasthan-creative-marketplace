@@ -65,8 +65,8 @@ describe('MakerCard', () => {
     render(<MakerCard product={product({ email: 'm@x.co', instagram: '@meera' })} />);
     expect(screen.queryByRole('link', { name: /whatsapp/i })).toBeNull();
     expect(screen.queryByText(/your message will start with/i)).toBeNull();
-    expect(screen.getByRole('button', { name: /email/i }).className).toContain('primary');
-    expect(screen.getByRole('button', { name: /instagram/i }).className).not.toContain('primary');
+    expect(screen.getByRole('button', { name: /email/i }).className).toContain('maker-chip');
+    expect(screen.getByRole('button', { name: /instagram/i }).className).toContain('maker-chip');
   });
 
   it('says so when the maker shares nothing, and never shows a dead link', () => {
@@ -116,5 +116,13 @@ describe('MakerCard', () => {
     const fills = [...container.querySelectorAll('svg.maker-brand [fill]')].map(e => e.getAttribute('fill'));
     expect(fills).toContain('#EA4335');
     expect(fills).not.toContain('#fff');
+  });
+
+  it('with few buttons WhatsApp is styled exactly like the others; with many it is the big filled button', () => {
+    const { container, rerender } = render(<MakerCard product={product({ whatsapp: '9876543210', email: 'm@x.co', instagram: '@meera' })} />);
+    expect(screen.getByRole('link', { name: /whatsapp/i }).className).toBe(screen.getByRole('button', { name: /email/i }).className);
+    expect(container.querySelector('.primary')).toBeNull();
+    rerender(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co', instagram: '@meera' })} />);
+    expect(screen.getByRole('link', { name: /whatsapp/i }).className).toContain('primary');
   });
 });
