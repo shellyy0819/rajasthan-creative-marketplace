@@ -79,4 +79,13 @@ describe('enquiry route: anonymous senders cannot dodge the limits by faking the
     session = { user: { email: 'me@buyer.co' } };
     expect((await call(pid)).status).toBe(201);
   });
+  it('a forged Host header cannot change where the product link in the mail points', async () => {
+    const r = await POST(new Request(`http://internal/api/products/${pid}/enquiry`, {
+      method: 'POST', headers: { 'content-type': 'application/json', host: 'evil.example', 'x-forwarded-host': 'evil.example', 'x-forwarded-proto': 'https' },
+      body: JSON.stringify({ name: 'A', email: 'typed@b.co', message: 'hi' }),
+    }), { params: Promise.resolve({ id: pid }) });
+    expect(r.status).toBe(201);
+    expect(sent[0].text).not.toContain('evil.example');
+    expect(sent[0].text).toMatch(/Product: http:\/\/localhost:3000\/products\/t-vase-p\d+/);   // the configured (default) address
+  });
 });

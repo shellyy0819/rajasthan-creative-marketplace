@@ -9,8 +9,9 @@ vi.mock('next-auth/react', () => ({ useSession: () => ({ data: session }) }));
 const sendEvent = vi.fn();
 vi.mock('@/lib/track', () => ({ sendEvent: (...a: unknown[]) => sendEvent(...a) }));
 const gaContactSeller = vi.fn();
-vi.mock('@/lib/ga-events', () => ({ gaContactSeller: (...a: unknown[]) => gaContactSeller(...a) }));
-afterEach(() => { session = null; cleanup(); vi.unstubAllGlobals(); sendEvent.mockClear(); gaContactSeller.mockClear(); });
+const gaContactStep = vi.fn();
+vi.mock('@/lib/ga-events', () => ({ gaContactSeller: (...a: unknown[]) => gaContactSeller(...a), gaContactStep: (...a: unknown[]) => gaContactStep(...a) }));
+afterEach(() => { session = null; cleanup(); vi.unstubAllGlobals(); sendEvent.mockClear(); gaContactSeller.mockClear(); gaContactStep.mockClear(); });
 
 const P: Product = { id: 'p1', name: 'Vase', category: 'Pottery', city: 'Jaipur', cityId: 1, citySlug: 'jaipur', pricePaise: 100000, seller: 'Studio A', description: 'd', stock: 1, status: 'APPROVED', email: 'shop@studio.co', sellerSlug: 'studio-a-1' };
 const MSG = 'Hi Studio A, I saw Vase (₹1,000) on Craftofy and I’m interested.';
@@ -123,5 +124,21 @@ describe('signed in: Craftofy sends it and shows the mail that went out', () => 
       await vi.advanceTimersByTimeAsync(200);
       await waitFor(() => expect(screen.queryByRole('status')).toBeNull());
     } finally { vi.useRealTimers(); }
+  });
+
+  it('tracks the funnel: dialog opened, then Send email pressed, then (separately) the contact itself on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ seller: 'Studio A' }), { status: 201 })));
+    open();
+    expect(gaContactStep.mock.calls).toEqual([[{ sellerSlug: 'studio-a-1', method: 'email', step: 'modal_open', productId: 'p1' }]]);
+    fillAnon();
+    fireEvent.click(screen.getByRole('button', { name: /send email/i }));
+    expect(gaContactStep).toHaveBeenLastCalledWith({ sellerSlug: 'studio-a-1', method: 'email', step: 'button_click', productId: 'p1' });
+    expect(gaContactSeller).not.toHaveBeenCalled();                         // not a contact until the server accepted it
+    await waitFor(() => expect(gaContactSeller).toHaveBeenCalledTimes(1));
+  });
+  it('a click that fails the form checks (empty name) is not counted as a Send click', () => {
+    open();
+    fireEvent.click(screen.getByRole('button', { name: /send email/i }));
+    expect(gaContactStep.mock.calls.map(c => (c[0] as { step: string }).step)).toEqual(['modal_open']);
   });
 });

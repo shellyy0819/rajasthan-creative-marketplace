@@ -116,7 +116,8 @@ describe('ContactArtistButton', () => {
     expect(track.gaEvent).toHaveBeenCalledWith('contact_call', prm);
     expect(track.gaEvent).toHaveBeenCalledWith('contact_email', { ...prm, contact_method: 'email' });
     expect(track.gaEvent).toHaveBeenCalledWith('contact_seller', { ...prm, contact_method: 'instagram' });
-    expect(track.gaEvent).not.toHaveBeenCalledWith('contact_instagram', expect.anything());
+    expect(track.gaEvent).toHaveBeenCalledWith('contact_instagram', { ...prm, contact_method: 'instagram' });
+    expect(track.gaEvent).toHaveBeenCalledWith('contact_youtube', { ...prm, contact_method: 'youtube' });
   });
   it('method clicks from the artist page carry source=artist', () => {
     render(<ContactArtistButton product={P} artistLevel />);
@@ -182,7 +183,7 @@ describe('iconOnly', () => {
 describe('Add to bag is gone from the whole storefront (source contract)', () => {
   it('cards use ContactArtistButton, the product page uses MakerCard, and nothing references the cart button', async () => {
     const fs = await import('node:fs');
-    for (const [f, used] of [['src/components/ProductCard.tsx', /<ContactArtistButton product=\{p\}( iconOnly)? \/>/], ['src/app/products/[slug]/page.tsx', /<MakerCard product=\{p\} \/>/]] as const) {
+    for (const [f, used] of [['src/components/ProductCard.tsx', /<ContactArtistButton product=\{p\}( iconOnly)? \/>/], ['src/app/products/[slug]/page.tsx', /<MakerCard product=\{p\} productUrl=/]] as const) {
       const src = fs.readFileSync(f, 'utf8');
       expect(src).toMatch(used);
       expect(src).not.toMatch(/AddToCart|Add to bag|Demo checkout/);

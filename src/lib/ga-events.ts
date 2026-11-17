@@ -1,15 +1,26 @@
 import { gaEvent } from './analytics';
 
 export type GaContactMethod = 'whatsapp' | 'call' | 'email' | 'instagram' | 'youtube' | 'copy';
-const METHOD_EVENT: Partial<Record<GaContactMethod, string>> = { whatsapp: 'contact_whatsapp', call: 'contact_call', email: 'contact_email' };
+const METHOD_EVENT: Partial<Record<GaContactMethod, string>> = {
+  whatsapp: 'contact_whatsapp', call: 'contact_call', email: 'contact_email', instagram: 'contact_instagram', youtube: 'contact_youtube',
+};
 
 /** The public seller handle (artist slug) is the `seller_id`: internal user ids never leave the server.
- *  GA4: one `contact_seller` for any contact action, plus the method's own event when it has one. Call only on a real contact action, never on opening the sheet. */
+ *  GA4: one `contact_seller` for any contact action, plus the method's own event (WhatsApp, call, email, Instagram, YouTube; "copy" has none). Call only on a real contact action, never on opening the sheet. */
 export function gaContactSeller(p: { sellerSlug: string; method: GaContactMethod; productId?: string }): void {
   const params = { seller_id: p.sellerSlug, contact_method: p.method, ...(p.productId ? { product_id: p.productId } : {}) };
   gaEvent('contact_seller', params);
   const specific = METHOD_EVENT[p.method];
   if (specific) gaEvent(specific, params);
+}
+
+/**
+ * GA4 funnel steps for the two contact methods that open a dialog first (Email, Instagram), so drop-off between the steps can be seen:
+ * `contact_<method>_modal_open` when the dialog opens, `contact_<method>_button_click` when the buyer presses its main button
+ * (Send email / Copy message & open Instagram). The real contact action is still `gaContactSeller` (contact_seller + contact_<method>).
+ */
+export function gaContactStep(p: { sellerSlug: string; method: 'email' | 'instagram'; step: 'modal_open' | 'button_click'; productId: string }): void {
+  gaEvent(`contact_${p.method}_${p.step}`, { seller_id: p.sellerSlug, contact_method: p.method, product_id: p.productId });
 }
 
 /** GA4: a seller profile page was rendered, whatever the URL parameters. */

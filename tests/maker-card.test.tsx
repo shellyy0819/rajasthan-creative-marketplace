@@ -11,9 +11,10 @@ vi.mock('next/link', () => ({ default: ({ href, children, ...r }: { href: string
 const sendEvent = vi.fn();
 vi.mock('@/lib/track', () => ({ sendEvent: (...a: unknown[]) => sendEvent(...a) }));
 const gaContactSeller = vi.fn();
-vi.mock('@/lib/ga-events', () => ({ gaContactSeller: (...a: unknown[]) => gaContactSeller(...a) }));
+const gaContactStep = vi.fn();
+vi.mock('@/lib/ga-events', () => ({ gaContactSeller: (...a: unknown[]) => gaContactSeller(...a), gaContactStep: (...a: unknown[]) => gaContactStep(...a) }));
 
-afterEach(() => { cleanup(); sendEvent.mockClear(); gaContactSeller.mockClear(); });
+afterEach(() => { cleanup(); sendEvent.mockClear(); gaContactSeller.mockClear(); gaContactStep.mockClear(); });
 
 const product = (extra: Partial<Product> = {}): Product => ({
   id: 'p1', name: 'Crochet flower tie-back', category: 'Crochet', city: 'Jaipur', cityId: 1, citySlug: 'jaipur', pricePaise: 100000,
@@ -43,7 +44,7 @@ describe('whatsappUrl', () => {
 
 describe('MakerCard', () => {
   it('leads with WhatsApp, prefilled with the maker, product and price', () => {
-    render(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co', instagram: '@meera', youtube: '@meeratv' })} />);
+    render(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co', instagram: '@meera', youtube: '@meeratv' })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
     const wa = screen.getByRole('link', { name: /whatsapp/i });
     expect(wa.getAttribute('href')).toContain('wa.me/919876543210');
     const text = new URL(wa.getAttribute('href')!).searchParams.get('text')!;
@@ -57,12 +58,12 @@ describe('MakerCard', () => {
   });
 
   it('falls back to the public phone for WhatsApp when no WhatsApp number is shared', () => {
-    render(<MakerCard product={product({ phone: '9123456789' })} />);
+    render(<MakerCard product={product({ phone: '9123456789' })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
     expect(screen.getByRole('link', { name: /whatsapp/i }).getAttribute('href')).toContain('wa.me/919123456789');
   });
 
   it('with no phone either, the first shared method becomes the main button and there is no WhatsApp line', () => {
-    render(<MakerCard product={product({ email: 'm@x.co', instagram: '@meera' })} />);
+    render(<MakerCard product={product({ email: 'm@x.co', instagram: '@meera' })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
     expect(screen.queryByRole('link', { name: /whatsapp/i })).toBeNull();
     expect(screen.queryByText(/your message will start with/i)).toBeNull();
     expect(screen.getByRole('button', { name: /email/i }).className).toContain('maker-chip');
@@ -70,40 +71,40 @@ describe('MakerCard', () => {
   });
 
   it('says so when the maker shares nothing, and never shows a dead link', () => {
-    render(<MakerCard product={product()} />);
+    render(<MakerCard product={product()} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
     expect(screen.getByText(/has not shared contact details yet/i)).toBeTruthy();
     expect(screen.queryByRole('link', { name: /whatsapp|call|email|instagram|youtube/i })).toBeNull();
   });
 
   it('a price-less product says "Price on request" in the message', () => {
-    render(<MakerCard product={product({ whatsapp: '9876543210', pricePaise: null })} />);
+    render(<MakerCard product={product({ whatsapp: '9876543210', pricePaise: null })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
     const text = new URL(screen.getByRole('link', { name: /whatsapp/i }).getAttribute('href')!).searchParams.get('text')!;
     expect(text).toContain('(Price on request)');
   });
 
   it('records a WhatsApp click as a contact and GA hears the method', () => {
-    render(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co' })} />);
+    render(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co' })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
     fireEvent.click(screen.getByRole('link', { name: /whatsapp/i }));
     expect(sendEvent).toHaveBeenLastCalledWith('contact', 'p1');
     expect(gaContactSeller).toHaveBeenLastCalledWith({ sellerSlug: 'meera-textile-studio-abc', method: 'whatsapp', productId: 'p1' });
   });
 
   it('is a narrow card when there are at most two other buttons, and full width when there are more', () => {
-    const { container, rerender } = render(<MakerCard product={product({ whatsapp: '9876543210', email: 'm@x.co', instagram: '@meera' })} />);
+    const { container, rerender } = render(<MakerCard product={product({ whatsapp: '9876543210', email: 'm@x.co', instagram: '@meera' })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
     expect(container.querySelector('.maker-card')!.classList.contains('compact')).toBe(true);
-    rerender(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co', instagram: '@meera' })} />);
+    rerender(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co', instagram: '@meera' })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
     expect(container.querySelector('.maker-card')!.classList.contains('compact')).toBe(false);
   });
 
   it('highlights the maker’s bio when they have shared one, and shows nothing extra when not', () => {
-    const { container, rerender } = render(<MakerCard product={product({ whatsapp: '9876543210', artistBio: 'Third-generation maker of block-printed textiles.' })} />);
+    const { container, rerender } = render(<MakerCard product={product({ whatsapp: '9876543210', artistBio: 'Third-generation maker of block-printed textiles.' })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
     expect(container.querySelector('.maker-bio')!.textContent).toBe('Third-generation maker of block-printed textiles.');
-    rerender(<MakerCard product={product({ whatsapp: '9876543210' })} />);
+    rerender(<MakerCard product={product({ whatsapp: '9876543210' })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
     expect(container.querySelector('.maker-bio')).toBeNull();
   });
 
   it('uses the real brand marks for WhatsApp, Email (Gmail), Instagram and YouTube, and a plain phone for Call', () => {
-    const { container } = render(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co', instagram: '@meera', youtube: '@meeratv' })} />);
+    const { container } = render(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co', instagram: '@meera', youtube: '@meeratv' })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
     expect(container.querySelectorAll('svg.maker-brand')).toHaveLength(4);
     expect(container.querySelectorAll('svg.maker-icon')).toHaveLength(1);
     const fills = [...container.querySelectorAll('svg.maker-brand [fill]')].map(e => e.getAttribute('fill'));
@@ -112,17 +113,24 @@ describe('MakerCard', () => {
   });
 
   it('the Gmail mark has no white background: nothing in it is filled white', () => {
-    const { container } = render(<MakerCard product={product({ email: 'm@x.co' })} />);
+    const { container } = render(<MakerCard product={product({ email: 'm@x.co' })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
     const fills = [...container.querySelectorAll('svg.maker-brand [fill]')].map(e => e.getAttribute('fill'));
     expect(fills).toContain('#EA4335');
     expect(fills).not.toContain('#fff');
   });
 
   it('with few buttons WhatsApp is styled exactly like the others; with many it is the big filled button', () => {
-    const { container, rerender } = render(<MakerCard product={product({ whatsapp: '9876543210', email: 'm@x.co', instagram: '@meera' })} />);
+    const { container, rerender } = render(<MakerCard product={product({ whatsapp: '9876543210', email: 'm@x.co', instagram: '@meera' })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
     expect(screen.getByRole('link', { name: /whatsapp/i }).className).toBe(screen.getByRole('button', { name: /email/i }).className);
     expect(container.querySelector('.primary')).toBeNull();
-    rerender(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co', instagram: '@meera' })} />);
+    rerender(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co', instagram: '@meera' })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
     expect(screen.getByRole('link', { name: /whatsapp/i }).className).toContain('primary');
+  });
+
+  it('the WhatsApp message carries exactly the product address the page gives it (a live address stays live)', () => {
+    render(<MakerCard product={product({ whatsapp: '9876543210' })} productUrl="https://craftofy.online/products/crochet-flower-tie-back-p1" />);
+    const text = new URL(screen.getByRole('link', { name: /whatsapp/i }).getAttribute('href')!).searchParams.get('text')!;
+    expect(text.endsWith('\n\nhttps://craftofy.online/products/crochet-flower-tie-back-p1')).toBe(true);
+    expect(text).not.toContain('localhost');
   });
 });
