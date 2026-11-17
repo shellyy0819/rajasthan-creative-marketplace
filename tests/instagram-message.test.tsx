@@ -12,7 +12,7 @@ vi.mock('@/lib/ga-events', () => ({ gaContactSeller: (...a: unknown[]) => gaCont
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); sendEvent.mockClear(); gaContactSeller.mockClear(); });
 
 const P: Product = { id: 'p1', name: 'Vase', category: 'Pottery', city: 'Jaipur', cityId: 1, citySlug: 'jaipur', pricePaise: 100000, seller: 'Studio A', description: 'd', stock: 1, status: 'APPROVED', instagram: '@studio.a', sellerSlug: 'studio-a-1' };
-const open = () => { render(<InstagramMessageButton product={P} className="button maker-chip">Instagram</InstagramMessageButton>); fireEvent.click(screen.getByRole('button', { name: /instagram/i })); return screen.getByRole('dialog'); };
+const open = () => { render(<InstagramMessageButton product={P} productUrl="https://craftofy.online/products/vase-p1" className="button maker-chip">Instagram</InstagramMessageButton>); fireEvent.click(screen.getByRole('button', { name: /instagram/i })); return screen.getByRole('dialog'); };
 const link = () => screen.getByRole('link', { name: /copy message/i }) as HTMLAnchorElement;
 const stubClipboard = (impl: () => Promise<void>) => { const writeText = vi.fn(impl); Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true }); return writeText; };
 
@@ -32,7 +32,7 @@ describe('InstagramMessageButton', () => {
     const to = d.querySelector('input[name="to"]') as HTMLInputElement;
     expect([to.value, to.readOnly, to.tabIndex]).toEqual(['@studio.a', true, -1]);
     const msg = (screen.getByRole('textbox', { name: 'Message' }) as HTMLTextAreaElement).value;
-    expect(msg).toBe('Hi Studio A, I saw Vase (₹1,000) on Craftofy and I’m interested.\n\nhttp://localhost:3000/products/vase-p1');
+    expect(msg).toBe('Hi Studio A, I saw Vase (₹1,000) on Craftofy and I’m interested.\n\nhttps://craftofy.online/products/vase-p1');
     expect(link().getAttribute('href')).toBe('https://ig.me/m/studio.a');
     expect(link().target).toBe('_blank'); expect(link().rel).toContain('noreferrer');
     expect(w).not.toHaveBeenCalled(); expect(sendEvent).not.toHaveBeenCalled();
@@ -58,7 +58,7 @@ describe('InstagramMessageButton', () => {
     expect(screen.getByRole('alert').textContent).toMatch(/could not copy/i);
   });
   it('renders nothing for a maker with no Instagram, and Escape closes the dialog', () => {
-    const { container } = render(<InstagramMessageButton product={{ ...P, instagram: undefined }} className="x" />);
+    const { container } = render(<InstagramMessageButton product={{ ...P, instagram: undefined }} productUrl="https://craftofy.online/products/vase-p1" className="x" />);
     expect(container.innerHTML).toBe('');
     cleanup(); open();
     fireEvent.keyDown(document, { key: 'Escape' });

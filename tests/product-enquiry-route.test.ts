@@ -79,4 +79,13 @@ describe('enquiry route: anonymous senders cannot dodge the limits by faking the
     session = { user: { email: 'me@buyer.co' } };
     expect((await call(pid)).status).toBe(201);
   });
+  it('the product link in the mail uses the live host, not localhost, when the site address is not configured', async () => {
+    const r = await POST(new Request(`http://internal/api/products/${pid}/enquiry`, {
+      method: 'POST', headers: { 'content-type': 'application/json', host: 'craftofy.online', 'x-forwarded-proto': 'https' },
+      body: JSON.stringify({ name: 'A', email: 'typed@b.co', message: 'hi' }),
+    }), { params: Promise.resolve({ id: pid }) });
+    expect(r.status).toBe(201);
+    expect(sent[0].text).toMatch(/Product: https:\/\/craftofy\.online\/products\/t-vase-p\d+/);
+    expect(sent[0].text).not.toContain('localhost');
+  });
 });
