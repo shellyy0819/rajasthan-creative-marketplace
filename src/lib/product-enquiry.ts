@@ -17,9 +17,9 @@ export type SentEnquiry = { seller: string; to: string; from: string; replyTo: s
 
 /**
  * A buyer's email to the maker of a product. It goes only to the seller's public address (never one the buyer supplies), from Craftofy's sender,
- * with Reply set to the buyer. `signedInEmail` (from the session) overrides the typed address, which is otherwise unverified and says so in the mail.
+ * with Reply set to the buyer. `beforeSend` runs once the request is valid and the mail is about to be sent (it may throw to refuse). `signedInEmail` (from the session) overrides the typed address, which is otherwise unverified and says so in the mail.
  */
-export async function sendProductEnquiry(productId: string, raw: unknown, opts: { signedInEmail?: string } = {}): Promise<SentEnquiry> {
+export async function sendProductEnquiry(productId: string, raw: unknown, opts: { signedInEmail?: string; beforeSend?: () => void } = {}): Promise<SentEnquiry> {
   const b = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
   const name = oneLine(str(b.name));
   const email = opts.signedInEmail ?? str(b.email);
@@ -45,6 +45,7 @@ export async function sendProductEnquiry(productId: string, raw: unknown, opts: 
 
   if (str(b.companyWebsite)) return sent; // hidden field only bots fill: pretend it went out
   if (!(await mailConfigured())) throw new ApiError(503, 'Email is not available right now.');
+  opts.beforeSend?.(); // quotas are spent only by mail that is really about to go out, so junk requests cannot use them up
   try { await sendMail({ to: p.email, subject, text, replyTo: email }); }
   catch (e) { console.error('could not send product enquiry', productId, (e as Error)?.message ?? 'error'); throw new ApiError(502, 'We could not send your email. Please try again.'); }
   sent.from = (await resolveMailConfig().catch(() => null))?.from ?? 'Craftofy'; // the address the mail really came from

@@ -40,46 +40,33 @@ describe('shared', () => {
   });
 });
 
-describe('not signed in: the buyer sends it themselves from their own email app', () => {
-  it('opens with the default message in the box, empty name and email, and sends nothing', () => {
+describe('not signed in: the buyer types their own email and Craftofy sends it', () => {
+  it('opens with the default message in the box and an empty, editable email; nothing is sent yet', () => {
     const fetchMock = vi.fn(); vi.stubGlobal('fetch', fetchMock);
     open();
     expect((screen.getByLabelText(/^message/i) as HTMLTextAreaElement).value).toBe(MSG);
     const from = screen.getByLabelText(/your email/i) as HTMLInputElement;
     expect(from.value).toBe(''); expect(from.readOnly).toBe(false); expect(from.required).toBe(true);
+    expect(screen.queryByRole('link', { name: /open in my email app/i })).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled(); expect(sendEvent).not.toHaveBeenCalled();
   });
-  it('the button does nothing until name, a valid email and a message are given', () => {
-    open();
-    const go = screen.getByRole('link', { name: /open in my email app/i });
-    expect(go.getAttribute('aria-disabled')).toBe('true');
-    expect(go.getAttribute('href')).toBeNull();
-    fireEvent.click(go);
-    expect(sendEvent).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText(/your name/i), { target: { value: 'Asha' } });
-    fireEvent.change(screen.getByLabelText(/your email/i), { target: { value: 'nope' } });
-    expect(screen.getByRole('link', { name: /open in my email app/i }).getAttribute('href')).toBeNull();
-  });
-  it('builds a mailto to the maker with the message and the buyer’s name and email, records the contact, and closes with no "sent" screen', async () => {
-    const fetchMock = vi.fn(); vi.stubGlobal('fetch', fetchMock);
+  it('sends the typed name, email and message, then shows the mail that went out', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ seller: 'Studio A', to: 'shop@studio.co', from: 'Craftofy <hello@craftofy.online>', replyTo: 'asha@buyer.co', subject: 'Enquiry about Vase on Craftofy', text: 'BODY TEXT' }), { status: 201 }));
+    vi.stubGlobal('fetch', fetchMock);
     open(); fillAnon();
-    const go = screen.getByRole('link', { name: /open in my email app/i });
-    const u = new URL(go.getAttribute('href')!);
-    expect(u.protocol).toBe('mailto:'); expect(u.pathname).toBe('shop@studio.co');
-    expect(u.searchParams.get('subject')).toBe('Enquiry about Vase on Craftofy');
-    expect(u.searchParams.get('body')).toContain(MSG);
-    expect(u.searchParams.get('body')).toContain('Asha <asha@buyer.co>');
-    fireEvent.click(go);
+    fireEvent.click(screen.getByRole('button', { name: /send email/i }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: /email sent/i })).toBeTruthy());
+    expect(JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string)).toMatchObject({ name: 'Asha', email: 'asha@buyer.co', message: MSG });
+    expect(screen.getByRole('dialog').textContent).toContain('asha@buyer.co');
     expect(sendEvent).toHaveBeenCalledWith('contact_email', 'p1');
-    expect(gaContactSeller).toHaveBeenCalledWith({ sellerSlug: 'studio-a-1', method: 'email', productId: 'p1' });
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(screen.queryByText(/email sent/i)).toBeNull();
-    expect(fetchMock).not.toHaveBeenCalled();
   });
-  it('tells the buyer Craftofy cannot see whether it is sent, and that signing in lets Craftofy send it', () => {
-    open();
-    expect(screen.getByText(/cannot see whether you send it/i)).toBeTruthy();
-    expect(screen.getByText(/sign in and craftofy will send it/i)).toBeTruthy();
+  it('a failed send keeps the form, records nothing, and offers the buyer’s own email app', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'Email is not available right now.' }), { status: 503 })));
+    open(); fillAnon();
+    fireEvent.click(screen.getByRole('button', { name: /send email/i }));
+    await waitFor(() => expect(screen.getByRole('link', { name: /email app/i }).getAttribute('href')).toMatch(/^mailto:shop@studio\.co\?/));
+    expect(sendEvent).not.toHaveBeenCalled();
+    expect(screen.queryByRole('heading', { name: /email sent/i })).toBeNull();
   });
 });
 
