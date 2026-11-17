@@ -101,4 +101,13 @@ describe('MakerCard', () => {
     rerender(<MakerCard product={product({ whatsapp: '9876543210' })} />);
     expect(container.querySelector('.maker-bio')).toBeNull();
   });
+
+  it('uses the real brand marks for WhatsApp, Email (Gmail), Instagram and YouTube, and a plain phone for Call', () => {
+    const { container } = render(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co', instagram: '@meera', youtube: '@meeratv' })} />);
+    expect(container.querySelectorAll('svg.maker-brand')).toHaveLength(4);
+    expect(container.querySelectorAll('svg.maker-icon')).toHaveLength(1);
+    const fills = [...container.querySelectorAll('svg.maker-brand [fill]')].map(e => e.getAttribute('fill'));
+    for (const c of ['#25D366', '#EA4335', '#4285F4', '#34A853', '#FF0000']) expect(fills).toContain(c);
+    expect(container.querySelector('svg.maker-brand linearGradient')).not.toBeNull();
+  });
 });

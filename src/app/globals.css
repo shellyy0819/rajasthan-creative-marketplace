@@ -1238,11 +1238,11 @@ form label select {
 }
 .detail {
   display: grid;
-  grid-template-columns: 1.25fr 1fr;
+  grid-template-columns: 1.1fr 1fr;
   gap: 5%;
   padding: 40px 6% 80px;
   align-items: start;
-  max-width: 1200px;
+  max-width: 1280px;
   margin-inline: auto;
 }
 .detail .product-visual,
@@ -1295,18 +1295,23 @@ form label select {
   border: 1px solid var(--line-green-2);
   border-radius: 14px;
 }
-/* Few buttons: the card is exactly as wide as the small buttons side by side. The main button, note and bio fill that width
-   but do not set it (width: 0 + min-width: 100% keeps them out of the card's natural width). */
+/* The buttons (main + small ones) are one block. With few buttons that block is only as wide as the small buttons side by side and the
+   main button fills it; the card itself is wider, so the bio and note have room. */
+.maker-actions {
+  display: grid;
+  gap: 16px;
+}
 .maker-card.compact {
+  max-width: 560px;
+}
+.maker-card.compact .maker-actions {
   width: fit-content;
   max-width: 100%;
 }
 .maker-card.compact .maker-chips {
   flex-wrap: nowrap;
 }
-.maker-card.compact .maker-main,
-.maker-card.compact .maker-note,
-.maker-card.compact .maker-bio {
+.maker-card.compact .maker-main {
   width: 0;
   min-width: 100%;
   box-sizing: border-box;
@@ -1371,6 +1376,11 @@ a.maker-head:hover .maker-name {
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+.maker-brand {
+  flex: none;
+  width: 20px;
+  height: 20px;
 }
 .maker-chips {
   display: flex;
