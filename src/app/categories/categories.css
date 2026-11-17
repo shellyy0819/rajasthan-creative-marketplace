@@ -35,3 +35,6 @@
   color: var(--muted);
   font-weight: 500;
 }
+.cat-list-home {
+  padding-bottom: 24px;
+}

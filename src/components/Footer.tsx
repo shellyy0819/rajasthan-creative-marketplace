@@ -61,6 +61,7 @@ export async function Footer() {
           <li><Link href="/help">How it works</Link></li>
           {/* <li><a href={makerMail}>For makers</a></li> */}
           <li><Link href="/sell" prefetch={false}>Seller login</Link></li>
+          <li><Link href="/categories" prefetch={false}>Categories</Link></li>
           <li><a href="/sitemap.xml">Sitemap</a></li>
           {/* <li><CookieSettings /></li> */}
         </Column>
