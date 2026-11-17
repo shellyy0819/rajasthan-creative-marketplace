@@ -1,4 +1,5 @@
 'use client';
+import { RequestReceived, type RequestDone } from '@/components/RequestReceived';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CityInput } from './CityInput';
@@ -22,7 +23,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   const [pending, setPending] = useState<{ id: string; name: string; email: string; from: string; to: string } | null>(null);
   const [info, setInfo] = useState('');
   const [wait, setWait] = useState(0); // seconds until another code may be requested
-  const [done, setDone] = useState<{ name: string; email: string; from: string; to: string; confirmed: boolean; notified: boolean } | null>(null);
+  const [done, setDone] = useState<RequestDone | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
 
   const close = () => { setOpen(false); trigger.current?.focus(); };
@@ -73,16 +74,11 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
         <div className="contact-backdrop admin-modal" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
           <div role="dialog" aria-modal="true" aria-labelledby="host-title" className="contact-card">
             <div className="dialog-head">
-              <h2 id="host-title">{done ? 'Request received' : pending ? 'Please verify your email' : 'Host a workshop or pop-up'}</h2>
+              <h2 id="host-title">{done ? 'Welcome to Craftofy' : pending ? 'Please verify your email' : 'Host a workshop or pop-up'}</h2>
               <button type="button" className="icon-btn" aria-label="Close" onClick={close} disabled={sending}>✕</button>
             </div>
             {done ? (
-              <div>
-                <p><b>{done.notified ? 'Your workshop details are submitted successfully and the Craftofy team has been notified.' : 'Your workshop details are submitted.'}</b></p>
-                <p>Thank you, {done.name}. {done.confirmed ? 'Your email is confirmed and we' : 'We'} have your details and will write to you on {done.email} soon.</p>
-                <p>Dates received: {done.from === done.to ? done.from : `${done.from} to ${done.to}`}.</p>
-                <div className="admin-actions"><button type="button" className="button primary" onClick={close}>Done</button></div>
-              </div>
+              <RequestReceived done={done} onClose={close} />
             ) : pending ? (
               <form className="admin-form" onSubmit={verify}>
                 <p className="form-note">We sent a 6-digit code to {pending.email}. It is valid for 10 minutes.</p>
