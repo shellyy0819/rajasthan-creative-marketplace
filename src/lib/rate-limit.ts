@@ -10,8 +10,6 @@ export function createLimiter(max: number, windowMs: number, maxKeys = 10_000) {
       if (hits.size > maxKeys) hits.delete(hits.keys().next().value as string);
       return allowed;
     },
-    /** Would `hit` be allowed right now? Records nothing, so several limiters can be checked before any is spent. */
-    check(key: string, now = Date.now()): boolean { return (hits.get(key) ?? []).filter(t => now - t < windowMs).length < max; },
     size: () => hits.size,
   };
 }

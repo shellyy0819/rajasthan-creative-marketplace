@@ -4880,3 +4880,7 @@ button.fair-opt:hover { background: var(--cream); }
   box-shadow: none;
   border-color: var(--line);
 }
+.button.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

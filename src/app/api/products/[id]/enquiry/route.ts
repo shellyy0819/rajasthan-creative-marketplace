@@ -7,25 +7,18 @@ import { sendProductEnquiry } from '@/lib/product-enquiry';
 export const dynamic = 'force-dynamic';
 type Ctx = { params: Promise<{ id: string }> };
 
-/** A buyer emails a product's maker. Open to visitors who are not signed in (their typed address is marked unverified in the mail). */
+/**
+ * A signed-in buyer has Craftofy email a product's maker. Visitors who are not signed in send their own email from their own mail app
+ * (the form builds a mailto link), so this route never mails on behalf of an unverified address.
+ */
 export const POST = (req: Request, { params }: Ctx) => handle(async () => {
   const { id } = await params;
   if (!/^p\d+$/.test(id)) throw new ApiError(404, 'Product not found.');
-  if (!limits.enquiryLimiter.hit(clientIp(req.headers))) throw new ApiError(429, 'Too many emails sent. Please try again later.');
-  const body = await readJson(req);
   let signedInEmail: string | undefined;
-  try { const s = await auth(); if (s?.user?.email && s.user.active !== false) signedInEmail = s.user.email; } catch { /* a broken session is just an anonymous buyer */ }
-  const typed = body && typeof body === 'object' && !Array.isArray(body) ? String((body as Record<string, unknown>).email ?? '').trim().toLowerCase() : '';
-  if (!limits.enquiryPairLimiter.hit(`${(signedInEmail ?? typed).toLowerCase()}|${id}`)) throw new ApiError(429, 'You already emailed this maker about this product. Please wait for their reply.');
-  // The client address and the typed email are sender-controlled (X-Forwarded-For can be forged, an address can be varied), so anonymous
-  // mail is also capped per product. It is counted only when the mail is about to be sent, never for invalid or bot requests.
-  // Signed-in buyers are keyed on their account, which cannot be forged.
-  const beforeSend = () => {
-    if (signedInEmail) return;
-    // Check both before spending either, so a refusal by one never uses up the other's quota.
-    if (!limits.enquiryProductLimiter.check(id)) throw new ApiError(429, 'This maker has received many emails today. Please sign in to send yours, or try again later.');
-    if (!limits.enquiryAnonLimiter.check('all')) throw new ApiError(429, 'Many emails are being sent right now. Please sign in to send yours, or try again later.');
-    limits.enquiryProductLimiter.hit(id); limits.enquiryAnonLimiter.hit('all');
-  };
-  return json(await sendProductEnquiry(id, body, { ...(signedInEmail ? { signedInEmail } : {}), beforeSend }), 201, { 'cache-control': 'no-store' });
+  try { const s = await auth(); if (s?.user?.email && s.user.active !== false) signedInEmail = s.user.email; } catch { /* a broken session is just a visitor */ }
+  if (!signedInEmail) throw new ApiError(401, 'Sign in to have Craftofy send this email for you.');
+  if (!limits.enquiryLimiter.hit(signedInEmail.toLowerCase())) throw new ApiError(429, 'Too many emails sent. Please try again later.');
+  const body = await readJson(req);
+  if (!limits.enquiryPairLimiter.hit(`${signedInEmail.toLowerCase()}|${id}`)) throw new ApiError(429, 'You already emailed this maker about this product. Please wait for their reply.');
+  return json(await sendProductEnquiry(id, body, { signedInEmail }), 201, { 'cache-control': 'no-store' });
 });
