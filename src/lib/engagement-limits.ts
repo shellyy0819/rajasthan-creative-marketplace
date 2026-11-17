@@ -18,5 +18,8 @@ export let logoLimiter = createLimiter(20, 3_600_000);
 /** Seller onboarding submissions: 10 per hour per account, 30 per hour per network address. */
 export let onboardingLimiter = createLimiter(10, 3_600_000);
 export let ipOnboardingLimiter = createLimiter(30, 3_600_000);
+/** Emails to makers: 5 per hour per network address, and 2 per day for one buyer address and one product. */
+export let enquiryLimiter = createLimiter(5, 3_600_000);
+export let enquiryPairLimiter = createLimiter(2, 86_400_000);
 export const resetListingLimiterForTests = () => { listingLimiter = createLimiter(5, 3_600_000); };
-export const resetLimitersForTests = () => { logoLimiter = createLimiter(20, 3_600_000); onboardingLimiter = createLimiter(10, 3_600_000); ipOnboardingLimiter = createLimiter(30, 3_600_000); uploadLimiter = createLimiter(60, 3_600_000); listingLimiter = createLimiter(5, 3_600_000); workshopRequestLimiter = createLimiter(5, 3_600_000); requestUploadLimiter = createLimiter(12, 3_600_000); workshopVerifyLimiter = createLimiter(30, 3_600_000); likeLimiter = createLimiter(30, 60_000); ipLikeLimiter = createLimiter(120, 60_000); eventLimiter = createLimiter(120, 60_000); };
+export const resetLimitersForTests = () => { logoLimiter = createLimiter(20, 3_600_000); onboardingLimiter = createLimiter(10, 3_600_000); ipOnboardingLimiter = createLimiter(30, 3_600_000); uploadLimiter = createLimiter(60, 3_600_000); listingLimiter = createLimiter(5, 3_600_000); workshopRequestLimiter = createLimiter(5, 3_600_000); requestUploadLimiter = createLimiter(12, 3_600_000); workshopVerifyLimiter = createLimiter(30, 3_600_000); likeLimiter = createLimiter(30, 60_000); ipLikeLimiter = createLimiter(120, 60_000); eventLimiter = createLimiter(120, 60_000); enquiryLimiter = createLimiter(5, 3_600_000); enquiryPairLimiter = createLimiter(2, 86_400_000); };

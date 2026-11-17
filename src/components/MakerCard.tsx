@@ -3,12 +3,13 @@ import Link from 'next/link';
 import { ArtistAvatar } from '@/components/ArtistAvatar';
 import { TrackedLink } from '@/components/TrackedLink';
 import type { GaContactMethod } from '@/lib/ga-events';
-import { money } from '@/lib/money';
+import { EmailMakerButton } from '@/components/EmailMakerButton';
+import { enquiryMessage } from '@/lib/enquiry-message';
 import { instagramHandle, instagramUrl, whatsappUrl, youtubeUrl } from '@/lib/social';
 import type { TrackType } from '@/lib/track';
 import type { Product } from '@/lib/types';
 
-type Method = { key: GaContactMethod; label: string; href: string; type: TrackType; external?: boolean };
+type Method = { key: GaContactMethod; label: string; href: string; type: TrackType; external?: boolean; form?: boolean };
 
 const WA_ICON = <path d="M3 21l1.65-4.9A9 9 0 1 1 8 19.4L3 21Zm5.5-11.2c.3 2.3 2.9 4.8 5.2 5.2l1.2-1.2-1.9-.9-.8.6c-.9-.3-1.8-1.2-2.1-2.1l.6-.8-.9-1.9-1.3 1.1Z" />;
 const ICONS: Record<string, React.ReactNode> = {
@@ -26,16 +27,18 @@ const ICONS: Record<string, React.ReactNode> = {
  */
 export function MakerCard({ product: p }: { product: Product }) {
   const waNumber = p.whatsapp ?? p.phone;
-  const message = `${p.seller} I saw ${p.name} (${money(p.pricePaise)}) on Craftofy and I’m interested.`;
+  const message = enquiryMessage(p);
   const methods: Method[] = [
     ...(waNumber ? [{ key: 'whatsapp' as const, label: 'Message on WhatsApp', href: whatsappUrl(waNumber, message), type: 'contact' as const, external: true }] : []),
     ...(p.phone ? [{ key: 'call' as const, label: 'Call', href: `tel:${p.phone.replace(/[^\d+]/g, '')}`, type: 'contact_call' as const }] : []),
-    ...(p.email ? [{ key: 'email' as const, label: 'Email', href: `mailto:${p.email}`, type: 'contact_email' as const }] : []),
+    ...(p.email ? [{ key: 'email' as const, label: 'Email', href: `mailto:${p.email}`, type: 'contact_email' as const, form: true }] : []),
     ...(p.instagram ? [{ key: 'instagram' as const, label: 'Instagram', href: instagramUrl(p.instagram), type: 'contact_instagram' as const, external: true }] : []),
     ...(p.youtube ? [{ key: 'youtube' as const, label: 'YouTube', href: youtubeUrl(p.youtube), type: 'contact_youtube' as const, external: true }] : []),
   ];
   const [main, ...rest] = methods;
-  const link = (m: Method, className: string) => (
+  const link = (m: Method, className: string) => m.form ? (
+    <EmailMakerButton key={m.key} product={p} className={className} icon={<svg className="maker-icon" viewBox="0 0 24 24" aria-hidden="true">{ICONS[m.key]}</svg>}>{m.label}</EmailMakerButton>
+  ) : (
     <TrackedLink key={m.key} className={className} productId={p.id} sellerSlug={p.sellerSlug} method={m.key} type={m.type} href={m.href}
       {...(m.external ? { target: '_blank', rel: 'noreferrer' } : {})}>
       <svg className="maker-icon" viewBox="0 0 24 24" aria-hidden="true">{ICONS[m.key]}</svg>{m.label}

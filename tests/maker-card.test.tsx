@@ -6,6 +6,7 @@ import { publicWhatsappOf } from '@/db/mappers';
 import { whatsappUrl } from '@/lib/social';
 import type { Product } from '@/lib/types';
 
+vi.mock('next-auth/react', () => ({ useSession: () => ({ data: null }) }));
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: { href: string; children: React.ReactNode }) => <a href={href} {...r}>{children}</a> }));
 const sendEvent = vi.fn();
 vi.mock('@/lib/track', () => ({ sendEvent: (...a: unknown[]) => sendEvent(...a) }));
@@ -46,10 +47,10 @@ describe('MakerCard', () => {
     const wa = screen.getByRole('link', { name: /message on whatsapp/i });
     expect(wa.getAttribute('href')).toContain('wa.me/919876543210');
     const text = new URL(wa.getAttribute('href')!).searchParams.get('text')!;
-    expect(text).toBe('Meera Textile Studio I saw Crochet flower tie-back (₹1,000) on Craftofy and I’m interested.');
+    expect(text).toBe('Hi Meera Textile Studio, I saw Crochet flower tie-back (₹1,000) on Craftofy and I’m interested.');
     expect(screen.getByText(/your message will start with/i)).toBeTruthy();
     expect(screen.getByRole('link', { name: /call/i }).getAttribute('href')).toBe('tel:9123456789');
-    expect(screen.getByRole('link', { name: /email/i }).getAttribute('href')).toBe('mailto:m@x.co');
+    expect(screen.getByRole('button', { name: /email/i }).getAttribute('aria-haspopup')).toBe('dialog');
     expect(screen.getByRole('link', { name: /instagram/i }).getAttribute('href')).toContain('instagram.com/meera');
     expect(screen.getByRole('link', { name: /youtube/i }).getAttribute('href')).toContain('youtube.com');
     expect(screen.getByRole('link', { name: /Meera Textile Studio/ }).getAttribute('href')).toBe('/artists/meera-textile-studio-abc?from=p1');
@@ -64,7 +65,7 @@ describe('MakerCard', () => {
     render(<MakerCard product={product({ email: 'm@x.co', instagram: '@meera' })} />);
     expect(screen.queryByRole('link', { name: /whatsapp/i })).toBeNull();
     expect(screen.queryByText(/your message will start with/i)).toBeNull();
-    expect(screen.getByRole('link', { name: /email/i }).className).toContain('primary');
+    expect(screen.getByRole('button', { name: /email/i }).className).toContain('primary');
     expect(screen.getByRole('link', { name: /instagram/i }).className).not.toContain('primary');
   });
 
@@ -80,13 +81,10 @@ describe('MakerCard', () => {
     expect(text).toContain('(Price on request)');
   });
 
-  it('records each click: WhatsApp as a contact, others by method; GA hears the method', () => {
+  it('records a WhatsApp click as a contact and GA hears the method', () => {
     render(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co' })} />);
     fireEvent.click(screen.getByRole('link', { name: /message on whatsapp/i }));
     expect(sendEvent).toHaveBeenLastCalledWith('contact', 'p1');
     expect(gaContactSeller).toHaveBeenLastCalledWith({ sellerSlug: 'meera-textile-studio-abc', method: 'whatsapp', productId: 'p1' });
-    fireEvent.click(screen.getByRole('link', { name: /email/i }));
-    expect(sendEvent).toHaveBeenLastCalledWith('contact_email', 'p1');
-    expect(gaContactSeller).toHaveBeenLastCalledWith({ sellerSlug: 'meera-textile-studio-abc', method: 'email', productId: 'p1' });
   });
 });
