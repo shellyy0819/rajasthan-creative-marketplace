@@ -319,7 +319,7 @@ nav a:hover,
   padding: 2px 6px;
   margin-left: 4px;
 }
-/* Desktop: "Are you a seller?" and "Login here" live together in one outlined block (one button). The phone shows only the .seller-login-btn. */
+/* "Are you a seller?" and "Login here" live together in one outlined block (one button), on every screen size. */
 /* .button comes later in this file and sets gap: 20px and padding, so the block needs the extra class to win. */
 .button.seller-prompt {
   display: inline-flex;
@@ -336,9 +336,6 @@ nav a:hover,
   color: var(--ink);
   font-size: 12px;
   font-weight: 700;
-}
-nav .seller-login-btn {
-  display: none;
 }
 .hero {
   padding: 65px 9% 72px;
@@ -999,12 +996,13 @@ form label select {
   nav > a.nav-fair {
     display: inline-flex;
   }
-  .seller-prompt {
-    display: none;
+  .button.seller-prompt {
+    padding: 8px 10px;
+    white-space: nowrap;
   }
-  nav .seller-login-btn {
-    display: inline-flex;
-    padding: 10px;
+  .seller-prompt-q,
+  .seller-prompt-cta {
+    font-size: 11px;
   }
   .button {
     padding: 10px 12px;

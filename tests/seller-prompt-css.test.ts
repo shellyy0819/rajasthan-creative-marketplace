@@ -8,4 +8,9 @@ describe('navbar seller prompt block (source contract)', () => {
     expect(css).toMatch(/\.button\.seller-prompt \{[^}]*gap: 5px;/);
     expect(css).not.toMatch(/(^|[ }])\.seller-prompt \{[^}]*gap:/);   // a bare .seller-prompt rule would lose to .button
   });
+  it('the block is shown on phones too: no rule hides .seller-prompt, and the separate phone button is gone', () => {
+    expect(css).not.toMatch(/\.seller-prompt \{ display: none;/);
+    expect(css).not.toContain('seller-login-btn');
+    expect(fs.readFileSync('src/components/AuthButton.tsx', 'utf8')).not.toContain('seller-login-btn');
+  });
 });
