@@ -17,11 +17,13 @@ describe('AuthButton signed out', () => {
   it('shows the seller prompt (desktop link) and the mobile button, both labelled Login here', () => {
     render(<AuthButton />);
     expect(screen.getByText(/Are you a seller\?/)).toBeTruthy();
-    expect(screen.getAllByRole('button', { name: 'Login here' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: /Login here/ })).toHaveLength(2);
+    // the question sits inside the same block (one button) as the Login here text
+    expect(screen.getByRole('button', { name: 'Are you a seller? Login here' }).textContent).toContain('Are you a seller?');
   });
   it('click calls signIn with callbackUrl /sell', () => {
     render(<AuthButton />);
-    const [link, mobileBtn] = screen.getAllByRole('button', { name: 'Login here' });
+    const [link, mobileBtn] = screen.getAllByRole('button', { name: /Login here/ });
     fireEvent.click(link);
     expect(signIn).toHaveBeenLastCalledWith('google', { callbackUrl: '/sell' });
     fireEvent.click(mobileBtn);

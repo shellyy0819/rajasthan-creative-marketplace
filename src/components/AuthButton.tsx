@@ -60,10 +60,10 @@ export function AuthButton({ dashboardUrl = '' }: { dashboardUrl?: string }) {
     const login = () => signIn('google', { callbackUrl: '/sell' });
     return (
       <>
-        <span className="seller-prompt">
-          Are you a seller?
-          <button type="button" className="button outline" onClick={login}>Login here</button>
-        </span>
+        <button type="button" className="button outline seller-prompt" onClick={login}>
+          <span className="seller-prompt-q">Are you a seller?</span>{' '}
+          <span className="seller-prompt-cta">Login here</span>
+        </button>
         <button type="button" className="button outline seller-login-btn" onClick={login}>Login here</button>
       </>
     );

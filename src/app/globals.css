@@ -319,19 +319,22 @@ nav a:hover,
   padding: 2px 6px;
   margin-left: 4px;
 }
-.seller-prompt {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-}
-/* The login buttons are .button.outline (same as "Host a workshop"); the phone one only shows on small screens. */
+/* Desktop: "Are you a seller?" and "Login here" live together in one outlined block (one button). The phone shows only the .seller-login-btn. */
 .seller-prompt {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  padding: 12px 16px;
 }
-.seller-prompt .button {
-  padding: 12px;
+.seller-prompt-q {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.seller-prompt-cta {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
 }
 nav .seller-login-btn {
   display: none;
