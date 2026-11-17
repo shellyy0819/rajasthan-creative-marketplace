@@ -32,7 +32,7 @@ describe('sendProductEnquiry', () => {
     expect(sent[0].text).toContain(good.message);
     expect(sent[0].text).toContain('Asha Buyer <asha@buyer.co>');
     expect(sent[0].text).toMatch(/\/products\/t-vase-p\d+/i);
-    expect(r).toEqual({ seller: 'Studio A', to: 'shop@studio.co', subject: sent[0].subject, text: sent[0].text });
+    expect(r).toEqual({ seller: 'Studio A', to: 'shop@studio.co', from: 'Craftofy', replyTo: 'asha@buyer.co', subject: sent[0].subject, text: sent[0].text });
   });
   it('never mails an address the buyer supplies: only the seller’s public one', async () => {
     await setup('shop@studio.co');
