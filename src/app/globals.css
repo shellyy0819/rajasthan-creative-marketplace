@@ -599,6 +599,7 @@ h2 em {
   text-transform: uppercase;
 }
 .detail-like { margin-top: 16px; }
+.detail-like-prompt { margin: 0 0 10px; color: var(--muted); font-size: 12px; }
 .detail-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 12px; }
 /* How the product was sourced (Curated, Resold ...): shown on the product page only, never on cards */
 .source-tag {

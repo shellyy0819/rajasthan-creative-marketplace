@@ -118,6 +118,7 @@ export default async function ProductPage({ params }: Props) {
             </ul>
           )}
           <div className="detail-like">
+            <p className="detail-like-prompt">If you really liked the product, give it a like</p>
             <LikeButton
               productId={p.id}
               initialCount={p.likeCount ?? 0}
