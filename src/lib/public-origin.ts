@@ -1,5 +1,5 @@
-/** The registrable domain Craftofy runs on. Fixed here, not read from the environment. */
-export const SITE_DOMAIN = 'craftofy.online';
+/** The exact hostnames Craftofy is served on. Fixed here, not read from the environment; no wildcard subdomains and no ports. Add a host here when a new one goes live. */
+export const SITE_HOSTS: readonly string[] = ['craftofy.online', 'www.craftofy.online', 'api.craftofy.online'];
 
 type Headers = { get(name: string): string | null };
 
@@ -9,16 +9,16 @@ const hostOf = (v: string | null): string | null => {
   return /^[a-z0-9.-]+(:\d+)?$/.test(host) ? host : null;
 };
 
-/** Craftofy's own hosts (craftofy.online and its subdomains) and, for development, localhost. Anything else is refused. */
+/** One of Craftofy's exact hosts (any port, a wildcard or a look-alike is refused), or localhost, which only counts outside production. */
 const allowed = (host: string) => {
-  const name = host.replace(/:\d+$/, '');
-  return name === SITE_DOMAIN || name.endsWith(`.${SITE_DOMAIN}`) || name === 'localhost' || name === '127.0.0.1';
+  if (SITE_HOSTS.includes(host)) return true;
+  return process.env.NODE_ENV !== 'production' && /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host);
 };
 
 /**
  * The address links in a Craftofy email should use: the host the buyer was on, taken from the request (the browser's Origin first, then Referer,
- * then Host), so the link matches the site they used instead of an environment value. Only Craftofy's own domain (and localhost in development)
- * is accepted: a request that names any other host is ignored, so a forged header cannot point a Craftofy email at someone else's site.
+ * then Host), so the link matches the site they used instead of an environment value. Only Craftofy's exact hosts (and localhost outside
+ * production) are accepted: a request that names any other host is ignored, so a forged header cannot point a Craftofy email at someone else's site.
  * Null when no acceptable host is found; the caller then falls back to the configured address.
  */
 export function requestOrigin(h: Headers): string | null {
