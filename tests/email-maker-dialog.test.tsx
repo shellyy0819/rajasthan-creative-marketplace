@@ -50,14 +50,14 @@ describe('not signed in: the buyer types their own email and Craftofy sends it',
     expect(screen.queryByRole('link', { name: /open in my email app/i })).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled(); expect(sendEvent).not.toHaveBeenCalled();
   });
-  it('sends the typed name, email and message, then shows the mail that went out', async () => {
+  it('sends the typed name, email and message, closes the dialog and shows a success toast', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ seller: 'Studio A', to: 'shop@studio.co', from: 'Craftofy <hello@craftofy.online>', replyTo: 'asha@buyer.co', subject: 'Enquiry about Vase on Craftofy', text: 'BODY TEXT' }), { status: 201 }));
     vi.stubGlobal('fetch', fetchMock);
     open(); fillAnon();
     fireEvent.click(screen.getByRole('button', { name: /send email/i }));
-    await waitFor(() => expect(screen.getByRole('heading', { name: /email sent/i })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('Your email is successfully sent to seller'));
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string)).toMatchObject({ name: 'Asha', email: 'asha@buyer.co', message: MSG });
-    expect(screen.getByRole('dialog').textContent).toContain('asha@buyer.co');
     expect(sendEvent).toHaveBeenCalledWith('contact_email', 'p1');
   });
   it('a failed send keeps the form, records nothing, and offers the buyer’s own email app', async () => {
@@ -78,18 +78,18 @@ describe('signed in: Craftofy sends it and shows the mail that went out', () => 
     expect(from.value).toBe('asha@buyer.co'); expect(from.readOnly).toBe(true);
     expect((screen.getByLabelText(/^message/i) as HTMLTextAreaElement).value).toBe(MSG);
   });
-  it('sends name, email and message, then shows the mail to the buyer', async () => {
+  it('sends name, email and message, then closes with the success toast (no "sent" modal)', async () => {
     signIn();
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ seller: 'Studio A', to: 'shop@studio.co', from: 'Craftofy <hello@craftofy.online>', replyTo: 'asha@buyer.co', subject: 'Enquiry about Vase on Craftofy', text: 'BODY TEXT', attachments: ['vase-1.jpg', 'vase-2.png'] }), { status: 201 }));
     vi.stubGlobal('fetch', fetchMock);
     open();
     fireEvent.click(screen.getByRole('button', { name: /send email/i }));
-    await waitFor(() => expect(screen.getByRole('heading', { name: /email sent/i })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('Your email is successfully sent to seller'));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('heading', { name: /email sent/i })).toBeNull();
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('/api/products/p1/enquiry');
     expect(JSON.parse((init as RequestInit).body as string)).toMatchObject({ name: 'Asha B', email: 'asha@buyer.co', message: MSG });
-    const d = screen.getByRole('dialog');
-    for (const t of ['Studio A <shop@studio.co>', 'Craftofy <hello@craftofy.online>', 'Reply-to', 'vase-1.jpg, vase-2.png', 'Enquiry about Vase on Craftofy', 'BODY TEXT', 'asha@buyer.co']) expect(d.textContent).toContain(t);
     expect(sendEvent).toHaveBeenCalledWith('contact_email', 'p1');
     expect(gaContactSeller).toHaveBeenCalledWith({ sellerSlug: 'studio-a-1', method: 'email', productId: 'p1' });
   });
@@ -108,5 +108,20 @@ describe('signed in: Craftofy sends it and shows the mail that went out', () => 
     open();
     fireEvent.click(screen.getByRole('button', { name: /send email/i }));
     await waitFor(() => expect(screen.getByRole('link', { name: /email app/i }).getAttribute('href')).toMatch(/^mailto:shop@studio\.co\?/));
+  });
+
+  it('the success toast stays for 5 seconds, then goes away by itself', async () => {
+    signIn();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ seller: 'Studio A' }), { status: 201 })));
+    open();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      fireEvent.click(screen.getByRole('button', { name: /send email/i }));
+      await waitFor(() => expect(screen.getByRole('status')).toBeTruthy());
+      await vi.advanceTimersByTimeAsync(4900);
+      expect(screen.getByRole('status')).toBeTruthy();
+      await vi.advanceTimersByTimeAsync(200);
+      await waitFor(() => expect(screen.queryByRole('status')).toBeNull());
+    } finally { vi.useRealTimers(); }
   });
 });

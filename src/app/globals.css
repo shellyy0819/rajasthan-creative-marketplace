@@ -5040,31 +5040,6 @@ button.fair-opt:hover { background: var(--cream); }
     grid-template-columns: 1fr;
   }
 }
-/* "Email sent" dialog: the mail as the maker received it */
-.enquiry-mail {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px 14px;
-  margin: 14px 0 10px;
-  font-size: 12px;
-}
-.enquiry-mail dt {
-  color: var(--muted);
-}
-.enquiry-mail dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-.enquiry-body {
-  margin: 0 0 16px;
-  padding: 12px 14px;
-  background: var(--white);
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  font: 400 12px/1.6 var(--font-sans);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
 .enquiry-maker {
   color: var(--orange);
 }
