@@ -11,7 +11,7 @@ Goal: a listing model that fits online recurring classes now and new topics (pre
 ## Goals, non-goals, anti-goals
 
 Goals
-- An instructor can submit everything above through the host form and see it on a public listing.
+- An instructor can submit everything above through the host form (one form, two paths: in-person event or online class) and see it on a public listing.
 - In-person events keep working exactly as today (same URLs, slugs, booking).
 - `/workshops` says plainly what can be listed, and that text never promises more than the form accepts.
 - Adding a topic is a data change (a row), not a code change. Topic-specific questions (prenatal) are phase 2.
@@ -86,10 +86,15 @@ Finding: nothing turns a request into a listing. Phase 1 adds an "Approve and li
 
 ### 4. Host form (stepper)
 
-- Step 1 adds Topic (from active topics, plus "Other") and Type (workshop, meetup, pop-up, flea market, online class). Choosing "online class" sets mode online.
-- Step 2 for in-person is unchanged. For online: platform, start date, class days (chips), time, duration, optional end date, a price editor (up to 5 rows with presets, or Free), and the free-trial tick box. City, venue and seats are hidden for online.
-- Step 3 adds languages, level, experience, certifications and WhatsApp.
-- The server validates every field with the existing helpers in `src/lib/validate.ts` and `phone.ts`; the form mirrors the same limits (the existing rule for forms in this project).
+One form, one request API and one set of emails, with two paths chosen at step 1 (decided by you; separate forms were rejected because they would duplicate validation, routes, emails and the admin view).
+
+- Step 1 starts with "What are you hosting?": **In-person event** or **Online class**. The choice sets `mode` ('in_person' or 'online') and decides what steps 2 and 3 ask. Then Topic (active topics plus "Other"), Title, Description, Photos. For an in-person event the existing Type select stays (workshop, meetup, pop-up, flea market); for an online class `kind` is 'class' and there is no Type select.
+- Step 2, in-person event: unchanged (dates, times, city, seats, venue, one price, "participants pay").
+- Step 2, online class: platform, start date, class days (chips), time, duration, optional end date, price plans (up to 5 rows, presets Per session / Monthly / Quarterly or custom, or Free), free-trial tick box. City, venue and seats are not asked.
+- Step 3, both: host or studio name, your name, phone, email, Instagram, website, notes. Online class adds languages, level, experience, certifications and WhatsApp.
+- Entry points: "Host a workshop" opens the form on the in-person path; "Teach an online class" (new button next to it on `/workshops`, and in the footer) opens it on the online path. `/workshops?host=1` opens step 1 with no choice made; `/workshops?host=class` opens the online path directly (so the instructor can be sent a link). Switching the choice at step 1 keeps shared answers (title, description, photos).
+- The server validates every field with the existing helpers in `src/lib/validate.ts` and `phone.ts`, per path (an online request with a venue is accepted and ignored; an in-person request without city and venue is rejected as today). The form mirrors the same limits.
+- Only the steps' contents change per path; the stepper, progress list, email-code and confirmation screens are shared.
 
 ### 5. "What we support" copy
 
