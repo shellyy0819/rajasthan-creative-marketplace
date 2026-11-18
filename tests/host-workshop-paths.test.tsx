@@ -122,6 +122,27 @@ describe('step 2 and 3 on the online class path', () => {
   });
 });
 
+describe('entry: free or fixed price', () => {
+  it('is a dropdown that starts on Free to attend; Fixed price shows the price box and sends PAID', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'a@b.co', status: 'pending' }) });
+    render(<HostWorkshopButton topics={topics} />);
+    fireEvent.click(screen.getByRole('button', { name: /host a workshop/i }));
+    val(/event title/i, 'Clay'); val(/^type/i, 'workshop'); val(/what happens/i, 'Clay day'); next();
+    const entry = screen.getByLabelText('Entry') as HTMLSelectElement;
+    expect(Array.from(entry.options).map(o => o.textContent)).toEqual(['Free to attend', 'Fixed price']);
+    expect(entry.value).toBe('free');
+    expect(screen.queryByLabelText(/price per person/i)).toBeNull();
+    expect(screen.queryByLabelText(/pay to attend/i)).toBeNull();
+    fireEvent.change(entry, { target: { value: 'paid' } });
+    val(/price per person/i, '499'); val(/start date/i, '2099-01-05'); val(/^city/i, 'x'); val(/venue/i, 'Studio');
+    next();
+    val(/host, studio/i, 'H'); val(/your name/i, 'N'); val(/phone number/i, '9989898999'); val(/^email/i, 'a@b.co');
+    fireEvent.click(screen.getByRole('button', { name: /send details/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ priceType: 'PAID', priceRupees: 499 });
+  });
+});
+
 describe('languages', () => {
   it('step 3 refuses more than five languages before anything is sent', () => {
     openClass(); classStep1(); next(); classStep2(); next();

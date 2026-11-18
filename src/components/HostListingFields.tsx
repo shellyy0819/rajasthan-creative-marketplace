@@ -25,7 +25,9 @@ export function EventWhereWhen({ startDate, setStartDate, paid, setPaid, cityReq
         <label>Seats<input name="seats" type="number" min={1} max={100000} inputMode="numeric" /></label>
       </div>
       <label><span className="lbl">Venue and address</span><input name="venue" required maxLength={300} autoComplete="street-address" autoCapitalize="words" enterKeyHint="next" /></label>
-      <label className="check"><input type="checkbox" checked={paid} onChange={e => setPaid(e.target.checked)} /> Participants pay to attend</label>
+      <label>Entry
+        <select name="entry" value={paid ? 'paid' : 'free'} onChange={e => setPaid(e.target.value === 'paid')}><option value="free">Free to attend</option><option value="paid">Fixed price</option></select>
+      </label>
       {paid && <label><span className="lbl">Price per person (Rs.)</span><input name="priceRupees" type="number" min={1} max={1000000} inputMode="numeric" required /></label>}
     </>
   );
