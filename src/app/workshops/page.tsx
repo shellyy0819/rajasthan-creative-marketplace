@@ -13,6 +13,7 @@ import { hostPath, wantsHostForm } from '@/lib/host-link';
 import { listActiveTopics } from '@/lib/topics';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
+import { supportLine } from '@/lib/workshop-support';
 import { contactEmail } from '@/lib/site';
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -44,6 +45,7 @@ export default async function WorkshopsPage({ searchParams }: Props) {
         <span className="eyebrow">OUT OF THE SCROLL, INTO THE STUDIO</span>
         <h1>Creative workshops &amp; pop-ups</h1>
         <p>Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.</p>
+        <p className="ws-supports">{supportLine()}</p>
       </div>
       {workshops.length === 0 && !hasFilters(f)
         ? <WorkshopsEmptyState openHostForm={wantsHostForm(sp)} initialPath={hostPath(sp)} topics={topics} />

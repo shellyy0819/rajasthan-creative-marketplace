@@ -9,7 +9,7 @@ import { ProductGrid } from './ProductGrid';
 import { PageLoader } from './PageLoader';
 import { WorkshopList } from './WorkshopList';
 
-type Values = { city?: string; category?: string; source?: string; type?: string; q?: string };
+type Values = { city?: string; category?: string; source?: string; type?: string; q?: string; mode?: string };
 type CityOption = { name: string; slug: string; state?: string };
 /** `cities` are the active cities (from the server), offered in the city filter by slug (labelled with the state when a name repeats). */
 type Props =
@@ -28,6 +28,7 @@ function buildQs(v: Values, selectKey: 'category' | 'type'): string {
   if (v.city) sp.set('city', v.city);
   if (v[selectKey]) sp.set(selectKey, v[selectKey]!);
   if (selectKey === 'category' && v.source) sp.set('source', v.source);
+  if (selectKey === 'type' && v.mode) sp.set('mode', v.mode);
   const q = (v.q ?? '').trim();
   if (q) sp.set('q', q);
   return sp.toString();
@@ -143,6 +144,13 @@ export function LiveCatalog(props: Props) {
           <option value="">Free &amp; paid</option>
           <option value="FREE">Free</option>
           <option value="PAID">Paid</option>
+        </select>
+      )}
+      {kind === 'workshops' && (
+        <select name="mode" value={values.mode ?? ''} onChange={e => set({ mode: e.target.value }, 0)} aria-label="Filter by format">
+          <option value="">In person &amp; online</option>
+          <option value="in_person">In person</option>
+          <option value="online">Online</option>
         </select>
       )}
       <button type="submit">Search</button>

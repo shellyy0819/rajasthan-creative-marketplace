@@ -7,6 +7,7 @@ import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 import { DEFAULT_CONTACT_EMAIL } from '@/lib/site';
 import { MAX_REQUEST_IMAGES, submitErrorMessage } from '@/lib/workshop-requests-shared';
 import { HOST_PARAM, type HostPath } from '@/lib/host-link';
+import { supportLine } from '@/lib/workshop-support';
 import type { TopicOption } from '@/lib/topics';
 import { ClassAbout, ClassWhenAndPrice, EventWhereWhen, type PriceDraft } from './HostListingFields';
 import './HostWorkshopStepper.css';
@@ -197,6 +198,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                 </div>
                 {error && <p role="alert" className="admin-error">{error}</p>}
                 <div className="host-step" data-step={0} hidden={step !== 0}>
+                  <p className="form-note">{supportLine()}</p>
                   <fieldset className="host-path">
                     <legend>What are you hosting?</legend>
                     <div className="host-path-cards">

@@ -9,5 +9,5 @@ export const contentType = 'image/png';
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const w = await getWorkshopBySlug((await params).slug);
   if (!w) notFound();
-  return renderOg(w.title, `${w.date} · ${w.venue}, ${w.city}`);
+  return renderOg(w.title, w.mode === 'online' ? `Online${w.platform ? ` · ${w.platform}` : ''}` : `${w.date} · ${w.venue}, ${w.city}`);
 }

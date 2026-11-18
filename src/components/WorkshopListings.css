@@ -19,3 +19,10 @@
   .host-price-row { grid-template-columns: 1fr 1fr; }
   .host-price-row input:first-child { grid-column: 1 / -1; }
 }
+
+/* Workshop cards and pages: badges, contact buttons, the ended notice. */
+.ws-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px !important; }
+.ws-badges span { padding: 3px 9px; border: 1px solid var(--line); border-radius: 30px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.ws-contact { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+.ws-ended { margin: 10px 0; padding: 10px 14px; border: 1px solid var(--control-border); border-radius: 4px; background: var(--cream); font-size: 13px; }
+.ws-supports { margin-top: 6px; font-size: 13px; color: var(--muted); }

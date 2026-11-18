@@ -35,20 +35,27 @@ export function productJsonLd(p: Product) {
   };
 }
 
+const DAY_IRI: Record<string, string> = { mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday' };
+
 export function workshopJsonLd(w: Workshop) {
   const path = `/workshops/${workshopSlug(w)}`;
+  const place = { '@type': 'Place', name: w.venue ?? '', address: { '@type': 'PostalAddress', addressLocality: w.city, ...(w.cityState ? { addressRegion: w.cityState } : {}), addressCountry: 'IN' } };
+  const virtual = { '@type': 'VirtualLocation', url: abs(path) }; // the join link is never published; the listing page is the place to find the class
   return {
     '@context': CTX, '@type': 'Event',
     name: w.title, description: w.description, url: abs(path),
     image: [abs(`${path}/opengraph-image`)],
     startDate: `${w.date}T${w.time}:00+05:30`,
+    ...(w.endsOn ? { endDate: w.endsOn } : {}),
     eventStatus: 'https://schema.org/EventScheduled',
-    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    location: {
-      '@type': 'Place', name: w.venue,
-      address: { '@type': 'PostalAddress', addressLocality: w.city, ...(w.cityState ? { addressRegion: w.cityState } : {}), addressCountry: 'IN' },
-    },
+    eventAttendanceMode: w.mode === 'online' ? 'https://schema.org/OnlineEventAttendanceMode' : w.mode === 'hybrid' ? 'https://schema.org/MixedEventAttendanceMode' : 'https://schema.org/OfflineEventAttendanceMode',
+    location: w.mode === 'online' ? virtual : w.mode === 'hybrid' ? [place, virtual] : place,
     organizer: { '@type': 'Organization', name: w.host },
+    ...(w.prices.length ? { offers: w.prices.map(p => ({ '@type': 'Offer', name: p.label, price: (p.amountPaise / 100).toFixed(2), priceCurrency: 'INR', url: abs(path), availability: 'https://schema.org/InStock' })) } : {}),
+    ...(w.schedule ? { eventSchedule: {
+      '@type': 'Schedule', repeatFrequency: 'P1W', scheduleTimezone: 'Asia/Kolkata', startTime: w.schedule.time, duration: `PT${w.schedule.durationMin}M`,
+      byDay: w.schedule.days.map(d => `https://schema.org/${DAY_IRI[d]}`), startDate: w.date, ...(w.endsOn ? { endDate: w.endsOn } : {}),
+    } } : {}),
   };
 }
 
