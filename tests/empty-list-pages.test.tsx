@@ -36,11 +36,12 @@ describe('/workshops with no workshops at all', () => {
   it('is left out of the sitemap', async () => {
     expect(await urls()).not.toContain('https://craftofy.online/workshops');
   });
-  it('?host=class opens the form on the class path; ?host=1 leaves the choice open; the empty state also offers Teach an online class', async () => {
+  it('?host=class opens the form on the class path; ?host=1 leaves the choice open; the empty state has just the one Host a workshop button', async () => {
     const cls = renderToStaticMarkup(await WorkshopsPage(sp({ host: 'class' })));
     expect(cls).toContain('data-open="true" data-initial="class"');
     expect(renderToStaticMarkup(await WorkshopsPage(sp({ host: '1' })))).toContain('data-open="true" data-initial="null"');
-    expect(cls).toContain('>Teach an online class<');
+    expect(cls).not.toContain('>Teach an online class<');
+    expect(cls.match(/data-host-button/g)).toHaveLength(1);
   });
   it('?host=1 opens the host form straight away; without it the form starts closed', async () => {
     expect(renderToStaticMarkup(await WorkshopsPage(sp({ host: '1' })))).toContain('data-open="true"');
