@@ -86,6 +86,16 @@ describe('saving the host form as a draft', () => {
     openForm();
     expect((screen.getByLabelText(/event title/i) as HTMLInputElement).value).toBe('');
   });
+  it('the draft note and Start over sit with the other buttons at the bottom', async () => {
+    openForm();
+    val(/event title/i, 'Old'); await flush();
+    cleanup(); openForm();
+    await waitFor(() => screen.getByText(/restored your saved draft/i));
+    const bar = screen.getByText(/restored your saved draft/i).closest('.admin-actions')!;
+    expect(bar).not.toBeNull();
+    expect(bar.querySelector('button.host-start-over')).not.toBeNull();
+    expect(bar.querySelector('button.primary')).not.toBeNull();
+  });
   it('Start over clears the draft and the form', async () => {
     openForm();
     val(/event title/i, 'Old'); await flush();

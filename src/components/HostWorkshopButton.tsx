@@ -292,7 +292,6 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
               </form>
             ) : (
               <form ref={formRef} className="admin-form host-form" noValidate onSubmit={onSubmit} onInput={scheduleSave} onChange={scheduleSave}>
-                {restored && <p className="form-note host-draft-note" role="status">We restored your saved draft. <button type="button" className="text-link" onClick={startOver}>Start over</button></p>}
                 <div className="host-progress">
                   <ol className="host-steps" aria-label="Progress">
                     {STEPS.map((name, i) => <li key={name} className={i < step ? 'done' : undefined} aria-current={i === step ? 'step' : undefined}><span className="host-step-label">{name}</span></li>)}
@@ -351,6 +350,8 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                   <div aria-hidden="true" className="hp-field"><input name="companyWebsite" tabIndex={-1} autoComplete="off" defaultValue="" /></div>
                 </div>
                 <div className="admin-actions">
+                  {restored && <p className="host-draft-note" role="status">We restored your saved draft.</p>}
+                  {restored && <button type="button" className="button host-start-over" onClick={startOver} disabled={sending}>Start over</button>}
                   {step === 0
                     ? <button type="button" className="button" onClick={close} disabled={sending}>Cancel</button>
                     : <button type="button" className="button" onClick={back} disabled={sending}><span aria-hidden="true">←</span> Back</button>}
