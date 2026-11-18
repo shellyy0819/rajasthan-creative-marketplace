@@ -17,7 +17,7 @@ export function WorkshopsEmptyState({ openHostForm = false, initialPath, topics 
         <li>We check the details and write to you to confirm.</li>
         <li>Your workshop is listed here for people to find and join.</li>
       </ol>
-      <HostWorkshopButton contactEmail={contactEmail()} defaultOpen={openHostForm} initialPath={initialPath} topics={topics} prefill saveDraft shareable />
+      <HostWorkshopButton className="button primary" contactEmail={contactEmail()} defaultOpen={openHostForm} initialPath={initialPath} topics={topics} prefill saveDraft shareable />
     </section>
     <div className="ws-empty-art"><CafeScene /></div>
     </div>

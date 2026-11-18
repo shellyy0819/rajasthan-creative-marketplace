@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 vi.mock('@/components/LiveCatalog', () => ({ LiveCatalog: ({ kind }: any) => <div data-live-catalog={kind} /> }));
-vi.mock('@/components/HostWorkshopButton', () => ({ HostWorkshopButton: ({ defaultOpen, initialPath, label }: any) => <button data-host-button data-open={String(!!defaultOpen)} data-initial={String(initialPath)}>{label ?? 'Host a workshop'}</button> }));
+vi.mock('@/components/HostWorkshopButton', () => ({ HostWorkshopButton: ({ defaultOpen, initialPath, label, className }: any) => <button data-host-button data-class={className} data-open={String(!!defaultOpen)} data-initial={String(initialPath)}>{label ?? 'Host a workshop'}</button> }));
 vi.mock('@/components/DataVersion', () => ({ DataVersionProvider: ({ children }: any) => <>{children}</> }));
 vi.mock('@/lib/data-version', () => ({ getDataVersion: async () => 'v1' }));
 vi.mock('@/lib/request-origin', () => ({ requestOrigin: async () => 'https://craftofy.online' }));
@@ -35,6 +35,10 @@ describe('/workshops with no workshops at all', () => {
   });
   it('is left out of the sitemap', async () => {
     expect(await urls()).not.toContain('https://craftofy.online/workshops');
+  });
+  it('the page\'s first primary button, Host a workshop, is the filled green style, in the header and in the card', async () => {
+    const h = renderToStaticMarkup(await WorkshopsPage(sp()));
+    expect(h.match(/data-class="button primary"/g)).toHaveLength(2);
   });
   it('a Host a workshop button is also in the page header, for phones where the card is far down', async () => {
     const h = renderToStaticMarkup(await WorkshopsPage(sp()));

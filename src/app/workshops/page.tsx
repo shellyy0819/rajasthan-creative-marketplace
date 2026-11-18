@@ -47,7 +47,7 @@ export default async function WorkshopsPage({ searchParams }: Props) {
         <p>Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.</p>
         <p className="ws-supports">{supportLine()}</p>
         {/* Phones only: the card with the button is a long scroll away, so the button is also up here. */}
-        <div className="ws-head-cta"><HostWorkshopButton contactEmail={contactEmail()} topics={topics} prefill saveDraft /></div>
+        <div className="ws-head-cta"><HostWorkshopButton className="button primary" contactEmail={contactEmail()} topics={topics} prefill saveDraft /></div>
       </div>
       {workshops.length === 0 && !hasFilters(f)
         ? <WorkshopsEmptyState openHostForm={wantsHostForm(sp)} initialPath={hostPath(sp)} topics={topics} />
