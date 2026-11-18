@@ -1,6 +1,7 @@
 'use client';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ListingForm } from './ListingForm';
+import { WorkshopDetail } from './WorkshopDetail';
 import './AdminTableControls.css';
 import { PageLoader } from './PageLoader';
 import { Toast, type ToastState } from './Toast';
@@ -28,6 +29,13 @@ export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus }: {
   const [list, setList] = useState(initial);
   const [form, setForm] = useState<{ workshop?: Workshop; request?: WorkshopRequest } | null>(fromRequest ? { request: fromRequest } : null);
   const [busy, setBusy] = useState('');
+  const [detail, setDetail] = useState<Workshop | null>(null);
+  const closeDetail = useCallback(() => setDetail(null), []);
+  const lastDetail = useRef('');
+  useEffect(() => {
+    if (detail) { lastDetail.current = detail.id; return; }
+    if (lastDetail.current) document.querySelector<HTMLElement>(`[data-open-detail="${lastDetail.current}"]`)?.focus();
+  }, [detail]);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const notify = (kind: 'success' | 'error', text: string) => setToast({ id: Date.now() + Math.random(), kind, text });
@@ -74,8 +82,8 @@ export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus }: {
             <thead><tr><th>Title</th><th>Host</th><th>Format</th><th>When</th><th>Starts</th><th>Created</th><th>Tags</th><th>Status and actions</th></tr></thead>
             <tbody>
               {list.map(w => (
-                <tr key={w.id}>
-                  <td><b>{w.title}</b></td>
+                <tr key={w.id} className="admin-click-row" onClick={e => { if (!(e.target as HTMLElement).closest('button, a, select, input, label')) setDetail(w); }}>
+                  <td><button type="button" className="row-title" data-open-detail={w.id} aria-label={`Details of ${w.title}`} onClick={() => setDetail(w)}><b>{w.title}</b></button></td>
                   <td>{w.host}</td>
                   <td>{w.mode === 'online' ? 'Online' : 'In person'}{w.topic ? ` · ${w.topic.name}` : ''}{w.mode !== 'online' && w.city ? <><br /><small className="muted">{w.city}</small></> : null}</td>
                   <td>{w.kind === 'class' && w.schedule ? describeSchedule(w.schedule) : <>{day(w.date)}{w.endsOn ? ` to ${day(w.endsOn)}` : ''}</>}</td>
@@ -99,6 +107,7 @@ export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus }: {
           </table>
         </div>
       )}
+      {detail && <WorkshopDetail workshopId={detail.id} title={detail.title} onClose={closeDetail} />}
       {form && <ListingForm key={form.workshop?.id ?? form.request?.id ?? 'new'} topics={topics} workshop={form.workshop} fromRequest={form.request} presetStatus={presetStatus} onSaved={saved} onClose={closeForm} />}
       <PageLoader show={!!busy} label="Saving…" />
       <Toast toast={toast} onClose={closeToast} />

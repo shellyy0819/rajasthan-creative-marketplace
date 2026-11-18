@@ -33,3 +33,16 @@
 .badge.recurring { background: #f6e7a8; color: #6e5400; }
 :root[data-theme='dark'] .badge.recurring { background: #4a4120; color: #f0d77a; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .badge.recurring { background: #4a4120; color: #f0d77a; } }
+
+/* A listing row opens its detail on click; the title is a real button for the keyboard. */
+.admin-click-row { cursor: pointer; }
+.admin-click-row:hover td { background: var(--cream); }
+.admin-table .row-title { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.workshop-detail { width: min(640px, 100%); outline: none; }
+.workshop-detail section { margin: 0 0 18px; }
+.workshop-detail h3 { margin: 0 0 8px; font: 700 12px var(--font-sans); letter-spacing: .8px; text-transform: uppercase; color: var(--orange); }
+.workshop-detail dl { display: grid; grid-template-columns: 150px 1fr; gap: 6px 14px; margin: 0; font-size: 13px; }
+.workshop-detail dt { color: var(--muted); }
+.workshop-detail dd { margin: 0; overflow-wrap: anywhere; }
+.workshop-detail ul { margin: 0; padding-left: 18px; font-size: 13px; }
+@media (max-width: 600px) { .workshop-detail dl { grid-template-columns: 1fr; } }
