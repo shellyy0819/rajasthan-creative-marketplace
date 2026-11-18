@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 60_000 }); // DB-backed tests run slowly when the whole suite runs in parallel
 import { eq } from 'drizzle-orm';
 import { createWorkshop, updateWorkshop } from '@/lib/admin';
 import { getWorkshopBySlug, listAdminWorkshops, listWorkshops } from '@/lib/catalog';
@@ -14,6 +16,7 @@ import { cityRef } from './helpers/cities';
 const ymd = (offsetDays: number) => new Date(Date.now() + offsetDays * 86_400_000 + 5.5 * 3_600_000).toISOString().slice(0, 10);
 const inPerson = { title: 'Lac Craft', type: 'PAID', pricePaise: 30000, cityRef: cityRef('Jodhpur'), venue: 'Studio 9', date: '2099-12-01', time: '16:30', seats: 8, host: 'Marwar Lac', description: 'Learn lac craft.' };
 const yoga = {
+  joinLink: 'https://zoom.us/j/123456',
   title: 'Morning Flow', kind: 'class', mode: 'online', platform: 'Zoom', date: ymd(1), host: 'Asha Rao', description: 'Gentle hatha yoga.',
   schedule: { days: ['mon', 'wed', 'fri'], time: '07:00', durationMin: 60 }, languages: ['Hindi', 'English'], level: 'beginner', freeTrial: true,
   whatsapp: '9989898999', instagram: '@asha.yoga', contactName: 'Asha Rao', contactPhone: '9989898999', contactEmail: 'asha@example.com',
@@ -116,7 +119,7 @@ describe('public shape never carries admin-only fields', () => {
     const paged = (await getWorkshopBySlug(workshopSlug(c)))!;
     for (const w of [listed, paged]) {
       const j = JSON.stringify(w);
-      for (const k of ['contactName', 'contactPhone', 'contactEmail', 'createdBy', 'sourceRequestId', 'hostId']) expect(j).not.toContain(k);
+      for (const k of ['contactName', 'contactPhone', 'contactEmail', 'createdBy', 'sourceRequestId', 'hostId', 'joinLink', 'zoom.us']) expect(j).not.toContain(k);
       expect(w.whatsapp).toBe('+919989898999'); // the public contact is the WhatsApp number, not the private phone
     }
   });

@@ -27,7 +27,7 @@ function defaultsFor(src: Workshop | WorkshopRequest | undefined): Defaults {
   const weeks = (src.schedule?.weeks ?? []).map(String);
   const v: Record<string, string> = {
     status: isRequest ? 'DRAFT' : src.status, title: src.title, description: src.description, topicId: src.topicId ? String(src.topicId) : '', kind: src.kind === 'class' ? '' : src.kind,
-    platform: src.platform ?? '', endsOn: src.endsOn ?? '', languages: src.languages.join(', '), level: src.level ?? '', experience: src.experience ?? '', certifications: src.certifications ?? '',
+    platform: src.platform ?? '', joinLink: src.joinLink ?? '', endsOn: src.endsOn ?? '', languages: src.languages.join(', '), level: src.level ?? '', experience: src.experience ?? '', certifications: src.certifications ?? '',
     whatsapp: src.whatsapp ?? '', freeTrialDays: src.freeTrialDays ? String(src.freeTrialDays) : '', instagram: src.instagram ?? '', website: src.website ?? '',
     classTime: src.schedule?.time ?? '', ...(src.schedule && src.schedule.durationMin >= 60 && src.schedule.durationMin % 60 === 0 ? { durationValue: String(src.schedule.durationMin / 60), durationUnit: 'hours' } : { durationValue: src.schedule ? String(src.schedule.durationMin) : '60', durationUnit: 'mins' }),
     priceRupees: paid && paise ? rupees(paise) : '',
@@ -95,7 +95,7 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
       ...(fromRequest ? { sourceRequestId: fromRequest.id } : {}),
     };
     const body = isClass ? {
-      ...common, mode: 'online', kind: 'class', platform: field(f, 'platform'), date: field(f, 'startDate'), time: field(f, 'classTime'), endsOn: field(f, 'endsOn') || null,
+      ...common, mode: 'online', kind: 'class', platform: field(f, 'platform'), joinLink: field(f, 'joinLink') || null, date: field(f, 'startDate'), time: field(f, 'classTime'), endsOn: field(f, 'endsOn') || null,
       schedule: { repeat, days: f.getAll('days').map(String), ...(repeat === 'monthly' ? { weeks: f.getAll('weeks').map(w => (w === 'last' ? 'last' : Number(w))) } : {}), time: field(f, 'classTime'), durationMin: durationMinutes(field(f, 'durationValue'), field(f, 'durationUnit')) },
       venue: null, cityId: null, seats: null,
       prices: rows.map(r => ({ label: r.label.trim(), amountPaise: Math.round(Number(r.amount) * 100), sessions: r.sessions ? Number(r.sessions) : null })),

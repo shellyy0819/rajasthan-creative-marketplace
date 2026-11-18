@@ -140,7 +140,7 @@ export const toWorkshop = (r: WorkshopJoinRow): Workshop => ({
 /** Admin responses also carry the host's user id and the private contact; the public API never does. */
 export const toAdminWorkshop = (r: WorkshopJoinRow): Workshop => ({
   ...toWorkshop(r), ...opt('hostId', r.w.hostId), ...opt('contactName', r.w.contactName), ...opt('contactPhone', r.w.contactPhone),
-  ...opt('contactEmail', r.w.contactEmail), ...opt('createdBy', r.w.createdBy), ...opt('sourceRequestId', r.w.sourceRequestId),
+  ...opt('contactEmail', r.w.contactEmail), ...opt('createdBy', r.w.createdBy), ...opt('sourceRequestId', r.w.sourceRequestId), ...opt('joinLink', r.w.joinLink),
 });
 
 /** Fills in the price rows (ordered) of each workshop with one query. */
@@ -154,14 +154,14 @@ export async function withPrices(q: Q, list: Workshop[]): Promise<Workshop[]> {
 
 export type WorkshopInput = Pick<Workshop, 'title' | 'type' | 'pricePaise' | 'kind' | 'mode' | 'topicId' | 'cityId' | 'venue' | 'date' | 'time' | 'endsOn' | 'seats' | 'host' | 'description' | 'status'
   | 'platform' | 'schedule' | 'languages' | 'level' | 'experience' | 'certifications' | 'freeTrial' | 'freeTrialDays' | 'whatsapp' | 'instagram' | 'website' | 'images'>
-  & { contactName?: string | null; contactPhone?: string | null; contactEmail?: string | null };
+  & { contactName?: string | null; contactPhone?: string | null; contactEmail?: string | null; joinLink?: string | null };
 export const toWorkshopRow = (w: WorkshopInput) => ({
   title: w.title, type: w.type, pricePaise: w.pricePaise, kind: w.kind, mode: w.mode, topicId: w.topicId, cityId: w.cityId, venue: w.venue,
   startsAt: istToDate(w.date, w.time), endsOn: w.endsOn, seats: w.seats, hostName: w.host, description: w.description, status: w.status,
   platform: w.platform, schedule: w.schedule, languages: w.languages, level: w.level, experience: w.experience, certifications: w.certifications,
   freeTrial: w.freeTrial, freeTrialDays: w.freeTrialDays, whatsapp: w.whatsapp, instagram: w.instagram, website: w.website, images: w.images,
   ...(w.contactName !== undefined ? { contactName: w.contactName } : {}), ...(w.contactPhone !== undefined ? { contactPhone: w.contactPhone } : {}),
-  ...(w.contactEmail !== undefined ? { contactEmail: w.contactEmail } : {}),
+  ...(w.contactEmail !== undefined ? { contactEmail: w.contactEmail } : {}), ...(w.joinLink !== undefined ? { joinLink: w.joinLink } : {}),
 });
 
 // ---------- orders & bookings ----------

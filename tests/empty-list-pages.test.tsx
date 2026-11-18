@@ -43,6 +43,9 @@ describe('/workshops with no workshops at all', () => {
     expect(cls).not.toContain('>Teach an online class<');
     expect(cls.match(/data-host-button/g)).toHaveLength(1);
   });
+  it('?host=in-person opens the form on the in-person path', async () => {
+    expect(renderToStaticMarkup(await WorkshopsPage(sp({ host: 'in-person' })))).toContain('data-open="true" data-initial="event"');
+  });
   it('?host=1 opens the host form straight away; without it the form starts closed', async () => {
     expect(renderToStaticMarkup(await WorkshopsPage(sp({ host: '1' })))).toContain('data-open="true"');
     expect(renderToStaticMarkup(await WorkshopsPage(sp()))).toContain('data-open="false"');

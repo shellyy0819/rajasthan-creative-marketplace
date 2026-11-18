@@ -45,6 +45,11 @@ describe('an online class request', () => {
     await expect(createWorkshopRequest({ ...online(), mode: 'hybrid' })).rejects.toMatchObject({ status: 400 });
     await expect(createWorkshopRequest({ ...online(), topicId: 9999 })).rejects.toMatchObject({ status: 400, message: expect.stringMatching(/topic/) });
   });
+  it('keeps the private meeting link', async () => {
+    const r = await createWorkshopRequest({ ...online(), joinLink: 'https://meet.google.com/abc-defg-hij' });
+    expect(r.joinLink).toBe('https://meet.google.com/abc-defg-hij');
+    expect(notificationMail(r, KIND_LABEL.class).text).toContain('Meeting link: https://meet.google.com/abc-defg-hij');
+  });
   it('keeps how many days the free trial lasts', async () => {
     const r = await createWorkshopRequest({ ...online(), freeTrialDays: 7 });
     expect(r).toMatchObject({ freeTrial: true, freeTrialDays: 7 });

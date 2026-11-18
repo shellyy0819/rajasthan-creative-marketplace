@@ -31,6 +31,8 @@ describe('host-link helpers', () => {
   it('?host=class means the class path, ?host=1 means open with no choice, anything else is closed', () => {
     expect(hostPath({ host: 'class' })).toBe('class');
     expect(hostPath({ host: '1' })).toBeNull();
+    expect(hostPath({ host: 'in-person' })).toBe('event');
+    expect(wantsHostForm({ host: 'in-person' })).toBe(true);
     expect(hostPath({})).toBeNull();
     expect(wantsHostForm({ host: 'class' })).toBe(true);
     expect(wantsHostForm({ host: '1' })).toBe(true);
@@ -100,7 +102,7 @@ describe('step 2 and 3 on the online class path', () => {
   it('sends the class payload: mode online, kind class, schedule, price plans in paise, languages, level, whatsapp, topic', async () => {
     fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'asha@example.com', status: 'pending' }) });
     openClass();
-    val('Topic', '1'); classStep1(); next(); classStep2();
+    val('Topic', '1'); classStep1(); next(); classStep2(); val(/meeting link/i, 'https://zoom.us/j/123');
     fireEvent.click(screen.getByRole('button', { name: /add a price plan/i }));
     fireEvent.change(screen.getByLabelText('Plan 1 name'), { target: { value: 'Monthly' } });
     fireEvent.change(screen.getByLabelText('Plan 1 price (Rs.)'), { target: { value: '1500' } });
@@ -115,7 +117,7 @@ describe('step 2 and 3 on the online class path', () => {
     expect(body).toMatchObject({
       mode: 'online', kind: 'class', topicId: 1, title: 'Morning Flow', platform: 'Zoom', startDate: '2027-01-05', freeTrial: true,
       schedule: { days: ['mon', 'wed'], time: '07:00', durationMin: 60 }, prices: [{ label: 'Monthly', amountPaise: 150000, sessions: 12 }],
-      languages: ['Hindi', 'English'], level: 'beginner', experience: '8 years', certifications: 'RYT 500', whatsapp: '9989898999', hostName: 'Asha Yoga',
+      languages: ['Hindi', 'English'], level: 'beginner', experience: '8 years', certifications: 'RYT 500', whatsapp: '9989898999', hostName: 'Asha Yoga', joinLink: 'https://zoom.us/j/123',
     });
     expect(body.cityRef).toBeUndefined();
     expect(body.venue).toBeUndefined();
@@ -230,12 +232,12 @@ describe('languages', () => {
 });
 
 describe('address bar', () => {
-  it('uses host=class while the class path is open and host=1 otherwise', () => {
+  it('uses host=class while the class path is open and host=in-person otherwise', () => {
     render(<HostWorkshopButton path="class" shareable topics={topics} />);
     fireEvent.click(screen.getByRole('button', { name: /host a workshop/i }));
     expect(window.location.search).toBe('?host=class');
     fireEvent.click(screen.getByLabelText('In-person event'));
-    expect(window.location.search).toBe('?host=1');
+    expect(window.location.search).toBe('?host=in-person');
   });
 });
 

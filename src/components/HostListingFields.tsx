@@ -66,6 +66,8 @@ export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows, repe
     <>
       <label><span className="lbl">Online platform</span><input name="platform" list="host-platforms" required maxLength={60} placeholder="Zoom, Google Meet…" autoCapitalize="words" enterKeyHint="next" /></label>
       <datalist id="host-platforms"><option value="Zoom" /><option value="Google Meet" /><option value="Microsoft Teams" /></datalist>
+      <label>Meeting link (optional)<input name="joinLink" type="url" inputMode="url" maxLength={500} placeholder="https://zoom.us/j/…" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /></label>
+      <p className="form-note">Private: only our team sees it. It is never shown on the website.</p>
       <div className="admin-form-row">
         <label><span className="lbl">Start date</span><input name="startDate" type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
         <label>End date<input name="endsOn" type="date" min={startDate || undefined} /></label>

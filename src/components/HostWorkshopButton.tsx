@@ -6,7 +6,7 @@ import { ImageUploader } from './ImageUploader';
 import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 import { DEFAULT_CONTACT_EMAIL } from '@/lib/site';
 import { MAX_REQUEST_IMAGES, submitErrorMessage } from '@/lib/workshop-requests-shared';
-import { HOST_PARAM, type HostPath } from '@/lib/host-link';
+import { HOST_PARAM, hostParamFor, type HostPath } from '@/lib/host-link';
 import { supportLine } from '@/lib/workshop-support';
 import type { TopicOption } from '@/lib/topics';
 import { ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, type PriceDraft } from './HostListingFields';
@@ -20,7 +20,7 @@ const fmtDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(
 
 /**
  * "Host a workshop": opens a form that collects every detail we need to list a workshop, meetup, pop-up or flea market.
- * `defaultOpen` opens it on first render (a shared ?host=1 link); `shareable` keeps ?host=1 in the address bar while it is open.
+ * `defaultOpen` opens it on first render (a shared ?host= link); `shareable` keeps ?host=in-person (or class) in the address bar while it is open.
  */
 export function HostWorkshopButton({ className = 'button outline', contactEmail = DEFAULT_CONTACT_EMAIL, defaultOpen = false, shareable = false, path: preset = 'event', initialPath, topics = [], label = 'Host a workshop', prefill = false }: {
   className?: string; contactEmail?: string; defaultOpen?: boolean; shareable?: boolean;
@@ -65,7 +65,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   }, [open, sending]);
 
   // Mirror the open form in the address bar so the link can be copied and shared. replaceState: no history entry, no server round trip.
-  const hostValue = path === 'class' ? 'class' : '1';
+  const hostValue = hostParamFor(path);
   useEffect(() => {
     if (!shareable) return;
     const url = new URL(window.location.href);
@@ -156,7 +156,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
       instagram: field(f, 'instagram'), website: field(f, 'website'), notes: field(f, 'notes'), images: f.getAll('images').map(v => String(v).trim()).filter(Boolean), companyWebsite: field(f, 'companyWebsite'),
     };
     const body = isClass ? {
-      ...common, mode: 'online', kind: 'class', platform: field(f, 'platform'), endsOn: field(f, 'endsOn') || undefined,
+      ...common, mode: 'online', kind: 'class', platform: field(f, 'platform'), joinLink: field(f, 'joinLink') || undefined, endsOn: field(f, 'endsOn') || undefined,
       schedule: { repeat, days: f.getAll('days').map(String), ...(repeat === 'monthly' ? { weeks: f.getAll('weeks').map(w => (w === 'last' ? 'last' : Number(w))) } : {}), time: field(f, 'classTime'), durationMin: durationMinutes(field(f, 'durationValue'), field(f, 'durationUnit')) },
       prices: priceRows.map(r => ({ label: r.label.trim(), amountPaise: Math.round(Number(r.amount) * 100), sessions: r.sessions ? Number(r.sessions) : null })),
       freeTrial: f.get('freeTrial') === 'on', freeTrialDays: field(f, 'freeTrialDays') ? Number(field(f, 'freeTrialDays')) : undefined, languages: field(f, 'languages').split(',').map(x => x.trim()).filter(Boolean),

@@ -17,7 +17,7 @@ export type Schedule = { repeat?: 'weekly' | 'monthly'; days: Day[]; weeks?: Wee
 export type PriceRow = { label: string; amountPaise: number; sessions: number | null };
 export type ListingFields = {
   kind: Kind; mode: Mode; topicId: number | null; platform: string | null; schedule: Schedule | null; endsOn: string | null;
-  languages: string[]; level: Level | null; experience: string | null; certifications: string | null; freeTrial: boolean; freeTrialDays: number | null;
+  languages: string[]; level: Level | null; experience: string | null; certifications: string | null; freeTrial: boolean; freeTrialDays: number | null; joinLink: string | null;
   whatsapp: string | null; instagram: string | null; website: string | null; prices: PriceRow[];
 };
 
@@ -35,6 +35,17 @@ export function optionalWebsite(v: unknown): string | undefined {
   try { u = new URL(withScheme); } catch { throw bad('website must be a web address like example.com.'); }
   if ((u.protocol !== 'https:' && u.protocol !== 'http:') || !u.hostname.includes('.')) throw bad('website must be a web address like example.com.');
   return withScheme;
+}
+
+/** The instructor's meeting link: a plain https link, up to 500 characters. It is private: staff see it, the public never does. */
+function optionalJoinLink(v: unknown): string | null {
+  const t = optionalText(v, 'joinLink', 500);
+  if (!t) return null;
+  const msg = 'joinLink must be a full https link, for example https://zoom.us/j/123.';
+  let u: URL;
+  try { u = new URL(t); } catch { throw bad(msg); }
+  if (u.protocol !== 'https:' || u.username || u.password || !u.hostname.includes('.')) throw bad(msg);
+  return t;
 }
 
 function parseLanguages(v: unknown): string[] {
@@ -104,6 +115,7 @@ export function parseListingFields(raw: Raw): ListingFields {
     certifications: optionalText(raw.certifications, 'certifications', 500) ?? null,
     freeTrial: raw.freeTrial === true,
     freeTrialDays: raw.freeTrial === true ? optionalInt(raw.freeTrialDays, 'freeTrialDays', 1, 365) : null,
+    joinLink: optionalJoinLink(raw.joinLink),
     whatsapp: (() => { const n = optionalPhone(raw.whatsapp, 'whatsapp'); return n ? `+91${n.slice(-10)}` : null; })(),
     instagram: optionalText(raw.instagram, 'instagram', 200) ?? null,
     website: optionalWebsite(raw.website) ?? null,

@@ -176,6 +176,7 @@ export const workshops = pgTable('workshops', {
   website: text('website'),
   images: jsonb('images').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   // Admin-only: how staff reach the host, who added the listing, and the request it came from. Never sent to the public.
+  joinLink: text('join_link'), // the instructor's meeting link: staff only, never published
   contactName: text('contact_name'),
   contactPhone: text('contact_phone'),
   contactEmail: text('contact_email'),
@@ -335,6 +336,7 @@ export const workshopRequests = pgTable('workshop_requests', {
   certifications: text('certifications'),
   freeTrial: boolean('free_trial').notNull().default(false),
   freeTrialDays: integer('free_trial_days'),
+  joinLink: text('join_link'),
   whatsapp: text('whatsapp'),
   prices: jsonb('prices').$type<{ label: string; amountPaise: number; sessions: number | null }[]>().notNull().default(sql`'[]'::jsonb`),
   listedWorkshopId: text('listed_workshop_id').references(() => workshops.id, { onDelete: 'set null' }),

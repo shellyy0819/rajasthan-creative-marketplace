@@ -35,11 +35,11 @@ describe('HostWorkshopButton share link', () => {
     expect(dialog()).toBeNull();
   });
 
-  it('puts ?host=1 in the address bar while the form is open and removes it on close, keeping other params', () => {
+  it('puts ?host=in-person in the address bar while the form is open and removes it on close, keeping other params', () => {
     window.history.replaceState(null, '', '/workshops?utm_source=wa');
     render(<HostWorkshopButton shareable />);
     fireEvent.click(screen.getByRole('button', { name: /host a workshop/i }));
-    expect(window.location.search).toBe('?utm_source=wa&host=1');
+    expect(window.location.search).toBe('?utm_source=wa&host=in-person');
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(dialog()).toBeNull();
     expect(window.location.search).toBe('?utm_source=wa');

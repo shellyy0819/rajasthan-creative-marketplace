@@ -89,6 +89,17 @@ describe('monthly schedules', () => {
   });
 });
 
+describe('join link', () => {
+  it('is an optional https link, kept as given for online listings', () => {
+    expect(parseListingFields({ ...yoga, joinLink: 'https://zoom.us/j/123?pwd=abc' }).joinLink).toBe('https://zoom.us/j/123?pwd=abc');
+    expect(parseListingFields(yoga).joinLink).toBeNull();
+    expect(parseListingFields({ ...yoga, joinLink: '' }).joinLink).toBeNull();
+  });
+  it('refuses anything that is not an https link', () => {
+    for (const bad of ['http://zoom.us/j/1', 'javascript:alert(1)', 'zoom.us/j/1', 'https://user:pw@zoom.us/j/1', 'https://' + 'a'.repeat(500) + '.com']) expect(msg({ ...yoga, joinLink: bad }), bad).toMatch(/joinLink/);
+  });
+});
+
 describe('free trial length', () => {
   it('is optional, 1 to 365 days, and only kept when there is a free trial', () => {
     expect(parseListingFields({ ...yoga, freeTrialDays: 7 }).freeTrialDays).toBe(7);

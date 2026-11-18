@@ -33,7 +33,7 @@ export function notificationMail(r: WorkshopRequest, kindLabel: string): { subje
   const price = r.prices.length ? summarizePrices(r.prices).all.join('; ') : r.priceType === 'PAID' && r.pricePaise != null ? `Rs. ${r.pricePaise / 100} per person` : 'Free';
   const text = [
     'A new host-a-workshop request was submitted, and the host confirmed their email.\n\n',
-    line('Event', `${r.title} (${kindLabel})`), line('Format', online ? `Online${r.platform ? ` on ${r.platform}` : ''}` : 'In person'), line('Topic', r.topic),
+    line('Event', `${r.title} (${kindLabel})`), line('Format', online ? `Online${r.platform ? ` on ${r.platform}` : ''}` : 'In person'), line('Meeting link', online ? r.joinLink : ''), line('Topic', r.topic),
     line('What happens', r.description), line('When', when), line('Where', online ? '' : `${r.venue}, ${r.city}`),
     line('Seats', online ? '' : r.seats ?? 'Open'), line('Price', price), line('Free trial', online ? (r.freeTrial ? (r.freeTrialDays ? `yes (${r.freeTrialDays} days)` : 'yes') : 'no') : ''),
     line('Languages', r.languages.join(', ')), line('Level', r.level), line('Experience', r.experience), line('Certifications', r.certifications),

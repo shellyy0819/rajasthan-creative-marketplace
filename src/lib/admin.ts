@@ -21,7 +21,7 @@ const PRODUCT_KEYS = ['name', 'category', 'sourcingTypeId', 'cityId', 'cityRef',
 const WORKSHOP_KEYS = [
   'title', 'type', 'pricePaise', 'cityId', 'cityRef', 'venue', 'date', 'time', 'seats', 'host', 'hostId', 'description', 'status',
   'kind', 'mode', 'topicId', 'platform', 'schedule', 'endsOn', 'languages', 'level', 'experience', 'certifications', 'freeTrial', 'freeTrialDays',
-  'whatsapp', 'instagram', 'website', 'images', 'prices', 'contactName', 'contactPhone', 'contactEmail', 'sourceRequestId',
+  'whatsapp', 'instagram', 'website', 'images', 'prices', 'joinLink', 'contactName', 'contactPhone', 'contactEmail', 'sourceRequestId',
 ] as const;
 const MAX_WORKSHOP_IMAGES = 3;
 const PRODUCT_STATUSES = ['APPROVED', 'DRAFT', 'ARCHIVED'] as const;
@@ -219,7 +219,8 @@ function validateWorkshop(v: Raw): WorkshopFields {
     description: text(v.description, 'description', 2000),
     status,
     platform: l.platform, schedule: l.schedule, languages: l.languages, level: l.level, experience: l.experience, certifications: l.certifications,
-    freeTrial: l.freeTrial, freeTrialDays: l.freeTrialDays, whatsapp: l.whatsapp, instagram: l.instagram, website: l.website, images, prices: l.prices,
+    freeTrial: l.freeTrial, freeTrialDays: l.freeTrialDays, whatsapp: l.whatsapp,
+    ...(v.joinLink === undefined ? {} : { joinLink: l.joinLink }), instagram: l.instagram, website: l.website, images, prices: l.prices,
     ...(v.contactName === undefined ? {} : { contactName: optionalText(v.contactName, 'contactName', 100) ?? null }),
     ...(phone === undefined && v.contactPhone === undefined ? {} : { contactPhone: phone ? `+91${phone.slice(-10)}` : null }),
     ...(v.contactEmail === undefined ? {} : { contactEmail: optionalEmail(v.contactEmail, 'contactEmail') ?? null }),
