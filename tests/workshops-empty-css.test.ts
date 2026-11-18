@@ -14,6 +14,10 @@ describe('the hosting card on the empty /workshops page', () => {
   it('keeps a smaller padding on phones', () => {
     expect(css).toMatch(/@media \(max-width: 700px\) \{[^@]*\.ws-empty \{ padding: 26px 22px;/);
   });
+  it('the header button shows on phones only', () => {
+    expect(css + ' ' + fs.readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ')).toMatch(/\.ws-head-cta \{ display: none; \}/);
+    expect(fs.readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ')).toMatch(/@media \(max-width: 700px\) \{[^@]*\.ws-head-cta \{ display: block;/);
+  });
   it('on tablets (up to 1000px) the picture sits above a full-width card and both are centred', () => {
     expect(css).toMatch(/@media \(max-width: 1000px\) \{[^@]*\.ws-empty-wrap \{[^}]*justify-content: center;/);
     expect(css).toMatch(/@media \(max-width: 1000px\) \{[^@]*\.ws-empty-art \{[^}]*order: -1;[^}]*margin-inline: auto;/);

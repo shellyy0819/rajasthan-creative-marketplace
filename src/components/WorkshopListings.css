@@ -26,3 +26,9 @@
 .ws-contact { display: inline-flex; flex-wrap: wrap; gap: 8px; }
 .ws-ended { margin: 10px 0; padding: 10px 14px; border: 1px solid var(--control-border); border-radius: 4px; background: var(--cream); font-size: 13px; }
 .ws-supports { margin-top: 6px; font-size: 13px; color: var(--muted); }
+
+/* The Host a workshop button in the /workshops header: phones only. */
+.ws-head-cta { display: none; }
+@media (max-width: 700px) {
+  .ws-head-cta { display: block; margin-top: 14px; }
+}

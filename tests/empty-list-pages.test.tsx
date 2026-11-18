@@ -36,12 +36,16 @@ describe('/workshops with no workshops at all', () => {
   it('is left out of the sitemap', async () => {
     expect(await urls()).not.toContain('https://craftofy.online/workshops');
   });
+  it('a Host a workshop button is also in the page header, for phones where the card is far down', async () => {
+    const h = renderToStaticMarkup(await WorkshopsPage(sp()));
+    expect(h).toMatch(/<div class="ws-head-cta"><button data-host-button/);
+  });
   it('?host=class opens the form on the class path; ?host=1 leaves the choice open; the empty state has just the one Host a workshop button', async () => {
     const cls = renderToStaticMarkup(await WorkshopsPage(sp({ host: 'class' })));
     expect(cls).toContain('data-open="true" data-initial="class"');
     expect(renderToStaticMarkup(await WorkshopsPage(sp({ host: '1' })))).toContain('data-open="true" data-initial="null"');
     expect(cls).not.toContain('>Teach an online class<');
-    expect(cls.match(/data-host-button/g)).toHaveLength(1);
+    expect(cls.match(/<section class="ws-empty"[\s\S]*<\/section>/)![0].match(/data-host-button/g)).toHaveLength(1); // the card has the one button
   });
   it('?host=in-person opens the form on the in-person path', async () => {
     expect(renderToStaticMarkup(await WorkshopsPage(sp({ host: 'in-person' })))).toContain('data-open="true" data-initial="event"');
@@ -53,7 +57,7 @@ describe('/workshops with no workshops at all', () => {
   it('with a filter it keeps the normal catalogue (and noindex), not the hosting block', async () => {
     const h = renderToStaticMarkup(await WorkshopsPage(sp({ city: 'jaipur' })));
     expect(h).toContain('data-live-catalog="workshops"');
-    expect(h).not.toContain('data-host-button');
+    expect(h).not.toContain('ws-empty-wrap'); // no hosting card (the phone-only header button is still there)
     expect((await workshopsMeta(sp({ city: 'jaipur' }))).robots).toEqual({ index: false, follow: true });
   });
 });
@@ -75,7 +79,7 @@ describe('/workshops with workshops', () => {
     expect(await urls()).toContain('https://craftofy.online/workshops');
     const h = renderToStaticMarkup(await WorkshopsPage(sp()));
     expect(h).toContain('data-live-catalog="workshops"');
-    expect(h).not.toContain('data-host-button');
+    expect(h).not.toContain('ws-empty-wrap'); // no hosting card (the phone-only header button is still there)
   });
 });
 
