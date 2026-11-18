@@ -95,7 +95,7 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
       ...(fromRequest ? { sourceRequestId: fromRequest.id } : {}),
     };
     const body = isClass ? {
-      ...common, mode: 'online', kind: 'class', platform: field(f, 'platform'), joinLink: field(f, 'joinLink') || null, date: field(f, 'startDate'), time: field(f, 'classTime'), endsOn: field(f, 'endsOn') || null,
+      ...common, mode: 'online', kind: 'class', platform: field(f, 'platform'), joinLink: field(f, 'joinLink') || null, date: field(f, 'startDate'), time: field(f, 'classTime'), endsOn: field(f, 'endsOn') || field(f, 'startDate'),
       schedule: { repeat, days: f.getAll('days').map(String), ...(repeat === 'monthly' ? { weeks: f.getAll('weeks').map(w => (w === 'last' ? 'last' : Number(w))) } : {}), time: field(f, 'classTime'), durationMin: durationMinutes(field(f, 'durationValue'), field(f, 'durationUnit')) },
       venue: null, cityId: null, seats: null,
       prices: rows.map(r => ({ label: r.label.trim(), amountPaise: Math.round(Number(r.amount) * 100), sessions: r.sessions ? Number(r.sessions) : null })),

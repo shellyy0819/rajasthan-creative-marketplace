@@ -103,6 +103,20 @@ describe('listing form', () => {
     expect(screen.getByRole('button', { name: 'Delete Lac Craft' })).toBeTruthy();
     expect(fetchMock).not.toHaveBeenCalled();
   });
+  it('a class saved with no end date ends on its start date, and the note says so', async () => {
+    fetchMock.mockResolvedValue(ok({ ...yoga, id: 'w11' }, 201));
+    render(<WorkshopsAdmin initial={[]} topics={topics} />);
+    fireEvent.click(screen.getByRole('button', { name: /new listing/i }));
+    const dlg = screen.getByRole('dialog');
+    fireEvent.click(within(dlg).getByLabelText('Online class'));
+    const set = (l: RegExp | string, v: string) => fireEvent.change(within(dlg).getByLabelText(l), { target: { value: v } });
+    set(/class title/i, 'Flow'); set(/about the class/i, 'd'); set(/online platform/i, 'Zoom'); set(/start date/i, '2099-01-05');
+    fireEvent.click(within(dlg).getByLabelText('Mon')); set(/class time/i, '07:00'); set(/host, studio/i, 'H');
+    expect(within(dlg).getByText(/the classes end on 5 Jan 2099, the start date/i)).toBeTruthy();
+    fireEvent.click(within(dlg).getByRole('button', { name: /save listing/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).endsOn).toBe('2099-01-05');
+  });
   it('Edit opens the form filled with the listing and saves with PATCH', async () => {
     fetchMock.mockResolvedValue(ok({ ...yoga, title: 'Morning Flow 2' }));
     render(<WorkshopsAdmin initial={[yoga]} topics={topics} />);

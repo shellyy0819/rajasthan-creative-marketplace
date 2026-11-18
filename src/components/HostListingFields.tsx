@@ -72,7 +72,7 @@ export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows, repe
         <label><span className="lbl">Start date</span><input name="startDate" type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
         <label>End date<input name="endsOn" type="date" min={startDate || undefined} /></label>
       </div>
-      <p className="form-note">Leave the end date empty if the classes run until further notice.</p>
+      <p className="form-note">{startDate ? `If you leave the end date empty, the classes end on ${fmtDate(startDate)}, the start date.` : 'If you leave the end date empty, the classes end on the start date.'}</p>
       <label>Repeats
         <select name="repeat" value={repeat} onChange={e => setRepeat(e.target.value === 'monthly' ? 'monthly' : 'weekly')}><option value="weekly">Every week</option><option value="monthly">Every month</option></select>
       </label>

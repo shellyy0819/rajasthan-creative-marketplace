@@ -170,6 +170,26 @@ describe('all weeks of the month', () => {
   });
 });
 
+describe('end date of an online class', () => {
+  const toStep2 = () => { openClass(); classStep1(); next(); val(/online platform/i, 'Zoom'); val(/start date/i, '2027-01-05'); fireEvent.click(screen.getByLabelText('Mon')); val(/class time/i, '07:00'); };
+  it('the note says an empty end date means the classes end on the start date, and names that date', () => {
+    openClass(); classStep1(); next();
+    expect(screen.getByText(/leave the end date empty, the classes end on the start date/i)).toBeTruthy();
+    expect(screen.queryByText(/until further notice/i)).toBeNull();
+    val(/start date/i, '2027-01-05');
+    expect(screen.getByText(/the classes end on 5 Jan 2027, the start date/i)).toBeTruthy();
+  });
+  it('an empty end date is sent as the start date; a chosen one is kept', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'a@b.co', status: 'pending' }) });
+    const finish = async () => { next(); val(/host, studio/i, 'H'); val(/your name/i, 'N'); val(/phone number/i, '9989898999'); val(/^email/i, 'a@b.co'); val(/whatsapp/i, '9989898999'); fireEvent.click(screen.getByRole('button', { name: /send details/i })); await waitFor(() => expect(fetchMock).toHaveBeenCalled()); };
+    toStep2(); await finish();
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).endsOn).toBe('2027-01-05');
+    cleanup(); fetchMock.mockClear();
+    toStep2(); val(/end date/i, '2027-03-31'); await finish();
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).endsOn).toBe('2027-03-31');
+  });
+});
+
 describe('duration', () => {
   const toDuration = () => { openClass(); classStep1(); next(); val(/online platform/i, 'Zoom'); val(/start date/i, '2027-01-05'); fireEvent.click(screen.getByLabelText('Mon')); val(/class time/i, '07:00'); };
   it('is a number you type plus a Minutes / Hours dropdown, starting at 60 minutes', () => {

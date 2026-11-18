@@ -27,7 +27,7 @@ const line = (label: string, value: string | number | undefined | null) => (valu
 export function notificationMail(r: WorkshopRequest, kindLabel: string): { subject: string; text: string } {
   const online = r.mode === 'online';
   const when = online
-    ? `${r.schedule ? describeSchedule(r.schedule) : 'Schedule not given'}, from ${r.startDate}${r.endsOn ? ` to ${r.endsOn}` : ' (no end date)'}`
+    ? `${r.schedule ? describeSchedule(r.schedule) : 'Schedule not given'}, ${r.endsOn && r.endsOn !== r.startDate ? `from ${r.startDate} to ${r.endsOn}` : `on ${r.startDate} only`}`
     : (r.startDate === r.endDate ? r.startDate : `${r.startDate} to ${r.endDate}`)
       + (r.startTime ? ` · ${r.startTime}${r.endTime ? `-${r.endTime}` : ''}` : r.endTime ? ` · until ${r.endTime}` : '');
   const price = r.prices.length ? summarizePrices(r.prices).all.join('; ') : r.priceType === 'PAID' && r.pricePaise != null ? `Rs. ${r.pricePaise / 100} per person` : 'Free';

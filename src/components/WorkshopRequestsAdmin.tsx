@@ -7,7 +7,7 @@ const day = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-
 const safeWebsite = (u: string) => (/^https?:\/\//i.test(u) ? u : undefined);
 
 function dates(r: WorkshopRequest) {
-  if (r.mode === 'online') return `${r.schedule ? describeSchedule(r.schedule) : 'Schedule not given'}, from ${day(r.startDate)}${r.endsOn ? ` to ${day(r.endsOn)}` : ''}`;
+  if (r.mode === 'online') return `${r.schedule ? describeSchedule(r.schedule) : 'Schedule not given'}, ${r.endsOn && r.endsOn !== r.startDate ? `from ${day(r.startDate)} to ${day(r.endsOn)}` : `on ${day(r.startDate)} only`}`;
   const range = r.startDate === r.endDate ? day(r.startDate) : `${day(r.startDate)} to ${day(r.endDate)}`;
   const time = r.startTime ? ` · ${r.startTime}${r.endTime ? `–${r.endTime}` : ''}` : r.endTime ? ` · until ${r.endTime}` : '';
   return range + time;

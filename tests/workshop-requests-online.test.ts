@@ -27,12 +27,16 @@ describe('an online class request', () => {
     expect(r.languages).toEqual(['Hindi', 'English']);
     expect(r.prices).toHaveLength(3);
     const [row] = await (await getTestDb()).select().from(workshopRequests).where(eq(workshopRequests.id, r.id));
-    expect(row).toMatchObject({ city: null, venue: null, seats: null, mode: 'online', kind: 'class', endsOn: null });
+    expect(row).toMatchObject({ city: null, venue: null, seats: null, mode: 'online', kind: 'class', endsOn: '2027-01-05' }); // no end date means it ends on the start date
   });
   it('ignores a venue and city sent with an online request', async () => {
     const r = await createWorkshopRequest({ ...online(), venue: 'Somewhere', seats: 10 });
     const [row] = await (await getTestDb()).select().from(workshopRequests).where(eq(workshopRequests.id, r.id));
     expect(row).toMatchObject({ city: null, venue: null, seats: null });
+  });
+  it('with no end date the classes end on the start date', async () => {
+    const r = await createWorkshopRequest(online());
+    expect(r).toMatchObject({ startDate: '2027-01-05', endDate: '2027-01-05', endsOn: '2027-01-05' });
   });
   it('an end date for a class is kept as endsOn and cannot precede the start', async () => {
     const r = await createWorkshopRequest({ ...online(), endsOn: '2027-03-31' });
@@ -78,7 +82,7 @@ describe('the team email for an online class', () => {
     const r = { id: 'x', hostName: 'Asha Yoga', contactName: 'Asha', phone: '+919989898999', email: 'a@b.co', city: '', venue: '', title: 'Morning Flow', kind: 'class', mode: 'online', topic: 'Yoga',
       description: 'd', startDate: '2027-01-05', endDate: '2027-01-05', status: 'received', emailVerified: true, images: [], priceType: 'PAID', pricePaise: 50000, createdAt: '',
       platform: 'Zoom', schedule: { days: ['mon', 'wed', 'fri'], time: '07:00', durationMin: 60 }, languages: ['Hindi'], level: 'beginner', experience: '8 years', certifications: 'RYT 500',
-      freeTrial: true, whatsapp: '+919989898999', prices: [{ label: 'Per session', amountPaise: 50000, sessions: 1 }], endsOn: undefined } as unknown as WorkshopRequest;
+      freeTrial: true, whatsapp: '+919989898999', prices: [{ label: 'Per session', amountPaise: 50000, sessions: 1 }], endsOn: '2027-01-05' } as unknown as WorkshopRequest;
     const m = notificationMail(r, KIND_LABEL.class);
     for (const s of ['Online', 'Yoga', 'Zoom', 'Mon, Wed, Fri at 7:00 am, 60 min', 'Per session', 'Hindi', 'beginner', '8 years', 'RYT 500', 'Free trial: yes', '+919989898999']) expect(m.text).toContain(s);
     expect(m.text).not.toContain(', ,');

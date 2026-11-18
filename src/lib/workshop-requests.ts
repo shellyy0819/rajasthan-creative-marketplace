@@ -94,7 +94,7 @@ export async function createWorkshopRequest(input: unknown): Promise<WorkshopReq
   const online = l.mode === 'online';
   if ((online || l.kind === 'class') && !l.whatsapp && !l.instagram && !l.website) throw bad(CLASS_CONTACT_MESSAGE);
   const startDate = isoDate(raw.startDate, 'startDate');
-  // No end date given: a one-day event, so it ends on the start date. An online class's own end date (endsOn) is its end date, and open-ended when blank.
+  // No end date given: a one-day event, so it ends on the start date. An online class's own end date (endsOn) is its end date, and blank means the start date too.
   const endDate = online && l.endsOn ? l.endsOn : raw.endDate === undefined || raw.endDate === null || raw.endDate === '' ? startDate : isoDate(raw.endDate, 'endDate');
   if (endDate < startDate) throw bad(online ? 'endsOn cannot be before startDate.' : 'endDate cannot be before startDate.');
   const startTime = optionalTime(raw.startTime, 'startTime') ?? (online ? l.schedule?.time : undefined);
@@ -115,7 +115,8 @@ export async function createWorkshopRequest(input: unknown): Promise<WorkshopReq
     kind: l.kind, mode: l.mode, topicId: l.topicId, description: text(raw.description, 'description', 2000),
     startDate, endDate, startTime: startTime ?? null, endTime: endTime ?? null, seats, priceType, pricePaise,
     instagram: l.instagram, website: l.website, notes: optionalText(raw.notes, 'notes', 2000) ?? null, images: requestImages(raw.images),
-    endsOn: online ? l.endsOn : null, platform: online ? l.platform : null, schedule: online ? l.schedule : null, languages: l.languages, level: l.level,
+    // No end date: the classes end on the start date.
+    endsOn: online ? l.endsOn ?? startDate : null, platform: online ? l.platform : null, schedule: online ? l.schedule : null, languages: l.languages, level: l.level,
     experience: l.experience, certifications: l.certifications, freeTrial: l.freeTrial, freeTrialDays: l.freeTrialDays, joinLink: online ? l.joinLink : null, whatsapp: l.whatsapp, prices: l.prices,
   }).returning();
   try {
