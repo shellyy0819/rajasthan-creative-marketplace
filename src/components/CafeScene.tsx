@@ -1,13 +1,14 @@
 import './CafeScene.css';
+import { boardLines, DEFAULT_SIGN, signFor, type SignText } from '@/lib/workshop-sign-text';
 
 /**
  * A flat illustration for the empty /workshops page: three people crocheting and shaping pottery around a long café table, under bunting and
  * lamps, with a chalkboard sign. The sign says "Workshop live" (one) or "N workshops live" (several) when workshops are on today; otherwise "Stay Tuned!".
  * Every colour comes from a class in CafeScene.css, so it follows the site's light and dark themes.
  */
-export function CafeScene({ liveCount = 0 }: { liveCount?: number }) {
-  const many = liveCount >= 2 ? `${liveCount > 99 ? '99+' : liveCount} workshops` : '';
-  const sign = liveCount <= 0 ? 'Stay Tuned!' : liveCount === 1 ? 'Workshop live' : `${many} live`;
+export function CafeScene({ liveCount = 0, signText = DEFAULT_SIGN }: { liveCount?: number; signText?: SignText }) {
+  const sign = signFor(signText, liveCount);
+  const lines = boardLines(sign);
   return (
     <div className="cafe-scene">
       <svg viewBox="0 0 560 420" preserveAspectRatio="xMidYMin meet" role="img" aria-label={`Three people crocheting and shaping pottery around a long table in a café, under bunting and hanging lamps, with a chalkboard sign that says ${sign}`}>
@@ -78,13 +79,13 @@ export function CafeScene({ liveCount = 0 }: { liveCount?: number }) {
         <circle cx="360" cy="258" r="4" className="f-orange" />
         <path d="M376 266l28-6" className="n-fill s-line s-3 cap" />
         <rect x="22" y="236" width="98" height="104" rx="8" className="f-ink s-line s-5" />
-        {liveCount > 0 ? (
+        {lines.length > 1 ? (
           <>
-            <text x="71" y="272" textAnchor="middle" className="cs-text f-chalk">{liveCount === 1 ? 'Workshop' : many}</text>
-            <text x="71" y="292" textAnchor="middle" className="cs-text f-chalk">live</text>
+            <text x="71" y="272" textAnchor="middle" className="cs-text f-chalk">{lines[0]}</text>
+            <text x="71" y="292" textAnchor="middle" className="cs-text f-chalk">{lines[1]}</text>
           </>
         ) : (
-          <text x="71" y="282" textAnchor="middle" className="cs-text f-chalk">Stay Tuned!</text>
+          <text x="71" y="282" textAnchor="middle" className="cs-text f-chalk">{lines[0]}</text>
         )}
         <path d="M44 308q8-8 16 0t16 0t16 0" className="n-fill s-chalk s-2 cap" />
         <circle cx="71" cy="324" r="5" className="f-orange" />

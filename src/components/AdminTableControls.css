@@ -23,3 +23,7 @@
 .admin-table .admin-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .admin-table .request-status { display: grid; gap: 4px; }
 .admin-table td { vertical-align: top; }
+
+/* The board text panel above the listings table. */
+.sign-admin { margin: 0 0 28px; padding: 18px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); }
+.sign-admin h2 { margin: 0 0 6px; font: 500 20px var(--font-display); }

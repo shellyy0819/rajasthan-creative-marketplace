@@ -15,6 +15,7 @@ import { listActiveTopics } from '@/lib/topics';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
 import { supportLine } from '@/lib/workshop-support';
+import { getSignText } from '@/lib/workshop-sign';
 import { contactEmail } from '@/lib/site';
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -36,7 +37,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 export default async function WorkshopsPage({ searchParams }: Props) {
   const sp = await searchParams;
   const f = parseFilters(sp);
-  const [workshops, cities, version, topics] = await Promise.all([listWorkshops(f), listActiveCities(), getDataVersion(), listActiveTopics()]);
+  const [workshops, cities, version, topics, signText] = await Promise.all([listWorkshops(f), listActiveCities(), getDataVersion(), listActiveTopics(), getSignText()]);
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Workshops', path: '/workshops' }];
   return (
     <DataVersionProvider version={version}>
@@ -52,7 +53,7 @@ export default async function WorkshopsPage({ searchParams }: Props) {
         <div className="ws-head-cta"><HostWorkshopButton className="button primary" contactEmail={contactEmail()} topics={topics} prefill saveDraft shareable reminderTarget /></div>
       </div>
       {workshops.length === 0 && !hasFilters(f)
-        ? <WorkshopsEmptyState openHostForm={wantsHostForm(sp)} initialPath={hostPath(sp)} topics={topics} />
+        ? <WorkshopsEmptyState openHostForm={wantsHostForm(sp)} initialPath={hostPath(sp)} topics={topics} signText={signText} />
         : <>
             <LiveCatalog kind="workshops" initialItems={workshops} initialValues={f} cities={cities.map(c => ({ name: c.name, slug: c.slug, state: c.state }))} />
             {/* The footer's "Want to host a workshop?" link: with workshops listed there is no host button on the page, so this link brings its own. */}
