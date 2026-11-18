@@ -1,0 +1,21 @@
+/* Host form: the two paths, class day chips and price plans. */
+.host-path, .host-days, .host-prices { border: 1px solid var(--line); border-radius: 4px; margin: 14px 0; padding: 4px 14px 12px; }
+.host-path legend, .host-days legend, .host-prices legend { font-size: 10px; letter-spacing: 1px; color: var(--orange); font-weight: 700; padding: 0 6px; }
+.host-path-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+.host-path-card { display: flex !important; align-items: flex-start; gap: 10px; margin: 0 !important; padding: 12px; border: 1px solid var(--control-border); border-radius: 4px; background: var(--white); cursor: pointer; }
+.host-path-card:has(input:checked) { border-color: var(--orange); box-shadow: 0 0 0 1px var(--orange); }
+.host-path-card input { width: auto !important; margin: 3px 0 0 !important; }
+.host-path-card span { display: grid; gap: 3px; }
+.host-path-card small { color: var(--muted); font-weight: 500; font-size: 11px; }
+.host-day-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.host-day { display: inline-flex !important; align-items: center; gap: 6px; margin: 0 !important; padding: 7px 12px; border: 1px solid var(--control-border); border-radius: 30px; background: var(--white); cursor: pointer; }
+.host-day:has(input:checked) { background: var(--green); border-color: var(--green); color: var(--on-green); }
+.host-day input { width: auto !important; margin: 0 !important; }
+.host-price-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr auto; gap: 8px; align-items: center; margin-top: 8px; }
+.host-price-row input { margin-top: 0 !important; }
+.host-prices > .button { margin-top: 10px; }
+@media (max-width: 600px) {
+  .host-path-cards { grid-template-columns: 1fr; }
+  .host-price-row { grid-template-columns: 1fr 1fr; }
+  .host-price-row input:first-child { grid-column: 1 / -1; }
+}

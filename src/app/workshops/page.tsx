@@ -9,7 +9,8 @@ import { listWorkshops } from '@/lib/catalog';
 import { listActiveCities } from '@/lib/cities';
 import { getDataVersion } from '@/lib/data-version';
 import { hasFilters, parseFilters } from '@/lib/filters';
-import { wantsHostForm } from '@/lib/host-link';
+import { hostPath, wantsHostForm } from '@/lib/host-link';
+import { listActiveTopics } from '@/lib/topics';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
 import { contactEmail } from '@/lib/site';
@@ -33,7 +34,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 export default async function WorkshopsPage({ searchParams }: Props) {
   const sp = await searchParams;
   const f = parseFilters(sp);
-  const [workshops, cities, version] = await Promise.all([listWorkshops(f), listActiveCities(), getDataVersion()]);
+  const [workshops, cities, version, topics] = await Promise.all([listWorkshops(f), listActiveCities(), getDataVersion(), listActiveTopics()]);
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Workshops', path: '/workshops' }];
   return (
     <DataVersionProvider version={version}>
@@ -45,11 +46,11 @@ export default async function WorkshopsPage({ searchParams }: Props) {
         <p>Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.</p>
       </div>
       {workshops.length === 0 && !hasFilters(f)
-        ? <WorkshopsEmptyState openHostForm={wantsHostForm(sp)} />
+        ? <WorkshopsEmptyState openHostForm={wantsHostForm(sp)} initialPath={hostPath(sp)} topics={topics} />
         : <>
             <LiveCatalog kind="workshops" initialItems={workshops} initialValues={f} cities={cities.map(c => ({ name: c.name, slug: c.slug, state: c.state }))} />
             {/* The footer's "Want to host a workshop?" link: with workshops listed there is no host button on the page, so this link brings its own. */}
-            {wantsHostForm(sp) && <div className="host-more"><HostWorkshopButton contactEmail={contactEmail()} defaultOpen shareable /></div>}
+            {wantsHostForm(sp) && <div className="host-more"><HostWorkshopButton contactEmail={contactEmail()} defaultOpen initialPath={hostPath(sp)} topics={topics} shareable /></div>}
           </>}
     </DataVersionProvider>
   );

@@ -2,13 +2,15 @@
 import { RequestReceived, type RequestDone } from '@/components/RequestReceived';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CityInput } from './CityInput';
 import { ImageUploader } from './ImageUploader';
 import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 import { DEFAULT_CONTACT_EMAIL } from '@/lib/site';
 import { MAX_REQUEST_IMAGES, submitErrorMessage } from '@/lib/workshop-requests-shared';
-import { HOST_PARAM } from '@/lib/host-link';
+import { HOST_PARAM, type HostPath } from '@/lib/host-link';
+import type { TopicOption } from '@/lib/topics';
+import { ClassAbout, ClassWhenAndPrice, EventWhereWhen, type PriceDraft } from './HostListingFields';
 import './HostWorkshopStepper.css';
+import './WorkshopListings.css';
 
 const STEPS = ['The event', 'When and where', 'About you'];
 const LAST = STEPS.length - 1;
@@ -19,8 +21,17 @@ const fmtDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(
  * "Host a workshop": opens a form that collects every detail we need to list a workshop, meetup, pop-up or flea market.
  * `defaultOpen` opens it on first render (a shared ?host=1 link); `shareable` keeps ?host=1 in the address bar while it is open.
  */
-export function HostWorkshopButton({ className = 'button outline', contactEmail = DEFAULT_CONTACT_EMAIL, defaultOpen = false, shareable = false }: { className?: string; contactEmail?: string; defaultOpen?: boolean; shareable?: boolean }) {
+export function HostWorkshopButton({ className = 'button outline', contactEmail = DEFAULT_CONTACT_EMAIL, defaultOpen = false, shareable = false, path: preset = 'event', initialPath, topics = [], label = 'Host a workshop' }: {
+  className?: string; contactEmail?: string; defaultOpen?: boolean; shareable?: boolean;
+  /** The path a click on the button starts on. */
+  path?: HostPath;
+  /** The path a shared link opens on (null: no choice yet). Defaults to `path`. */
+  initialPath?: HostPath | null;
+  topics?: TopicOption[]; label?: string;
+}) {
   const [open, setOpen] = useState(defaultOpen);
+  const [path, setPath] = useState<HostPath | null>(defaultOpen && initialPath !== undefined ? initialPath : preset);
+  const [priceRows, setPriceRows] = useState<PriceDraft[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [paid, setPaid] = useState(false);
@@ -48,13 +59,15 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   }, [open, sending]);
 
   // Mirror the open form in the address bar so the link can be copied and shared. replaceState: no history entry, no server round trip.
+  const hostValue = path === 'class' ? 'class' : '1';
   useEffect(() => {
     if (!shareable) return;
     const url = new URL(window.location.href);
-    if (open === url.searchParams.has(HOST_PARAM)) return;
-    if (open) url.searchParams.set(HOST_PARAM, '1'); else url.searchParams.delete(HOST_PARAM);
+    const current = url.searchParams.get(HOST_PARAM);
+    if (open ? current === hostValue : current === null) return;
+    if (open) url.searchParams.set(HOST_PARAM, hostValue); else url.searchParams.delete(HOST_PARAM);
     window.history.replaceState(null, '', url.pathname + url.search + url.hash);
-  }, [open, shareable]);
+  }, [open, shareable, hostValue]);
 
   useEffect(() => {
     if (wait <= 0) return;
@@ -77,7 +90,9 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   function stepValid(i: number) {
     const bad = stepFields(i).find(el => !el.checkValidity());
     bad?.reportValidity();
-    return !bad;
+    if (bad) return false;
+    if (i === 1 && path === 'class' && !stepFields(1).some(el => el.name === 'days' && el.checked)) { setError('Choose at least one class day.'); return false; }
+    return true;
   }
   function back() { setError(''); setStep(s => Math.max(0, s - 1)); }
   // Landing on another step: scroll the dialog to the top and focus its first field.
@@ -99,18 +114,30 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
 
   async function sendDetails(f: FormData) {
     setSending(true); setError('');
-    const body = {
+    const isClass = path === 'class';
+    const topicId = field(f, 'topicId') ? Number(field(f, 'topicId')) : undefined;
+    const common = {
       hostName: field(f, 'hostName'), contactName: field(f, 'contactName'), phone: field(f, 'phone'), email: field(f, 'email'),
-      cityRef: field(f, 'cityRef'), venue: field(f, 'venue'), title: field(f, 'title'), kind: field(f, 'kind'), description: field(f, 'description'),
-      startDate: field(f, 'startDate'), endDate: field(f, 'endDate'), startTime: field(f, 'startTime'), endTime: field(f, 'endTime'),
-      seats: field(f, 'seats') ? Number(field(f, 'seats')) : undefined,
-      priceType: paid ? 'PAID' : 'FREE', priceRupees: paid ? Number(field(f, 'priceRupees')) : undefined,
+      title: field(f, 'title'), description: field(f, 'description'), topicId, startDate: field(f, 'startDate'),
       instagram: field(f, 'instagram'), website: field(f, 'website'), notes: field(f, 'notes'), images: f.getAll('images').map(v => String(v).trim()).filter(Boolean), companyWebsite: field(f, 'companyWebsite'),
     };
+    const body = isClass ? {
+      ...common, mode: 'online', kind: 'class', platform: field(f, 'platform'), endsOn: field(f, 'endsOn') || undefined,
+      schedule: { days: f.getAll('days').map(String), time: field(f, 'classTime'), durationMin: Number(field(f, 'duration')) },
+      prices: priceRows.map(r => ({ label: r.label.trim(), amountPaise: Math.round(Number(r.amount) * 100), sessions: r.sessions ? Number(r.sessions) : null })),
+      freeTrial: f.get('freeTrial') === 'on', languages: field(f, 'languages').split(',').map(x => x.trim()).filter(Boolean),
+      level: field(f, 'level') || undefined, experience: field(f, 'experience') || undefined, certifications: field(f, 'certifications') || undefined, whatsapp: field(f, 'whatsapp') || undefined,
+    } : {
+      ...common, mode: 'in_person', kind: field(f, 'kind'), cityRef: field(f, 'cityRef'), venue: field(f, 'venue'),
+      endDate: field(f, 'endDate'), startTime: field(f, 'startTime'), endTime: field(f, 'endTime'),
+      seats: field(f, 'seats') ? Number(field(f, 'seats')) : undefined,
+      priceType: paid ? 'PAID' : 'FREE', priceRupees: paid ? Number(field(f, 'priceRupees')) : undefined,
+    };
+    const lastDate = isClass ? field(f, 'endsOn') : field(f, 'endDate');
     try {
       const { ok, data, error } = await post('/api/workshop-requests', body);
       if (!ok || !data) { setError(error || submitErrorMessage(0, null, contactEmail)); setSending(false); return; }
-      const summary = { name: body.contactName, email: data.email ?? body.email, from: fmtDate(body.startDate), to: fmtDate(body.endDate || body.startDate) };
+      const summary = { name: body.contactName, email: data.email ?? body.email, from: fmtDate(body.startDate), to: fmtDate(lastDate || body.startDate) };
       if (data.status === 'received') { setDone({ ...summary, confirmed: false, notified: false }); setSending(false); return; } // the code email could not be sent; we still have the details
       setPending({ id: data.id ?? '', ...summary });
       setWait(60); setSending(false);
@@ -137,12 +164,12 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
 
   return (
     <>
-      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setOpen(true); }}>Host a workshop <span>↗</span></button>
+      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setPath(preset); setPriceRows([]); setOpen(true); }}>{label} <span>↗</span></button>
       {open && mounted && createPortal(
         <div className="contact-backdrop admin-modal" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
           <div role="dialog" aria-modal="true" aria-labelledby="host-title" className="contact-card">
             <div className="dialog-head">
-              <h2 id="host-title">{done ? 'Welcome to Craftofy' : pending ? 'Please verify your email' : 'Host a workshop or pop-up'}</h2>
+              <h2 id="host-title">{done ? 'Welcome to Craftofy' : pending ? 'Please verify your email' : path === 'class' ? 'Teach an online class' : 'Host a workshop or pop-up'}</h2>
               <button type="button" className="icon-btn" aria-label="Close" onClick={close} disabled={sending}>✕</button>
             </div>
             {done ? (
@@ -170,37 +197,38 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                 </div>
                 {error && <p role="alert" className="admin-error">{error}</p>}
                 <div className="host-step" data-step={0} hidden={step !== 0}>
-                  <p className="form-note">Tell us about your event. We will review it and get back to you.</p>
-                  <label><span className="lbl">Event title</span><input name="title" required maxLength={150} autoFocus /></label>
-                  <label><span className="lbl">Type</span>
-                    <select name="kind" required defaultValue="">
-                      <option value="" disabled>Choose a type</option>
-                      <option value="workshop">Workshop</option>
-                      <option value="meetup">Meetup</option>
-                      <option value="popup">Pop-up</option>
-                      <option value="market">Flea market</option>
+                  <fieldset className="host-path">
+                    <legend>What are you hosting?</legend>
+                    <div className="host-path-cards">
+                      <label className="host-path-card"><input type="radio" name="path" value="event" aria-label="In-person event" required checked={path === 'event'} onChange={() => setPath('event')} /><span><b>In-person event</b><small>Workshop, meetup, pop-up or flea market</small></span></label>
+                      <label className="host-path-card"><input type="radio" name="path" value="class" aria-label="Online class" required checked={path === 'class'} onChange={() => setPath('class')} /><span><b>Online class</b><small>Regular classes on Zoom, Google Meet…</small></span></label>
+                    </div>
+                  </fieldset>
+                  <label>Topic
+                    <select name="topicId" defaultValue="">
+                      <option value="">Other</option>
+                      {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
                   </label>
-                  <label><span className="lbl">What happens at the event</span><textarea name="description" required maxLength={2000} rows={3} /></label>
+                  <label><span className="lbl">{path === 'class' ? 'Class title' : 'Event title'}</span><input name="title" required maxLength={150} autoFocus /></label>
+                  {path !== 'class' && (
+                    <label><span className="lbl">Type</span>
+                      <select name="kind" required defaultValue="">
+                        <option value="" disabled>Choose a type</option>
+                        <option value="workshop">Workshop</option>
+                        <option value="meetup">Meetup</option>
+                        <option value="popup">Pop-up</option>
+                        <option value="market">Flea market</option>
+                      </select>
+                    </label>
+                  )}
+                  <label><span className="lbl">{path === 'class' ? 'About the class' : 'What happens at the event'}</span><textarea name="description" required maxLength={2000} rows={3} /></label>
                   <ImageUploader initial={[]} max={MAX_REQUEST_IMAGES} endpoint="/api/uploads/workshop-request-image" legend="Photos (up to 3)" onBusyChange={setUploading} />
                 </div>
                 <div className="host-step" data-step={1} hidden={step !== 1}>
-                  <div className="admin-form-row">
-                    <label><span className="lbl">Start date</span><input name="startDate" type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
-                    <label>End date<input name="endDate" type="date" min={startDate || undefined} /></label>
-                  </div>
-                  <p className="form-note">{startDate ? `If you leave the end date empty, the event ends on ${fmtDate(startDate)}, the start date.` : 'If you leave the end date empty, the event ends on the start date.'}</p>
-                  <div className="admin-form-row">
-                    <label>Start time<input name="startTime" type="time" /></label>
-                    <label>End time<input name="endTime" type="time" /></label>
-                  </div>
-                  <div className="admin-form-row">
-                    <label><span className="lbl">City</span><CityInput required valueFormat="name" /></label>
-                    <label>Seats<input name="seats" type="number" min={1} max={100000} inputMode="numeric" /></label>
-                  </div>
-                  <label><span className="lbl">Venue and address</span><input name="venue" required maxLength={300} autoComplete="street-address" /></label>
-                  <label className="check"><input type="checkbox" checked={paid} onChange={e => setPaid(e.target.checked)} /> Participants pay to attend</label>
-                  {paid && <label><span className="lbl">Price per person (Rs.)</span><input name="priceRupees" type="number" min={1} max={1000000} inputMode="numeric" required /></label>}
+                  {path === 'class'
+                    ? <ClassWhenAndPrice startDate={startDate} setStartDate={setStartDate} rows={priceRows} setRows={setPriceRows} />
+                    : <EventWhereWhen startDate={startDate} setStartDate={setStartDate} paid={paid} setPaid={setPaid} />}
                 </div>
                 <div className="host-step" data-step={2} hidden={step !== 2}>
                   <label><span className="lbl">Host, studio, cafe or organiser name</span><input name="hostName" required maxLength={150} autoComplete="organization" /></label>
@@ -213,6 +241,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                     <label>Instagram<input name="instagram" maxLength={200} placeholder="@yourstudio" /></label>
                     <label>Website<input name="website" type="text" inputMode="url" maxLength={300} placeholder="yourstudio.in" /></label>
                   </div>
+                  {path === 'class' && <ClassAbout />}
                   <label>Anything else we should know<textarea name="notes" maxLength={2000} rows={2} /></label>
                   <div aria-hidden="true" className="hp-field"><input name="companyWebsite" tabIndex={-1} autoComplete="off" defaultValue="" /></div>
                 </div>

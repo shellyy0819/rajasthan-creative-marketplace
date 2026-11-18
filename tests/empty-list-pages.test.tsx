@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 vi.mock('@/components/LiveCatalog', () => ({ LiveCatalog: ({ kind }: any) => <div data-live-catalog={kind} /> }));
-vi.mock('@/components/HostWorkshopButton', () => ({ HostWorkshopButton: ({ defaultOpen }: any) => <button data-host-button data-open={String(!!defaultOpen)}>Host a workshop</button> }));
+vi.mock('@/components/HostWorkshopButton', () => ({ HostWorkshopButton: ({ defaultOpen, initialPath, label }: any) => <button data-host-button data-open={String(!!defaultOpen)} data-initial={String(initialPath)}>{label ?? 'Host a workshop'}</button> }));
 vi.mock('@/components/DataVersion', () => ({ DataVersionProvider: ({ children }: any) => <>{children}</> }));
 vi.mock('@/lib/data-version', () => ({ getDataVersion: async () => 'v1' }));
 vi.mock('@/lib/request-origin', () => ({ requestOrigin: async () => 'https://craftofy.online' }));
@@ -35,6 +35,12 @@ describe('/workshops with no workshops at all', () => {
   });
   it('is left out of the sitemap', async () => {
     expect(await urls()).not.toContain('https://craftofy.online/workshops');
+  });
+  it('?host=class opens the form on the class path; ?host=1 leaves the choice open; the empty state also offers Teach an online class', async () => {
+    const cls = renderToStaticMarkup(await WorkshopsPage(sp({ host: 'class' })));
+    expect(cls).toContain('data-open="true" data-initial="class"');
+    expect(renderToStaticMarkup(await WorkshopsPage(sp({ host: '1' })))).toContain('data-open="true" data-initial="null"');
+    expect(cls).toContain('>Teach an online class<');
   });
   it('?host=1 opens the host form straight away; without it the form starts closed', async () => {
     expect(renderToStaticMarkup(await WorkshopsPage(sp({ host: '1' })))).toContain('data-open="true"');
