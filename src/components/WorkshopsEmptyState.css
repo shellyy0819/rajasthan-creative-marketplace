@@ -64,7 +64,9 @@
     gap: 20px;
   }
   .ws-empty-art {
-    order: -1;   /* the picture first on a phone */
+    order: -1;   /* the picture first on a phone, small enough to fit the first screen under the button */
+    max-width: 320px;
+    margin-inline: auto;
   }
   .ws-empty {
     padding: 26px 22px;

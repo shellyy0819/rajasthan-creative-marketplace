@@ -41,7 +41,7 @@ export default async function WorkshopsPage({ searchParams }: Props) {
     <DataVersionProvider version={version}>
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
       <Breadcrumbs items={crumbs} />
-      <div className="page-head">
+      <div className="page-head ws-head">
         <span className="eyebrow">OUT OF THE SCROLL, INTO THE STUDIO</span>
         <h1>Creative workshops &amp; pop-ups</h1>
         <p>Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.</p>

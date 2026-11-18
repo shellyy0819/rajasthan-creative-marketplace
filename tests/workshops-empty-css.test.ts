@@ -26,4 +26,11 @@ describe('the hosting card on the empty /workshops page', () => {
     expect(css).toMatch(/@media \(max-width: 1000px\) \{[^@]*\.ws-empty-art \{[^}]*order: -1;[^}]*margin-inline: auto;/);
     expect(css).toMatch(/@media \(max-width: 1000px\) \{[^@]*\.ws-empty \{[^}]*flex: 1 1 100%;[^}]*max-width: 720px;/);
   });
+  it('on phones the picture is small and centred, and the header is tight, so heading, button and picture share the first screen', () => {
+    expect(css).toMatch(/@media \(max-width: 700px\) \{[^@]*\.ws-empty-art \{[^}]*max-width: 320px;[^}]*margin-inline: auto;/);
+    const lst = fs.readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ');
+    expect(lst).toMatch(/\.page-head\.ws-head \{ padding-top: 12px;/);
+    expect(lst).toMatch(/\.page-head\.ws-head h1 \{ font-size: 30px;/);
+    expect(lst).toMatch(/\.page-head\.ws-head \.ws-supports \{ display: none; \}/);
+  });
 });
