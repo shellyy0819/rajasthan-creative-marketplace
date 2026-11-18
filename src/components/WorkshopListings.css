@@ -30,10 +30,10 @@
 /* The Host a workshop button in the /workshops header: phones only. */
 .ws-head-cta { display: none; }
 @media (max-width: 700px) {
-  .ws-head-cta { display: block; margin-top: 14px; }
+  .ws-head-cta { display: block; margin: 18px 0 6px; }
   /* A phone's first screen: heading, short intro, the button and the whole picture, with the picture not cut off at the bottom. */
-  .page-head.ws-head { padding-top: 12px; padding-bottom: 0; }
-  .page-head.ws-head h1 { font-size: 30px; margin: 8px 0; }
-  .page-head.ws-head p { font-size: 14px; line-height: 1.5; margin: 0 0 6px; }
+  .page-head.ws-head { padding-top: 20px; padding-bottom: 0; }
+  .page-head.ws-head h1 { font-size: 32px; margin: 10px 0; }
+  .page-head.ws-head p { font-size: 15px; line-height: 1.55; margin: 0 0 8px; }
   .page-head.ws-head .ws-supports { display: none; } /* the host form shows the same line */
 }

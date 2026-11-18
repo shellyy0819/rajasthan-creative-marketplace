@@ -65,8 +65,14 @@
   }
   .ws-empty-art {
     order: -1;   /* the picture first on a phone, small enough to fit the first screen under the button */
-    max-width: 320px;
-    margin-inline: auto;
+    max-width: 360px;
+    margin: 8px auto 36px; /* room above and below: the picture fills the rest of the first screen */
+  }
+  .ws-empty-art .cafe-scene {
+    aspect-ratio: 560 / 470; /* a little taller than the scene; the extra is floor */
+    background: var(--cs-floor);
+    overflow: hidden;
+    border-radius: 24px;
   }
   .ws-empty {
     padding: 26px 22px;

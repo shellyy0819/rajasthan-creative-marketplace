@@ -8,7 +8,7 @@ import './CafeScene.css';
 export function CafeScene({ workshopToday = false }: { workshopToday?: boolean }) {
   return (
     <div className="cafe-scene">
-      <svg viewBox="0 0 560 420" role="img" aria-label={`Three people crocheting and shaping pottery around a long table in a café, under bunting and hanging lamps, with a chalkboard sign that says ${workshopToday ? 'Workshop today' : 'Host with us'}`}>
+      <svg viewBox="0 0 560 420" preserveAspectRatio="xMidYMin meet" role="img" aria-label={`Three people crocheting and shaping pottery around a long table in a café, under bunting and hanging lamps, with a chalkboard sign that says ${workshopToday ? 'Workshop today' : 'Host with us'}`}>
         <rect width="560" height="420" className="f-wall" />
         <rect y="340" width="560" height="80" className="f-floor" />
         <path d="M70 340V190A210 140 0 0 1 490 190V340Z" className="f-window s-line s-5" />
