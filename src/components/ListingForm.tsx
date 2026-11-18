@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { ImageUploader } from './ImageUploader';
-import { ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, type PriceDraft } from './HostListingFields';
+import { ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, type PriceDraft } from './HostListingFields';
 import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 import { MAX_REQUEST_IMAGES } from '@/lib/workshop-requests-shared';
 import type { HostPath } from '@/lib/host-link';
@@ -28,7 +28,7 @@ function defaultsFor(src: Workshop | WorkshopRequest | undefined): Defaults {
   const v: Record<string, string> = {
     status: isRequest ? 'DRAFT' : src.status, title: src.title, description: src.description, topicId: src.topicId ? String(src.topicId) : '', kind: src.kind === 'class' ? '' : src.kind,
     platform: src.platform ?? '', endsOn: src.endsOn ?? '', languages: src.languages.join(', '), level: src.level ?? '', experience: src.experience ?? '', certifications: src.certifications ?? '',
-    whatsapp: src.whatsapp ?? '', instagram: src.instagram ?? '', website: src.website ?? '',
+    whatsapp: src.whatsapp ?? '', freeTrialDays: src.freeTrialDays ? String(src.freeTrialDays) : '', instagram: src.instagram ?? '', website: src.website ?? '',
     classTime: src.schedule?.time ?? '', ...(src.schedule && src.schedule.durationMin >= 60 && src.schedule.durationMin % 60 === 0 ? { durationValue: String(src.schedule.durationMin / 60), durationUnit: 'hours' } : { durationValue: src.schedule ? String(src.schedule.durationMin) : '60', durationUnit: 'mins' }),
     priceRupees: paid && paise ? rupees(paise) : '',
   };
@@ -99,7 +99,7 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
       schedule: { repeat, days: f.getAll('days').map(String), ...(repeat === 'monthly' ? { weeks: f.getAll('weeks').map(w => (w === 'last' ? 'last' : Number(w))) } : {}), time: field(f, 'classTime'), durationMin: durationMinutes(field(f, 'durationValue'), field(f, 'durationUnit')) },
       venue: null, cityId: null, seats: null,
       prices: rows.map(r => ({ label: r.label.trim(), amountPaise: Math.round(Number(r.amount) * 100), sessions: r.sessions ? Number(r.sessions) : null })),
-      freeTrial: f.get('freeTrial') === 'on', languages: field(f, 'languages').split(',').map(x => x.trim()).filter(Boolean),
+      freeTrial: f.get('freeTrial') === 'on', freeTrialDays: field(f, 'freeTrialDays') ? Number(field(f, 'freeTrialDays')) : null, languages: field(f, 'languages').split(',').map(x => x.trim()).filter(Boolean),
       level: field(f, 'level') || null, experience: field(f, 'experience') || null, certifications: field(f, 'certifications') || null, whatsapp: field(f, 'whatsapp') || null,
     } : {
       ...common, mode: 'in_person', kind: field(f, 'kind') || 'workshop', venue: field(f, 'venue'), date: field(f, 'startDate'), time: field(f, 'startTime') || '09:00',
@@ -154,7 +154,7 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
             <legend>Host</legend>
             <label><span className="lbl">Host, studio, cafe or organiser name</span><input name="hostName" required maxLength={200} /></label>
             <div className="admin-form-row">
-              <label>Instagram<input name="instagram" maxLength={200} placeholder="@yourstudio" /></label>
+              <InstagramField />
               <label>Website<input name="website" type="text" inputMode="url" maxLength={300} placeholder="yourstudio.in" /></label>
             </div>
             {path === 'class' && <ClassAbout />}

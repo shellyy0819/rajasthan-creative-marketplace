@@ -9,7 +9,7 @@ import { MAX_REQUEST_IMAGES, submitErrorMessage } from '@/lib/workshop-requests-
 import { HOST_PARAM, type HostPath } from '@/lib/host-link';
 import { supportLine } from '@/lib/workshop-support';
 import type { TopicOption } from '@/lib/topics';
-import { ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, type PriceDraft } from './HostListingFields';
+import { ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, type PriceDraft } from './HostListingFields';
 import './HostWorkshopStepper.css';
 import './WorkshopListings.css';
 
@@ -159,7 +159,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
       ...common, mode: 'online', kind: 'class', platform: field(f, 'platform'), endsOn: field(f, 'endsOn') || undefined,
       schedule: { repeat, days: f.getAll('days').map(String), ...(repeat === 'monthly' ? { weeks: f.getAll('weeks').map(w => (w === 'last' ? 'last' : Number(w))) } : {}), time: field(f, 'classTime'), durationMin: durationMinutes(field(f, 'durationValue'), field(f, 'durationUnit')) },
       prices: priceRows.map(r => ({ label: r.label.trim(), amountPaise: Math.round(Number(r.amount) * 100), sessions: r.sessions ? Number(r.sessions) : null })),
-      freeTrial: f.get('freeTrial') === 'on', languages: field(f, 'languages').split(',').map(x => x.trim()).filter(Boolean),
+      freeTrial: f.get('freeTrial') === 'on', freeTrialDays: field(f, 'freeTrialDays') ? Number(field(f, 'freeTrialDays')) : undefined, languages: field(f, 'languages').split(',').map(x => x.trim()).filter(Boolean),
       level: field(f, 'level') || undefined, experience: field(f, 'experience') || undefined, certifications: field(f, 'certifications') || undefined, whatsapp: field(f, 'whatsapp') || undefined,
     } : {
       ...common, mode: 'in_person', kind: field(f, 'kind'), cityRef: field(f, 'cityRef'), venue: field(f, 'venue'),
@@ -273,7 +273,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                     <label><span className="lbl">Email</span><input name="email" type="email" required maxLength={254} autoComplete="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /></label>
                   </div>
                   <div className="admin-form-row">
-                    <label>Instagram<input name="instagram" maxLength={200} placeholder="@yourstudio" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /></label>
+                    <InstagramField />
                     <label>Website<input name="website" type="text" inputMode="url" maxLength={300} placeholder="yourstudio.in" autoComplete="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /></label>
                   </div>
                   {path === 'class' && <ClassAbout />}

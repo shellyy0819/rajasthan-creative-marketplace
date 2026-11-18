@@ -64,6 +64,26 @@ describe('pre-filling the host form for a signed-in person', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     expect(val(/^email/i)).toBe('');
   });
+  it('the Instagram field has an "Open on Instagram" link that opens the typed or pre-filled profile in a new tab', async () => {
+    fetchMock.mockResolvedValue(json(me));
+    open(); toLast();
+    await waitFor(() => expect(val(/^instagram/i)).toBe('@asha.yoga'));
+    const link = screen.getByRole('link', { name: /open on instagram/i }) as HTMLAnchorElement;
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.getAttribute('rel')).toContain('noopener');
+    fireEvent.click(link);
+    expect(link.getAttribute('href')).toBe('https://www.instagram.com/asha.yoga/');
+    fireEvent.change(screen.getByLabelText(/^instagram/i), { target: { value: 'https://instagram.com/other.one/?igsh=x' } });
+    fireEvent.click(link);
+    expect(link.getAttribute('href')).toBe('https://www.instagram.com/other.one/');
+  });
+  it('with nothing typed the Instagram link just focuses the field', () => {
+    fetchMock.mockResolvedValue(json({}));
+    open(); toLast();
+    const link = screen.getByRole('link', { name: /open on instagram/i });
+    fireEvent.click(link);
+    expect(document.activeElement).toBe(screen.getByLabelText(/^instagram/i));
+  });
   it('asks nothing unless the page turned prefill on', () => {
     render(<HostWorkshopButton />);
     fireEvent.click(screen.getByRole('button', { name: /host a workshop/i }));

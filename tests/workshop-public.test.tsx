@@ -123,6 +123,16 @@ describe('lists and sitemap', () => {
   });
 });
 
+describe('free trial length', () => {
+  it('the card and the page say how many days the trial lasts', async () => {
+    const w = await createWorkshop({ ...yoga, freeTrialDays: 7 });
+    expect(renderToStaticMarkup(<WorkshopCard w={w} />)).toContain('Free trial · 7 days');
+    expect(await page(w)).toContain('7-day free trial');
+    const plain = await createWorkshop({ ...yoga });
+    expect(renderToStaticMarkup(<WorkshopCard w={plain} />)).toContain('>Free trial<');
+  });
+});
+
 describe('review fixes', () => {
   it('a website that is plain http still gets its button', async () => {
     const w = await createWorkshop({ ...yoga, whatsapp: undefined, instagram: undefined, website: 'http://studio.in' });

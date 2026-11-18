@@ -89,6 +89,18 @@ describe('monthly schedules', () => {
   });
 });
 
+describe('free trial length', () => {
+  it('is optional, 1 to 365 days, and only kept when there is a free trial', () => {
+    expect(parseListingFields({ ...yoga, freeTrialDays: 7 }).freeTrialDays).toBe(7);
+    expect(parseListingFields(yoga).freeTrialDays).toBeNull();
+    expect(parseListingFields({ ...yoga, freeTrialDays: '' }).freeTrialDays).toBeNull();
+    expect(parseListingFields({ ...yoga, freeTrial: false, freeTrialDays: 7 }).freeTrialDays).toBeNull();
+    expect(msg({ ...yoga, freeTrialDays: 0 })).toMatch(/freeTrialDays/);
+    expect(msg({ ...yoga, freeTrialDays: 366 })).toMatch(/freeTrialDays/);
+    expect(msg({ ...yoga, freeTrialDays: 1.5 })).toMatch(/freeTrialDays/);
+  });
+});
+
 describe('optionalWebsite', () => {
   it('adds https and refuses things that are not web addresses', () => {
     expect(optionalWebsite('example.com')).toBe('https://example.com');

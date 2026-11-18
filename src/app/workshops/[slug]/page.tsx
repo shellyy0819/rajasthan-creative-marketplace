@@ -73,7 +73,7 @@ export default async function WorkshopPage({ params }: Props) {
             {w.seats !== null && !isClass && <><dt>Seats left</dt><dd>{left > 0 ? `${left} of ${w.seats}` : 'Full'}</dd></>}
             <dt>Price</dt>
             <dd>{w.prices.length ? summarizePrices(w.prices).all.map(p => <div key={p}>{p}</div>) : w.type === 'FREE' ? 'Free' : money(w.pricePaise)}</dd>
-            {w.freeTrial && <><dt>Free trial</dt><dd>Free trial class available</dd></>}
+            {w.freeTrial && <><dt>Free trial</dt><dd>{w.freeTrialDays ? `${w.freeTrialDays}-day free trial class available` : 'Free trial class available'}</dd></>}
           </dl>
           {bookable ? <div className="workshop-price" style={{ textAlign: 'left' }}><ReserveButton workshop={w} /></div> : !ended && <div className="workshop-price" style={{ textAlign: 'left' }}><WorkshopContact w={w} /></div>}
           <p className="fine-print" style={{ textAlign: 'left' }}>No payment is collected on Craftofy.</p>

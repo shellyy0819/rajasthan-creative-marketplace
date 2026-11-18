@@ -105,7 +105,7 @@ describe('step 2 and 3 on the online class path', () => {
     fireEvent.change(screen.getByLabelText('Plan 1 name'), { target: { value: 'Monthly' } });
     fireEvent.change(screen.getByLabelText('Plan 1 price (Rs.)'), { target: { value: '1500' } });
     fireEvent.change(screen.getByLabelText('Plan 1 sessions'), { target: { value: '12' } });
-    fireEvent.click(screen.getByLabelText(/free trial/i));
+    fireEvent.click(screen.getByLabelText(/free trial class/i));
     next();
     val(/host, studio/i, 'Asha Yoga'); val(/your name/i, 'Asha Rao'); val(/phone number/i, '9989898999'); val(/^email/i, 'asha@example.com');
     val(/languages/i, 'Hindi, English'); val(/^level/i, 'beginner'); val(/experience/i, '8 years'); val(/certifications/i, 'RYT 500'); val(/whatsapp/i, '9989898999');
@@ -119,6 +119,28 @@ describe('step 2 and 3 on the online class path', () => {
     });
     expect(body.cityRef).toBeUndefined();
     expect(body.venue).toBeUndefined();
+  });
+});
+
+describe('free trial length', () => {
+  it('an optional "how many days" field next to the free trial tick box is sent as freeTrialDays', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'a@b.co', status: 'pending' }) });
+    openClass(); classStep1(); next(); classStep2();
+    fireEvent.click(screen.getByLabelText(/free trial class/i));
+    val(/free trial length/i, '7');
+    next();
+    val(/host, studio/i, 'H'); val(/your name/i, 'N'); val(/phone number/i, '9989898999'); val(/^email/i, 'a@b.co'); val(/whatsapp/i, '9989898999');
+    fireEvent.click(screen.getByRole('button', { name: /send details/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ freeTrial: true, freeTrialDays: 7 });
+  });
+  it('the field is optional: blank sends no freeTrialDays', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'a@b.co', status: 'pending' }) });
+    openClass(); classStep1(); next(); classStep2(); next();
+    val(/host, studio/i, 'H'); val(/your name/i, 'N'); val(/phone number/i, '9989898999'); val(/^email/i, 'a@b.co'); val(/whatsapp/i, '9989898999');
+    fireEvent.click(screen.getByRole('button', { name: /send details/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).freeTrialDays).toBeUndefined();
   });
 });
 

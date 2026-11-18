@@ -27,7 +27,7 @@ export function WorkshopCard({ w }: { w: Workshop }) {
           <p className="ws-badges">
             {w.level && <span>{LEVEL_LABEL[w.level]}</span>}
             {w.languages.length > 0 && <span>{w.languages.join(', ')}</span>}
-            {w.freeTrial && <span>Free trial</span>}
+            {w.freeTrial && <span>{w.freeTrialDays ? `Free trial · ${w.freeTrialDays} days` : 'Free trial'}</span>}
           </p>
         )}
       </div>

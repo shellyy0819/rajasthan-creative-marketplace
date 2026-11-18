@@ -5,7 +5,7 @@ import type { Product, Workshop } from '@/lib/types';
 beforeEach(() => { process.env.NEXT_PUBLIC_SITE_URL = 'https://rr.test'; });
 
 const product: Product = { id: 'p1', name: 'Crochet Lily Bouquet', category: 'Crochet & Textiles', city: 'Udaipur', cityId: 1, citySlug: 'udaipur', pricePaise: 85000, seller: 'Shauk and Stuff', description: 'Handmade.', stock: 8, status: 'APPROVED' };
-const workshop: Workshop = { id: 'w1', title: 'Beginner Crochet', type: 'PAID', pricePaise: 49900, city: 'Udaipur', cityId: 1, citySlug: 'udaipur', cityState: 'Rajasthan', venue: 'The Courtyard Café', date: '2026-11-08', time: '11:00', seats: 12, booked: 3, host: 'Shauk and Stuff', description: 'Fun.', status: 'APPROVED', kind: 'workshop', mode: 'in_person', topicId: null, endsOn: null, platform: null, schedule: null, languages: [], level: null, experience: null, certifications: null, freeTrial: false, whatsapp: null, instagram: null, website: null, images: [], prices: [] };
+const workshop: Workshop = { id: 'w1', title: 'Beginner Crochet', type: 'PAID', pricePaise: 49900, city: 'Udaipur', cityId: 1, citySlug: 'udaipur', cityState: 'Rajasthan', venue: 'The Courtyard Café', date: '2026-11-08', time: '11:00', seats: 12, booked: 3, host: 'Shauk and Stuff', description: 'Fun.', status: 'APPROVED', kind: 'workshop', mode: 'in_person', topicId: null, endsOn: null, platform: null, schedule: null, languages: [], level: null, experience: null, certifications: null, freeTrial: false, freeTrialDays: null, whatsapp: null, instagram: null, website: null, images: [], prices: [] };
 
 describe('serializeJsonLd', () => {
   it('escapes < so </script> cannot break out', () => {

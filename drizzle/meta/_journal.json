@@ -190,6 +190,13 @@
       "when": 1794995610155,
       "tag": "0026_workshop_listings",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795000482106,
+      "tag": "0027_free_trial_days",
+      "breakpoints": true
     }
   ]
 }

@@ -17,7 +17,7 @@ export type Schedule = { repeat?: 'weekly' | 'monthly'; days: Day[]; weeks?: Wee
 export type PriceRow = { label: string; amountPaise: number; sessions: number | null };
 export type ListingFields = {
   kind: Kind; mode: Mode; topicId: number | null; platform: string | null; schedule: Schedule | null; endsOn: string | null;
-  languages: string[]; level: Level | null; experience: string | null; certifications: string | null; freeTrial: boolean;
+  languages: string[]; level: Level | null; experience: string | null; certifications: string | null; freeTrial: boolean; freeTrialDays: number | null;
   whatsapp: string | null; instagram: string | null; website: string | null; prices: PriceRow[];
 };
 
@@ -103,6 +103,7 @@ export function parseListingFields(raw: Raw): ListingFields {
     experience: optionalText(raw.experience, 'experience', 500) ?? null,
     certifications: optionalText(raw.certifications, 'certifications', 500) ?? null,
     freeTrial: raw.freeTrial === true,
+    freeTrialDays: raw.freeTrial === true ? optionalInt(raw.freeTrialDays, 'freeTrialDays', 1, 365) : null,
     whatsapp: (() => { const n = optionalPhone(raw.whatsapp, 'whatsapp'); return n ? `+91${n.slice(-10)}` : null; })(),
     instagram: optionalText(raw.instagram, 'instagram', 200) ?? null,
     website: optionalWebsite(raw.website) ?? null,

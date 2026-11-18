@@ -45,6 +45,11 @@ describe('an online class request', () => {
     await expect(createWorkshopRequest({ ...online(), mode: 'hybrid' })).rejects.toMatchObject({ status: 400 });
     await expect(createWorkshopRequest({ ...online(), topicId: 9999 })).rejects.toMatchObject({ status: 400, message: expect.stringMatching(/topic/) });
   });
+  it('keeps how many days the free trial lasts', async () => {
+    const r = await createWorkshopRequest({ ...online(), freeTrialDays: 7 });
+    expect(r).toMatchObject({ freeTrial: true, freeTrialDays: 7 });
+    expect(await createWorkshopRequest({ ...online() })).not.toHaveProperty('freeTrialDays');
+  });
   it('a free class (no price plans) is FREE', async () => {
     expect(await createWorkshopRequest({ ...online(), prices: [], priceType: undefined })).toMatchObject({ priceType: 'FREE' });
   });

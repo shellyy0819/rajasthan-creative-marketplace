@@ -1,4 +1,6 @@
+import { useRef } from 'react';
 import { CityInput } from './CityInput';
+import { instagramUrl } from '@/lib/social';
 import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 
 const fmtDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -14,6 +16,22 @@ export function durationMinutes(value: string, unit: string): number {
 }
 export const durationValid = (minutes: number) => Number.isInteger(minutes) && minutes >= 15 && minutes <= 480;
 export type PriceDraft = { label: string; amount: string; sessions: string };
+
+/** Instagram handle or link, with a link that opens the profile in a new tab (reads the field when clicked, so pre-filled values work). */
+export function InstagramField() {
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <div className="host-instagram">
+      <label>Instagram<input ref={input} name="instagram" maxLength={200} placeholder="@yourstudio" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /></label>
+      <a className="host-open-link" href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer"
+        onClick={e => {
+          const v = input.current?.value.trim();
+          if (!v) { e.preventDefault(); input.current?.focus(); return; }
+          e.currentTarget.href = instagramUrl(v);
+        }}>Open on Instagram <span aria-hidden="true">↗</span></a>
+    </div>
+  );
+}
 
 /** Step 2 of an in-person event: when, where, seats and the single price. */
 export function EventWhereWhen({ startDate, setStartDate, paid, setPaid, cityRequired = true, cityDefault }: { startDate: string; setStartDate: (v: string) => void; paid: boolean; setPaid: (v: boolean) => void; cityRequired?: boolean; cityDefault?: { id: number; label: string } }) {
@@ -88,6 +106,7 @@ export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows, repe
         <button type="button" className="button" disabled={rows.length >= PRICE_PLAN_LIMIT} onClick={() => setRows([...rows, { label: '', amount: '', sessions: '' }])}>Add a price plan</button>
       </fieldset>
       <label className="check"><input type="checkbox" name="freeTrial" /> Offers a free trial class</label>
+      <label>Free trial length in days (optional)<input name="freeTrialDays" type="number" min={1} max={365} inputMode="numeric" placeholder="e.g. 7" enterKeyHint="next" /></label>
     </>
   );
 }

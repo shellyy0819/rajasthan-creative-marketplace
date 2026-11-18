@@ -13,7 +13,7 @@ import type { WorkshopRequest } from '@/lib/workshop-requests';
 const fetchMock = vi.fn();
 const topics = [{ id: 1, name: 'Yoga' }];
 const base = {
-  kind: 'workshop', mode: 'in_person', topicId: null, endsOn: null, platform: null, schedule: null, languages: [], level: null, experience: null, certifications: null, freeTrial: false,
+  kind: 'workshop', mode: 'in_person', topicId: null, endsOn: null, platform: null, schedule: null, languages: [], level: null, experience: null, certifications: null, freeTrial: false, freeTrialDays: null,
   whatsapp: null, instagram: null, website: null, images: [], prices: [], booked: 0, status: 'DRAFT',
 };
 const lac = { ...base, id: 'w1', title: 'Lac Craft', type: 'PAID', pricePaise: 30000, city: 'Jodhpur', cityId: 3, citySlug: 'jodhpur', venue: 'Studio 9', date: '2099-12-01', time: '16:30', seats: 8, host: 'Marwar Lac', description: 'Learn lac craft.' } as unknown as Workshop;

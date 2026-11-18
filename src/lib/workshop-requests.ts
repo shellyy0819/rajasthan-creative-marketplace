@@ -24,7 +24,7 @@ export type WorkshopRequest = {
   id: string; hostName: string; contactName: string; phone: string; email: string; city: string; venue: string; title: string;
   kind: RequestKind; mode: 'in_person' | 'online'; topicId?: number; topic?: string; description: string; startDate: string; endDate: string; startTime?: string; endTime?: string;
   status: 'unverified' | 'received' | 'listed'; emailVerified: boolean; images: string[]; seats?: number; priceType: 'FREE' | 'PAID'; pricePaise?: number; instagram?: string; website?: string; notes?: string; createdAt: string;
-  endsOn?: string; platform?: string; schedule?: Schedule; languages: string[]; level?: Level; experience?: string; certifications?: string; freeTrial: boolean; whatsapp?: string; prices: PriceRow[]; listedWorkshopId?: string;
+  endsOn?: string; platform?: string; schedule?: Schedule; languages: string[]; level?: Level; experience?: string; certifications?: string; freeTrial: boolean; freeTrialDays?: number; whatsapp?: string; prices: PriceRow[]; listedWorkshopId?: string;
 };
 
 const toRequest = (r: typeof workshopRequests.$inferSelect): WorkshopRequest => ({
@@ -36,7 +36,7 @@ const toRequest = (r: typeof workshopRequests.$inferSelect): WorkshopRequest => 
   status: r.status as WorkshopRequest['status'], emailVerified: r.verifiedAt != null, images: r.images ?? [], createdAt: r.createdAt.toISOString(),
   ...(r.endsOn ? { endsOn: r.endsOn } : {}), ...(r.platform ? { platform: r.platform } : {}), ...(r.schedule ? { schedule: r.schedule as Schedule } : {}),
   languages: r.languages ?? [], ...(r.level ? { level: r.level as Level } : {}), ...(r.experience ? { experience: r.experience } : {}), ...(r.certifications ? { certifications: r.certifications } : {}),
-  freeTrial: r.freeTrial, ...(r.whatsapp ? { whatsapp: r.whatsapp } : {}), prices: (r.prices ?? []) as PriceRow[], ...(r.listedWorkshopId ? { listedWorkshopId: r.listedWorkshopId } : {}),
+  freeTrial: r.freeTrial, ...(r.freeTrialDays != null ? { freeTrialDays: r.freeTrialDays } : {}), ...(r.whatsapp ? { whatsapp: r.whatsapp } : {}), prices: (r.prices ?? []) as PriceRow[], ...(r.listedWorkshopId ? { listedWorkshopId: r.listedWorkshopId } : {}),
 });
 
 /** An admin made a listing from this request: remember which one, and take it out of the to-do state. Throws 400 when the request does not exist. */
@@ -116,7 +116,7 @@ export async function createWorkshopRequest(input: unknown): Promise<WorkshopReq
     startDate, endDate, startTime: startTime ?? null, endTime: endTime ?? null, seats, priceType, pricePaise,
     instagram: l.instagram, website: l.website, notes: optionalText(raw.notes, 'notes', 2000) ?? null, images: requestImages(raw.images),
     endsOn: online ? l.endsOn : null, platform: online ? l.platform : null, schedule: online ? l.schedule : null, languages: l.languages, level: l.level,
-    experience: l.experience, certifications: l.certifications, freeTrial: l.freeTrial, whatsapp: l.whatsapp, prices: l.prices,
+    experience: l.experience, certifications: l.certifications, freeTrial: l.freeTrial, freeTrialDays: l.freeTrialDays, whatsapp: l.whatsapp, prices: l.prices,
   }).returning();
   try {
     await issueCode(row.id, row.email);
