@@ -11,7 +11,7 @@ import { WorkshopContact } from './WorkshopContact';
 
 export function WorkshopCard({ w }: { w: Workshop }) {
   const { day, month } = formatDay(w.date);
-  const isClass = w.kind === 'class';
+  const isClass = w.kind === 'class' || w.mode === 'online';
   const bookable = !isClass && w.seats !== null;
   const left = (w.seats ?? 0) - w.booked;
   const price = w.prices.length ? summarizePrices(w.prices).from : w.type === 'FREE' ? 'Free' : money(w.pricePaise);

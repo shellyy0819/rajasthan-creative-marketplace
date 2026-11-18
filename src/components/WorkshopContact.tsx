@@ -3,7 +3,7 @@ import { instagramUrl } from '@/lib/social';
 
 /** wa.me chat link with no prefilled text: the visitor writes to the instructor on their own WhatsApp. */
 const whatsappChat = (number: string) => `https://wa.me/${number.replace(/\D/g, '')}`;
-const safeWebsite = (u: string) => (/^https:\/\//i.test(u) ? u : undefined);
+const safeWebsite = (u: string) => (/^https?:\/\//i.test(u) ? u : undefined);
 
 /** How to reach the host of an online class: the public contact details only (never the private phone and email). */
 export function WorkshopContact({ w }: { w: Pick<Workshop, 'whatsapp' | 'instagram' | 'website'> }) {

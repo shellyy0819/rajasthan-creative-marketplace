@@ -122,6 +122,17 @@ describe('step 2 and 3 on the online class path', () => {
   });
 });
 
+describe('languages', () => {
+  it('step 3 refuses more than five languages before anything is sent', () => {
+    openClass(); classStep1(); next(); classStep2(); next();
+    val(/host, studio/i, 'A'); val(/your name/i, 'B'); val(/phone number/i, '9989898999'); val(/^email/i, 'a@b.co');
+    val(/languages/i, 'a1, b2, c3, d4, e5, f6');
+    fireEvent.click(screen.getByRole('button', { name: /send details/i }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert').textContent).toMatch(/five languages|5 languages/i);
+  });
+});
+
 describe('address bar', () => {
   it('uses host=class while the class path is open and host=1 otherwise', () => {
     render(<HostWorkshopButton path="class" shareable topics={topics} />);

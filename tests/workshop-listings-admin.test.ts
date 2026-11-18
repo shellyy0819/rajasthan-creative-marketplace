@@ -130,3 +130,35 @@ describe('booking', () => {
     await expect(createBooking({ workshopId: ended.id, quantity: 1 }, 'a@example.com')).rejects.toMatchObject({ status: 409, message: 'This event has ended.' });
   });
 });
+
+describe('review fixes', () => {
+  it('removing every price plan on edit makes the listing FREE at 0', async () => {
+    const w = await createWorkshop(yoga);
+    expect(w.type).toBe('PAID');
+    const next = await updateWorkshop(w.id, { prices: [] });
+    expect(next).toMatchObject({ type: 'FREE', pricePaise: 0, prices: [] });
+  });
+  it('an unknown topic id is a 400, not a 500', async () => {
+    await expect(createWorkshop({ ...yoga, topicId: 99999 })).rejects.toMatchObject({ status: 400, message: expect.stringMatching(/topic/i) });
+    const w = await createWorkshop(yoga);
+    await expect(updateWorkshop(w.id, { topicId: 99999 })).rejects.toMatchObject({ status: 400 });
+  });
+  it('switching an in-person event to an online class clears its city and venue', async () => {
+    const e = await createWorkshop(inPerson);
+    const c = await updateWorkshop(e.id, { ...yoga, cityId: null, venue: null, seats: null });
+    expect(c).toMatchObject({ mode: 'online', city: null, cityId: null, venue: null });
+  });
+  it('a city whose only listing ended is not active', async () => {
+    const { listActiveCities } = await import('@/lib/cities');
+    const kota = { ...inPerson, cityRef: cityRef('Kota'), status: 'APPROVED' };
+    await createWorkshop({ ...kota, date: ymd(-3) });
+    expect((await listActiveCities()).map(c => c.slug)).not.toContain('kota');
+    await createWorkshop(kota);
+    expect((await listActiveCities()).map(c => c.slug)).toContain('kota');
+  });
+  it('a request can be listed only once', async () => {
+    const rid = await aRequest();
+    await createWorkshop({ ...yoga, sourceRequestId: rid });
+    await expect(createWorkshop({ ...yoga, sourceRequestId: rid })).rejects.toMatchObject({ status: 409 });
+  });
+});

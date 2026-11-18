@@ -20,7 +20,7 @@ type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const w = await getWorkshopBySlug((await params).slug);
   if (!w) return { title: 'Workshop not found', robots: { index: false } };
-  const online = w.kind === 'class';
+  const online = w.kind === 'class' || w.mode === 'online';
   const price = w.prices.length ? summarizePrices(w.prices).from : w.type === 'FREE' ? 'Free' : money(w.pricePaise);
   return pageMetadata({
     title: online ? `${w.title} — online class` : `${w.title} — workshop in ${w.city}`,
@@ -39,7 +39,7 @@ export default async function WorkshopPage({ params }: Props) {
   if (!w) notFound();
   const { day, month, year } = formatDay(w.date);
   const ended = !isCurrent(w);
-  const isClass = w.kind === 'class';
+  const isClass = w.kind === 'class' || w.mode === 'online';
   const bookable = !ended && !isClass && w.seats !== null;
   const left = (w.seats ?? 0) - w.booked;
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Workshops', path: '/workshops' }, { name: w.title, path: `/workshops/${workshopSlug(w)}` }];

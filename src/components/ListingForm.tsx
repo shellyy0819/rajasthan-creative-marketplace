@@ -78,6 +78,7 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
     const form = e.currentTarget;
     if (path === 'class' && !form.querySelector('input[name="days"]:checked')) { setError('Choose at least one class day.'); return; }
     if (!form.checkValidity()) { form.reportValidity(); return; }
+    if (path === 'event' && !/^\d+$/.test(String(new FormData(form).get('seats') ?? '').trim())) { setError('Enter the number of seats.'); return; }
     const f = new FormData(form);
     const isClass = path === 'class';
     const common = {
@@ -90,12 +91,14 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
     const body = isClass ? {
       ...common, mode: 'online', kind: 'class', platform: field(f, 'platform'), date: field(f, 'startDate'), time: field(f, 'classTime'), endsOn: field(f, 'endsOn') || null,
       schedule: { days: f.getAll('days').map(String), time: field(f, 'classTime'), durationMin: Number(field(f, 'duration')) },
+      venue: null, cityId: null, seats: null,
       prices: rows.map(r => ({ label: r.label.trim(), amountPaise: Math.round(Number(r.amount) * 100), sessions: r.sessions ? Number(r.sessions) : null })),
       freeTrial: f.get('freeTrial') === 'on', languages: field(f, 'languages').split(',').map(x => x.trim()).filter(Boolean),
       level: field(f, 'level') || null, experience: field(f, 'experience') || null, certifications: field(f, 'certifications') || null, whatsapp: field(f, 'whatsapp') || null,
     } : {
       ...common, mode: 'in_person', kind: field(f, 'kind') || 'workshop', venue: field(f, 'venue'), date: field(f, 'startDate'), time: field(f, 'startTime') || '09:00',
-      endsOn: field(f, 'endDate') || null, seats: Number(field(f, 'seats') || 1000),
+      endsOn: field(f, 'endDate') || null, seats: Number(field(f, 'seats')),
+      platform: null, schedule: null, prices: [], languages: [], level: null, freeTrial: false,
       ...(field(f, 'cityRef') ? { cityRef: field(f, 'cityRef') } : field(f, 'cityId') ? { cityId: Number(field(f, 'cityId')) } : {}),
       type: paid ? 'PAID' : 'FREE', pricePaise: paid ? Math.round(Number(field(f, 'priceRupees')) * 100) : 0,
     };

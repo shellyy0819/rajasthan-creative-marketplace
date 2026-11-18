@@ -93,6 +93,10 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     bad?.reportValidity();
     if (bad) return false;
     if (i === 1 && path === 'class' && !stepFields(1).some(el => el.name === 'days' && el.checked)) { setError('Choose at least one class day.'); return false; }
+    if (i === 2 && path === 'class') {
+      const langs = stepFields(2).find(el => el.name === 'languages')?.value ?? '';
+      if (langs.split(',').filter(x => x.trim()).length > 5) { setError('Please list at most five languages.'); return false; }
+    }
     return true;
   }
   function back() { setError(''); setStep(s => Math.max(0, s - 1)); }

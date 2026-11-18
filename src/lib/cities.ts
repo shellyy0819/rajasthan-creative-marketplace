@@ -111,7 +111,9 @@ export async function listActiveCities(): Promise<City[]> {
   const db = getDb();
   const rows = await db.select().from(cities).where(or(
     exists(db.select({ x: sql`1` }).from(products).where(and(eq(products.cityId, cities.id), eq(products.status, 'APPROVED')))),
-    exists(db.select({ x: sql`1` }).from(workshops).where(and(eq(workshops.cityId, cities.id), eq(workshops.status, 'APPROVED')))),
+    exists(db.select({ x: sql`1` }).from(workshops).where(and(eq(workshops.cityId, cities.id), eq(workshops.status, 'APPROVED'),
+      // Only a listing that has not ended (India time) keeps its city active; an open-ended class never ends.
+      sql`((${workshops.kind} = 'class' and ${workshops.endsOn} is null) or coalesce(${workshops.endsOn}, (${workshops.startsAt} at time zone 'Asia/Kolkata')::date) >= (now() at time zone 'Asia/Kolkata')::date)`))),
   )).orderBy(cities.name, cities.id);
   return rows.map(toCity);
 }

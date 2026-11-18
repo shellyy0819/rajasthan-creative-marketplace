@@ -3,7 +3,7 @@ import { getDb } from '../db/client';
 import { allocateId } from '../db/ids';
 import { productsQuery, toAdminProduct, toProductRow, toWorkshop, toAdminWorkshop, toWorkshopRow, withPrices, workshopsQuery, type ProductInput, type WorkshopInput } from '../db/mappers';
 import { ROLE_ID, ensureUser } from '../db/people';
-import { products as productsT, userRoles, users, workshopPrices as workshopPricesT, workshops as workshopsT } from '../db/schema';
+import { products as productsT, userRoles, users, workshopPrices as workshopPricesT, workshopTopics, workshops as workshopsT } from '../db/schema';
 import type { Tx } from '../db/client';
 import { resolveCityInput } from './cities';
 import { canonicalCategory } from './categories';
@@ -223,6 +223,12 @@ function validateWorkshop(v: Raw): WorkshopFields {
   };
 }
 
+async function requireTopic(tx: Tx, id: number | null) {
+  if (id === null) return;
+  const [t] = await tx.select({ id: workshopTopics.id }).from(workshopTopics).where(eq(workshopTopics.id, id));
+  if (!t) throw bad('topicId does not match a topic.');
+}
+
 async function savePrices(tx: Tx, workshopId: string, rows: PriceRow[]) {
   await tx.delete(workshopPricesT).where(eq(workshopPricesT.workshopId, workshopId));
   if (rows.length) await tx.insert(workshopPricesT).values(rows.map((r, position) => ({ workshopId, label: r.label, amountPaise: r.amountPaise, sessions: r.sessions, position })));
@@ -248,6 +254,7 @@ export async function createWorkshop(input: unknown, adminEmail?: string): Promi
   const data = validateWorkshop(raw);
   return getDb().transaction(async tx => {
     await requireHost(tx, hostId);
+    await requireTopic(tx, data.topicId);
     const cityId = await resolveCityInput(tx, raw, { required: data.mode !== 'online' });
     const id = await allocateId(tx, 'w');
     const [creator] = adminEmail ? await tx.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${adminEmail.toLowerCase()}`) : [];
@@ -267,7 +274,11 @@ export async function updateWorkshop(id: string, input: unknown): Promise<Worksh
     if (!joined) throw new ApiError(404, 'Workshop not found.');
     const row = joined.w;
     const [current] = await withPrices(tx, [toWorkshop(joined)]);
-    const next = validateWorkshop({ ...current, ...patch });
+    const merged: Raw = { ...current, ...patch };
+    // Clearing every price plan without naming a type means "no plans": the old cached type and price must not survive.
+    if (Array.isArray(patch.prices) && patch.prices.length === 0 && !('type' in patch)) { delete merged.type; delete merged.pricePaise; }
+    const next = validateWorkshop(merged);
+    await requireTopic(tx, next.topicId);
     const cityId = await resolveCityInput(tx, { cityId: row.cityId ?? undefined, ...patch }, { required: next.mode !== 'online' });
     if (next.seats !== null && next.seats < row.booked) throw bad(`seats cannot be less than the ${row.booked} already booked.`);
     if (hostId) await requireHost(tx, hostId);

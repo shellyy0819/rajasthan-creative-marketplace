@@ -116,3 +116,18 @@ describe('lists and sitemap', () => {
     expect(renderToStaticMarkup(await WorkshopsPage(sp()))).toContain('You can list workshops, meetups, pop-ups, flea markets and online classes.');
   });
 });
+
+describe('review fixes', () => {
+  it('a website that is plain http still gets its button', async () => {
+    const w = await createWorkshop({ ...yoga, whatsapp: undefined, instagram: undefined, website: 'http://studio.in' });
+    expect(renderToStaticMarkup(<WorkshopCard w={w} />)).toContain('href="http://studio.in"');
+  });
+  it('an online listing that is not a class never prints "null"', async () => {
+    const w = await createWorkshop({ ...yoga, kind: 'workshop', date: '2099-01-05' });
+    const card = renderToStaticMarkup(<WorkshopCard w={w} />);
+    expect(card).not.toContain('null');
+    const meta = await pageMeta({ params: Promise.resolve({ slug: workshopSlug(w) }) });
+    expect(JSON.stringify(meta)).not.toContain('null');
+    expect(await page(w)).not.toContain('>null<');
+  });
+});

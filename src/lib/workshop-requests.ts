@@ -41,8 +41,10 @@ const toRequest = (r: typeof workshopRequests.$inferSelect): WorkshopRequest => 
 
 /** An admin made a listing from this request: remember which one, and take it out of the to-do state. Throws 400 when the request does not exist. */
 export async function markRequestListed(q: Q, requestId: string, workshopId: string): Promise<void> {
-  const rows = await q.update(workshopRequests).set({ status: 'listed', listedWorkshopId: workshopId }).where(eq(workshopRequests.id, requestId)).returning({ id: workshopRequests.id });
-  if (!rows.length) throw bad('sourceRequestId does not match a request.');
+  const [row] = await q.select({ status: workshopRequests.status }).from(workshopRequests).where(eq(workshopRequests.id, requestId)).for('update');
+  if (!row) throw bad('sourceRequestId does not match a request.');
+  if (row.status === 'listed') throw new ApiError(409, 'A listing was already made from this request.');
+  await q.update(workshopRequests).set({ status: 'listed', listedWorkshopId: workshopId }).where(eq(workshopRequests.id, requestId));
 }
 
 /** The topic's name for display (the row only keeps the id). */

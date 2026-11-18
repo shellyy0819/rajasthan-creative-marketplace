@@ -120,4 +120,29 @@ describe('listing form', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ sourceRequestId: 'r1', status: 'DRAFT', title: 'Evening Flow', prices: [{ label: 'Per session', amountPaise: 50000, sessions: 1 }], freeTrial: true });
   });
+
+  it('an event body clears the class fields and price rows; a class body clears city and venue', async () => {
+    fetchMock.mockResolvedValue(ok({ ...lac }));
+    render(<WorkshopsAdmin initial={[lac]} topics={topics} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Lac Craft' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /save listing/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ prices: [], schedule: null, platform: null, seats: 8 });
+    cleanup(); fetchMock.mockReset(); fetchMock.mockResolvedValue(ok({ ...yoga }));
+    render(<WorkshopsAdmin initial={[yoga]} topics={topics} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Morning Flow' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /save listing/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ venue: null, cityId: null, seats: null });
+  });
+  it('an in-person listing with the seats left blank is refused, not saved with 1000 seats', async () => {
+    render(<WorkshopsAdmin initial={[]} topics={topics} />);
+    fireEvent.click(screen.getByRole('button', { name: /new listing/i }));
+    const dlg = screen.getByRole('dialog');
+    const set = (l: RegExp | string, v: string) => fireEvent.change(within(dlg).getByLabelText(l), { target: { value: v } });
+    set(/event title/i, 'Clay'); set(/what happens/i, 'Clay day'); set(/start date/i, '2099-01-05'); set(/^city/i, 'x'); set(/venue/i, 'Studio'); set(/host, studio/i, 'H');
+    fireEvent.click(within(dlg).getByRole('button', { name: /save listing/i }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(within(dlg).getByRole('alert').textContent).toMatch(/seats/i);
+  });
 });
