@@ -7,13 +7,17 @@ import { ImageUploader } from './ImageUploader';
 import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 import { DEFAULT_CONTACT_EMAIL } from '@/lib/site';
 import { MAX_REQUEST_IMAGES, submitErrorMessage } from '@/lib/workshop-requests-shared';
+import { HOST_PARAM } from '@/lib/host-link';
 
 const field = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 const fmtDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
-/** "Host a workshop": opens a form that collects every detail we need to list a workshop, meetup, pop-up or flea market. */
-export function HostWorkshopButton({ className = 'button outline', contactEmail = DEFAULT_CONTACT_EMAIL }: { className?: string; contactEmail?: string }) {
-  const [open, setOpen] = useState(false);
+/**
+ * "Host a workshop": opens a form that collects every detail we need to list a workshop, meetup, pop-up or flea market.
+ * `defaultOpen` opens it on first render (a shared ?host=1 link); `shareable` keeps ?host=1 in the address bar while it is open.
+ */
+export function HostWorkshopButton({ className = 'button outline', contactEmail = DEFAULT_CONTACT_EMAIL, defaultOpen = false, shareable = false }: { className?: string; contactEmail?: string; defaultOpen?: boolean; shareable?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [paid, setPaid] = useState(false);
@@ -25,6 +29,9 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   const [wait, setWait] = useState(0); // seconds until another code may be requested
   const [done, setDone] = useState<RequestDone | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  // The form is portalled into document.body, which does not exist while rendering on the server (a ?host=1 link opens it on first render).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const close = () => { setOpen(false); trigger.current?.focus(); };
   useEffect(() => {
@@ -33,6 +40,15 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [open, sending]);
+
+  // Mirror the open form in the address bar so the link can be copied and shared. replaceState: no history entry, no server round trip.
+  useEffect(() => {
+    if (!shareable) return;
+    const url = new URL(window.location.href);
+    if (open === url.searchParams.has(HOST_PARAM)) return;
+    if (open) url.searchParams.set(HOST_PARAM, '1'); else url.searchParams.delete(HOST_PARAM);
+    window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+  }, [open, shareable]);
 
   useEffect(() => {
     if (wait <= 0) return;
@@ -70,7 +86,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   return (
     <>
       <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setOpen(true); }}>Host a workshop <span>↗</span></button>
-      {open && createPortal(
+      {open && mounted && createPortal(
         <div className="contact-backdrop admin-modal" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
           <div role="dialog" aria-modal="true" aria-labelledby="host-title" className="contact-card">
             <div className="dialog-head">

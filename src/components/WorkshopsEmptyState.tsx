@@ -3,8 +3,8 @@ import { HostWorkshopButton } from './HostWorkshopButton';
 import { contactEmail } from '@/lib/site';
 import './WorkshopsEmptyState.css';
 
-/** Shown on /workshops while no workshop exists at all (not when a filter finds nothing): what is coming and how a studio or café can host one. */
-export function WorkshopsEmptyState() {
+/** Shown on /workshops while no workshop exists at all (not when a filter finds nothing): what is coming and how a studio or café can host one. `openHostForm` opens the form straight away (/workshops?host=1). */
+export function WorkshopsEmptyState({ openHostForm = false }: { openHostForm?: boolean }) {
   return (
     <div className="ws-empty-wrap">
     <section className="ws-empty" aria-labelledby="ws-empty-h">
@@ -15,7 +15,7 @@ export function WorkshopsEmptyState() {
         <li>We check the details and write to you to confirm.</li>
         <li>Your workshop is listed here for people to find and join.</li>
       </ol>
-      <HostWorkshopButton contactEmail={contactEmail()} />
+      <HostWorkshopButton contactEmail={contactEmail()} defaultOpen={openHostForm} shareable />
     </section>
     <div className="ws-empty-art"><CafeScene /></div>
     </div>
