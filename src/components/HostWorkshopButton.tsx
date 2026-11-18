@@ -202,7 +202,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     if (shownStep.current === step) return;
     shownStep.current = step;
     const root = formRef.current;
-    root?.closest('.contact-card')?.scrollTo?.(0, 0);
+    root?.scrollTo?.(0, 0);
     root?.querySelector<HTMLElement>(`[data-step="${step}"] :is(input:not([type="hidden"]), select, textarea)`)?.focus();
   }, [step]);
 
@@ -270,7 +270,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
       <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setPath(preset); setPriceRows([]); setRepeat('weekly'); restoreDraft(preset); setOpen(true); }}>{label} <span>↗</span></button>
       {open && mounted && createPortal(
         <div className="contact-backdrop admin-modal host-backdrop" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="host-title" className="contact-card host-dialog">
+          <div role="dialog" aria-modal="true" aria-labelledby="host-title" className={`contact-card host-dialog${!done && !pending ? ' host-dialog-form' : ''}`}>
             <div className="dialog-head">
               <h2 id="host-title">{done ? 'Welcome to Craftofy' : pending ? 'Please verify your email' : path === 'class' ? 'Teach an online class' : 'Host a workshop or pop-up'}</h2>
               <button type="button" className="icon-btn" aria-label="Close" onClick={close} disabled={sending}>✕</button>
@@ -291,13 +291,14 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                 </div>
               </form>
             ) : (
-              <form ref={formRef} className="admin-form host-form" noValidate onSubmit={onSubmit} onInput={scheduleSave} onChange={scheduleSave}>
-                <div className="host-progress">
+              <>
+              <div className="host-progress">
                   <ol className="host-steps" aria-label="Progress">
                     {STEPS.map((name, i) => <li key={name} className={i < step ? 'done' : undefined} aria-current={i === step ? 'step' : undefined}><span className="host-step-label">{name}</span></li>)}
                   </ol>
                   <p className="host-step-count">Step {step + 1} of {STEPS.length}</p>
                 </div>
+              <form ref={formRef} className="admin-form host-form" noValidate onSubmit={onSubmit} onInput={scheduleSave} onChange={scheduleSave}>
                 {error && <p role="alert" className="admin-error">{error}</p>}
                 <div className="host-step" data-step={0} hidden={step !== 0}>
                   <p className="form-note">{supportLine()}</p>
@@ -360,6 +361,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                     : <button type="submit" className="button primary" disabled={sending || uploading} aria-busy={sending}>{sending ? 'Sending…' : 'Send details'}</button>}
                 </div>
               </form>
+              </>
             )}
           </div>
         </div>,

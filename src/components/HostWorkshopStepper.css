@@ -81,14 +81,10 @@
   .host-form select { font-size: 14px; min-height: 44px; }
   .host-form input[type='checkbox'], .host-form input[type='radio'] { width: 22px; height: 22px; }
   .host-form .button, .host-form .icon-btn, .host-day, .host-path-card { min-height: 44px; }
-  /* The dialog has no top padding of its own: the sticky header carries it, so nothing scrolls into a gap above the header. */
-  .host-dialog { padding-top: 0; }
-  .host-dialog .dialog-head { position: sticky; top: 0; z-index: 2; margin: 0 0 14px; padding: 22px 0 12px; background: var(--white); }
 }
 @media (max-width: 600px) {
   .host-backdrop { padding: 0; align-items: stretch; }
-  .host-dialog { width: 100%; height: 100vh; height: 100dvh; max-height: none; border-radius: 0; padding: 0 16px; }
-  .host-dialog .dialog-head { padding-top: 16px; }
+  .host-dialog { width: 100%; height: 100vh; height: 100dvh; max-height: none; border-radius: 0; padding: 16px 16px 0; }
   .host-form .admin-form-row { grid-template-columns: 1fr; }
 }
 @supports (-webkit-touch-callout: none) {
@@ -115,3 +111,8 @@
   .host-dialog { max-height: calc(100vh - 72px); max-height: calc(100dvh - 72px); }
 }
 .host-start-over { margin-right: auto; }
+
+/* The title and the three steps stay put at the top; only the form between them and the buttons scrolls. */
+.host-dialog-form { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
+.host-dialog-form .dialog-head, .host-dialog-form .host-progress { flex: none; }
+.host-dialog-form form.host-form { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }

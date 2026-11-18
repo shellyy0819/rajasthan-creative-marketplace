@@ -105,4 +105,12 @@ describe('Host a workshop stepper', () => {
     fireEvent.click(screen.getByRole('button', { name: /host a workshop/i }));
     expect(screen.getByText('Step 1 of 3')).toBeTruthy();
   });
+
+  it('the progress steps are outside the scrolling form, so they stay in place', () => {
+    open();
+    const list = screen.getByRole('list', { name: /progress/i });
+    expect(list.closest('form')).toBeNull();
+    expect(list.closest('.host-dialog-form')).not.toBeNull();
+    expect(screen.getByText('Step 1 of 3').closest('form')).toBeNull();
+  });
 });

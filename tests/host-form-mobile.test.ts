@@ -27,9 +27,10 @@ describe('host form on phones: CSS', () => {
     expect(css).toMatch(/\.host-form \.admin-actions \{[^}]*position: sticky;[^}]*bottom: 0/);
     expect(css).toMatch(/overscroll-behavior: contain/);
   });
-  it('the sticky header carries the dialog\'s top padding so nothing scrolls into a gap above it', () => {
-    expect(css).toMatch(/\.host-dialog \{ padding-top: 0; \}/);
-    expect(css).toMatch(/\.host-dialog \.dialog-head \{[^}]*position: sticky;[^}]*top: 0;[^}]*background: var\(--white\)/);
+  it('the title and the steps stay in place: only the form between them and the buttons scrolls', () => {
+    expect(css).toMatch(/\.host-dialog-form \{[^}]*display: flex;[^}]*flex-direction: column;[^}]*overflow: hidden;/);
+    expect(css).toMatch(/\.host-dialog-form form\.host-form \{[^}]*overflow-y: auto;/);
+    expect(css).toMatch(/\.host-dialog-form \.dialog-head, \.host-dialog-form \.host-progress \{ flex: none; \}/);
   });
   it('the dialog is a little shorter than the window on tablets and desktop, and its action bar is compact', () => {
     expect(css).toMatch(/@media \(min-width: 601px\) \{[^@]*\.host-dialog \{[^}]*max-height: calc\(100dvh - 72px\);/);
