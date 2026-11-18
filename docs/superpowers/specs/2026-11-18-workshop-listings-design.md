@@ -78,10 +78,12 @@ Backfill: every existing `workshops` row gets mode 'in_person', kind 'workshop',
 Decided by you: admins add workshops and classes for others. Today there is no admin screen for this (only `POST /api/workshops` by hand).
 
 - New dashboard page `/dashboard/workshops` (tab next to Workshop requests): a table of all listings (title, host, mode, topic, dates, status) with **New listing**, **Edit** and **Archive / Delete**.
-- The listing form is the same stepper as the public one (same fields, same two paths, same limits) in admin mode: no email code, no honeypot or rate limit, the listing is saved as APPROVED straight away, and it also asks for the host's private contact (name, phone, email) and an optional link to an existing user as `host_id`. `host_name` stays free text, so a host without an account works.
-- **List from a request:** each request row gets a "Create listing" button that opens the admin form pre-filled from the request (the admin can fix anything), saves the listing, and marks the request `listed` with the new workshop id.
+- The listing form is the same stepper as the public one (same fields, same two paths, same limits) in admin mode: no email code, no honeypot or rate limit, and it also asks for the host's private contact (name, phone, email) and an optional link to an existing user as `host_id`. `host_name` stays free text, so a host without an account works.
+- **List from a request:** each request row gets a "Create listing" button that opens the admin form pre-filled from the request (the admin can fix anything), saves the listing as Draft (the admin publishes it when ready), and marks the request `listed` with the new workshop id.
+- **Status:** the form has a Status field with three options: **Draft** (the default), **Published** and **Archived**. They map to the existing `status` values DRAFT, APPROVED and ARCHIVED, so public pages (which already show only APPROVED) need no change. A saved listing is not public until an admin sets it to Published. Archived hides it again without deleting it. The table shows the status and lets you change it without opening the form.
 - Edit uses the same form with `PATCH /api/workshops/[id]`; `seats` cannot go below `booked` (existing rule). Archive sets status ARCHIVED.
 - `validateWorkshop` and `createWorkshop` in `src/lib/admin.ts` are extended with the new fields and shared with the request validation, so the two paths cannot drift.
+- `createWorkshop` today ignores `status` and always creates APPROVED; it now accepts `status` and defaults to DRAFT. This changes what `POST /api/workshops` does for existing callers and tests (admin, admin-api, users-api, seller-products, catalog, pg-concurrency create workshops and expect them to be public), so those tests set `status: 'APPROVED'` explicitly.
 - Only admins can reach these pages and routes (existing `requireAdmin`); all workshop writes keep calling `revalidatePath('/', 'layout')`.
 
 ### 3. Public pages
