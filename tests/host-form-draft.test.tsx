@@ -8,12 +8,12 @@ vi.mock('@/components/ImageUploader', () => ({ ImageUploader: ({ initial }: { in
 vi.mock('@/components/RequestReceived', () => ({ RequestReceived: () => <p>received</p> }));
 
 import { HostWorkshopButton } from '@/components/HostWorkshopButton';
-import { DRAFT_KEY } from '@/lib/host-draft';
+import { DRAFT_KEY, timeAgo } from '@/lib/host-draft';
 
 const fetchMock = vi.fn();
 const val = (l: RegExp | string, v: string) => fireEvent.change(screen.getByLabelText(l), { target: { value: v } });
 const next = () => fireEvent.click(screen.getByRole('button', { name: /^next/i }));
-const openForm = (props: object = {}) => { render(<HostWorkshopButton saveDraft topics={[{ id: 1, name: 'Yoga' }]} {...props} />); fireEvent.click(screen.getByRole('button', { name: /host a workshop/i })); };
+const openForm = (props: object = {}) => { render(<HostWorkshopButton saveDraft topics={[{ id: 1, name: 'Yoga' }]} {...props} />); fireEvent.click(screen.getByRole('button', { name: /host a workshop|continue your listing/i })); };
 const flush = () => act(async () => { await new Promise(r => setTimeout(r, 600)); });
 const stored = () => JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null');
 
@@ -27,7 +27,7 @@ describe('saving the host form as a draft', () => {
     val(/start date/i, '2099-01-05'); val(/venue/i, 'Studio 9');
     await flush();
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    fireEvent.click(screen.getByRole('button', { name: /host a workshop/i }));
+    fireEvent.click(screen.getByRole('button', { name: /host a workshop|continue your listing/i }));
     await waitFor(() => expect((screen.getByLabelText(/start date/i) as HTMLInputElement).value).toBe('2099-01-05'));
     expect(screen.getByText('Step 2 of 3')).toBeTruthy();
     expect((screen.getByLabelText(/venue/i) as HTMLInputElement).value).toBe('Studio 9');
@@ -63,12 +63,13 @@ describe('saving the host form as a draft', () => {
     expect((screen.getByLabelText('Plan 1 name') as HTMLInputElement).value).toBe('Monthly');
     expect((screen.getByLabelText('Plan 1 price (Rs.)') as HTMLInputElement).value).toBe('1500');
   });
-  it('does not restore a draft from the other path', async () => {
+  it('a link for the other path (a shared ?type= link) does not open an unfinished draft of the other path', async () => {
     openForm();
     val(/event title/i, 'In person thing');
     await flush();
     cleanup();
-    openForm({ path: 'class' });
+    render(<HostWorkshopButton saveDraft defaultOpen initialPath="class" />);
+    await waitFor(() => screen.getByLabelText(/class title/i));
     expect((screen.getByLabelText(/class title/i) as HTMLInputElement).value).toBe('');
     expect(screen.queryByText(/restored your saved draft/i)).toBeNull();
   });
@@ -133,8 +134,85 @@ describe('saving the host form as a draft', () => {
   });
   it('does nothing unless the page turned drafts on', async () => {
     render(<HostWorkshopButton />);
-    fireEvent.click(screen.getByRole('button', { name: /host a workshop/i }));
+    fireEvent.click(screen.getByRole('button', { name: /host a workshop|continue your listing/i }));
     val(/event title/i, 'T'); await flush();
     expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+});
+
+describe('reminding someone about an unfinished listing', () => {
+  const draftWithTitle = async (props: object = {}) => {
+    openForm(props);
+    val(/event title/i, 'Clay day'); await flush();
+    cleanup();
+  };
+  it('the button becomes Continue your listing, with a line naming the draft and when it was saved', async () => {
+    await draftWithTitle();
+    render(<HostWorkshopButton saveDraft />);
+    await waitFor(() => screen.getByRole('button', { name: /^continue your listing/i }));
+    const note = screen.getByRole('status');
+    expect(note.textContent).toMatch(/unfinished listing: Clay day/);
+    expect(note.textContent).toMatch(/Saved (just now|\d+ \w+ ago)/);
+    expect(screen.queryByRole('button', { name: /^host a workshop$/i })).toBeNull();
+  });
+  it('Continue opens the saved draft at its step, even when the button starts on the other path', async () => {
+    openForm({ path: 'class' });
+    val(/class title/i, 'Flow'); val(/about the class/i, 'Calm'); fireEvent.click(screen.getByRole('button', { name: /^next/i })); await flush();
+    cleanup();
+    render(<HostWorkshopButton saveDraft />); // an in-person button
+    fireEvent.click(await screen.findByRole('button', { name: /^continue your listing/i }));
+    await waitFor(() => screen.getByText('Step 2 of 3'));
+    expect(screen.getByLabelText('Online class')).toBeTruthy();
+    expect((screen.getByLabelText('Online class') as HTMLInputElement).checked).toBe(true);
+  });
+  it('Discard removes the draft and the reminder', async () => {
+    await draftWithTitle();
+    render(<HostWorkshopButton saveDraft />);
+    fireEvent.click(await screen.findByRole('button', { name: /discard/i }));
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    expect(screen.getByRole('button', { name: /host a workshop/i })).toBeTruthy();
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+  it('opening the form and closing it with nothing typed leaves no draft and no reminder', async () => {
+    openForm(); await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByRole('button', { name: /host a workshop/i })).toBeTruthy();
+  });
+  it('closing a form that has something in it shows the reminder at once', async () => {
+    openForm(); val(/event title/i, 'Half done');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.getByRole('button', { name: /^continue your listing/i })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('Half done');
+  });
+  it('sending the details removes the reminder', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'a@b.co', status: 'pending' }) });
+    openForm();
+    val(/event title/i, 'T'); val(/^type/i, 'workshop'); val(/what happens/i, 'd'); next();
+    val(/start date/i, '2099-01-05'); val(/^city/i, 'x'); val(/venue/i, 'v'); next();
+    val(/host, studio/i, 'H'); val(/your name/i, 'N'); val(/phone number/i, '9989898999'); val(/^email/i, 'a@b.co');
+    fireEvent.click(screen.getByRole('button', { name: /send details/i }));
+    await waitFor(() => expect(localStorage.getItem(DRAFT_KEY)).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+  it('shows no reminder unless the page turned drafts on, and never shows personal details', async () => {
+    await draftWithTitle();
+    render(<HostWorkshopButton />);
+    expect(screen.getByRole('button', { name: /^host a workshop/i })).toBeTruthy();
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+});
+
+describe('timeAgo', () => {
+  const now = 1_000_000_000_000;
+  it('says just now, minutes, hours and days', () => {
+    expect(timeAgo(now - 20_000, now)).toBe('just now');
+    expect(timeAgo(now - 60_000, now)).toBe('1 minute ago');
+    expect(timeAgo(now - 5 * 60_000, now)).toBe('5 minutes ago');
+    expect(timeAgo(now - 3 * 3_600_000, now)).toBe('3 hours ago');
+    expect(timeAgo(now - 86_400_000, now)).toBe('1 day ago');
+    expect(timeAgo(now - 3 * 86_400_000, now)).toBe('3 days ago');
   });
 });

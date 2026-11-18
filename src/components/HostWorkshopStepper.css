@@ -116,3 +116,7 @@
 .host-dialog-form { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
 .host-dialog-form .dialog-head, .host-dialog-form .host-progress { flex: none; }
 .host-dialog-form form.host-form { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+
+/* The reminder above the button when an earlier draft was never sent. */
+.host-continue-note { margin: 0 0 8px; font-size: 13px; line-height: 1.4; color: var(--muted); }
+.host-continue-note .text-link { display: inline; padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: var(--green); text-decoration: underline; cursor: pointer; }

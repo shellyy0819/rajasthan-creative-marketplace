@@ -40,11 +40,29 @@ export function clearDraft(): void {
   try { localStorage.removeItem(DRAFT_KEY); } catch { /* nothing to clear */ }
 }
 
+/** Has the person typed or chosen anything yet? An empty form is not worth saving or reminding about. */
+export function hasContent(d: Pick<HostDraft, 'fields' | 'days' | 'weeks' | 'images' | 'priceRows'>): boolean {
+  return Object.keys(d.fields).length > 0 || d.days.length > 0 || d.weeks.length > 0 || d.images.length > 0 || d.priceRows.length > 0;
+}
+
+/** "just now", "5 minutes ago", "3 hours ago", "2 days ago". */
+export function timeAgo(then: number, now = Date.now()): string {
+  const s = Math.max(0, Math.round((now - then) / 1000));
+  const unit = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'} ago`;
+  if (s < 45) return 'just now';
+  if (s < 3600) return unit(Math.max(1, Math.round(s / 60)), 'minute');
+  if (s < 86_400) return unit(Math.round(s / 3600), 'hour');
+  return unit(Math.round(s / 86_400), 'day');
+}
+
 /** Reads what is typed into the form (text, selects, ticked days and weeks, uploaded photo urls). */
 export function collectDraft(form: HTMLFormElement, state: Pick<HostDraft, 'path' | 'step' | 'startDate' | 'paid' | 'repeat' | 'priceRows'>, now = Date.now()): HostDraft {
   const f = new FormData(form);
   const fields: Record<string, string> = {};
   for (const [k, v] of f.entries()) if (typeof v === 'string' && !SKIP.has(k) && v !== '') fields[k] = v;
+  // Controls that start on a value of their own say nothing about whether the person has typed anything (the paid and repeat choices are kept in the state).
+  delete fields.entry; delete fields.repeat;
+  if (fields.durationValue === '60' && fields.durationUnit === 'mins') { delete fields.durationValue; delete fields.durationUnit; }
   return {
     savedAt: now, ...state, fields,
     days: f.getAll('days').map(String), weeks: f.getAll('weeks').map(String), freeTrial: f.get('freeTrial') === 'on', images: f.getAll('images').map(String).filter(Boolean),

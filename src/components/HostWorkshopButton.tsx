@@ -8,7 +8,7 @@ import { DEFAULT_CONTACT_EMAIL } from '@/lib/site';
 import { MAX_REQUEST_IMAGES, submitErrorMessage } from '@/lib/workshop-requests-shared';
 import { HOST_PARAM, LEGACY_HOST_PARAM, hostParamFor, type HostPath } from '@/lib/host-link';
 import { supportLine } from '@/lib/workshop-support';
-import { clearDraft, collectDraft, readDraft, writeDraft, type HostDraft } from '@/lib/host-draft';
+import { clearDraft, collectDraft, hasContent, readDraft, timeAgo, writeDraft, type HostDraft } from '@/lib/host-draft';
 import type { TopicOption } from '@/lib/topics';
 import { ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, type PriceDraft } from './HostListingFields';
 import './HostWorkshopStepper.css';
@@ -61,6 +61,13 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   const restore = useRef<HostDraft | null>(null);
   const applied = useRef(new Set<string>());
   const [restoreTick, setRestoreTick] = useState(0);
+  // An unfinished draft from an earlier visit (read in the browser only): the button offers to continue it.
+  const [existing, setExisting] = useState<HostDraft | null>(null);
+  useEffect(() => {
+    const d = saveDraft ? readDraft() : null;
+    setExisting(d && hasContent(d) ? d : null);
+  }, [saveDraft, open, done, pending]);
+  const discardDraft = () => { clearDraft(); setExisting(null); };
   const latest = useRef({ path, step: 0, startDate: '', paid: false, repeat: 'weekly' as 'weekly' | 'monthly', priceRows: [] as PriceDraft[] });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // The form is portalled into document.body, which does not exist while rendering on the server (a ?host=1 link opens it on first render).
@@ -70,7 +77,8 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   latest.current = { path, step, startDate, paid, repeat, priceRows };
   const saveNow = () => {
     if (!saveDraft || !formRef.current || done || pending) return;
-    writeDraft(collectDraft(formRef.current, latest.current));
+    const d = collectDraft(formRef.current, latest.current);
+    if (hasContent(d)) writeDraft(d); else clearDraft(); // nothing typed: nothing to keep or to remind about
   };
   const scheduleSave = () => {
     if (!saveDraft) return;
@@ -267,7 +275,13 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
 
   return (
     <>
-      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setPath(preset); setPriceRows([]); setRepeat('weekly'); restoreDraft(preset); setOpen(true); }}>{label} <span>↗</span></button>
+      {existing && !open && (
+        <p className="host-continue-note" role="status">
+          You have an unfinished listing{existing.fields.title ? `: ${existing.fields.title.slice(0, 60)}` : ''}. Saved {timeAgo(existing.savedAt)}.{' '}
+          <button type="button" className="text-link" onClick={discardDraft}>Discard</button>
+        </p>
+      )}
+      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setPath(preset); setPriceRows([]); setRepeat('weekly'); restoreDraft(existing ? null : preset); setOpen(true); }}>{existing ? 'Continue your listing' : label} <span>↗</span></button>
       {open && mounted && createPortal(
         <div className="contact-backdrop admin-modal host-backdrop" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
           <div role="dialog" aria-modal="true" aria-labelledby="host-title" className={`contact-card host-dialog${!done && !pending ? ' host-dialog-form' : ''}`}>
