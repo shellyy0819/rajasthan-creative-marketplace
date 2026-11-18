@@ -12,6 +12,7 @@ Goal: a listing model that fits online recurring classes now and new topics (pre
 
 Goals
 - An instructor can submit everything above through the host form (one form, two paths: in-person event or online class) and see it on a public listing.
+- An admin can add, edit and archive listings on behalf of hosts (the yoga instructor, a café) without the host using the form, and can list a host's request after fixing it.
 - In-person events keep working exactly as today (same URLs, slugs, booking).
 - `/workshops` says plainly what can be listed, and that text never promises more than the form accepts.
 - Adding a topic is a data change (a row), not a code change. Topic-specific questions (prenatal) are phase 2.
@@ -61,6 +62,7 @@ Anti-goals
 - `free_trial` boolean not null default false.
 - `whatsapp`, `instagram`, `website` text null.
 - `images` jsonb not null default '[]' (today listings have no images; requests do).
+- Admin-only (never in the public mapper, page, JSON-LD or API): `contact_name`, `contact_phone`, `contact_email` text null, so staff can reach the host later; `created_by` uuid null FK `users` (the admin who added it); `source_request_id` uuid null (the request it came from).
 
 New `workshop_prices`: `id` serial, `workshop_id` text FK on delete cascade, `label` text (up to 30; presets Per session, Monthly, Quarterly, or custom), `amount_paise` integer >= 0, `sessions` integer null, `position` integer. At most 5 per listing.
 - `workshops.price_paise` and `type` stay. They are a cache the app sets from the rows: `price_paise` = lowest row, `type` = FREE when every row is 0 or there are no rows. Existing filters, cards, JSON-LD and booking keep reading them.
@@ -71,9 +73,16 @@ New `workshop_topics`: `id` serial, `slug` text unique, `name` text unique (case
 
 Backfill: every existing `workshops` row gets mode 'in_person', kind 'workshop', topic null, empty arrays. Booking and seat code is untouched.
 
-### 2. Request to listing
+### 2. Admin: add and edit listings on behalf of hosts
 
-Finding: nothing turns a request into a listing. Phase 1 adds an "Approve and list" action on each request in the dashboard. It creates the `workshops` row (status APPROVED) and its price rows from the request, stores the new workshop id on the request, and marks the request `listed`. There is still no listing editor: changes go through the existing admin API. (This is open question 1.)
+Decided by you: admins add workshops and classes for others. Today there is no admin screen for this (only `POST /api/workshops` by hand).
+
+- New dashboard page `/dashboard/workshops` (tab next to Workshop requests): a table of all listings (title, host, mode, topic, dates, status) with **New listing**, **Edit** and **Archive / Delete**.
+- The listing form is the same stepper as the public one (same fields, same two paths, same limits) in admin mode: no email code, no honeypot or rate limit, the listing is saved as APPROVED straight away, and it also asks for the host's private contact (name, phone, email) and an optional link to an existing user as `host_id`. `host_name` stays free text, so a host without an account works.
+- **List from a request:** each request row gets a "Create listing" button that opens the admin form pre-filled from the request (the admin can fix anything), saves the listing, and marks the request `listed` with the new workshop id.
+- Edit uses the same form with `PATCH /api/workshops/[id]`; `seats` cannot go below `booked` (existing rule). Archive sets status ARCHIVED.
+- `validateWorkshop` and `createWorkshop` in `src/lib/admin.ts` are extended with the new fields and shared with the request validation, so the two paths cannot drift.
+- Only admins can reach these pages and routes (existing `requireAdmin`); all workshop writes keep calling `revalidatePath('/', 'layout')`.
 
 ### 3. Public pages
 
@@ -82,7 +91,7 @@ Finding: nothing turns a request into a listing. Phase 1 adds an "Approve and li
 - Classes (`kind = 'class'`) show contact buttons instead of `ReserveButton`. In-person events keep Reserve.
 - JSON-LD: online listings use `OnlineEventAttendanceMode` with a `VirtualLocation` (the listing page URL; the join link is never stored or shown). In-person listings are unchanged. Weekly classes add `eventSchedule`; price rows become `offers`.
 - A mode filter (All / In person / Online) next to the existing Free and paid filter.
-- "Upcoming": the list shows a listing while its last date is today or later (one-off: `starts_at`; class: `ends_on`, or always when open-ended). Past ones stay in the database, their page still opens with an "Ended" note and noindex, and they leave the sitemap and the list. (This changes today's behavior, open question 2.)
+- "Upcoming": the list shows a listing while its last date is today or later (one-off: `starts_at`; class: `ends_on`, or always when open-ended). Past ones stay in the database, their page still opens with an "Ended" note and noindex, and they leave the sitemap and the list. (This changes today's behavior, open question 1.)
 
 ### 4. Host form (stepper)
 
@@ -126,6 +135,5 @@ Exact CSS and component structure for the price editor and day chips; copy for t
 
 ## Open questions for you
 
-1. Should phase 1 include the "Approve and list" button (section 2)? Without it, an admin has to create each listing through the API by hand.
-2. Should past listings leave `/workshops` and the sitemap (section 3)? Today they never do.
-3. For online classes, is contact-only (WhatsApp / Instagram) right, or do you want booking with seats?
+1. Should past listings leave `/workshops` and the sitemap (section 3)? Today they never do.
+2. For online classes, is contact-only (WhatsApp / Instagram) right, or do you want booking with seats?
