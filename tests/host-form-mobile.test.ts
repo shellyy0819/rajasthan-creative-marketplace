@@ -27,6 +27,10 @@ describe('host form on phones: CSS', () => {
     expect(css).toMatch(/\.host-form \.admin-actions \{[^}]*position: sticky;[^}]*bottom: 0/);
     expect(css).toMatch(/overscroll-behavior: contain/);
   });
+  it('the sticky header carries the dialog\'s top padding so nothing scrolls into a gap above it', () => {
+    expect(css).toMatch(/\.host-dialog \{ padding-top: 0; \}/);
+    expect(css).toMatch(/\.host-dialog \.dialog-head \{[^}]*position: sticky;[^}]*top: 0;[^}]*background: var\(--white\)/);
+  });
   it('on small phones the dialog fills the screen and field pairs stack', () => {
     expect(css).toMatch(/@media \(max-width: 600px\)[\s\S]*\.host-dialog[\s\S]*height: 100dvh/);
     expect(css).toMatch(/\.host-form \.admin-form-row \{ grid-template-columns: 1fr; \}/);

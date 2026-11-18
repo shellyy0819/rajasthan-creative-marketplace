@@ -80,11 +80,14 @@
   .host-form select { font-size: 14px; min-height: 44px; }
   .host-form input[type='checkbox'], .host-form input[type='radio'] { width: 22px; height: 22px; }
   .host-form .button, .host-form .icon-btn, .host-day, .host-path-card { min-height: 44px; }
-  .host-dialog .dialog-head { position: sticky; top: 0; z-index: 2; background: var(--white); }
+  /* The dialog has no top padding of its own: the sticky header carries it, so nothing scrolls into a gap above the header. */
+  .host-dialog { padding-top: 0; }
+  .host-dialog .dialog-head { position: sticky; top: 0; z-index: 2; margin: 0 0 14px; padding: 22px 0 12px; background: var(--white); }
 }
 @media (max-width: 600px) {
   .host-backdrop { padding: 0; align-items: stretch; }
-  .host-dialog { width: 100%; height: 100vh; height: 100dvh; max-height: none; border-radius: 0; padding: 16px 16px 0; }
+  .host-dialog { width: 100%; height: 100vh; height: 100dvh; max-height: none; border-radius: 0; padding: 0 16px; }
+  .host-dialog .dialog-head { padding-top: 16px; }
   .host-form .admin-form-row { grid-template-columns: 1fr; }
 }
 @supports (-webkit-touch-callout: none) {
