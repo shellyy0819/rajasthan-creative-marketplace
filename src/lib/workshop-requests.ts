@@ -43,7 +43,6 @@ const toRequest = (r: typeof workshopRequests.$inferSelect): WorkshopRequest => 
 export async function markRequestListed(q: Q, requestId: string, workshopId: string): Promise<void> {
   const [row] = await q.select({ status: workshopRequests.status }).from(workshopRequests).where(eq(workshopRequests.id, requestId)).for('update');
   if (!row) throw bad('sourceRequestId does not match a request.');
-  if (row.status === 'listed') throw new ApiError(409, 'A listing was already made from this request.');
   await q.update(workshopRequests).set({ status: 'listed', listedWorkshopId: workshopId }).where(eq(workshopRequests.id, requestId));
 }
 

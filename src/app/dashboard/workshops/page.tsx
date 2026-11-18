@@ -13,7 +13,8 @@ export default async function WorkshopsDashboardPage({ searchParams }: { searchP
   const sp = await searchParams;
   const from = typeof sp.from === 'string' ? sp.from : undefined;
   const [workshops, topics, requests] = await Promise.all([listAdminWorkshops(), listActiveTopics(), from ? listWorkshopRequests() : Promise.resolve([])]);
-  const fromRequest = requests.find(r => r.id === from && r.status !== 'listed');
+  // A request can be turned into a listing again only while its listing is still a Draft (drafts can be duplicated; a published one cannot).
+  const fromRequest = requests.find(r => r.id === from && (r.status !== 'listed' || r.listedStatus === 'DRAFT'));
   const presetStatus = sp.status === 'APPROVED' ? 'APPROVED' : undefined; // the Published choice on a request opens the form with Published preselected
   const crumbs = [{ name: 'Home', path: hostConfig().publicOrigin ?? '/' }, { name: 'Dashboard', path: '/dashboard' }, { name: 'Workshops', path: '/dashboard/workshops' }];
   return (

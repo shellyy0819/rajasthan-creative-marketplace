@@ -1,4 +1,4 @@
-import { and, count, eq, inArray, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { allocateId } from '../db/ids';
 import { productsQuery, toAdminProduct, toProductRow, toWorkshop, toAdminWorkshop, toWorkshopRow, withPrices, workshopsQuery, type ProductInput, type WorkshopInput } from '../db/mappers';
@@ -227,6 +227,15 @@ function validateWorkshop(v: Raw): WorkshopFields {
   };
 }
 
+const ALREADY_PUBLISHED = 'A published listing already came from this request. Set it to Draft first, or keep this one as a Draft.';
+/** Drafts of one request may be duplicated, but only one listing of a request can be published at a time. */
+async function assertNoOtherPublished(tx: Tx, sourceRequestId: string | null | undefined, exceptId?: string) {
+  if (!sourceRequestId) return;
+  const [other] = await tx.select({ id: workshopsT.id }).from(workshopsT)
+    .where(and(eq(workshopsT.sourceRequestId, sourceRequestId), eq(workshopsT.status, 'APPROVED'), exceptId ? ne(workshopsT.id, exceptId) : undefined)).limit(1);
+  if (other) throw new ApiError(409, ALREADY_PUBLISHED);
+}
+
 async function requireTopic(tx: Tx, id: number | null) {
   if (id === null) return;
   const [t] = await tx.select({ id: workshopTopics.id }).from(workshopTopics).where(eq(workshopTopics.id, id));
@@ -259,6 +268,7 @@ export async function createWorkshop(input: unknown, adminEmail?: string): Promi
   return getDb().transaction(async tx => {
     await requireHost(tx, hostId);
     await requireTopic(tx, data.topicId);
+    if (data.status === 'APPROVED') await assertNoOtherPublished(tx, sourceRequestId);
     const cityId = await resolveCityInput(tx, raw, { required: data.mode !== 'online' });
     const id = await allocateId(tx, 'w');
     const [creator] = adminEmail ? await tx.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${adminEmail.toLowerCase()}`) : [];
@@ -284,6 +294,7 @@ export async function updateWorkshop(id: string, input: unknown): Promise<Worksh
     const next = validateWorkshop(merged);
     await requireTopic(tx, next.topicId);
     const cityId = await resolveCityInput(tx, { cityId: row.cityId ?? undefined, ...patch }, { required: next.mode !== 'online' });
+    if (next.status === 'APPROVED') await assertNoOtherPublished(tx, row.sourceRequestId, id);
     if (next.seats !== null && next.seats < row.booked) throw bad(`seats cannot be less than the ${row.booked} already booked.`);
     if (hostId) await requireHost(tx, hostId);
     await tx.update(workshopsT).set({
@@ -298,10 +309,16 @@ export async function updateWorkshop(id: string, input: unknown): Promise<Worksh
 export async function deleteWorkshop(id: string): Promise<{ unlinkedProducts: number }> {
   return getDb().transaction(async tx => {
     const [{ n }] = await tx.select({ n: count() }).from(productsT).where(eq(productsT.workshopId, id));
-    // A request that became this listing is open again, so an admin can list it anew (before the delete: the foreign key would clear the link first).
+    const [gone] = await tx.select({ source: workshopsT.sourceRequestId }).from(workshopsT).where(eq(workshopsT.id, id));
+    // A request that became this listing is open again, so an admin can list it anew (before the delete: the foreign key would clear the link first)...
     await tx.update(workshopRequestsT).set({ status: 'received', listedWorkshopId: null }).where(and(eq(workshopRequestsT.listedWorkshopId, id), eq(workshopRequestsT.status, 'listed')));
     const rows = await tx.delete(workshopsT).where(eq(workshopsT.id, id)).returning({ id: workshopsT.id });
     if (!rows.length) throw new ApiError(404, 'Workshop not found.');
+    // ...unless another listing of the same request is left: then the request points at the newest of those.
+    if (gone?.source) {
+      const [newest] = await tx.select({ id: workshopsT.id }).from(workshopsT).where(eq(workshopsT.sourceRequestId, gone.source)).orderBy(sql`length(${workshopsT.id}) desc`, desc(workshopsT.id)).limit(1);
+      if (newest) await tx.update(workshopRequestsT).set({ status: 'listed', listedWorkshopId: newest.id }).where(eq(workshopRequestsT.id, gone.source));
+    }
     return { unlinkedProducts: n };
   });
 }

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "workshops_one_published_per_request" ON "workshops" USING btree ("source_request_id") WHERE "workshops"."status" = 'APPROVED' and "workshops"."source_request_id" is not null;

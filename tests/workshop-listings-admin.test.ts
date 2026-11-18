@@ -9,7 +9,7 @@ import { createWorkshopRequest } from '@/lib/workshop-requests';
 import { setMailSenderForTests } from '@/lib/mailer';
 import { workshopSlug } from '@/lib/catalog-shared';
 import { isCurrent } from '@/lib/workshop-listing';
-import { workshopPrices, users } from '@/db/schema';
+import { workshopPrices, workshops, users } from '@/db/schema';
 import { getTestDb, resetTestDb } from './helpers/testdb';
 import { cityRef } from './helpers/cities';
 
@@ -159,9 +159,61 @@ describe('review fixes', () => {
     await createWorkshop(kota);
     expect((await listActiveCities()).map(c => c.slug)).toContain('kota');
   });
-  it('a request can be listed only once', async () => {
+});
+
+describe('one request, several drafts, one published listing', () => {
+  const published = { ...yoga, status: 'APPROVED' };
+  it('a draft listing of a request can be duplicated: another draft from the same request is allowed', async () => {
     const rid = await aRequest();
-    await createWorkshop({ ...yoga, sourceRequestId: rid });
-    await expect(createWorkshop({ ...yoga, sourceRequestId: rid })).rejects.toMatchObject({ status: 409 });
+    const a = await createWorkshop({ ...yoga, sourceRequestId: rid });
+    const b = await createWorkshop({ ...yoga, sourceRequestId: rid });
+    expect([a.status, b.status]).toEqual(['DRAFT', 'DRAFT']);
+    expect(b.sourceRequestId).toBe(rid);
+    const { listWorkshopRequests } = await import('@/lib/workshop-requests');
+    expect((await listWorkshopRequests()).find(r => r.id === rid)).toMatchObject({ status: 'listed', listedWorkshopId: b.id }); // the newest
+  });
+  it('two listings from the same request cannot both be published', async () => {
+    const rid = await aRequest();
+    await createWorkshop({ ...published, sourceRequestId: rid });
+    await expect(createWorkshop({ ...published, sourceRequestId: rid })).rejects.toMatchObject({ status: 409, message: expect.stringMatching(/already came from this request/i) });
+    expect((await createWorkshop({ ...yoga, sourceRequestId: rid })).status).toBe('DRAFT'); // a draft is still fine
+  });
+  it('publishing a draft is refused while another listing of the request is published; it works once that one is un-published', async () => {
+    const rid = await aRequest();
+    const first = await createWorkshop({ ...published, sourceRequestId: rid });
+    const second = await createWorkshop({ ...yoga, sourceRequestId: rid });
+    await expect(updateWorkshop(second.id, { status: 'APPROVED' })).rejects.toMatchObject({ status: 409 });
+    await updateWorkshop(first.id, { status: 'DRAFT' });
+    expect((await updateWorkshop(second.id, { status: 'APPROVED' })).status).toBe('APPROVED');
+    await expect(updateWorkshop(first.id, { status: 'APPROVED' })).rejects.toMatchObject({ status: 409 });
+  });
+  it('re-saving the published one (changing its title) is not blocked by itself', async () => {
+    const rid = await aRequest();
+    const first = await createWorkshop({ ...published, sourceRequestId: rid });
+    expect((await updateWorkshop(first.id, { title: 'Renamed' })).title).toBe('Renamed');
+  });
+  it('listings of different requests, or with no request, can all be published', async () => {
+    await createWorkshop({ ...published, sourceRequestId: await aRequest() });
+    await createWorkshop({ ...published, sourceRequestId: await aRequest() });
+    await createWorkshop(published);
+    await createWorkshop(published);
+  });
+  it('the database itself refuses two published listings of one request (the backstop for a race)', async () => {
+    const rid = await aRequest();
+    await createWorkshop({ ...published, sourceRequestId: rid });
+    const db = await getTestDb();
+    const [row] = await db.select().from(workshops).where(eq(workshops.sourceRequestId, rid));
+    await expect(db.insert(workshops).values({ ...row, id: 'w777', status: 'APPROVED' })).rejects.toThrow();
+  });
+  it('deleting one of two listings of a request keeps the request listed, pointing at the one that is left; deleting the last reopens it', async () => {
+    const { deleteWorkshop } = await import('@/lib/admin');
+    const { listWorkshopRequests } = await import('@/lib/workshop-requests');
+    const rid = await aRequest();
+    const a = await createWorkshop({ ...yoga, sourceRequestId: rid });
+    const b = await createWorkshop({ ...yoga, sourceRequestId: rid });
+    await deleteWorkshop(b.id);
+    expect((await listWorkshopRequests()).find(r => r.id === rid)).toMatchObject({ status: 'listed', listedWorkshopId: a.id });
+    await deleteWorkshop(a.id);
+    expect((await listWorkshopRequests()).find(r => r.id === rid)).toMatchObject({ status: 'received' });
   });
 });

@@ -23,6 +23,16 @@ describe('requests table', () => {
     expect(h).toContain('Studio, Jaipur, Rajasthan');
     expect(h).toContain('10 · Rs. 500');
   });
+  it('a request whose listing is still a Draft can be duplicated; once published it cannot', () => {
+    const draft = renderToStaticMarkup(<WorkshopRequestsAdmin requests={[{ ...base, status: 'listed', listedWorkshopId: 'w12', listedStatus: 'DRAFT' } as WorkshopRequest]} />);
+    expect(draft).toContain('Listed as w12 (draft)');
+    expect(draft).toContain('Duplicate draft');
+    expect(draft).toContain('href="/dashboard/workshops?from=1"');
+    const live = renderToStaticMarkup(<WorkshopRequestsAdmin requests={[{ ...base, status: 'listed', listedWorkshopId: 'w12', listedStatus: 'APPROVED' } as WorkshopRequest]} />);
+    expect(live).toContain('Listed as w12');
+    expect(live).not.toContain('Duplicate draft');
+    expect(live).not.toContain('Create listing');
+  });
   it('each request links to Create listing, or says which listing it became', () => {
     const open = renderToStaticMarkup(<WorkshopRequestsAdmin requests={[base]} />);
     expect(open).toContain('href="/dashboard/workshops?from=1"');
