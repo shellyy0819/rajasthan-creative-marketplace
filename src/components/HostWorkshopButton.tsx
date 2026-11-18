@@ -6,7 +6,7 @@ import { ImageUploader } from './ImageUploader';
 import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 import { DEFAULT_CONTACT_EMAIL } from '@/lib/site';
 import { MAX_REQUEST_IMAGES, submitErrorMessage } from '@/lib/workshop-requests-shared';
-import { HOST_PARAM, hostParamFor, type HostPath } from '@/lib/host-link';
+import { HOST_PARAM, LEGACY_HOST_PARAM, hostParamFor, type HostPath } from '@/lib/host-link';
 import { supportLine } from '@/lib/workshop-support';
 import { clearDraft, collectDraft, readDraft, writeDraft, type HostDraft } from '@/lib/host-draft';
 import type { TopicOption } from '@/lib/topics';
@@ -21,7 +21,7 @@ const fmtDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(
 
 /**
  * "Host a workshop": opens a form that collects every detail we need to list a workshop, meetup, pop-up or flea market.
- * `defaultOpen` opens it on first render (a shared ?host= link); `shareable` keeps ?host=in-person (or class) in the address bar while it is open.
+ * `defaultOpen` opens it on first render (a shared ?host= link); `shareable` keeps ?type=in-person (or online) in the address bar while it is open.
  */
 export function HostWorkshopButton({ className = 'button outline', contactEmail = DEFAULT_CONTACT_EMAIL, defaultOpen = false, shareable = false, path: preset = 'event', initialPath, topics = [], label = 'Host a workshop', prefill = false, saveDraft = false }: {
   className?: string; contactEmail?: string; defaultOpen?: boolean; shareable?: boolean;
@@ -123,12 +123,23 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
 
   // Mirror the open form in the address bar so the link can be copied and shared. replaceState: no history entry, no server round trip.
   const hostValue = hostParamFor(path);
+  const ownsParam = useRef(false); // only the button that wrote the address-bar value takes it away again (two buttons on one page)
   useEffect(() => {
     if (!shareable) return;
     const url = new URL(window.location.href);
     const current = url.searchParams.get(HOST_PARAM);
-    if (open ? current === hostValue : current === null) return;
-    if (open) url.searchParams.set(HOST_PARAM, hostValue); else url.searchParams.delete(HOST_PARAM);
+    if (open) {
+      if (current === 'FREE' || current === 'PAID') return; // a price filter is in the address bar: leave it alone
+      ownsParam.current = true;
+      if (current === hostValue && !url.searchParams.has(LEGACY_HOST_PARAM)) return;
+      url.searchParams.delete(LEGACY_HOST_PARAM);
+      url.searchParams.set(HOST_PARAM, hostValue);
+    } else {
+      if (!ownsParam.current) return;
+      ownsParam.current = false;
+      if (current !== 'in-person' && current !== 'online') return;
+      url.searchParams.delete(HOST_PARAM);
+    }
     window.history.replaceState(null, '', url.pathname + url.search + url.hash);
   }, [open, shareable, hostValue]);
 

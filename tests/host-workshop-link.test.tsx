@@ -35,11 +35,11 @@ describe('HostWorkshopButton share link', () => {
     expect(dialog()).toBeNull();
   });
 
-  it('puts ?host=in-person in the address bar while the form is open and removes it on close, keeping other params', () => {
+  it('puts ?type=in-person in the address bar while the form is open and removes it on close, keeping other params', () => {
     window.history.replaceState(null, '', '/workshops?utm_source=wa');
     render(<HostWorkshopButton shareable />);
     fireEvent.click(screen.getByRole('button', { name: /host a workshop/i }));
-    expect(window.location.search).toBe('?utm_source=wa&host=in-person');
+    expect(window.location.search).toBe('?utm_source=wa&type=in-person');
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(dialog()).toBeNull();
     expect(window.location.search).toBe('?utm_source=wa');
@@ -57,6 +57,29 @@ describe('HostWorkshopButton share link', () => {
     render(<HostWorkshopButton />);
     fireEvent.click(screen.getByRole('button', { name: /host a workshop/i }));
     expect(dialog()).not.toBeNull();
+    expect(window.location.search).toBe('');
+  });
+
+  it('an older ?host=class link becomes ?type=online while open and is gone after close', () => {
+    window.history.replaceState(null, '', '/workshops?host=class');
+    render(<HostWorkshopButton defaultOpen initialPath="class" shareable />);
+    expect(window.location.search).toBe('?type=online');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(window.location.search).toBe('');
+  });
+  it('leaves a price filter (?type=FREE) in the address bar alone', () => {
+    window.history.replaceState(null, '', '/workshops?type=FREE');
+    render(<HostWorkshopButton shareable />);
+    fireEvent.click(screen.getByRole('button', { name: /host a workshop/i }));
+    expect(window.location.search).toBe('?type=FREE');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(window.location.search).toBe('?type=FREE');
+  });
+  it('two buttons on one page do not undo each other: the closed one leaves the address alone', () => {
+    render(<><HostWorkshopButton shareable label="First" /><HostWorkshopButton shareable label="Second" /></>);
+    fireEvent.click(screen.getByRole('button', { name: /second/i }));
+    expect(window.location.search).toBe('?type=in-person');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(window.location.search).toBe('');
   });
 });

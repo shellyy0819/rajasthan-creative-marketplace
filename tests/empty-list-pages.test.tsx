@@ -51,6 +51,11 @@ describe('/workshops with no workshops at all', () => {
     expect(cls).not.toContain('>Teach an online class<');
     expect(cls.match(/<section class="ws-empty"[\s\S]*<\/section>/)![0].match(/data-host-button/g)).toHaveLength(1); // the card has the one button
   });
+  it('?type=in-person and ?type=online open the form on that path', async () => {
+    expect(renderToStaticMarkup(await WorkshopsPage(sp({ type: 'in-person' })))).toContain('data-open="true" data-initial="event"');
+    expect(renderToStaticMarkup(await WorkshopsPage(sp({ type: 'online' })))).toContain('data-open="true" data-initial="class"');
+    expect((await workshopsMeta(sp({ type: 'online' }))).robots).toEqual({ index: false, follow: true });
+  });
   it('?host=in-person opens the form on the in-person path', async () => {
     expect(renderToStaticMarkup(await WorkshopsPage(sp({ host: 'in-person' })))).toContain('data-open="true" data-initial="event"');
   });

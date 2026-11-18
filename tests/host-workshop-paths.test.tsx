@@ -32,6 +32,11 @@ describe('host-link helpers', () => {
     expect(hostPath({ host: 'class' })).toBe('class');
     expect(hostPath({ host: '1' })).toBeNull();
     expect(hostPath({ host: 'in-person' })).toBe('event');
+    expect(hostPath({ type: 'in-person' })).toBe('event');
+    expect(hostPath({ type: 'online' })).toBe('class');
+    expect(wantsHostForm({ type: 'online' })).toBe(true);
+    expect(wantsHostForm({ type: 'FREE' })).toBe(false);
+    expect(wantsHostForm({ type: 'in-person' })).toBe(true);
     expect(wantsHostForm({ host: 'in-person' })).toBe(true);
     expect(hostPath({})).toBeNull();
     expect(wantsHostForm({ host: 'class' })).toBe(true);
@@ -249,12 +254,12 @@ describe('languages', () => {
 });
 
 describe('address bar', () => {
-  it('uses host=class while the class path is open and host=in-person otherwise', () => {
+  it('uses type=online while the class path is open and type=in-person otherwise', () => {
     render(<HostWorkshopButton path="class" shareable topics={topics} />);
     fireEvent.click(screen.getByRole('button', { name: /host a workshop/i }));
-    expect(window.location.search).toBe('?host=class');
+    expect(window.location.search).toBe('?type=online');
     fireEvent.click(screen.getByLabelText('In-person event'));
-    expect(window.location.search).toBe('?host=in-person');
+    expect(window.location.search).toBe('?type=in-person');
   });
 });
 
