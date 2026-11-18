@@ -27,6 +27,10 @@ describe('GET /api/host-prefill', () => {
     authMock.mockResolvedValue({ user: { email: 'asha@x.co', name: 'Asha Rao', role: 'seller' } });
     expect(await (await GET()).json()).toEqual({ name: 'Asha Rao', email: 'asha@x.co', hostName: 'Asha Yoga', phone: '9989898999', whatsapp: '9989898999', instagram: '@asha.yoga', website: 'https://asha.yoga' });
   });
+  it('a seller with no profile row gets no host name: it is the profile display name or nothing', async () => {
+    authMock.mockResolvedValue({ user: { email: 'new@x.co', name: 'New Seller', role: 'seller' } });
+    expect(await (await GET()).json()).toEqual({ name: 'New Seller', email: 'new@x.co' });
+  });
   it('never returns anything about another person: only the signed-in user\'s own details', async () => {
     authMock.mockResolvedValue({ user: { email: 'x@x.co', name: 'X', role: 'customer' } });
     expect(Object.keys(await (await GET()).json()).sort()).toEqual(['email', 'name']);

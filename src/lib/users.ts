@@ -143,6 +143,13 @@ export async function getProfileByEmail(email: string): Promise<SellerProfile> {
   return p ? toProfile(p) : { userId: u.id, displayName: u.name };
 }
 
+/** The person's seller_profiles row, or undefined when they have none (unlike getProfileByEmail, which falls back to their account name). */
+export async function findProfileByEmail(email: string): Promise<SellerProfile | undefined> {
+  const u = await ensureUser(getDb(), email);
+  const p = await loadProfile(getDb(), u.id);
+  return p ? toProfile(p) : undefined;
+}
+
 export async function getProfileById(userId: string): Promise<SellerProfile> {
   const [u] = await getDb().select().from(users).where(eq(users.id, userId));
   if (!u) throw new ApiError(404, 'User not found.');
