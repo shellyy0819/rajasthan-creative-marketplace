@@ -32,6 +32,9 @@ describe('host form on phones: CSS', () => {
     expect(css).toMatch(/\.host-dialog-form form\.host-form \{[^}]*overflow-y: auto;/);
     expect(css).toMatch(/\.host-dialog-form \.dialog-head, \.host-dialog-form \.host-progress \{ flex: none; \}/);
   });
+  it('the scrolling form leaves room for the focus ring on every side, so it is not cut off at the left and right', () => {
+    expect(css).toMatch(/\.host-dialog-form form\.host-form \{ padding: 4px 4px 0; margin: 0 -4px; \}/);
+  });
   it('the dialog is a little shorter than the window on tablets and desktop, and its action bar is compact', () => {
     expect(css).toMatch(/@media \(min-width: 601px\) \{[^@]*\.host-dialog \{[^}]*max-height: calc\(100dvh - 72px\);/);
     expect(css).toMatch(/\.host-form \.admin-actions \{[^}]*padding: 8px 0 calc\(8px \+ env\(safe-area-inset-bottom\)\);/);
