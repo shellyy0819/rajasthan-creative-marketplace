@@ -122,14 +122,14 @@ describe('step 2 and 3 on the online class path', () => {
   });
 });
 
-describe('entry: free or fixed price', () => {
-  it('is a dropdown that starts on Free to attend; Fixed price shows the price box and sends PAID', async () => {
+describe('price: free or paid', () => {
+  it('is a dropdown that starts on Free; Paid shows the price box and sends PAID', async () => {
     fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'a@b.co', status: 'pending' }) });
     render(<HostWorkshopButton topics={topics} />);
     fireEvent.click(screen.getByRole('button', { name: /host a workshop/i }));
     val(/event title/i, 'Clay'); val(/^type/i, 'workshop'); val(/what happens/i, 'Clay day'); next();
-    const entry = screen.getByLabelText('Entry') as HTMLSelectElement;
-    expect(Array.from(entry.options).map(o => o.textContent)).toEqual(['Free to attend', 'Fixed price']);
+    const entry = screen.getByLabelText('Price') as HTMLSelectElement;
+    expect(Array.from(entry.options).map(o => o.textContent)).toEqual(['Free', 'Paid']);
     expect(entry.value).toBe('free');
     expect(screen.queryByLabelText(/price per person/i)).toBeNull();
     expect(screen.queryByLabelText(/pay to attend/i)).toBeNull();
