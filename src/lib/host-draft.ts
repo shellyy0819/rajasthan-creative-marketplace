@@ -32,12 +32,18 @@ export function readDraft(now = Date.now()): HostDraft | null {
   } catch { return null; }
 }
 
+/** Fired on this page whenever the saved draft changes, so every Host button updates (the browser's own storage event only reaches other tabs). */
+export const DRAFT_EVENT = 'craftofy:draft-changed';
+const announce = () => { if (typeof window !== 'undefined') window.dispatchEvent(new Event(DRAFT_EVENT)); };
+
 export function writeDraft(d: HostDraft): void {
   try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch { /* storage full or blocked: the form still works without a draft */ }
+  announce();
 }
 
 export function clearDraft(): void {
   try { localStorage.removeItem(DRAFT_KEY); } catch { /* nothing to clear */ }
+  announce();
 }
 
 /** Has the person typed or chosen anything yet? An empty form is not worth saving or reminding about. */

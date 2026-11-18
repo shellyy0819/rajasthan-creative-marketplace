@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 vi.mock('@/components/CityInput', () => ({ CityInput: () => <input aria-label="City" name="cityRef" /> }));
 vi.mock('@/components/ImageUploader', () => ({ ImageUploader: ({ initial }: { initial: string[] }) => <div>{initial.map(u => <input key={u} type="hidden" name="images" value={u} />)}</div> }));
 vi.mock('@/components/RequestReceived', () => ({ RequestReceived: () => <p>received</p> }));
 
 import { HostWorkshopButton } from '@/components/HostWorkshopButton';
+import { HostDraftReminder } from '@/components/HostDraftReminder';
 import { DRAFT_KEY, timeAgo } from '@/lib/host-draft';
 
 const fetchMock = vi.fn();
@@ -146,47 +147,86 @@ describe('reminding someone about an unfinished listing', () => {
     val(/event title/i, 'Clay day'); await flush();
     cleanup();
   };
-  it('the button becomes Continue your listing, with a line naming the draft and when it was saved', async () => {
+  const page = () => render(<><HostDraftReminder /><HostWorkshopButton saveDraft reminderTarget /></>);
+  beforeEach(() => { sessionStorage.clear(); window.history.replaceState(null, '', '/workshops'); });
+
+  it('a small modal in the middle of the page names the draft and when it was saved, with Continue, Discard and Not now', async () => {
     await draftWithTitle();
-    render(<HostWorkshopButton saveDraft />);
-    await waitFor(() => screen.getByRole('button', { name: /^continue your listing/i }));
-    const note = screen.getByRole('status');
-    expect(note.textContent).toMatch(/unfinished listing: Clay day/);
-    expect(note.textContent).toMatch(/Saved (just now|\d+ \w+ ago)/);
-    expect(screen.queryByRole('button', { name: /^host a workshop$/i })).toBeNull();
+    page();
+    const dlg = await screen.findByRole('dialog', { name: /finish your listing/i });
+    expect(dlg.textContent).toMatch(/unfinished listing: Clay day/);
+    expect(dlg.textContent).toMatch(/Saved (just now|\d+ \w+ ago)/);
+    for (const n of [/^continue/i, /^discard/i, /^not now/i]) expect(within(dlg).getByRole('button', { name: n })).toBeTruthy();
+    expect(dlg.textContent).not.toMatch(/asha|@|\d{10}/i);
   });
-  it('Continue opens the saved draft at its step, even when the button starts on the other path', async () => {
+  it('the button reads Continue your listing, and there is no inline note any more', async () => {
+    await draftWithTitle();
+    page();
+    await screen.findByRole('dialog', { name: /finish your listing/i });
+    expect(screen.getAllByRole('button', { name: /continue your listing/i }).length).toBeGreaterThan(0);
+    expect(document.querySelector('.host-continue-note')).toBeNull();
+  });
+  it('Continue closes the modal and opens the form at the saved step, whichever path the button starts on', async () => {
     openForm({ path: 'class' });
-    val(/class title/i, 'Flow'); val(/about the class/i, 'Calm'); fireEvent.click(screen.getByRole('button', { name: /^next/i })); await flush();
+    val(/class title/i, 'Flow'); val(/about the class/i, 'Calm'); next(); await flush();
     cleanup();
-    render(<HostWorkshopButton saveDraft />); // an in-person button
-    fireEvent.click(await screen.findByRole('button', { name: /^continue your listing/i }));
+    page();
+    fireEvent.click(within(await screen.findByRole('dialog', { name: /finish your listing/i })).getByRole('button', { name: /^continue/i }));
     await waitFor(() => screen.getByText('Step 2 of 3'));
-    expect(screen.getByLabelText('Online class')).toBeTruthy();
     expect((screen.getByLabelText('Online class') as HTMLInputElement).checked).toBe(true);
+    expect(screen.queryByRole('dialog', { name: /finish your listing/i })).toBeNull();
   });
-  it('Discard removes the draft and the reminder', async () => {
+  it('Discard deletes the draft; the button goes back to Host a workshop', async () => {
     await draftWithTitle();
-    render(<HostWorkshopButton saveDraft />);
-    fireEvent.click(await screen.findByRole('button', { name: /discard/i }));
+    page();
+    fireEvent.click(within(await screen.findByRole('dialog', { name: /finish your listing/i })).getByRole('button', { name: /^discard/i }));
     expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
-    expect(screen.getByRole('button', { name: /host a workshop/i })).toBeTruthy();
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => screen.getByRole('button', { name: /^host a workshop/i }));
   });
-  it('opening the form and closing it with nothing typed leaves no draft and no reminder', async () => {
+  it('Not now (or Escape) closes it, keeps the draft, and does not ask again in this browser session', async () => {
+    await draftWithTitle();
+    page();
+    fireEvent.click(within(await screen.findByRole('dialog', { name: /finish your listing/i })).getByRole('button', { name: /^not now/i }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(localStorage.getItem(DRAFT_KEY)).not.toBeNull();
+    cleanup(); page();
+    await waitFor(() => screen.getByRole('button', { name: /continue your listing/i }));
+    expect(screen.queryByRole('dialog', { name: /finish your listing/i })).toBeNull();
+    sessionStorage.clear(); cleanup(); page();
+    await screen.findByRole('dialog', { name: /finish your listing/i });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: /finish your listing/i })).toBeNull();
+  });
+  it('does not appear when the page was opened by a link that opens the form itself (?type=)', async () => {
+    await draftWithTitle();
+    window.history.replaceState(null, '', '/workshops?type=in-person');
+    page();
+    await waitFor(() => screen.getByRole('button', { name: /continue your listing/i }));
+    expect(screen.queryByRole('dialog', { name: /finish your listing/i })).toBeNull();
+  });
+  it('does not appear when nothing was typed, after a send, or when there is no draft', async () => {
+    page();
+    await waitFor(() => screen.getByRole('button', { name: /^host a workshop/i }));
+    expect(screen.queryByRole('dialog', { name: /finish your listing/i })).toBeNull();
+  });
+  it('shows no button change unless the page turned drafts on', async () => {
+    await draftWithTitle();
+    render(<HostWorkshopButton />);
+    expect(screen.getByRole('button', { name: /^host a workshop/i })).toBeTruthy();
+  });
+  it('closing the form with something typed turns the button into Continue your listing at once', async () => {
+    openForm(); val(/event title/i, 'Half done');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.getByRole('button', { name: /continue your listing/i })).toBeTruthy();
+  });
+  it('opening the form and closing it with nothing typed leaves no draft', async () => {
     openForm(); await flush();
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
-    expect(screen.queryByRole('status')).toBeNull();
-    expect(screen.getByRole('button', { name: /host a workshop/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^host a workshop/i })).toBeTruthy();
   });
-  it('closing a form that has something in it shows the reminder at once', async () => {
-    openForm(); val(/event title/i, 'Half done');
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    expect(screen.getByRole('button', { name: /^continue your listing/i })).toBeTruthy();
-    expect(screen.getByRole('status').textContent).toContain('Half done');
-  });
-  it('sending the details removes the reminder', async () => {
+  it('sending the details removes the draft and the Continue button', async () => {
     fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'a@b.co', status: 'pending' }) });
     openForm();
     val(/event title/i, 'T'); val(/^type/i, 'workshop'); val(/what happens/i, 'd'); next();
@@ -195,13 +235,7 @@ describe('reminding someone about an unfinished listing', () => {
     fireEvent.click(screen.getByRole('button', { name: /send details/i }));
     await waitFor(() => expect(localStorage.getItem(DRAFT_KEY)).toBeNull());
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    expect(screen.queryByRole('status')).toBeNull();
-  });
-  it('shows no reminder unless the page turned drafts on, and never shows personal details', async () => {
-    await draftWithTitle();
-    render(<HostWorkshopButton />);
     expect(screen.getByRole('button', { name: /^host a workshop/i })).toBeTruthy();
-    expect(screen.queryByRole('status')).toBeNull();
   });
 });
 

@@ -8,7 +8,8 @@ import { DEFAULT_CONTACT_EMAIL } from '@/lib/site';
 import { MAX_REQUEST_IMAGES, submitErrorMessage } from '@/lib/workshop-requests-shared';
 import { HOST_PARAM, LEGACY_HOST_PARAM, hostParamFor, type HostPath } from '@/lib/host-link';
 import { supportLine } from '@/lib/workshop-support';
-import { clearDraft, collectDraft, hasContent, readDraft, timeAgo, writeDraft, type HostDraft } from '@/lib/host-draft';
+import { clearDraft, collectDraft, DRAFT_EVENT, hasContent, readDraft, writeDraft, type HostDraft } from '@/lib/host-draft';
+import { CONTINUE_EVENT } from './HostDraftReminder';
 import type { TopicOption } from '@/lib/topics';
 import { ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, type PriceDraft } from './HostListingFields';
 import './HostWorkshopStepper.css';
@@ -23,7 +24,7 @@ const fmtDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(
  * "Host a workshop": opens a form that collects every detail we need to list a workshop, meetup, pop-up or flea market.
  * `defaultOpen` opens it on first render (a shared ?host= link); `shareable` keeps ?type=in-person (or online) in the address bar while it is open.
  */
-export function HostWorkshopButton({ className = 'button outline', contactEmail = DEFAULT_CONTACT_EMAIL, defaultOpen = false, shareable = false, path: preset = 'event', initialPath, topics = [], label = 'Host a workshop', prefill = false, saveDraft = false }: {
+export function HostWorkshopButton({ className = 'button outline', contactEmail = DEFAULT_CONTACT_EMAIL, defaultOpen = false, shareable = false, path: preset = 'event', initialPath, topics = [], label = 'Host a workshop', prefill = false, saveDraft = false, reminderTarget = false }: {
   className?: string; contactEmail?: string; defaultOpen?: boolean; shareable?: boolean;
   /** The path a click on the button starts on. */
   path?: HostPath;
@@ -34,6 +35,8 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   prefill?: boolean;
   /** Save what is typed in this browser so the visitor can come back to it (cleared once the details are sent). */
   saveDraft?: boolean;
+  /** This button opens the draft when the page's reminder modal says Continue (one button per page). */
+  reminderTarget?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [path, setPath] = useState<HostPath | null>(defaultOpen && initialPath !== undefined ? initialPath : preset);
@@ -64,10 +67,12 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   // An unfinished draft from an earlier visit (read in the browser only): the button offers to continue it.
   const [existing, setExisting] = useState<HostDraft | null>(null);
   useEffect(() => {
-    const d = saveDraft ? readDraft() : null;
-    setExisting(d && hasContent(d) ? d : null);
+    if (!saveDraft) return;
+    const read = () => { const d = readDraft(); setExisting(d && hasContent(d) ? d : null); };
+    read();
+    window.addEventListener(DRAFT_EVENT, read);
+    return () => window.removeEventListener(DRAFT_EVENT, read);
   }, [saveDraft, open, done, pending]);
-  const discardDraft = () => { clearDraft(); setExisting(null); };
   const latest = useRef({ path, step: 0, startDate: '', paid: false, repeat: 'weekly' as 'weekly' | 'monthly', priceRows: [] as PriceDraft[] });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // The form is portalled into document.body, which does not exist while rendering on the server (a ?host=1 link opens it on first render).
@@ -120,6 +125,21 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     formRef.current?.reset();
     setStep(0); setStartDate(''); setPaid(false); setRepeat('weekly'); setPriceRows([]); setDraftImages([]); setImagesKey(k => k + 1); setRestored(false);
   }
+
+  /** Open the form from the button (or from the reminder's Continue). With an unfinished draft it continues that draft, whichever path it was on. */
+  function begin() {
+    setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setPath(preset); setPriceRows([]); setRepeat('weekly');
+    restoreDraft(existing || readDraft() ? null : preset);
+    setOpen(true);
+  }
+  const beginRef = useRef(begin);
+  beginRef.current = begin;
+  useEffect(() => {
+    if (!reminderTarget) return;
+    const go = () => beginRef.current();
+    window.addEventListener(CONTINUE_EVENT, go);
+    return () => window.removeEventListener(CONTINUE_EVENT, go);
+  }, [reminderTarget]);
 
   const close = () => { saveNow(); setOpen(false); trigger.current?.focus(); };
   useEffect(() => {
@@ -275,13 +295,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
 
   return (
     <>
-      {existing && !open && (
-        <p className="host-continue-note" role="status">
-          You have an unfinished listing{existing.fields.title ? `: ${existing.fields.title.slice(0, 60)}` : ''}. Saved {timeAgo(existing.savedAt)}.{' '}
-          <button type="button" className="text-link" onClick={discardDraft}>Discard</button>
-        </p>
-      )}
-      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setPath(preset); setPriceRows([]); setRepeat('weekly'); restoreDraft(existing ? null : preset); setOpen(true); }}>{existing ? 'Continue your listing' : label} <span>↗</span></button>
+      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={begin}>{existing ? 'Continue your listing' : label} <span>↗</span></button>
       {open && mounted && createPortal(
         <div className="contact-backdrop admin-modal host-backdrop" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
           <div role="dialog" aria-modal="true" aria-labelledby="host-title" className={`contact-card host-dialog${!done && !pending ? ' host-dialog-form' : ''}`}>

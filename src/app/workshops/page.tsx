@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { WorkshopsEmptyState } from '@/components/WorkshopsEmptyState';
 import { DataVersionProvider } from '@/components/DataVersion';
+import { HostDraftReminder } from '@/components/HostDraftReminder';
 import { HostWorkshopButton } from '@/components/HostWorkshopButton';
 import { LiveCatalog } from '@/components/LiveCatalog';
 import { JsonLd } from '@/components/JsonLd';
@@ -39,6 +40,7 @@ export default async function WorkshopsPage({ searchParams }: Props) {
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Workshops', path: '/workshops' }];
   return (
     <DataVersionProvider version={version}>
+      <HostDraftReminder />
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
       <Breadcrumbs items={crumbs} />
       <div className="page-head ws-head">
@@ -47,7 +49,7 @@ export default async function WorkshopsPage({ searchParams }: Props) {
         <p>Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.</p>
         <p className="ws-supports">{supportLine()}</p>
         {/* Phones only: the card with the button is a long scroll away, so the button is also up here. */}
-        <div className="ws-head-cta"><HostWorkshopButton className="button primary" contactEmail={contactEmail()} topics={topics} prefill saveDraft shareable /></div>
+        <div className="ws-head-cta"><HostWorkshopButton className="button primary" contactEmail={contactEmail()} topics={topics} prefill saveDraft shareable reminderTarget /></div>
       </div>
       {workshops.length === 0 && !hasFilters(f)
         ? <WorkshopsEmptyState openHostForm={wantsHostForm(sp)} initialPath={hostPath(sp)} topics={topics} />

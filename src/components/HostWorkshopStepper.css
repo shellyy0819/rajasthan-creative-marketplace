@@ -120,5 +120,9 @@
 .host-dialog-form form.host-form { padding: 4px 4px 0; margin: 0 -4px; }
 
 /* The reminder above the button when an earlier draft was never sent. */
-.host-continue-note { margin: 0 0 8px; font-size: 13px; line-height: 1.4; color: var(--muted); }
-.host-continue-note .text-link { display: inline; padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: var(--green); text-decoration: underline; cursor: pointer; }
+
+/* The reminder about an unfinished listing: a small modal in the middle of the page. */
+.host-reminder { width: min(380px, 100%); display: grid; gap: 10px; }
+.host-reminder h2 { margin: 0; font: 500 22px/1.2 var(--font-display); }
+.host-reminder p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.host-reminder .admin-actions { flex-wrap: wrap; justify-content: flex-end; margin-top: 6px; }
