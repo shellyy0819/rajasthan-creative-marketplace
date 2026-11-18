@@ -25,7 +25,7 @@ export type WorkshopRequest = {
 };
 
 const toRequest = (r: typeof workshopRequests.$inferSelect): WorkshopRequest => ({
-  id: r.id, hostName: r.hostName, contactName: r.contactName, phone: r.phone, email: r.email, city: r.city, venue: r.venue, title: r.title,
+  id: r.id, hostName: r.hostName, contactName: r.contactName, phone: r.phone, email: r.email, city: r.city ?? '', venue: r.venue ?? '', title: r.title,
   kind: r.kind as RequestKind, description: r.description, startDate: r.startDate, endDate: r.endDate,
   ...(r.startTime ? { startTime: r.startTime } : {}), ...(r.endTime ? { endTime: r.endTime } : {}),
   ...(r.seats != null ? { seats: r.seats } : {}), priceType: r.priceType as 'FREE' | 'PAID', ...(r.pricePaise != null ? { pricePaise: r.pricePaise } : {}),

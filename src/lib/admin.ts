@@ -1,22 +1,28 @@
-import { and, count, eq, inArray } from 'drizzle-orm';
+import { and, count, eq, inArray, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { allocateId } from '../db/ids';
-import { productsQuery, toAdminProduct, toProductRow, toWorkshop, toAdminWorkshop, toWorkshopRow, workshopsQuery, type ProductInput, type WorkshopInput } from '../db/mappers';
+import { productsQuery, toAdminProduct, toProductRow, toWorkshop, toAdminWorkshop, toWorkshopRow, withPrices, workshopsQuery, type ProductInput, type WorkshopInput } from '../db/mappers';
 import { ROLE_ID, ensureUser } from '../db/people';
-import { products as productsT, userRoles, users, workshops as workshopsT } from '../db/schema';
+import { products as productsT, userRoles, users, workshopPrices as workshopPricesT, workshops as workshopsT } from '../db/schema';
 import type { Tx } from '../db/client';
 import { resolveCityInput } from './cities';
 import { canonicalCategory } from './categories';
 import { resolveSourcingTypeId } from './sourcing-types';
 import type { Actor } from './authz';
 import { ApiError } from './errors';
-import { bad, int, obj, oneOf, optionalInt, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
+import { bad, int, obj, oneOf, optionalEmail, optionalImageUrl, optionalInt, optionalPhone, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
+import { parseListingFields, priceCache, type PriceRow } from './workshop-listing';
 import { loadImages, parseImages, resolveImages, saveImages, unreferencedKeys } from './product-images';
 import { deleteObjects, storageConfig } from './storage';
 import type { AdminProduct, Workshop } from './types';
 
 const PRODUCT_KEYS = ['name', 'category', 'sourcingTypeId', 'cityId', 'cityRef', 'pricePaise', 'description', 'stock', 'status', 'images', 'workshopId', 'pickupLocation'] as const;
-const WORKSHOP_KEYS = ['title', 'type', 'pricePaise', 'cityId', 'cityRef', 'venue', 'date', 'time', 'seats', 'host', 'hostId', 'description', 'status'] as const;
+const WORKSHOP_KEYS = [
+  'title', 'type', 'pricePaise', 'cityId', 'cityRef', 'venue', 'date', 'time', 'seats', 'host', 'hostId', 'description', 'status',
+  'kind', 'mode', 'topicId', 'platform', 'schedule', 'endsOn', 'languages', 'level', 'experience', 'certifications', 'freeTrial',
+  'whatsapp', 'instagram', 'website', 'images', 'prices', 'contactName', 'contactPhone', 'contactEmail', 'sourceRequestId',
+] as const;
+const MAX_WORKSHOP_IMAGES = 3;
 const PRODUCT_STATUSES = ['APPROVED', 'DRAFT', 'ARCHIVED'] as const;
 const WORKSHOP_STATUSES = ['APPROVED', 'DRAFT', 'ARCHIVED'] as const;
 const PUBLISH_DENIED = () => new ApiError(403, 'Only an admin can publish a product.');
@@ -180,21 +186,45 @@ export async function deleteProduct(id: string): Promise<void> {
   await dropStoredPhotos(keys);
 }
 
-function validateWorkshop(v: Raw): Omit<WorkshopInput, 'cityId'> {
-  const type = oneOf(v.type, 'type', ['FREE', 'PAID'] as const);
-  const pricePaise = type === 'FREE' ? 0 : int(v.pricePaise, 'pricePaise', 1, 10_000_000);
-  if (typeof v.time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(v.time)) throw bad('time must be HH:MM (24-hour).');
+type WorkshopFields = Omit<WorkshopInput, 'cityId'> & { prices: PriceRow[] };
+function validateWorkshop(v: Raw): WorkshopFields {
+  const l = parseListingFields(v);
+  const online = l.mode === 'online';
+  // The price rows decide FREE/PAID and the "from" price. Without rows the old single type + price applies (an online class with neither is free).
+  let cache: { type: 'FREE' | 'PAID'; pricePaise: number };
+  if (l.prices.length) cache = priceCache(l.prices);
+  else if (online && v.type === undefined) cache = { type: 'FREE', pricePaise: 0 };
+  else {
+    const type = oneOf(v.type, 'type', ['FREE', 'PAID'] as const);
+    cache = { type, pricePaise: type === 'FREE' ? 0 : int(v.pricePaise, 'pricePaise', 1, 10_000_000) };
+  }
+  const time = v.time ?? l.schedule?.time;
+  if (typeof time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw bad('time must be HH:MM (24-hour).');
+  const images = v.images === undefined || v.images === null ? [] : Array.isArray(v.images) && v.images.length <= MAX_WORKSHOP_IMAGES ? v.images.map(u => optionalImageUrl(u) ?? '').filter(Boolean) : (() => { throw bad(`images must be a list of up to ${MAX_WORKSHOP_IMAGES} https URLs.`); })();
+  const date = validDate(v.date);
+  if (l.endsOn && l.endsOn < date) throw bad('endsOn cannot be before the start date.');
+  const phone = v.contactPhone === undefined ? undefined : optionalPhone(v.contactPhone, 'contactPhone');
   return {
     title: text(v.title, 'title', 200),
-    type, pricePaise,
-    venue: text(v.venue, 'venue', 200),
-    date: validDate(v.date),
-    time: v.time,
-    seats: int(v.seats, 'seats', 1, 1000),
+    ...cache,
+    kind: l.kind, mode: l.mode, topicId: l.topicId,
+    venue: online ? optionalText(v.venue, 'venue', 200) ?? null : text(v.venue, 'venue', 200),
+    date, time, endsOn: l.endsOn,
+    seats: online ? optionalInt(v.seats, 'seats', 1, 1000) : int(v.seats, 'seats', 1, 1000),
     host: text(v.host, 'host', 200),
     description: text(v.description, 'description', 2000),
-    status: oneOf(v.status ?? 'APPROVED', 'status', WORKSHOP_STATUSES),
+    status: oneOf(v.status ?? 'DRAFT', 'status', WORKSHOP_STATUSES),
+    platform: l.platform, schedule: l.schedule, languages: l.languages, level: l.level, experience: l.experience, certifications: l.certifications,
+    freeTrial: l.freeTrial, whatsapp: l.whatsapp, instagram: l.instagram, website: l.website, images, prices: l.prices,
+    ...(v.contactName === undefined ? {} : { contactName: optionalText(v.contactName, 'contactName', 100) ?? null }),
+    ...(phone === undefined && v.contactPhone === undefined ? {} : { contactPhone: phone ? `+91${phone.slice(-10)}` : null }),
+    ...(v.contactEmail === undefined ? {} : { contactEmail: optionalEmail(v.contactEmail, 'contactEmail') ?? null }),
   };
+}
+
+async function savePrices(tx: Tx, workshopId: string, rows: PriceRow[]) {
+  await tx.delete(workshopPricesT).where(eq(workshopPricesT.workshopId, workshopId));
+  if (rows.length) await tx.insert(workshopPricesT).values(rows.map((r, position) => ({ workshopId, label: r.label, amountPaise: r.amountPaise, sessions: r.sessions, position })));
 }
 
 async function requireHost(tx: Tx, id: string | undefined) {
@@ -205,19 +235,23 @@ async function requireHost(tx: Tx, id: string | undefined) {
 
 async function loadWorkshop(tx: Tx, id: string): Promise<Workshop> {
   const [row] = await workshopsQuery(tx).where(eq(workshopsT.id, id));
-  return toAdminWorkshop(row);
+  return (await withPrices(tx, [toAdminWorkshop(row)]))[0];
 }
 
-export async function createWorkshop(input: unknown): Promise<Workshop> {
+/** `adminEmail` (the signed-in admin) is recorded as the creator. A new listing is a Draft unless the input says otherwise. */
+export async function createWorkshop(input: unknown, adminEmail?: string): Promise<Workshop> {
   rejectFreeTextCity(obj(input));
-  const raw: Raw = { ...pick(obj(input), WORKSHOP_KEYS), status: undefined };
+  const raw: Raw = pick(obj(input), WORKSHOP_KEYS);
   const hostId = optionalUuid(raw.hostId, 'hostId');
+  const sourceRequestId = optionalUuid(raw.sourceRequestId, 'sourceRequestId');
   const data = validateWorkshop(raw);
   return getDb().transaction(async tx => {
     await requireHost(tx, hostId);
-    const cityId = (await resolveCityInput(tx, raw, { required: true }))!;
+    const cityId = await resolveCityInput(tx, raw, { required: data.mode !== 'online' });
     const id = await allocateId(tx, 'w');
-    await tx.insert(workshopsT).values({ id, ...toWorkshopRow({ ...data, cityId }), hostId: hostId ?? null, booked: 0 });
+    const [creator] = adminEmail ? await tx.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${adminEmail.toLowerCase()}`) : [];
+    await tx.insert(workshopsT).values({ id, ...toWorkshopRow({ ...data, cityId }), hostId: hostId ?? null, booked: 0, createdBy: creator?.id ?? null, sourceRequestId: sourceRequestId ?? null });
+    await savePrices(tx, id, data.prices);
     return loadWorkshop(tx, id);
   });
 }
@@ -230,13 +264,15 @@ export async function updateWorkshop(id: string, input: unknown): Promise<Worksh
     const [joined] = await workshopsQuery(tx).where(eq(workshopsT.id, id)).for('update', { of: workshopsT });
     if (!joined) throw new ApiError(404, 'Workshop not found.');
     const row = joined.w;
-    const next = validateWorkshop({ ...toWorkshop(joined), ...patch });
-    const cityId = (await resolveCityInput(tx, { cityId: row.cityId, ...patch }, { required: true }))!;
-    if (next.seats < row.booked) throw bad(`seats cannot be less than the ${row.booked} already booked.`);
+    const [current] = await withPrices(tx, [toWorkshop(joined)]);
+    const next = validateWorkshop({ ...current, ...patch });
+    const cityId = await resolveCityInput(tx, { cityId: row.cityId ?? undefined, ...patch }, { required: next.mode !== 'online' });
+    if (next.seats !== null && next.seats < row.booked) throw bad(`seats cannot be less than the ${row.booked} already booked.`);
     if (hostId) await requireHost(tx, hostId);
     await tx.update(workshopsT).set({
       ...toWorkshopRow({ ...next, cityId }), updatedAt: new Date(), ...(hostId ? { hostId } : patch.hostId === null || patch.hostId === '' ? { hostId: null } : {}),
     }).where(eq(workshopsT.id, id));
+    if ('prices' in patch) await savePrices(tx, id, next.prices);
     return loadWorkshop(tx, id);
   });
 }

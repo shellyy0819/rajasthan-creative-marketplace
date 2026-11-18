@@ -6,9 +6,9 @@
     {"id":"p4","name":"Blue Pottery Trinket Dish","category":"Pottery","city":"Jaipur","pricePaise":45000,"seller":"Neel Mitti Studio","description":"Small decorative dish inspired by Jaipur blue pottery.","stock":6,"status":"APPROVED"}
   ],
   "workshops": [
-    {"id":"w1","title":"Beginner Crochet: Make Your First Flower","type":"PAID","pricePaise":49900,"city":"Udaipur","venue":"The Courtyard Café","date":"2026-11-08","time":"11:00","seats":12,"booked":3,"host":"Shauk and Stuff","description":"A friendly hands-on session. Materials included.","status":"APPROVED"},
-    {"id":"w2","title":"Paint a Miniature Tote Bag","type":"PAID","pricePaise":69900,"city":"Jaipur","venue":"Studio Katha","date":"2026-11-14","time":"15:00","seats":10,"booked":4,"host":"Katha Makers","description":"Paint your own wearable keepsake.","status":"APPROVED"},
-    {"id":"w3","title":"Sunday Makers Meetup","type":"FREE","pricePaise":0,"city":"Jodhpur","venue":"Blue Door Café","date":"2026-11-22","time":"10:30","seats":20,"booked":6,"host":"Marwar Creative Circle","description":"Meet local makers, share ideas and bring a work in progress.","status":"APPROVED"}
+    {"id":"w1","title":"Beginner Crochet: Make Your First Flower","type":"PAID","pricePaise":49900,"city":"Udaipur","venue":"The Courtyard Café","date":"2099-11-08","time":"11:00","seats":12,"booked":3,"host":"Shauk and Stuff","description":"A friendly hands-on session. Materials included.","status":"APPROVED"},
+    {"id":"w2","title":"Paint a Miniature Tote Bag","type":"PAID","pricePaise":69900,"city":"Jaipur","venue":"Studio Katha","date":"2099-11-14","time":"15:00","seats":10,"booked":4,"host":"Katha Makers","description":"Paint your own wearable keepsake.","status":"APPROVED"},
+    {"id":"w3","title":"Sunday Makers Meetup","type":"FREE","pricePaise":0,"city":"Jodhpur","venue":"Blue Door Café","date":"2099-11-22","time":"10:30","seats":20,"booked":6,"host":"Marwar Creative Circle","description":"Meet local makers, share ideas and bring a work in progress.","status":"APPROVED"}
   ],
   "orders": [],
   "bookings": []

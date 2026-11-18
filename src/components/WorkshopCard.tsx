@@ -7,7 +7,7 @@ import { ReserveButton } from './ReserveButton';
 
 export function WorkshopCard({ w }: { w: Workshop }) {
   const { day, month } = formatDay(w.date);
-  const left = w.seats - w.booked;
+  const left = (w.seats ?? 0) - w.booked;
   return (
     <article className="workshop-card">
       <div className="date-tile"><b>{day}</b><span>{month} · {w.city}</span></div>

@@ -256,10 +256,10 @@ describe('users, roles and profiles (new tables)', () => {
   });
   it('workshops expose date/time in India time and starts_at round-trips', async () => {
     const w = (await snapshot()).workshops.find(x => x.id === 'w1')!;
-    expect(w).toMatchObject({ date: '2026-11-08', time: '11:00', host: 'Shauk and Stuff' });
+    expect(w).toMatchObject({ date: '2099-11-08', time: '11:00', host: 'Shauk and Stuff' });
     const db = await getTestDb();
     const [row] = await db.select().from(workshops).where(eq(workshops.id, 'w1'));
-    expect(row.startsAt.toISOString()).toBe('2026-11-08T05:30:00.000Z');
+    expect(row.startsAt.toISOString()).toBe('2099-11-08T05:30:00.000Z');
   });
 });
 });

@@ -11,7 +11,7 @@ beforeEach(async () => { d = await resetTestDb(); });
 
 describe('workshops table', () => {
   it('an in-person row written the old way still inserts, with the new defaults', async () => {
-    const [city] = (await d.execute(sql`select id from cities limit 1`)).rows as { id: number }[];
+    const [city] = (await d.execute(sql`select id from cities limit 1`) as unknown as { rows: { id: number }[] }).rows;
     await d.insert(workshops).values({ ...base, cityId: city.id, venue: '12 MI Road', seats: 10 });
     const [w] = await d.select().from(workshops).where(eq(workshops.id, 'w900'));
     expect(w).toMatchObject({ mode: 'in_person', kind: 'workshop', languages: [], images: [], freeTrial: false, topicId: null, level: null });

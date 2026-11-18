@@ -28,7 +28,7 @@ export default async function WorkshopPage({ params }: Props) {
   const w = await getWorkshopBySlug((await params).slug);
   if (!w) notFound();
   const { day, month, year } = formatDay(w.date);
-  const left = w.seats - w.booked;
+  const left = (w.seats ?? 0) - w.booked;
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Workshops', path: '/workshops' }, { name: w.title, path: `/workshops/${workshopSlug(w)}` }];
   return (
     <>
