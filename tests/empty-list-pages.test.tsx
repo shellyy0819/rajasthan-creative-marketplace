@@ -50,6 +50,11 @@ describe('/workshops with no workshops at all', () => {
 
 describe('/workshops with workshops', () => {
   beforeEach(async () => { await resetTestDb(); });
+  it('?host=1 still opens the host form (footer link), under the catalogue; without it there is no host button', async () => {
+    const withLink = renderToStaticMarkup(await WorkshopsPage(sp({ host: '1' })));
+    expect(withLink).toContain('data-live-catalog="workshops"');
+    expect(withLink).toContain('data-open="true"');
+  });
   it('?host=1 is noindex (a way into the form, not a page) and keeps /workshops as canonical', async () => {
     const m = await workshopsMeta(sp({ host: '1' }));
     expect(m.robots).toEqual({ index: false, follow: true });

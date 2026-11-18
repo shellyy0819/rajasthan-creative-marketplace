@@ -1,0 +1,52 @@
+/* The three steps of the "Host a workshop" form: progress list, step count, hidden steps. */
+.host-step[hidden] { display: none; }
+
+.host-progress { margin: 0 0 8px; }
+.host-steps {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: host-step;
+}
+.host-steps li {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-top: 10px;
+  border-top: 3px solid var(--line);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  counter-increment: host-step;
+}
+.host-steps li::before {
+  content: counter(host-step);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--control-border);
+  border-radius: 50%;
+  font-size: 10px;
+}
+.host-steps li.done { border-top-color: var(--green); color: var(--ink); }
+.host-steps li.done::before { content: '✓'; background: var(--green); border-color: var(--green); color: var(--white); }
+.host-steps li[aria-current='step'] { border-top-color: var(--orange); color: var(--ink); }
+.host-steps li[aria-current='step']::before { background: var(--orange); border-color: var(--orange); color: var(--white); }
+.host-step-label { overflow-wrap: anywhere; }
+.host-step-count { margin: 8px 0 0; font-size: 11px; color: var(--muted); }
+
+/* Phones: only the current step keeps its name, so three steps fit on one line. */
+@media (max-width: 600px) {
+  .host-steps li:not([aria-current='step']) .host-step-label { display: none; }
+  .host-steps li[aria-current='step'] { flex: 3; }
+}
+
+/* The host button under the workshops list when a shared ?host=1 link opens the form. */
+.host-more { margin: 8px 8.5% 56px; }
+@media (max-width: 700px) { .host-more { margin-inline: 5%; } }

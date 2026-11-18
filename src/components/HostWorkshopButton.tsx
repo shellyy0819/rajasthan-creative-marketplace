@@ -8,7 +8,10 @@ import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 import { DEFAULT_CONTACT_EMAIL } from '@/lib/site';
 import { MAX_REQUEST_IMAGES, submitErrorMessage } from '@/lib/workshop-requests-shared';
 import { HOST_PARAM } from '@/lib/host-link';
+import './HostWorkshopStepper.css';
 
+const STEPS = ['The event', 'When and where', 'About you'];
+const LAST = STEPS.length - 1;
 const field = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 const fmtDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -28,7 +31,10 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   const [info, setInfo] = useState('');
   const [wait, setWait] = useState(0); // seconds until another code may be requested
   const [done, setDone] = useState<RequestDone | null>(null);
+  const [step, setStep] = useState(0);
   const trigger = useRef<HTMLButtonElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const shownStep = useRef(0);
   // The form is portalled into document.body, which does not exist while rendering on the server (a ?host=1 link opens it on first render).
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -65,6 +71,52 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     } catch { return { ok: false, data: null, error: submitErrorMessage(0, null, contactEmail) }; }
   }
 
+  /** The inputs of one step. Inactive steps stay in the form (hidden), so nothing typed is lost and all of it is sent. */
+  const stepFields = (i: number) => Array.from(formRef.current?.querySelectorAll<HTMLInputElement>(`[data-step="${i}"] input, [data-step="${i}"] select, [data-step="${i}"] textarea`) ?? []);
+  /** The form has no native validation (a hidden step cannot show its bubble), so each step checks its own fields before moving on. */
+  function stepValid(i: number) {
+    const bad = stepFields(i).find(el => !el.checkValidity());
+    bad?.reportValidity();
+    return !bad;
+  }
+  function back() { setError(''); setStep(s => Math.max(0, s - 1)); }
+  // Landing on another step: scroll the dialog to the top and focus its first field.
+  useEffect(() => {
+    if (shownStep.current === step) return;
+    shownStep.current = step;
+    const root = formRef.current;
+    root?.closest('.contact-card')?.scrollTo?.(0, 0);
+    root?.querySelector<HTMLElement>(`[data-step="${step}"] :is(input:not([type="hidden"]), select, textarea)`)?.focus();
+  }, [step]);
+
+  /** Next on steps 1 and 2 (also Enter), Send details on the last one. */
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (sending || !stepValid(step)) return;
+    if (step < LAST) { setError(''); setStep(step + 1); return; }
+    void sendDetails(new FormData(e.currentTarget));
+  }
+
+  async function sendDetails(f: FormData) {
+    setSending(true); setError('');
+    const body = {
+      hostName: field(f, 'hostName'), contactName: field(f, 'contactName'), phone: field(f, 'phone'), email: field(f, 'email'),
+      cityRef: field(f, 'cityRef'), venue: field(f, 'venue'), title: field(f, 'title'), kind: field(f, 'kind'), description: field(f, 'description'),
+      startDate: field(f, 'startDate'), endDate: field(f, 'endDate'), startTime: field(f, 'startTime'), endTime: field(f, 'endTime'),
+      seats: field(f, 'seats') ? Number(field(f, 'seats')) : undefined,
+      priceType: paid ? 'PAID' : 'FREE', priceRupees: paid ? Number(field(f, 'priceRupees')) : undefined,
+      instagram: field(f, 'instagram'), website: field(f, 'website'), notes: field(f, 'notes'), images: f.getAll('images').map(v => String(v).trim()).filter(Boolean), companyWebsite: field(f, 'companyWebsite'),
+    };
+    try {
+      const { ok, data, error } = await post('/api/workshop-requests', body);
+      if (!ok || !data) { setError(error || submitErrorMessage(0, null, contactEmail)); setSending(false); return; }
+      const summary = { name: body.contactName, email: data.email ?? body.email, from: fmtDate(body.startDate), to: fmtDate(body.endDate || body.startDate) };
+      if (data.status === 'received') { setDone({ ...summary, confirmed: false, notified: false }); setSending(false); return; } // the code email could not be sent; we still have the details
+      setPending({ id: data.id ?? '', ...summary });
+      setWait(60); setSending(false);
+    } catch { setError(submitErrorMessage(0, null, contactEmail)); setSending(false); }
+  }
+
   async function verify(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (sending || !pending) return;
@@ -85,7 +137,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
 
   return (
     <>
-      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setOpen(true); }}>Host a workshop <span>↗</span></button>
+      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setOpen(true); }}>Host a workshop <span>↗</span></button>
       {open && mounted && createPortal(
         <div className="contact-backdrop admin-modal" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
           <div role="dialog" aria-modal="true" aria-labelledby="host-title" className="contact-card">
@@ -109,73 +161,68 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                 </div>
               </form>
             ) : (
-              <form className="admin-form" onSubmit={async e => {
-                e.preventDefault();
-                if (sending) return;
-                setSending(true); setError('');
-                const f = new FormData(e.currentTarget);
-                const body = {
-                  hostName: field(f, 'hostName'), contactName: field(f, 'contactName'), phone: field(f, 'phone'), email: field(f, 'email'),
-                  cityRef: field(f, 'cityRef'), venue: field(f, 'venue'), title: field(f, 'title'), kind: field(f, 'kind'), description: field(f, 'description'),
-                  startDate: field(f, 'startDate'), endDate: field(f, 'endDate'), startTime: field(f, 'startTime'), endTime: field(f, 'endTime'),
-                  seats: field(f, 'seats') ? Number(field(f, 'seats')) : undefined,
-                  priceType: paid ? 'PAID' : 'FREE', priceRupees: paid ? Number(field(f, 'priceRupees')) : undefined,
-                  instagram: field(f, 'instagram'), website: field(f, 'website'), notes: field(f, 'notes'), images: f.getAll('images').map(v => String(v).trim()).filter(Boolean), companyWebsite: field(f, 'companyWebsite'),
-                };
-                try {
-                  const { ok, data, error } = await post('/api/workshop-requests', body);
-                  if (!ok || !data) { setError(error || submitErrorMessage(0, null, contactEmail)); setSending(false); return; }
-                  const summary = { name: body.contactName, email: data.email ?? body.email, from: fmtDate(body.startDate), to: fmtDate(body.endDate || body.startDate) };
-                  if (data.status === 'received') { setDone({ ...summary, confirmed: false, notified: false }); setSending(false); return; } // the code email could not be sent; we still have the details
-                  setPending({ id: data.id ?? '', ...summary });
-                  setWait(60); setSending(false);
-                } catch { setError(submitErrorMessage(0, null, contactEmail)); setSending(false); }
-              }}>
-                <p className="form-note">Tell us about your event. We will review it and get back to you.</p>
+              <form ref={formRef} className="admin-form host-form" noValidate onSubmit={onSubmit}>
+                <div className="host-progress">
+                  <ol className="host-steps" aria-label="Progress">
+                    {STEPS.map((name, i) => <li key={name} className={i < step ? 'done' : undefined} aria-current={i === step ? 'step' : undefined}><span className="host-step-label">{name}</span></li>)}
+                  </ol>
+                  <p className="host-step-count">Step {step + 1} of {STEPS.length}</p>
+                </div>
                 {error && <p role="alert" className="admin-error">{error}</p>}
-                <label><span className="lbl">Event title</span><input name="title" required maxLength={150} autoFocus /></label>
-                <label><span className="lbl">Type</span>
-                  <select name="kind" required defaultValue="">
-                    <option value="" disabled>Choose a type</option>
-                    <option value="workshop">Workshop</option>
-                    <option value="meetup">Meetup</option>
-                    <option value="popup">Pop-up</option>
-                    <option value="market">Flea market</option>
-                  </select>
-                </label>
-                <label><span className="lbl">What happens at the event</span><textarea name="description" required maxLength={2000} rows={3} /></label>
-                <div className="admin-form-row">
-                  <label><span className="lbl">Start date</span><input name="startDate" type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
-                  <label>End date<input name="endDate" type="date" min={startDate || undefined} /></label>
+                <div className="host-step" data-step={0} hidden={step !== 0}>
+                  <p className="form-note">Tell us about your event. We will review it and get back to you.</p>
+                  <label><span className="lbl">Event title</span><input name="title" required maxLength={150} autoFocus /></label>
+                  <label><span className="lbl">Type</span>
+                    <select name="kind" required defaultValue="">
+                      <option value="" disabled>Choose a type</option>
+                      <option value="workshop">Workshop</option>
+                      <option value="meetup">Meetup</option>
+                      <option value="popup">Pop-up</option>
+                      <option value="market">Flea market</option>
+                    </select>
+                  </label>
+                  <label><span className="lbl">What happens at the event</span><textarea name="description" required maxLength={2000} rows={3} /></label>
+                  <ImageUploader initial={[]} max={MAX_REQUEST_IMAGES} endpoint="/api/uploads/workshop-request-image" legend="Photos (up to 3)" onBusyChange={setUploading} />
                 </div>
-                <p className="form-note">{startDate ? `If you leave the end date empty, the event ends on ${fmtDate(startDate)}, the start date.` : 'If you leave the end date empty, the event ends on the start date.'}</p>
-                <div className="admin-form-row">
-                  <label>Start time<input name="startTime" type="time" /></label>
-                  <label>End time<input name="endTime" type="time" /></label>
+                <div className="host-step" data-step={1} hidden={step !== 1}>
+                  <div className="admin-form-row">
+                    <label><span className="lbl">Start date</span><input name="startDate" type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
+                    <label>End date<input name="endDate" type="date" min={startDate || undefined} /></label>
+                  </div>
+                  <p className="form-note">{startDate ? `If you leave the end date empty, the event ends on ${fmtDate(startDate)}, the start date.` : 'If you leave the end date empty, the event ends on the start date.'}</p>
+                  <div className="admin-form-row">
+                    <label>Start time<input name="startTime" type="time" /></label>
+                    <label>End time<input name="endTime" type="time" /></label>
+                  </div>
+                  <div className="admin-form-row">
+                    <label><span className="lbl">City</span><CityInput required valueFormat="name" /></label>
+                    <label>Seats<input name="seats" type="number" min={1} max={100000} inputMode="numeric" /></label>
+                  </div>
+                  <label><span className="lbl">Venue and address</span><input name="venue" required maxLength={300} autoComplete="street-address" /></label>
+                  <label className="check"><input type="checkbox" checked={paid} onChange={e => setPaid(e.target.checked)} /> Participants pay to attend</label>
+                  {paid && <label><span className="lbl">Price per person (Rs.)</span><input name="priceRupees" type="number" min={1} max={1000000} inputMode="numeric" required /></label>}
                 </div>
-                <div className="admin-form-row">
-                  <label><span className="lbl">City</span><CityInput required valueFormat="name" /></label>
-                  <label>Seats<input name="seats" type="number" min={1} max={100000} inputMode="numeric" /></label>
+                <div className="host-step" data-step={2} hidden={step !== 2}>
+                  <label><span className="lbl">Host, studio, cafe or organiser name</span><input name="hostName" required maxLength={150} autoComplete="organization" /></label>
+                  <label><span className="lbl">Your name</span><input name="contactName" required maxLength={100} autoComplete="name" /></label>
+                  <div className="admin-form-row">
+                    <label><span className="lbl">Phone number</span><input name="phone" type="tel" inputMode="tel" required maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="9989898999" autoComplete="tel" /></label>
+                    <label><span className="lbl">Email</span><input name="email" type="email" required maxLength={254} autoComplete="email" /></label>
+                  </div>
+                  <div className="admin-form-row">
+                    <label>Instagram<input name="instagram" maxLength={200} placeholder="@yourstudio" /></label>
+                    <label>Website<input name="website" type="text" inputMode="url" maxLength={300} placeholder="yourstudio.in" /></label>
+                  </div>
+                  <label>Anything else we should know<textarea name="notes" maxLength={2000} rows={2} /></label>
+                  <div aria-hidden="true" className="hp-field"><input name="companyWebsite" tabIndex={-1} autoComplete="off" defaultValue="" /></div>
                 </div>
-                <label><span className="lbl">Venue and address</span><input name="venue" required maxLength={300} autoComplete="street-address" /></label>
-                <label className="check"><input type="checkbox" checked={paid} onChange={e => setPaid(e.target.checked)} /> Participants pay to attend</label>
-                {paid && <label><span className="lbl">Price per person (Rs.)</span><input name="priceRupees" type="number" min={1} max={1000000} inputMode="numeric" required /></label>}
-                <ImageUploader initial={[]} max={MAX_REQUEST_IMAGES} endpoint="/api/uploads/workshop-request-image" legend="Photos (up to 3)" onBusyChange={setUploading} />
-                <label><span className="lbl">Host, studio, cafe or organiser name</span><input name="hostName" required maxLength={150} autoComplete="organization" /></label>
-                <label><span className="lbl">Your name</span><input name="contactName" required maxLength={100} autoComplete="name" /></label>
-                <div className="admin-form-row">
-                  <label><span className="lbl">Phone number</span><input name="phone" type="tel" inputMode="tel" required maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="9989898999" autoComplete="tel" /></label>
-                  <label><span className="lbl">Email</span><input name="email" type="email" required maxLength={254} autoComplete="email" /></label>
-                </div>
-                <div className="admin-form-row">
-                  <label>Instagram<input name="instagram" maxLength={200} placeholder="@yourstudio" /></label>
-                  <label>Website<input name="website" type="text" inputMode="url" maxLength={300} placeholder="yourstudio.in" /></label>
-                </div>
-                <label>Anything else we should know<textarea name="notes" maxLength={2000} rows={2} /></label>
-                <div aria-hidden="true" className="hp-field"><input name="companyWebsite" tabIndex={-1} autoComplete="off" defaultValue="" /></div>
                 <div className="admin-actions">
-                  <button type="button" className="button" onClick={close} disabled={sending}>Cancel</button>
-                  <button type="submit" className="button primary" disabled={sending || uploading} aria-busy={sending}>{sending ? 'Sending…' : 'Send details'}</button>
+                  {step === 0
+                    ? <button type="button" className="button" onClick={close} disabled={sending}>Cancel</button>
+                    : <button type="button" className="button" onClick={back} disabled={sending}><span aria-hidden="true">←</span> Back</button>}
+                  {step < LAST
+                    ? <button type="submit" className="button primary">Next <span aria-hidden="true">→</span></button>
+                    : <button type="submit" className="button primary" disabled={sending || uploading} aria-busy={sending}>{sending ? 'Sending…' : 'Send details'}</button>}
                 </div>
               </form>
             )}

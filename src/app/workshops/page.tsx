@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { WorkshopsEmptyState } from '@/components/WorkshopsEmptyState';
 import { DataVersionProvider } from '@/components/DataVersion';
+import { HostWorkshopButton } from '@/components/HostWorkshopButton';
 import { LiveCatalog } from '@/components/LiveCatalog';
 import { JsonLd } from '@/components/JsonLd';
 import { listWorkshops } from '@/lib/catalog';
@@ -11,6 +12,7 @@ import { hasFilters, parseFilters } from '@/lib/filters';
 import { wantsHostForm } from '@/lib/host-link';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
+import { contactEmail } from '@/lib/site';
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -42,7 +44,13 @@ export default async function WorkshopsPage({ searchParams }: Props) {
         <h1>Creative workshops &amp; pop-ups</h1>
         <p>Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.</p>
       </div>
-      {workshops.length === 0 && !hasFilters(f) ? <WorkshopsEmptyState openHostForm={wantsHostForm(sp)} /> : <LiveCatalog kind="workshops" initialItems={workshops} initialValues={f} cities={cities.map(c => ({ name: c.name, slug: c.slug, state: c.state }))} />}
+      {workshops.length === 0 && !hasFilters(f)
+        ? <WorkshopsEmptyState openHostForm={wantsHostForm(sp)} />
+        : <>
+            <LiveCatalog kind="workshops" initialItems={workshops} initialValues={f} cities={cities.map(c => ({ name: c.name, slug: c.slug, state: c.state }))} />
+            {/* The footer's "Want to host a workshop?" link: with workshops listed there is no host button on the page, so this link brings its own. */}
+            {wantsHostForm(sp) && <div className="host-more"><HostWorkshopButton contactEmail={contactEmail()} defaultOpen shareable /></div>}
+          </>}
     </DataVersionProvider>
   );
 }
