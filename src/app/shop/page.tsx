@@ -18,6 +18,8 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const f = parseFilters(await searchParams);
+  // With no product at all the page is empty content (a "soft 404" to search engines): keep it out of the index until one exists.
+  const none = !hasFilters(f) && (await countProducts({})) === 0;
   const w = await getCatalogWording();
   const { products, makers, cities } = w.stats;
   const base = `${capitalize(w.products)} from Indian Artisans`;
@@ -27,7 +29,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       ? `Discover ${products} ${w.products} from ${makers} independent ${makers === 1 ? 'maker' : 'makers'} in ${cities} ${cities === 1 ? 'city' : 'cities'}. Filter by category or city and contact the maker directly to order.`
       : `Discover ${w.products} from independent makers. Filter by category or city and contact the maker directly to order.`,
     path: '/shop',
-    noindex: hasFilters(f),
+    noindex: hasFilters(f) || none,
   });
 }
 

@@ -1,0 +1,37 @@
+/* The /workshops page while no workshop exists */
+.ws-empty {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  max-width: 640px;
+  margin: 8px 8.5% 72px;
+  padding: 26px 28px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.ws-empty h2 {
+  margin: 0;
+  font: 500 clamp(22px, 3vw, 28px)/1.2 var(--font-display);
+}
+.ws-empty p {
+  margin: 0;
+  color: var(--muted-2);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.ws-empty-steps {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 4px;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+@media (max-width: 700px) {
+  .ws-empty {
+    margin-left: 5%;
+    margin-right: 5%;
+    padding: 20px;
+  }
+}

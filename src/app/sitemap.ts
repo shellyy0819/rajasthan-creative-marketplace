@@ -12,8 +12,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [products, workshops, cities, fairOpen] = await Promise.all([listProducts(), listWorkshops(), listActiveCities(), isFairOpen()]);
   return [
     { url: abs('/'), changeFrequency: 'weekly', priority: 1 },
-    { url: abs('/shop'), changeFrequency: 'daily', priority: 0.9 },
-    { url: abs('/workshops'), changeFrequency: 'daily', priority: 0.9 },
+    // An empty list page is a soft 404 to search engines: list /shop and /workshops only while they have something.
+    ...(products.length ? [{ url: abs('/shop'), changeFrequency: 'daily' as const, priority: 0.9 }] : []),
+    ...(workshops.length ? [{ url: abs('/workshops'), changeFrequency: 'daily' as const, priority: 0.9 }] : []),
     { url: abs('/trending'), changeFrequency: 'daily', priority: 0.6 },
     ...(fairOpen ? [{ url: abs('/fair'), changeFrequency: 'weekly' as const, priority: 0.5 }] : []),
     ...['/about', '/blogs', '/contact', '/help'].map(path => ({ url: abs(path), changeFrequency: 'monthly' as const, priority: 0.4 })),
