@@ -1,3 +1,4 @@
+import { CafeScene } from './CafeScene';
 import { HostWorkshopButton } from './HostWorkshopButton';
 import { contactEmail } from '@/lib/site';
 import './WorkshopsEmptyState.css';
@@ -5,6 +6,7 @@ import './WorkshopsEmptyState.css';
 /** Shown on /workshops while no workshop exists at all (not when a filter finds nothing): what is coming and how a studio or café can host one. */
 export function WorkshopsEmptyState() {
   return (
+    <div className="ws-empty-wrap">
     <section className="ws-empty" aria-labelledby="ws-empty-h">
       <h2 id="ws-empty-h">The first workshops are coming</h2>
       <p>No workshop is scheduled yet. Studios, cafés and makers across India can host hands-on workshops, creative meetups and pop-ups here.</p>
@@ -15,5 +17,7 @@ export function WorkshopsEmptyState() {
       </ol>
       <HostWorkshopButton contactEmail={contactEmail()} />
     </section>
+    <div className="ws-empty-art"><CafeScene /></div>
+    </div>
   );
 }

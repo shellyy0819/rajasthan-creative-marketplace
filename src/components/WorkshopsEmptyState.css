@@ -1,10 +1,22 @@
-/* The /workshops page while no workshop exists */
+/* The /workshops page while no workshop exists: the hosting card beside a café illustration */
+.ws-empty-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 40px;
+  margin: 8px 8.5% 72px;
+}
+.ws-empty-art {
+  flex: 1 1 380px;
+  max-width: 520px;
+}
 .ws-empty {
+  flex: 1 1 420px;
   display: grid;
   justify-items: start;
   gap: 14px;
-  max-width: 640px;
-  margin: 8px 8.5% 72px;
+  max-width: 580px;
+  box-sizing: border-box;
   padding: 26px 28px;
   background: var(--white);
   border: 1px solid var(--line);
@@ -29,9 +41,15 @@
   line-height: 1.6;
 }
 @media (max-width: 700px) {
-  .ws-empty {
+  .ws-empty-wrap {
     margin-left: 5%;
     margin-right: 5%;
+    gap: 20px;
+  }
+  .ws-empty-art {
+    order: -1;   /* the picture first on a phone */
+  }
+  .ws-empty {
     padding: 20px;
   }
 }
