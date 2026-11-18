@@ -100,7 +100,7 @@ export function LogoUpload({ value, onChange, onBusyChange, invalid, describedBy
       <div className={`logo-preview${value ? ' has-photo' : ''}`}>
         {value
           // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={value} alt="Your logo" />
+          ? <a className="logo-open" href={value} target="_blank" rel="noopener noreferrer" aria-label="Open your logo in a new tab"><img src={value} alt="Your logo" /></a>
           : <span aria-hidden="true">Logo</span>}
         {busy && <span className="rr-spinner" role="presentation" />}
       </div>

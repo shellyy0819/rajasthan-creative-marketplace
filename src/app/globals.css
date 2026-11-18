@@ -3517,6 +3517,7 @@ button.onboard-stepper-btn {
   height: 100%;
   object-fit: cover;
 }
+.logo-preview .logo-open { display: block; width: 100%; height: 100%; cursor: zoom-in; }
 .logo-actions {
   display: flex;
   flex-direction: column;
