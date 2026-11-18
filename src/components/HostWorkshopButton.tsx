@@ -227,7 +227,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
       ...common, mode: 'online', kind: 'class', platform: field(f, 'platform'), joinLink: field(f, 'joinLink') || undefined, endsOn: field(f, 'endsOn') || undefined,
       schedule: { repeat, days: f.getAll('days').map(String), ...(repeat === 'monthly' ? { weeks: f.getAll('weeks').map(w => (w === 'last' ? 'last' : Number(w))) } : {}), time: field(f, 'classTime'), durationMin: durationMinutes(field(f, 'durationValue'), field(f, 'durationUnit')) },
       prices: priceRows.map(r => ({ label: r.label.trim(), amountPaise: Math.round(Number(r.amount) * 100), sessions: r.sessions ? Number(r.sessions) : null })),
-      freeTrial: f.get('freeTrial') === 'on', freeTrialDays: field(f, 'freeTrialDays') ? Number(field(f, 'freeTrialDays')) : undefined, languages: field(f, 'languages').split(',').map(x => x.trim()).filter(Boolean),
+      freeTrial: !!field(f, 'freeTrialDays'), freeTrialDays: field(f, 'freeTrialDays') ? Number(field(f, 'freeTrialDays')) : undefined, languages: field(f, 'languages').split(',').map(x => x.trim()).filter(Boolean),
       level: field(f, 'level') || undefined, experience: field(f, 'experience') || undefined, certifications: field(f, 'certifications') || undefined, whatsapp: field(f, 'whatsapp') || undefined,
     } : {
       ...common, mode: 'in_person', kind: field(f, 'kind'), cityRef: field(f, 'cityRef'), venue: field(f, 'venue'),

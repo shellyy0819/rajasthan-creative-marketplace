@@ -99,7 +99,7 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
       schedule: { repeat, days: f.getAll('days').map(String), ...(repeat === 'monthly' ? { weeks: f.getAll('weeks').map(w => (w === 'last' ? 'last' : Number(w))) } : {}), time: field(f, 'classTime'), durationMin: durationMinutes(field(f, 'durationValue'), field(f, 'durationUnit')) },
       venue: null, cityId: null, seats: null,
       prices: rows.map(r => ({ label: r.label.trim(), amountPaise: Math.round(Number(r.amount) * 100), sessions: r.sessions ? Number(r.sessions) : null })),
-      freeTrial: f.get('freeTrial') === 'on', freeTrialDays: field(f, 'freeTrialDays') ? Number(field(f, 'freeTrialDays')) : null, languages: field(f, 'languages').split(',').map(x => x.trim()).filter(Boolean),
+      freeTrial: !!field(f, 'freeTrialDays'), freeTrialDays: field(f, 'freeTrialDays') ? Number(field(f, 'freeTrialDays')) : null, languages: field(f, 'languages').split(',').map(x => x.trim()).filter(Boolean),
       level: field(f, 'level') || null, experience: field(f, 'experience') || null, certifications: field(f, 'certifications') || null, whatsapp: field(f, 'whatsapp') || null,
     } : {
       ...common, mode: 'in_person', kind: field(f, 'kind') || 'workshop', venue: field(f, 'venue'), date: field(f, 'startDate'), time: field(f, 'startTime') || '09:00',

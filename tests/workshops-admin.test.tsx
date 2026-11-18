@@ -22,7 +22,7 @@ const yoga = { ...base, id: 'w2', title: 'Morning Flow', kind: 'class', mode: 'o
   prices: [{ label: 'Monthly', amountPaise: 150000, sessions: 12 }] } as unknown as Workshop;
 const req = { id: 'r1', hostName: 'Asha Yoga', contactName: 'Asha', phone: '+919989898999', email: 'asha@example.com', city: '', venue: '', title: 'Evening Flow', kind: 'class', mode: 'online', topicId: 1, description: 'Calm yoga.',
   startDate: '2099-02-02', endDate: '2099-02-02', status: 'received', emailVerified: true, images: [], priceType: 'PAID', pricePaise: 50000, createdAt: '', platform: 'Google Meet', schedule: { days: ['tue'], time: '18:30', durationMin: 45 },
-  languages: ['English'], level: 'all', freeTrial: true, whatsapp: '+919989898999', prices: [{ label: 'Per session', amountPaise: 50000, sessions: 1 }] } as unknown as WorkshopRequest;
+  languages: ['English'], level: 'all', freeTrial: true, freeTrialDays: 7, whatsapp: '+919989898999', prices: [{ label: 'Per session', amountPaise: 50000, sessions: 1 }] } as unknown as WorkshopRequest;
 const ok = (body: unknown, status = 200) => ({ ok: status < 400, status, json: async () => body });
 
 beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal('fetch', fetchMock); });
@@ -134,7 +134,7 @@ describe('listing form', () => {
     expect((within(dlg).getByLabelText(/contact email/i) as HTMLInputElement).value).toBe('asha@example.com');
     fireEvent.click(within(dlg).getByRole('button', { name: /save listing/i }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ sourceRequestId: 'r1', status: 'DRAFT', title: 'Evening Flow', prices: [{ label: 'Per session', amountPaise: 50000, sessions: 1 }], freeTrial: true });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ sourceRequestId: 'r1', status: 'DRAFT', title: 'Evening Flow', prices: [{ label: 'Per session', amountPaise: 50000, sessions: 1 }], freeTrial: true, freeTrialDays: 7 });
   });
 
   it('an event body clears the class fields and price rows; a class body clears city and venue', async () => {

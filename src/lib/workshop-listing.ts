@@ -106,6 +106,7 @@ export function parseListingFields(raw: Raw): ListingFields {
     if (!schedule) throw bad('schedule is required for an online class.');
   }
   const level = raw.level === undefined || raw.level === null || raw.level === '' ? null : oneOf(raw.level, 'level', LEVELS);
+  const trialDays = optionalInt(raw.freeTrialDays, 'freeTrialDays', 1, 365);
   return {
     kind, mode, platform, schedule, level,
     topicId: optionalInt(raw.topicId, 'topicId', 1, 1_000_000),
@@ -113,8 +114,9 @@ export function parseListingFields(raw: Raw): ListingFields {
     languages: parseLanguages(raw.languages),
     experience: optionalText(raw.experience, 'experience', 500) ?? null,
     certifications: optionalText(raw.certifications, 'certifications', 500) ?? null,
-    freeTrial: raw.freeTrial === true,
-    freeTrialDays: raw.freeTrial === true ? optionalInt(raw.freeTrialDays, 'freeTrialDays', 1, 365) : null,
+    // The trial length in days is the free trial: giving it switches the trial on (an older client may still send freeTrial alone).
+    freeTrial: raw.freeTrial === true || trialDays !== null,
+    freeTrialDays: trialDays,
     joinLink: optionalJoinLink(raw.joinLink),
     whatsapp: (() => { const n = optionalPhone(raw.whatsapp, 'whatsapp'); return n ? `+91${n.slice(-10)}` : null; })(),
     instagram: optionalText(raw.instagram, 'instagram', 200) ?? null,

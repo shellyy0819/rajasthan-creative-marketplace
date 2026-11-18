@@ -111,7 +111,6 @@ export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows, repe
         ))}
         <button type="button" className="button" disabled={rows.length >= PRICE_PLAN_LIMIT} onClick={() => setRows([...rows, { label: '', amount: '', sessions: '' }])}>Add a price plan</button>
       </fieldset>
-      <label className="check"><input type="checkbox" name="freeTrial" /> Offers a free trial class</label>
       <label>Free trial length in days (optional)<input name="freeTrialDays" type="number" min={1} max={365} inputMode="numeric" placeholder="e.g. 7" enterKeyHint="next" /></label>
     </>
   );

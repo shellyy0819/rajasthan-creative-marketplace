@@ -105,7 +105,9 @@ describe('free trial length', () => {
     expect(parseListingFields({ ...yoga, freeTrialDays: 7 }).freeTrialDays).toBe(7);
     expect(parseListingFields(yoga).freeTrialDays).toBeNull();
     expect(parseListingFields({ ...yoga, freeTrialDays: '' }).freeTrialDays).toBeNull();
-    expect(parseListingFields({ ...yoga, freeTrial: false, freeTrialDays: 7 }).freeTrialDays).toBeNull();
+    // Days are the free trial: giving them switches it on, and without them there is none.
+    expect(parseListingFields({ ...yoga, freeTrial: false, freeTrialDays: 7 })).toMatchObject({ freeTrial: true, freeTrialDays: 7 });
+    expect(parseListingFields({ ...yoga, freeTrial: false })).toMatchObject({ freeTrial: false, freeTrialDays: null });
     expect(msg({ ...yoga, freeTrialDays: 0 })).toMatch(/freeTrialDays/);
     expect(msg({ ...yoga, freeTrialDays: 366 })).toMatch(/freeTrialDays/);
     expect(msg({ ...yoga, freeTrialDays: 1.5 })).toMatch(/freeTrialDays/);
