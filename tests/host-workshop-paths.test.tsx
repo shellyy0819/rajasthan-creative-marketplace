@@ -105,7 +105,8 @@ describe('step 2 and 3 on the online class path', () => {
   it('step 3 adds languages, level, experience, certifications and WhatsApp', () => {
     openClass(); classStep1(); next(); classStep2(); next();
     expect(stepText()).toBe('Step 3 of 3');
-    for (const l of [/languages/i, /^level/i, /experience/i, /certifications/i, /whatsapp/i]) expect(screen.getByLabelText(l)).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: /languages/i })).toBeTruthy();
+    for (const l of [/^level/i, /experience/i, /certifications/i, /whatsapp/i]) expect(screen.getByLabelText(l)).toBeTruthy();
   });
   it('sends the class payload: mode online, kind class, schedule, price plans in paise, languages, level, whatsapp, topic', async () => {
     fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'asha@example.com', status: 'pending' }) });
@@ -117,7 +118,8 @@ describe('step 2 and 3 on the online class path', () => {
     val(/free trial length/i, '7');
     next();
     val(/host, studio/i, 'Asha Yoga'); val(/your name/i, 'Asha Rao'); val(/phone number/i, '9989898999'); val(/^email/i, 'asha@example.com');
-    val(/languages/i, 'Hindi, English'); val(/^level/i, 'beginner'); val(/experience/i, '8 years'); val(/certifications/i, 'RYT 500'); val(/whatsapp/i, '9989898999');
+    fireEvent.click(screen.getByRole('combobox', { name: /languages/i })); fireEvent.click(screen.getByRole('option', { name: 'Hindi' })); fireEvent.click(screen.getByRole('option', { name: 'English' }));
+    val(/^level/i, 'beginner'); val(/experience/i, '8 years'); val(/certifications/i, 'RYT 500'); val(/whatsapp/i, '9989898999');
     fireEvent.click(screen.getByRole('button', { name: /send details/i }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
@@ -169,6 +171,60 @@ describe('all weeks of the month', () => {
     expect((screen.getByLabelText('Repeats') as HTMLSelectElement).value).toBe('monthly');
     fireEvent.click(screen.getByLabelText('Last'));
     expect((screen.getByLabelText('Repeats') as HTMLSelectElement).value).toBe('weekly');
+  });
+});
+
+describe('errors appear under the field they are about', () => {
+  const toStep2 = () => { openClass(); classStep1(); next(); val(/online platform/i, 'Zoom'); val(/start date/i, '2027-01-05'); fireEvent.click(screen.getByLabelText('Mon')); val(/class time/i, '07:00'); };
+  const fillStep3 = () => { val(/host, studio/i, 'H'); val(/your name/i, 'N'); val(/phone number/i, '9989898999'); val(/^email/i, 'a@b.co'); val(/whatsapp/i, '9989898999'); };
+  const refuse = (error: string) => fetchMock.mockResolvedValue({ ok: false, status: 400, json: async () => ({ error }) });
+  it('a meeting link that is not a real https link is flagged under the Meeting link field, not in a banner', () => {
+    toStep2();
+    val(/meeting link/i, 'https://zoom');
+    next();
+    expect(stepText()).toBe('Step 2 of 3');
+    const label = screen.getByLabelText(/meeting link/i).closest('label')!;
+    expect(label.querySelector('[role="alert"]')?.textContent).toMatch(/not a valid meeting link/i);
+    expect(document.querySelector('.admin-error')).toBeNull();
+    expect(document.activeElement).toBe(screen.getByLabelText(/meeting link/i));
+  });
+  it('the message goes away when the field is edited', () => {
+    toStep2(); val(/meeting link/i, 'https://zoom'); next();
+    expect(screen.getByRole('alert')).toBeTruthy();
+    val(/meeting link/i, 'https://zoom.us/j/1');
+    expect(screen.queryByRole('alert')).toBeNull();
+    next();
+    expect(stepText()).toBe('Step 3 of 3');
+  });
+  it('a missing class day is flagged inside the Class days group', () => {
+    openClass(); classStep1(); next(); val(/online platform/i, 'Zoom'); val(/start date/i, '2027-01-05'); val(/class time/i, '07:00'); next();
+    const alert = screen.getByRole('alert');
+    expect(alert.closest('fieldset')?.querySelector('legend')?.textContent).toBe('Class days');
+    expect(document.querySelector('.admin-error')).toBeNull();
+  });
+  it('a server message about the meeting link sends the person back to step 2 and shows it under that field', async () => {
+    refuse('joinLink must be a full https link, for example https://zoom.us/j/123.');
+    toStep2(); val(/meeting link/i, 'https://zoom.us/j/1'); next(); fillStep3();
+    fireEvent.click(screen.getByRole('button', { name: /send details/i }));
+    await waitFor(() => expect(stepText()).toBe('Step 2 of 3'));
+    const label = screen.getByLabelText(/meeting link/i).closest('label')!;
+    expect(label.querySelector('[role="alert"]')?.textContent).toBe('Meeting link must be a full https link, for example https://zoom.us/j/123.');
+    expect(document.querySelector('.admin-error')).toBeNull();
+    expect(document.activeElement).toBe(screen.getByLabelText(/meeting link/i));
+  });
+  it('a server message about the phone number shows under the phone field on step 3', async () => {
+    refuse('phone must be a valid Indian mobile number, e.g. 9989898999.');
+    toStep2(); next(); fillStep3();
+    fireEvent.click(screen.getByRole('button', { name: /send details/i }));
+    await waitFor(() => expect(document.querySelector('[role="alert"]')).not.toBeNull());
+    expect(stepText()).toBe('Step 3 of 3');
+    expect(screen.getByLabelText(/phone number/i).closest('label')?.querySelector('[role="alert"]')?.textContent).toMatch(/^Phone number must be a valid/);
+  });
+  it('a message that is about no field stays in the banner', async () => {
+    refuse('Too many requests.');
+    toStep2(); next(); fillStep3();
+    fireEvent.click(screen.getByRole('button', { name: /send details/i }));
+    await waitFor(() => expect(document.querySelector('.admin-error')?.textContent).toBe('Too many requests.'));
   });
 });
 
@@ -298,13 +354,16 @@ describe('price: free or paid', () => {
 });
 
 describe('languages', () => {
-  it('step 3 refuses more than five languages before anything is sent', () => {
+  it('step 3 has a multi-select language dropdown that stops at five and sends them all', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'a@b.co', status: 'pending' }) });
     openClass(); classStep1(); next(); classStep2(); next();
-    val(/host, studio/i, 'A'); val(/your name/i, 'B'); val(/phone number/i, '9989898999'); val(/^email/i, 'a@b.co');
-    val(/languages/i, 'a1, b2, c3, d4, e5, f6');
+    val(/host, studio/i, 'A'); val(/your name/i, 'B'); val(/phone number/i, '9989898999'); val(/^email/i, 'a@b.co'); val(/whatsapp/i, '9989898999');
+    fireEvent.click(screen.getByRole('combobox', { name: /languages/i }));
+    for (const l of ['Hindi', 'English', 'Marathi', 'Tamil', 'Bengali', 'Gujarati']) fireEvent.click(screen.getByRole('option', { name: l }));
+    expect(screen.getByText(/up to 5 languages/i)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /send details/i }));
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert').textContent).toMatch(/five languages|5 languages/i);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).languages).toEqual(['Hindi', 'English', 'Marathi', 'Tamil', 'Bengali']);
   });
 });
 

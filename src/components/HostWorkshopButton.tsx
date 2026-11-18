@@ -11,7 +11,10 @@ import { supportLine } from '@/lib/workshop-support';
 import { clearDraft, collectDraft, DRAFT_EVENT, hasContent, readDraft, writeDraft, type HostDraft } from '@/lib/host-draft';
 import { CONTINUE_EVENT } from './HostDraftReminder';
 import type { TopicOption } from '@/lib/topics';
-import { activePriceRows, BLANK_PRICE, ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, PRICE_ROW_ERROR, priceRowsIncomplete, type PriceDraft } from './HostListingFields';
+import { fieldErrorFromMessage } from '@/lib/field-errors';
+import { JOIN_LINK_HINT, validJoinLink } from '@/lib/join-link';
+import { useFieldErrors } from './useFieldErrors';
+import { activePriceRows, BLANK_PRICE, ClassAbout, FieldError, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, PRICE_ROW_ERROR, priceRowsIncomplete, type PriceDraft } from './HostListingFields';
 import './HostWorkshopStepper.css';
 import './WorkshopListings.css';
 
@@ -56,6 +59,9 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   const trigger = useRef<HTMLButtonElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const shownStep = useRef(0);
+  const { errors: fieldErrors, show: showFieldError, clear: clearFieldError, clearAll: clearFieldErrors } = useFieldErrors(formRef, setStep);
+  /** Show a message under its field (and go to it); a message about no field of this form goes in the banner. */
+  const fail = (name: string, text: string) => { if (!showFieldError(name, text)) setError(text); return false; };
   const me = useRef<Record<string, string>>({});
   const [meTick, setMeTick] = useState(0);
   const [draftImages, setDraftImages] = useState<string[]>([]);
@@ -90,6 +96,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(saveNow, 400);
   };
+  useEffect(() => { clearFieldError('prices'); }, [priceRows]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (open) scheduleSave(); }, [path, step, startDate, paid, repeat, priceRows, open]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
 
@@ -110,7 +117,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     if (!form || !d) return;
     for (const [name, v] of Object.entries(d.fields)) {
       const el = form.elements.namedItem(name);
-      if (!applied.current.has(name) && (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) { el.value = v; applied.current.add(name); }
+      if (!applied.current.has(name) && (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) { el.value = v; el.dispatchEvent(new Event('rr-sync')); applied.current.add(name); }
     }
     const days = form.querySelectorAll<HTMLInputElement>('input[name="days"]');
     if (days.length && !applied.current.has('days')) { days.forEach(c => { c.checked = d.days.includes(c.value); }); applied.current.add('days'); }
@@ -193,20 +200,18 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     const bad = stepFields(i).find(el => !el.checkValidity());
     bad?.reportValidity();
     if (bad) return false;
-    if (i === 1 && path === 'class' && !stepFields(1).some(el => el.name === 'days' && el.checked)) { setError('Choose at least one class day.'); return false; }
-    if (i === 1 && path === 'class' && priceRowsIncomplete(priceRows)) { setError(PRICE_ROW_ERROR); return false; }
     if (i === 1 && path === 'class') {
       const val = (n: string) => stepFields(1).find(el => el.name === n)?.value ?? '';
-      if (!durationValid(durationMinutes(val('durationValue'), val('durationUnit')))) { setError(DURATION_ERROR); return false; }
-    }
-    if (i === 1 && path === 'class' && repeat === 'monthly' && !stepFields(1).some(el => el.name === 'weeks' && el.checked)) { setError('Choose at least one week of the month.'); return false; }
-    if (i === 2 && path === 'class') {
-      const langs = stepFields(2).find(el => el.name === 'languages')?.value ?? '';
-      if (langs.split(',').filter(x => x.trim()).length > 5) { setError('Please list at most five languages.'); return false; }
+      const link = val('joinLink').trim();
+      if (link && !validJoinLink(link)) return fail('joinLink', `That is not a valid meeting link. ${JOIN_LINK_HINT}`);
+      if (!stepFields(1).some(el => el.name === 'days' && el.checked)) return fail('days', 'Choose at least one class day.');
+      if (repeat === 'monthly' && !stepFields(1).some(el => el.name === 'weeks' && el.checked)) return fail('weeks', 'Choose at least one week of the month.');
+      if (!durationValid(durationMinutes(val('durationValue'), val('durationUnit')))) return fail('durationValue', DURATION_ERROR);
+      if (priceRowsIncomplete(priceRows)) return fail('prices', PRICE_ROW_ERROR);
     }
     return true;
   }
-  function back() { setError(''); setStep(s => Math.max(0, s - 1)); }
+  function back() { setError(''); clearFieldErrors(); setStep(s => Math.max(0, s - 1)); }
   // Signed in: fetch the person's own details once per opening, then fill empty fields (never over what they typed).
   useEffect(() => {
     if (!prefill || !open) return;
@@ -232,7 +237,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     shownStep.current = step;
     const root = formRef.current;
     root?.scrollTo?.(0, 0);
-    root?.querySelector<HTMLElement>(`[data-step="${step}"] :is(input:not([type="hidden"]), select, textarea)`)?.focus();
+    if (!Object.keys(fieldErrors).length) root?.querySelector<HTMLElement>(`[data-step="${step}"] :is(input:not([type="hidden"]), select, textarea)`)?.focus(); // a message under a field has already taken focus there
   }, [step]);
 
   /** Next on steps 1 and 2 (also Enter), Send details on the last one. */
@@ -268,7 +273,12 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     const lastDate = isClass ? field(f, 'endsOn') : field(f, 'endDate');
     try {
       const { ok, data, error } = await post('/api/workshop-requests', body);
-      if (!ok || !data) { setError(error || submitErrorMessage(0, null, contactEmail)); setSending(false); return; }
+      if (!ok || !data) {
+        const text = error || submitErrorMessage(0, null, contactEmail);
+        const f = fieldErrorFromMessage(text);
+        if (!(f && showFieldError(f.name, f.text))) setError(text); // a message about a field goes under it; anything else in the banner
+        setSending(false); return;
+      }
       const summary = { name: body.contactName, email: data.email ?? body.email, from: fmtDate(body.startDate), to: fmtDate(lastDate || body.startDate) };
       clearDraft();
       if (data.status === 'received') { setDone({ ...summary, confirmed: false, notified: false }); setSending(false); return; } // the code email could not be sent; we still have the details
@@ -328,7 +338,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                   </ol>
                   <p className="host-step-count">Step {step + 1} of {STEPS.length}</p>
                 </div>
-              <form ref={formRef} className="admin-form host-form" noValidate onSubmit={onSubmit} onInput={scheduleSave} onChange={scheduleSave}>
+              <form ref={formRef} className="admin-form host-form" noValidate onSubmit={onSubmit} onInput={e => { const n = (e.target as HTMLInputElement).name; if (n) clearFieldError(n); scheduleSave(); }} onChange={e => { const n = (e.target as unknown as HTMLInputElement).name; if (n) clearFieldError(n); scheduleSave(); }}>
                 {error && <p role="alert" className="admin-error">{error}</p>}
                 <div className="host-step" data-step={0} hidden={step !== 0}>
                   <p className="form-note">{supportLine()}</p>
@@ -345,7 +355,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                       {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
                   </label>
-                  <label><span className="lbl">{path === 'class' ? 'Class title' : 'Event title'}</span><input name="title" required maxLength={150} autoFocus autoCapitalize="sentences" enterKeyHint="next" /></label>
+                  <label><span className="lbl">{path === 'class' ? 'Class title' : 'Event title'}</span><input name="title" required maxLength={150} autoFocus autoCapitalize="sentences" enterKeyHint="next" /><FieldError errors={fieldErrors} name="title" /></label>
                   {path !== 'class' && (
                     <label><span className="lbl">Type</span>
                       <select name="kind" required defaultValue="">
@@ -355,29 +365,29 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                         <option value="popup">Pop-up</option>
                         <option value="market">Flea market</option>
                       </select>
-                    </label>
+                    <FieldError errors={fieldErrors} name="kind" /></label>
                   )}
-                  <label><span className="lbl">{path === 'class' ? 'About the class' : 'What happens at the event'}</span><textarea name="description" required maxLength={2000} rows={3} /></label>
+                  <label><span className="lbl">{path === 'class' ? 'About the class' : 'What happens at the event'}</span><textarea name="description" required maxLength={2000} rows={3} /><FieldError errors={fieldErrors} name="description" /></label>
                   <ImageUploader key={imagesKey} initial={draftImages} max={MAX_REQUEST_IMAGES} endpoint="/api/uploads/workshop-request-image" legend="Photos (up to 3)" onBusyChange={setUploading} />
                 </div>
                 <div className="host-step" data-step={1} hidden={step !== 1}>
                   {path === 'class'
-                    ? <ClassWhenAndPrice startDate={startDate} setStartDate={setStartDate} rows={priceRows} setRows={setPriceRows} repeat={repeat} setRepeat={setRepeat} />
-                    : <EventWhereWhen startDate={startDate} setStartDate={setStartDate} paid={paid} setPaid={setPaid} />}
+                    ? <ClassWhenAndPrice errors={fieldErrors} startDate={startDate} setStartDate={setStartDate} rows={priceRows} setRows={setPriceRows} repeat={repeat} setRepeat={setRepeat} />
+                    : <EventWhereWhen errors={fieldErrors} startDate={startDate} setStartDate={setStartDate} paid={paid} setPaid={setPaid} />}
                 </div>
                 <div className="host-step" data-step={2} hidden={step !== 2}>
-                  <label><span className="lbl">Host, studio, cafe or organiser name</span><input name="hostName" required maxLength={150} autoComplete="organization" autoCapitalize="words" enterKeyHint="next" /></label>
-                  <label><span className="lbl">Your name</span><input name="contactName" required maxLength={100} autoComplete="name" autoCapitalize="words" enterKeyHint="next" /></label>
+                  <label><span className="lbl">Host, studio, cafe or organiser name</span><input name="hostName" required maxLength={150} autoComplete="organization" autoCapitalize="words" enterKeyHint="next" /><FieldError errors={fieldErrors} name="hostName" /></label>
+                  <label><span className="lbl">Your name</span><input name="contactName" required maxLength={100} autoComplete="name" autoCapitalize="words" enterKeyHint="next" /><FieldError errors={fieldErrors} name="contactName" /></label>
                   <div className="admin-form-row">
-                    <label><span className="lbl">Phone number</span><input name="phone" type="tel" inputMode="tel" required maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="9989898999" autoComplete="tel" enterKeyHint="next" /></label>
-                    <label><span className="lbl">Email</span><input name="email" type="email" required maxLength={254} autoComplete="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /></label>
+                    <label><span className="lbl">Phone number</span><input name="phone" type="tel" inputMode="tel" required maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="Example: 9999999999" autoComplete="tel" enterKeyHint="next" /><FieldError errors={fieldErrors} name="phone" /></label>
+                    <label><span className="lbl">Email</span><input name="email" type="email" required maxLength={254} autoComplete="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /><FieldError errors={fieldErrors} name="email" /></label>
                   </div>
                   <div className="admin-form-row">
-                    <InstagramField />
-                    <label>Website<input name="website" type="text" inputMode="url" maxLength={300} placeholder="yourstudio.in" autoComplete="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /></label>
+                    <InstagramField errors={fieldErrors} />
+                    <label>Website<input name="website" type="text" inputMode="url" maxLength={300} placeholder="yourstudio.in" autoComplete="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /><FieldError errors={fieldErrors} name="website" /></label>
                   </div>
-                  {path === 'class' && <ClassAbout />}
-                  <label>Anything else we should know<textarea name="notes" maxLength={2000} rows={2} /></label>
+                  {path === 'class' && <ClassAbout errors={fieldErrors} />}
+                  <label>Anything else we should know<textarea name="notes" maxLength={2000} rows={2} /><FieldError errors={fieldErrors} name="notes" /></label>
                   <div aria-hidden="true" className="hp-field"><input name="companyWebsite" tabIndex={-1} autoComplete="off" defaultValue="" /></div>
                 </div>
                 <div className="admin-actions">

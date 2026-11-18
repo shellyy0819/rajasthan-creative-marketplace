@@ -126,3 +126,24 @@
 .host-reminder h2 { margin: 0; font: 500 22px/1.2 var(--font-display); }
 .host-reminder p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
 .host-reminder .admin-actions { flex-wrap: wrap; justify-content: flex-end; margin-top: 6px; }
+
+/* Languages: a multi-select dropdown with chips. */
+.host-lang { position: relative; margin: 12px 0; }
+.host-lang-label { display: block; font-size: 11px; font-weight: 700; }
+.host-lang-box { margin-top: 6px; display: grid; gap: 8px; }
+.host-lang-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.host-lang-chip { padding: 4px 10px; border: 1px solid var(--control-border); border-radius: 30px; background: var(--white); color: var(--ink); font: 600 12px var(--font-sans); cursor: pointer; }
+.host-lang-trigger { width: 100%; min-height: 36px; padding: 9px 13px; text-align: left; border: 1px solid var(--control-border); border-radius: 3px; background: var(--white); color: var(--ink); font: 600 12px var(--font-sans); cursor: pointer; }
+.host-lang-panel { position: absolute; z-index: 5; left: 0; right: 0; margin-top: 4px; padding: 8px; border: 1px solid var(--control-border); border-radius: 4px; background: var(--white); box-shadow: 0 8px 24px #0000002e; }
+.host-lang-panel input[type='search'] { margin: 0 0 6px; width: 100%; }
+.host-lang-note { margin: 0 0 6px; font-size: 11px; color: var(--muted); }
+.host-lang-panel ul { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow-y: auto; overscroll-behavior: contain; }
+.host-lang-panel li { padding: 9px 10px; border-radius: 3px; font-size: 13px; cursor: pointer; }
+.host-lang-panel li:hover { background: var(--cream); }
+.host-lang-panel li[aria-selected='true'] { background: var(--green); color: var(--on-green); font-weight: 600; }
+.host-lang-panel li[aria-disabled='true'] { opacity: .5; cursor: not-allowed; }
+@media (max-width: 900px) {
+  .host-lang-trigger { font-size: 14px; min-height: 44px; }
+  .host-lang-panel li { padding: 12px 10px; font-size: 16px; }
+  .host-lang-chip { min-height: 36px; font-size: 13px; }
+}

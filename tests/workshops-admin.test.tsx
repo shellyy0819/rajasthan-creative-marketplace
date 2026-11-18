@@ -117,6 +117,24 @@ describe('listing form', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).endsOn).toBe('2099-01-05');
   });
+  it('a bad meeting link and a server message about the contact email show under their own fields', async () => {
+    fetchMock.mockResolvedValue(ok({ error: 'contactEmail must be a valid email address.' }, 400));
+    render(<WorkshopsAdmin initial={[]} topics={topics} />);
+    fireEvent.click(screen.getByRole('button', { name: /new listing/i }));
+    const dlg = screen.getByRole('dialog');
+    fireEvent.click(within(dlg).getByLabelText('Online class'));
+    const set = (l: RegExp | string, v: string) => fireEvent.change(within(dlg).getByLabelText(l), { target: { value: v } });
+    set(/class title/i, 'Flow'); set(/about the class/i, 'd'); set(/online platform/i, 'Zoom'); set(/start date/i, '2099-01-05');
+    fireEvent.click(within(dlg).getByLabelText('Mon')); set(/class time/i, '07:00'); set(/host, studio/i, 'H');
+    set(/meeting link/i, 'https://zoom');
+    fireEvent.click(within(dlg).getByRole('button', { name: /save listing/i }));
+    expect(within(dlg).getByLabelText(/meeting link/i).closest('label')?.querySelector('[role="alert"]')?.textContent).toMatch(/not a valid meeting link/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+    set(/meeting link/i, 'https://zoom.us/j/1'); set(/contact email/i, 'a@b.co');
+    fireEvent.click(within(dlg).getByRole('button', { name: /save listing/i }));
+    await waitFor(() => expect(within(dlg).getByLabelText(/contact email/i).closest('label')?.querySelector('[role="alert"]')?.textContent).toMatch(/^Contact email must be a valid email/));
+    expect(dlg.querySelector('.admin-error')).toBeNull();
+  });
   it('Edit opens the form filled with the listing and saves with PATCH', async () => {
     fetchMock.mockResolvedValue(ok({ ...yoga, title: 'Morning Flow 2' }));
     render(<WorkshopsAdmin initial={[yoga]} topics={topics} />);
@@ -127,6 +145,7 @@ describe('listing form', () => {
     expect((within(dlg).getByLabelText('Mon') as HTMLInputElement).checked).toBe(true);
     expect((within(dlg).getByLabelText('Tue') as HTMLInputElement).checked).toBe(false);
     expect((within(dlg).getByLabelText('Plan 1 name') as HTMLInputElement).value).toBe('Monthly');
+    expect(within(dlg).getByRole('button', { name: /remove hindi/i })).toBeTruthy(); // the languages show as chips
     expect((within(dlg).getByLabelText('Status') as HTMLSelectElement).value).toBe('APPROVED');
     expect((within(dlg).getByLabelText(/contact phone/i) as HTMLInputElement).value).toBe('+919989898999');
     fireEvent.change(within(dlg).getByLabelText(/class title/i), { target: { value: 'Morning Flow 2' } });

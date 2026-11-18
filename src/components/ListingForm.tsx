@@ -1,7 +1,10 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { ImageUploader } from './ImageUploader';
-import { activePriceRows, BLANK_PRICE, ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, PRICE_ROW_ERROR, priceRowsIncomplete, type PriceDraft } from './HostListingFields';
+import { fieldErrorFromMessage } from '@/lib/field-errors';
+import { JOIN_LINK_HINT, validJoinLink } from '@/lib/join-link';
+import { useFieldErrors } from './useFieldErrors';
+import { activePriceRows, BLANK_PRICE, ClassAbout, FieldError, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, PRICE_ROW_ERROR, priceRowsIncomplete, type PriceDraft } from './HostListingFields';
 import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 import { MAX_REQUEST_IMAGES } from '@/lib/workshop-requests-shared';
 import type { HostPath } from '@/lib/host-link';
@@ -55,6 +58,8 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const formRef = useRef<HTMLFormElement>(null);
+  const { errors: fieldErrors, show: showFieldError, clear: clearFieldError, clearAll: clearFieldErrors } = useFieldErrors(formRef);
+  const fail = (name: string, text: string) => { if (!showFieldError(name, text)) setError(text); };
 
   // Fill the uncontrolled inputs once the fields for the chosen path exist.
   useEffect(() => {
@@ -62,7 +67,7 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
     if (!form) return;
     for (const [name, value] of Object.entries(d.values)) {
       const el = form.elements.namedItem(name);
-      if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) el.value = value;
+      if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) { el.value = value; el.dispatchEvent(new Event('rr-sync')); }
     }
     form.querySelectorAll<HTMLInputElement>('input[name="days"]').forEach(c => { c.checked = d.days.includes(c.value); });
     form.querySelectorAll<HTMLInputElement>('input[name="weeks"]').forEach(c => { c.checked = d.weeks.includes(c.value); });
@@ -80,12 +85,17 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
     e.preventDefault();
     if (sending) return;
     const form = e.currentTarget;
-    if (path === 'class' && !form.querySelector('input[name="days"]:checked')) { setError('Choose at least one class day.'); return; }
-    if (path === 'class' && !durationValid(durationMinutes(String(new FormData(form).get('durationValue') ?? ''), String(new FormData(form).get('durationUnit') ?? '')))) { setError(DURATION_ERROR); return; }
-    if (path === 'class' && priceRowsIncomplete(rows)) { setError(PRICE_ROW_ERROR); return; }
-    if (path === 'class' && repeat === 'monthly' && !form.querySelector('input[name="weeks"]:checked')) { setError('Choose at least one week of the month.'); return; }
+    clearFieldErrors();
+    if (path === 'class') {
+      const link = String(new FormData(form).get('joinLink') ?? '').trim();
+      if (link && !validJoinLink(link)) return void fail('joinLink', `That is not a valid meeting link. ${JOIN_LINK_HINT}`);
+    }
+    if (path === 'class' && !form.querySelector('input[name="days"]:checked')) { fail('days', 'Choose at least one class day.'); return; }
+    if (path === 'class' && !durationValid(durationMinutes(String(new FormData(form).get('durationValue') ?? ''), String(new FormData(form).get('durationUnit') ?? '')))) { fail('durationValue', DURATION_ERROR); return; }
+    if (path === 'class' && priceRowsIncomplete(rows)) { fail('prices', PRICE_ROW_ERROR); return; }
+    if (path === 'class' && repeat === 'monthly' && !form.querySelector('input[name="weeks"]:checked')) { fail('weeks', 'Choose at least one week of the month.'); return; }
     if (!form.checkValidity()) { form.reportValidity(); return; }
-    if (path === 'event' && !/^\d+$/.test(String(new FormData(form).get('seats') ?? '').trim())) { setError('Enter the number of seats.'); return; }
+    if (path === 'event' && !/^\d+$/.test(String(new FormData(form).get('seats') ?? '').trim())) { fail('seats', 'Enter the number of seats.'); return; }
     const f = new FormData(form);
     const isClass = path === 'class';
     const common = {
@@ -113,7 +123,12 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
     try {
       const r = await fetch(workshop ? `/api/workshops/${workshop.id}` : '/api/workshops', { method: workshop ? 'PATCH' : 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
       const data = await r.json().catch(() => null);
-      if (!r.ok) { setError(data?.error ?? 'Something went wrong. Please try again.'); setSending(false); return; }
+      if (!r.ok) {
+        const text = data?.error ?? 'Something went wrong. Please try again.';
+        const f = fieldErrorFromMessage(text);
+        if (!(f && showFieldError(f.name, f.text))) setError(text);
+        setSending(false); return;
+      }
       onSaved(data as Workshop);
     } catch { setError('Network error. Please try again.'); setSending(false); }
   }
@@ -125,7 +140,7 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
           <h2 id="listing-title">{workshop ? 'Edit listing' : fromRequest ? 'Create listing from request' : 'New listing'}</h2>
           <button type="button" className="icon-btn" aria-label="Close" onClick={onClose} disabled={sending}>✕</button>
         </div>
-        <form ref={formRef} className="admin-form" noValidate onSubmit={save}>
+        <form ref={formRef} className="admin-form" noValidate onSubmit={save} onChange={e => { const n = (e.target as unknown as HTMLInputElement).name; if (n) clearFieldError(n); }}>
           {error && <p role="alert" className="admin-error">{error}</p>}
           <fieldset className="host-path">
             <legend>What is it?</legend>
@@ -140,32 +155,32 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
           <label>Topic
             <select name="topicId" defaultValue=""><option value="">Other</option>{topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
           </label>
-          <label><span className="lbl">{path === 'class' ? 'Class title' : 'Event title'}</span><input name="title" required maxLength={150} /></label>
+          <label><span className="lbl">{path === 'class' ? 'Class title' : 'Event title'}</span><input name="title" required maxLength={150} /><FieldError errors={fieldErrors} name="title" /></label>
           {path !== 'class' && (
             <label><span className="lbl">Type</span>
               <select name="kind" required defaultValue="workshop"><option value="workshop">Workshop</option><option value="meetup">Meetup</option><option value="popup">Pop-up</option><option value="market">Flea market</option></select>
-            </label>
+            <FieldError errors={fieldErrors} name="kind" /></label>
           )}
-          <label><span className="lbl">{path === 'class' ? 'About the class' : 'What happens at the event'}</span><textarea name="description" required maxLength={2000} rows={3} /></label>
+          <label><span className="lbl">{path === 'class' ? 'About the class' : 'What happens at the event'}</span><textarea name="description" required maxLength={2000} rows={3} /><FieldError errors={fieldErrors} name="description" /></label>
           <ImageUploader initial={d.images} max={MAX_REQUEST_IMAGES} endpoint="/api/uploads/workshop-request-image" legend="Photos (up to 3)" onBusyChange={setUploading} />
           {path === 'class'
-            ? <ClassWhenAndPrice startDate={startDate} setStartDate={setStartDate} rows={rows} setRows={setRows} repeat={repeat} setRepeat={setRepeat} />
-            : <EventWhereWhen startDate={startDate} setStartDate={setStartDate} paid={paid} setPaid={setPaid} cityRequired={!workshop?.cityId} cityDefault={workshop?.cityId && workshop.city ? { id: workshop.cityId, label: workshop.city } : undefined} />}
+            ? <ClassWhenAndPrice errors={fieldErrors} startDate={startDate} setStartDate={setStartDate} rows={rows} setRows={setRows} repeat={repeat} setRepeat={setRepeat} />
+            : <EventWhereWhen errors={fieldErrors} startDate={startDate} setStartDate={setStartDate} paid={paid} setPaid={setPaid} cityRequired={!workshop?.cityId} cityDefault={workshop?.cityId && workshop.city ? { id: workshop.cityId, label: workshop.city } : undefined} />}
           <fieldset>
             <legend>Host</legend>
-            <label><span className="lbl">Host, studio, cafe or organiser name</span><input name="hostName" required maxLength={200} /></label>
+            <label><span className="lbl">Host, studio, cafe or organiser name</span><input name="hostName" required maxLength={200} /><FieldError errors={fieldErrors} name="hostName" /></label>
             <div className="admin-form-row">
-              <InstagramField />
-              <label>Website<input name="website" type="text" inputMode="url" maxLength={300} placeholder="yourstudio.in" /></label>
+              <InstagramField errors={fieldErrors} />
+              <label>Website<input name="website" type="text" inputMode="url" maxLength={300} placeholder="yourstudio.in" /><FieldError errors={fieldErrors} name="website" /></label>
             </div>
-            {path === 'class' && <ClassAbout />}
+            {path === 'class' && <ClassAbout errors={fieldErrors} />}
           </fieldset>
           <fieldset>
             <legend>Private contact (staff only, never shown on the site)</legend>
-            <label>Contact name<input name="contactName" maxLength={100} /></label>
+            <label>Contact name<input name="contactName" maxLength={100} /><FieldError errors={fieldErrors} name="contactName" /></label>
             <div className="admin-form-row">
-              <label>Contact phone<input name="contactPhone" type="tel" inputMode="tel" maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} /></label>
-              <label>Contact email<input name="contactEmail" type="email" maxLength={200} /></label>
+              <label>Contact phone<input name="contactPhone" type="tel" inputMode="tel" maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} /><FieldError errors={fieldErrors} name="contactPhone" /></label>
+              <label>Contact email<input name="contactEmail" type="email" maxLength={200} /><FieldError errors={fieldErrors} name="contactEmail" /></label>
             </div>
           </fieldset>
           <div className="admin-actions">

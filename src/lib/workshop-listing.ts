@@ -1,5 +1,6 @@
 import { istParts } from '@/db/mappers';
 import { money } from './money';
+import { validJoinLink } from './join-link';
 import { bad, oneOf, optionalInt, optionalPhone, optionalText, validDate, type Raw } from './validate';
 
 export const KINDS = ['workshop', 'meetup', 'popup', 'market', 'class'] as const;
@@ -41,10 +42,7 @@ export function optionalWebsite(v: unknown): string | undefined {
 function optionalJoinLink(v: unknown): string | null {
   const t = optionalText(v, 'joinLink', 500);
   if (!t) return null;
-  const msg = 'joinLink must be a full https link, for example https://zoom.us/j/123.';
-  let u: URL;
-  try { u = new URL(t); } catch { throw bad(msg); }
-  if (u.protocol !== 'https:' || u.username || u.password || !u.hostname.includes('.')) throw bad(msg);
+  if (!validJoinLink(t)) throw bad('joinLink must be a full https link, for example https://zoom.us/j/123.');
   return t;
 }
 

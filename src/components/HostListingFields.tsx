@@ -1,9 +1,16 @@
 import { useRef } from 'react';
+import { LanguageSelect } from './LanguageSelect';
 import { CityInput } from './CityInput';
 import { instagramUrl } from '@/lib/social';
 import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 
 const fmtDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
+/** The message for one field, right under it. */
+export function FieldError({ errors, name }: { errors?: Record<string, string>; name: string }) {
+  const m = errors?.[name];
+  return m ? <small className="field-error" id={`err-${name}`} role="alert">{m}</small> : null;
+}
 
 export const DAY_OPTIONS = [['mon', 'Mon'], ['tue', 'Tue'], ['wed', 'Wed'], ['thu', 'Thu'], ['fri', 'Fri'], ['sat', 'Sat'], ['sun', 'Sun']] as const;
 export const WEEK_OPTIONS = [['1', '1st'], ['2', '2nd'], ['3', '3rd'], ['4', '4th'], ['last', 'Last']] as const;
@@ -25,11 +32,11 @@ export const activePriceRows = (rows: PriceDraft[]) => rows.filter(r => !isBlank
 export const priceRowsIncomplete = (rows: PriceDraft[]) => activePriceRows(rows).some(r => !r.label.trim() || !r.amount.trim());
 
 /** Instagram handle or link, with a link that opens the profile in a new tab (reads the field when clicked, so pre-filled values work). */
-export function InstagramField() {
+export function InstagramField({ errors }: { errors?: Record<string, string> }) {
   const input = useRef<HTMLInputElement>(null);
   return (
     <div className="host-instagram">
-      <label>Instagram<input ref={input} name="instagram" maxLength={200} placeholder="@yourstudio" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /></label>
+      <label>Instagram<input ref={input} name="instagram" maxLength={200} placeholder="@yourstudio" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /><FieldError errors={errors} name="instagram" /></label>
       <a className="host-open-link" href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer"
         onClick={e => {
           const v = input.current?.value.trim();
@@ -41,43 +48,43 @@ export function InstagramField() {
 }
 
 /** Step 2 of an in-person event: when, where, seats and the single price. */
-export function EventWhereWhen({ startDate, setStartDate, paid, setPaid, cityRequired = true, cityDefault }: { startDate: string; setStartDate: (v: string) => void; paid: boolean; setPaid: (v: boolean) => void; cityRequired?: boolean; cityDefault?: { id: number; label: string } }) {
+export function EventWhereWhen({ startDate, setStartDate, paid, setPaid, cityRequired = true, cityDefault, errors }: { errors?: Record<string, string>; startDate: string; setStartDate: (v: string) => void; paid: boolean; setPaid: (v: boolean) => void; cityRequired?: boolean; cityDefault?: { id: number; label: string } }) {
   return (
     <>
       <div className="admin-form-row">
-        <label><span className="lbl">Start date</span><input name="startDate" type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
-        <label>End date<input name="endDate" type="date" min={startDate || undefined} /></label>
+        <label><span className="lbl">Start date</span><input name="startDate" type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /><FieldError errors={errors} name="startDate" /></label>
+        <label>End date<input name="endDate" type="date" min={startDate || undefined} /><FieldError errors={errors} name="endDate" /></label>
       </div>
       <p className="form-note">{startDate ? `If you leave the end date empty, the event ends on ${fmtDate(startDate)}, the start date.` : 'If you leave the end date empty, the event ends on the start date.'}</p>
       <div className="admin-form-row">
-        <label>Start time<input name="startTime" type="time" /></label>
-        <label>End time<input name="endTime" type="time" /></label>
+        <label>Start time<input name="startTime" type="time" /><FieldError errors={errors} name="startTime" /></label>
+        <label>End time<input name="endTime" type="time" /><FieldError errors={errors} name="endTime" /></label>
       </div>
       <div className="admin-form-row">
         <label><span className="lbl">City</span><CityInput required={cityRequired} valueFormat="name" defaultCity={cityDefault} /></label>
-        <label>Seats<input name="seats" type="number" min={1} max={100000} inputMode="numeric" /></label>
+        <label>Seats<input name="seats" type="number" min={1} max={100000} inputMode="numeric" /><FieldError errors={errors} name="seats" /></label>
       </div>
-      <label><span className="lbl">Venue and address</span><input name="venue" required maxLength={300} autoComplete="street-address" autoCapitalize="words" enterKeyHint="next" /></label>
+      <label><span className="lbl">Venue and address</span><input name="venue" required maxLength={300} autoComplete="street-address" autoCapitalize="words" enterKeyHint="next" /><FieldError errors={errors} name="venue" /></label>
       <label>Price
         <select name="entry" value={paid ? 'paid' : 'free'} onChange={e => setPaid(e.target.value === 'paid')}><option value="free">Free</option><option value="paid">Paid</option></select>
       </label>
-      {paid && <label><span className="lbl">Price per person (Rs.)</span><input name="priceRupees" type="number" min={1} max={1000000} inputMode="numeric" required /></label>}
+      {paid && <label><span className="lbl">Price per person (Rs.)</span><input name="priceRupees" type="number" min={1} max={1000000} inputMode="numeric" required /><FieldError errors={errors} name="priceRupees" /></label>}
     </>
   );
 }
 
 /** Step 2 of an online class: platform, dates, class days, time, duration, price plans and the free trial. */
-export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows, repeat, setRepeat }: { startDate: string; setStartDate: (v: string) => void; rows: PriceDraft[]; setRows: (r: PriceDraft[]) => void; repeat: 'weekly' | 'monthly'; setRepeat: (v: 'weekly' | 'monthly') => void }) {
+export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows, repeat, setRepeat, errors }: { errors?: Record<string, string>; startDate: string; setStartDate: (v: string) => void; rows: PriceDraft[]; setRows: (r: PriceDraft[]) => void; repeat: 'weekly' | 'monthly'; setRepeat: (v: 'weekly' | 'monthly') => void }) {
   const patch = (i: number, p: Partial<PriceDraft>) => setRows(rows.map((r, j) => (j === i ? { ...r, ...p } : r)));
   return (
     <>
-      <label><span className="lbl">Online platform</span><input name="platform" list="host-platforms" required maxLength={60} placeholder="Zoom, Google Meet…" autoCapitalize="words" enterKeyHint="next" /></label>
+      <label><span className="lbl">Online platform</span><input name="platform" list="host-platforms" required maxLength={60} placeholder="Zoom, Google Meet…" autoCapitalize="words" enterKeyHint="next" /><FieldError errors={errors} name="platform" /></label>
       <datalist id="host-platforms"><option value="Zoom" /><option value="Google Meet" /><option value="Microsoft Teams" /></datalist>
-      <label>Meeting link (optional)<input name="joinLink" type="url" inputMode="url" maxLength={500} placeholder="https://zoom.us/j/…" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /></label>
+      <label>Meeting link (optional)<input name="joinLink" type="url" inputMode="url" maxLength={500} placeholder="https://zoom.us/j/…" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /><FieldError errors={errors} name="joinLink" /></label>
       <p className="form-note">Private: only our team sees it. It is never shown on the website.</p>
       <div className="admin-form-row">
-        <label><span className="lbl">Start date</span><input name="startDate" type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
-        <label>End date<input name="endsOn" type="date" min={startDate || undefined} /></label>
+        <label><span className="lbl">Start date</span><input name="startDate" type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /><FieldError errors={errors} name="startDate" /></label>
+        <label>End date<input name="endsOn" type="date" min={startDate || undefined} /><FieldError errors={errors} name="endsOn" /></label>
       </div>
       <p className="form-note">{startDate ? `If you leave the end date empty, the classes end on ${fmtDate(startDate)}, the start date.` : 'If you leave the end date empty, the classes end on the start date.'}</p>
       <label>Repeats
@@ -91,20 +98,22 @@ export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows, repe
             {WEEK_OPTIONS.map(([v, l]) => <label key={v} className="host-day"><input type="checkbox" name="weeks" value={v} /> {l}</label>)}
             <button type="button" className="host-day host-all-weeks" onClick={() => setRepeat('weekly')}>All weeks</button>
           </div>
+          <FieldError errors={errors} name="weeks" />
         </fieldset>
       )}
       <fieldset className="host-days">
         <legend>Class days</legend>
         <div className="host-day-chips">{DAY_OPTIONS.map(([v, l]) => <label key={v} className="host-day"><input type="checkbox" name="days" value={v} /> {l}</label>)}</div>
+        <FieldError errors={errors} name="days" />
       </fieldset>
       <div className="admin-form-row">
-        <label><span className="lbl">Class time</span><input name="classTime" type="time" required /></label>
+        <label><span className="lbl">Class time</span><input name="classTime" type="time" required /><FieldError errors={errors} name="classTime" /></label>
         <div className="host-duration">
-          <label><span className="lbl">Duration</span><input name="durationValue" type="number" inputMode="decimal" min="0.25" step="any" required defaultValue="60" enterKeyHint="next" /></label>
+          <label><span className="lbl">Duration</span><input name="durationValue" type="number" inputMode="decimal" min="0.25" step="any" required defaultValue="60" enterKeyHint="next" /><FieldError errors={errors} name="durationValue" /></label>
           <select name="durationUnit" aria-label="Minutes or hours" defaultValue="mins"><option value="mins">mins</option><option value="hours">hours</option></select>
         </div>
       </div>
-      <fieldset className="host-prices">
+      <fieldset className="host-prices" data-field="prices">
         <legend>Price plans</legend>
         {rows.length === 0 && <p className="form-note">No price plans means the class is free.</p>}
         <datalist id="host-plan-names"><option value="Per session" /><option value="Monthly" /><option value="Quarterly" /></datalist>
@@ -116,26 +125,28 @@ export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows, repe
             <button type="button" className="icon-btn" aria-label={`Remove plan ${i + 1}`} onClick={() => setRows(rows.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
+        <FieldError errors={errors} name="prices" />
         <button type="button" className="button" disabled={rows.length >= PRICE_PLAN_LIMIT} onClick={() => setRows([...rows, { ...BLANK_PRICE }])}>Add new price details</button>
       </fieldset>
-      <label>Free trial length in days (optional)<input name="freeTrialDays" type="number" min={1} max={365} inputMode="numeric" placeholder="e.g. 7" enterKeyHint="next" /></label>
+      <label>Free trial length in days (optional)<input name="freeTrialDays" type="number" min={1} max={365} inputMode="numeric" placeholder="e.g. 7" enterKeyHint="next" /><FieldError errors={errors} name="freeTrialDays" /></label>
     </>
   );
 }
 
 /** The extra questions an online class asks on the last step. */
-export function ClassAbout() {
+export function ClassAbout({ errors }: { errors?: Record<string, string> }) {
   return (
     <>
-      <label>Languages<input name="languages" maxLength={160} placeholder="Hindi, English" autoCapitalize="words" enterKeyHint="next" /></label>
+      <LanguageSelect error={errors?.languages} />
       <label>Level
         <select name="level" defaultValue="">
           <option value="">Not specified</option><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option><option value="all">All levels</option>
         </select>
+        <FieldError errors={errors} name="level" />
       </label>
-      <label>Experience<textarea name="experience" maxLength={500} rows={2} /></label>
-      <label>Certifications<textarea name="certifications" maxLength={500} rows={2} /></label>
-      <label>WhatsApp number<input name="whatsapp" type="tel" inputMode="tel" maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="9989898999" autoComplete="tel" enterKeyHint="next" /></label>
+      <label>Experience<textarea name="experience" maxLength={500} rows={2} /><FieldError errors={errors} name="experience" /></label>
+      <label>Certifications<textarea name="certifications" maxLength={500} rows={2} /><FieldError errors={errors} name="certifications" /></label>
+      <label>WhatsApp number<input name="whatsapp" type="tel" inputMode="tel" maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="Example: 9999999999" autoComplete="tel" enterKeyHint="next" /><FieldError errors={errors} name="whatsapp" /></label>
     </>
   );
 }

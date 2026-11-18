@@ -78,6 +78,18 @@ describe('saving the host form as a draft', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
   });
+  it('restores the chosen languages as chips', async () => {
+    openForm({ path: 'class' });
+    val(/class title/i, 'Flow'); val(/about the class/i, 'Calm'); next();
+    val(/online platform/i, 'Zoom'); val(/start date/i, '2099-01-05'); fireEvent.click(screen.getByLabelText('Mon')); val(/class time/i, '07:00'); next();
+    fireEvent.click(screen.getByRole('combobox', { name: /languages/i }));
+    fireEvent.click(screen.getByRole('option', { name: 'Tamil' })); fireEvent.click(screen.getByRole('option', { name: 'Hindi' }));
+    await flush();
+    cleanup();
+    openForm({ path: 'class' });
+    await screen.findByRole('button', { name: /remove tamil/i });
+    expect(screen.getByRole('button', { name: /remove hindi/i })).toBeTruthy();
+  });
   it('never stores the spam trap or the email code, and only keeps a draft for a week', async () => {
     openForm();
     val(/event title/i, 'T');

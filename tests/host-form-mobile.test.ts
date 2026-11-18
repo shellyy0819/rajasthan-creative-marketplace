@@ -63,6 +63,10 @@ describe('host form on phones: typing', () => {
       expect(el.getAttribute('spellcheck'), String(l)).toBe('false');
     }
   });
+  it('phone and WhatsApp fields show an example number as their placeholder', () => {
+    open(); goToLast();
+    expect(screen.getByLabelText(/phone number/i).getAttribute('placeholder')).toBe('Example: 9999999999');
+  });
   it('names and titles capitalise, and the keyboard shows Next on text fields', () => {
     open();
     expect(screen.getByLabelText(/event title/i).getAttribute('autocapitalize')).toBe('sentences');
