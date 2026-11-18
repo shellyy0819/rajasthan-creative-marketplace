@@ -21,7 +21,7 @@ const yoga = {
 };
 
 process.env.NEXTAUTH_SECRET = 'test-secret';
-const aRequest = async () => (await createWorkshopRequest({ hostName: 'Asha', contactName: 'Asha', phone: '9989898999', email: 'a@b.co', title: 'T', kind: 'class', mode: 'online', description: 'd', startDate: '2099-01-05', platform: 'Zoom', schedule: { days: ['mon'], time: '07:00', durationMin: 60 } })).id;
+const aRequest = async () => (await createWorkshopRequest({ hostName: 'Asha', contactName: 'Asha', phone: '9989898999', email: 'a@b.co', title: 'T', kind: 'class', mode: 'online', description: 'd', startDate: '2099-01-05', whatsapp: '9989898999', platform: 'Zoom', schedule: { days: ['mon'], time: '07:00', durationMin: 60 } })).id;
 beforeEach(async () => { await resetTestDb(); setMailSenderForTests(async () => {}); });
 
 describe('createWorkshop: online classes and drafts', () => {

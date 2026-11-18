@@ -22,7 +22,7 @@ export function storageConfig(env: Record<string, string | undefined> = process.
 
 const extOf = (contentType: unknown) => (typeof contentType === 'string' && Object.hasOwn(IMAGE_TYPES, contentType) ? IMAGE_TYPES[contentType as keyof typeof IMAGE_TYPES] : undefined);
 
-export type UploadArea = { folder: 'products' | 'logos' | 'workshop-requests'; types: readonly string[]; typeMessage: string; sizeMessage: string };
+export type UploadArea = { folder: 'products' | 'logos' | 'workshops'; types: readonly string[]; typeMessage: string; sizeMessage: string };
 const PRODUCT_AREA: UploadArea = {
   folder: 'products', types: Object.keys(IMAGE_TYPES),
   typeMessage: 'Photos must be JPEG, PNG or WebP.', sizeMessage: 'Each photo must be between 1 byte and 5 MB.',
@@ -33,9 +33,9 @@ export const LOGO_AREA: UploadArea = {
   typeMessage: 'Your logo must be a JPG or PNG.', sizeMessage: 'Your logo must be between 1 byte and 5 MB.',
 };
 
-/** Photos sent with the public "host a workshop" form: their own folder, so they are never product photos or deleted with one. */
+/** Photos of workshops (sent with the public "host a workshop" form or added by an admin): their own folder, so they are never product photos or deleted with one. */
 export const REQUEST_AREA: UploadArea = {
-  folder: 'workshop-requests', types: Object.keys(IMAGE_TYPES),
+  folder: 'workshops', types: Object.keys(IMAGE_TYPES),
   typeMessage: 'Photos must be JPEG, PNG or WebP.', sizeMessage: 'Each photo must be between 1 byte and 5 MB.',
 };
 /** The folder id used for uploads by people who are not signed in. */
@@ -107,10 +107,14 @@ export async function deleteObjects(cfg: StorageConfig, keys: string[], send?: (
   }
 }
 
-/** True when `url` is a public bucket url for a file directly inside the workshop-requests/ folder. */
+/** Photos uploaded before the move to workshops/ live here; they stay valid. */
+const LEGACY_REQUEST_FOLDER = 'workshop-requests';
+
+/** True when `url` is a public bucket url for a file directly inside the workshops/ folder (or the legacy workshop-requests/ one). */
 export function isRequestImageUrl(cfg: StorageConfig, url: string): boolean {
-  const head = `${cfg.publicBase}/${cfg.keyPrefix}${REQUEST_AREA.folder}/`;
-  if (typeof url !== 'string' || !url.startsWith(head)) return false;
+  const heads = [REQUEST_AREA.folder, LEGACY_REQUEST_FOLDER].map(f => `${cfg.publicBase}/${cfg.keyPrefix}${f}/`);
+  const head = typeof url === 'string' ? heads.find(h => url.startsWith(h)) : undefined;
+  if (!head) return false;
   const rest = url.slice(head.length).split('/');
   return rest.length === 2 && rest.every(part => part.length > 0 && part !== '.' && part !== '..' && !/[?#%\\]/.test(part));
 }

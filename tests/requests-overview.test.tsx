@@ -12,7 +12,7 @@ import type { WorkshopRequest } from '@/lib/workshop-requests';
 afterEach(cleanup);
 const city = (i: number, over: Partial<CityRequest> = {}): CityRequest => ({ id: `c${i}`, requestedBy: `s${i}@x.co`, name: `Chintal ${i}`, placeLabel: `Chintal, Telangana`, state: 'Telangana', status: 'live', createdAt: '2026-11-16T10:00:00.000Z', ...over });
 const listing = (i: number, over: Partial<ListingRequest> = {}): ListingRequest => ({ id: `l${i}`, ownerName: `Owner ${i}`, phone: '+919989898999', email: `o${i}@x.co`, businessName: `Studio ${i}`, size: 'small', status: 'received', createdAt: '2026-11-15T10:00:00.000Z', ...over });
-const workshop = (i: number, over: Partial<WorkshopRequest> = {}): WorkshopRequest => ({ id: `w${i}`, hostName: `Host ${i}`, contactName: 'C', phone: '1', email: 'h@x.co', city: 'Jaipur', venue: 'V', title: `Block printing ${i}`, kind: 'workshop', description: 'd', startDate: '2026-12-01', endDate: '2026-12-01', status: 'received', emailVerified: true, images: [], priceType: 'FREE', ...over } as WorkshopRequest);
+const workshop = (i: number, over: Partial<WorkshopRequest> = {}): WorkshopRequest => ({ id: `w${i}`, hostName: `Host ${i}`, contactName: 'C', phone: '1', email: 'h@x.co', city: 'Jaipur', venue: 'V', title: `Block printing ${i}`, kind: 'workshop', description: 'd', startDate: '2099-12-01', endDate: '2099-12-01', status: 'received', emailVerified: true, images: [], priceType: 'FREE', ...over } as WorkshopRequest);
 const block = (heading: RegExp) => screen.getByRole('heading', { name: heading }).closest('section')!;
 
 describe('RequestsOverview', () => {

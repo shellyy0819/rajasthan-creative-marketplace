@@ -12,7 +12,7 @@ import { otpSender } from './settings';
 import { notifyTeam } from './workshop-notify';
 import { isRequestImageUrl, storageConfig } from './storage';
 import { EMAIL_RE, bad, int, obj, oneOf, optionalText, text } from './validate';
-import { optionalWebsite, parseListingFields, priceCache, type Level, type PriceRow, type Schedule } from './workshop-listing';
+import { CLASS_CONTACT_MESSAGE, optionalWebsite, parseListingFields, priceCache, type Level, type PriceRow, type Schedule } from './workshop-listing';
 
 import { MAX_REQUEST_IMAGES } from './workshop-requests-shared';
 export { MAX_REQUEST_IMAGES };
@@ -92,6 +92,7 @@ export async function createWorkshopRequest(input: unknown): Promise<WorkshopReq
   const l = parseListingFields(raw);
   if (l.mode === 'hybrid') throw bad('mode must be in_person or online.');
   const online = l.mode === 'online';
+  if ((online || l.kind === 'class') && !l.whatsapp && !l.instagram && !l.website) throw bad(CLASS_CONTACT_MESSAGE);
   const startDate = isoDate(raw.startDate, 'startDate');
   // No end date given: a one-day event, so it ends on the start date. An online class's own end date (endsOn) is its end date, and open-ended when blank.
   const endDate = online && l.endsOn ? l.endsOn : raw.endDate === undefined || raw.endDate === null || raw.endDate === '' ? startDate : isoDate(raw.endDate, 'endDate');

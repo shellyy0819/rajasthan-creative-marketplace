@@ -133,7 +133,7 @@ describe('constraints protect the data even if app code is wrong', () => {
   });
   it('rejects overbooked or malformed workshops', async () => {
     const db = await getTestDb();
-    const w = { id: 'wx', title: 'T', type: 'PAID', pricePaise: 1, cityId: await jaipurId(), venue: 'V', startsAt: new Date('2026-12-01T10:00:00+05:30'), seats: 5, booked: 0, hostName: 'H', description: 'D', status: 'APPROVED' };
+    const w = { id: 'wx', title: 'T', type: 'PAID', pricePaise: 1, cityId: await jaipurId(), venue: 'V', startsAt: new Date('2099-12-01T10:00:00+05:30'), seats: 5, booked: 0, hostName: 'H', description: 'D', status: 'APPROVED' };
     for (const bad of [{ booked: 6 }, { booked: -1 }, { seats: 0 }, { type: 'MAYBE' }])
       await expect(db.insert(workshops).values({ ...w, ...bad })).rejects.toThrow();
   });

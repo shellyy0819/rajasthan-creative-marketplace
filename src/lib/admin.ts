@@ -3,7 +3,7 @@ import { getDb } from '../db/client';
 import { allocateId } from '../db/ids';
 import { productsQuery, toAdminProduct, toProductRow, toWorkshop, toAdminWorkshop, toWorkshopRow, withPrices, workshopsQuery, type ProductInput, type WorkshopInput } from '../db/mappers';
 import { ROLE_ID, ensureUser } from '../db/people';
-import { products as productsT, userRoles, users, workshopPrices as workshopPricesT, workshopTopics, workshops as workshopsT } from '../db/schema';
+import { products as productsT, userRoles, users, workshopPrices as workshopPricesT, workshopRequests as workshopRequestsT, workshopTopics, workshops as workshopsT } from '../db/schema';
 import type { Tx } from '../db/client';
 import { resolveCityInput } from './cities';
 import { canonicalCategory } from './categories';
@@ -11,7 +11,7 @@ import { resolveSourcingTypeId } from './sourcing-types';
 import type { Actor } from './authz';
 import { ApiError } from './errors';
 import { bad, int, obj, oneOf, optionalEmail, optionalImageUrl, optionalInt, optionalPhone, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
-import { parseListingFields, priceCache, type PriceRow } from './workshop-listing';
+import { CLASS_CONTACT_MESSAGE, parseListingFields, priceCache, type PriceRow } from './workshop-listing';
 import { markRequestListed } from './workshop-requests';
 import { loadImages, parseImages, resolveImages, saveImages, unreferencedKeys } from './product-images';
 import { deleteObjects, storageConfig } from './storage';
@@ -202,6 +202,9 @@ function validateWorkshop(v: Raw): WorkshopFields {
   const time = v.time ?? l.schedule?.time;
   if (typeof time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw bad('time must be HH:MM (24-hour).');
   const images = v.images === undefined || v.images === null ? [] : Array.isArray(v.images) && v.images.length <= MAX_WORKSHOP_IMAGES ? v.images.map(u => optionalImageUrl(u) ?? '').filter(Boolean) : (() => { throw bad(`images must be a list of up to ${MAX_WORKSHOP_IMAGES} https URLs.`); })();
+  const status = oneOf(v.status ?? 'DRAFT', 'status', WORKSHOP_STATUSES);
+  // A class is contact-only: a published one needs at least one public way to reach the host.
+  if (status === 'APPROVED' && (l.kind === 'class' || online) && !l.whatsapp && !l.instagram && !(l.website && /^https?:\/\//i.test(l.website))) throw bad(CLASS_CONTACT_MESSAGE);
   const date = validDate(v.date);
   if (l.endsOn && l.endsOn < date) throw bad('endsOn cannot be before the start date.');
   const phone = v.contactPhone === undefined ? undefined : optionalPhone(v.contactPhone, 'contactPhone');
@@ -214,7 +217,7 @@ function validateWorkshop(v: Raw): WorkshopFields {
     seats: online ? optionalInt(v.seats, 'seats', 1, 1000) : int(v.seats, 'seats', 1, 1000),
     host: text(v.host, 'host', 200),
     description: text(v.description, 'description', 2000),
-    status: oneOf(v.status ?? 'DRAFT', 'status', WORKSHOP_STATUSES),
+    status,
     platform: l.platform, schedule: l.schedule, languages: l.languages, level: l.level, experience: l.experience, certifications: l.certifications,
     freeTrial: l.freeTrial, whatsapp: l.whatsapp, instagram: l.instagram, website: l.website, images, prices: l.prices,
     ...(v.contactName === undefined ? {} : { contactName: optionalText(v.contactName, 'contactName', 100) ?? null }),
@@ -294,6 +297,8 @@ export async function updateWorkshop(id: string, input: unknown): Promise<Worksh
 export async function deleteWorkshop(id: string): Promise<{ unlinkedProducts: number }> {
   return getDb().transaction(async tx => {
     const [{ n }] = await tx.select({ n: count() }).from(productsT).where(eq(productsT.workshopId, id));
+    // A request that became this listing is open again, so an admin can list it anew (before the delete: the foreign key would clear the link first).
+    await tx.update(workshopRequestsT).set({ status: 'received', listedWorkshopId: null }).where(and(eq(workshopRequestsT.listedWorkshopId, id), eq(workshopRequestsT.status, 'listed')));
     const rows = await tx.delete(workshopsT).where(eq(workshopsT.id, id)).returning({ id: workshopsT.id });
     if (!rows.length) throw new ApiError(404, 'Workshop not found.');
     return { unlinkedProducts: n };

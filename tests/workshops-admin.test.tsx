@@ -87,6 +87,22 @@ describe('listing form', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(screen.getByText('Morning Flow')).toBeTruthy();
   });
+  it('Delete asks for confirmation, then removes the listing', async () => {
+    fetchMock.mockResolvedValue(ok({ ok: true, unlinkedProducts: 0 }));
+    render(<WorkshopsAdmin initial={[lac]} topics={topics} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Lac Craft' }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/workshops/w1', expect.objectContaining({ method: 'DELETE' })));
+    await waitFor(() => expect(screen.queryByText('Lac Craft')).toBeNull());
+  });
+  it('Keep cancels a delete', () => {
+    render(<WorkshopsAdmin initial={[lac]} topics={topics} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Lac Craft' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Keep' }));
+    expect(screen.getByRole('button', { name: 'Delete Lac Craft' })).toBeTruthy();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
   it('Edit opens the form filled with the listing and saves with PATCH', async () => {
     fetchMock.mockResolvedValue(ok({ ...yoga, title: 'Morning Flow 2' }));
     render(<WorkshopsAdmin initial={[yoga]} topics={topics} />);

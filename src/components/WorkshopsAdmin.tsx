@@ -16,6 +16,7 @@ export function WorkshopsAdmin({ initial, topics, fromRequest }: { initial: Work
   const [list, setList] = useState(initial);
   const [form, setForm] = useState<{ workshop?: Workshop; request?: WorkshopRequest } | null>(fromRequest ? { request: fromRequest } : null);
   const [busy, setBusy] = useState('');
+  const [confirming, setConfirming] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const notify = (kind: 'success' | 'error', text: string) => setToast({ id: Date.now() + Math.random(), kind, text });
   const closeToast = useCallback(() => setToast(null), []);
@@ -30,6 +31,19 @@ export function WorkshopsAdmin({ initial, topics, fromRequest }: { initial: Work
       if (!r.ok) notify('error', data?.error ?? 'Could not change the status.');
       else { setList(l => l.map(x => (x.id === w.id ? { ...x, ...data } : x))); notify('success', `${w.title} is now ${STATUS_LABEL[status]}.`); }
     } catch { notify('error', 'Network error. Please try again.'); }
+    setBusy('');
+  }
+
+  async function remove(w: Workshop) {
+    if (busy) return;
+    setBusy(w.id);
+    try {
+      const r = await fetch(`/api/workshops/${w.id}`, { method: 'DELETE' });
+      const data = await r.json().catch(() => null);
+      if (!r.ok) notify('error', data?.error ?? 'Could not delete the listing.');
+      else { setList(l => l.filter(x => x.id !== w.id)); notify('success', `${w.title} was deleted.`); }
+    } catch { notify('error', 'Network error. Please try again.'); }
+    setConfirming(null);
     setBusy('');
   }
 
@@ -58,7 +72,12 @@ export function WorkshopsAdmin({ initial, topics, fromRequest }: { initial: Work
                       {Object.entries(STATUS_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
                   </td>
-                  <td><button type="button" className="button" aria-label={`Edit ${w.title}`} onClick={() => setForm({ workshop: w })}>Edit</button></td>
+                  <td className="admin-row-actions">
+                    <button type="button" className="button" aria-label={`Edit ${w.title}`} onClick={() => setForm({ workshop: w })}>Edit</button>
+                    {confirming === w.id
+                      ? <><button type="button" className="button danger" disabled={busy === w.id} onClick={() => void remove(w)}>Confirm delete</button><button type="button" className="button" onClick={() => setConfirming(null)}>Keep</button></>
+                      : <button type="button" className="button danger-outline" aria-label={`Delete ${w.title}`} onClick={() => setConfirming(w.id)}>Delete</button>}
+                  </td>
                 </tr>
               ))}
             </tbody>

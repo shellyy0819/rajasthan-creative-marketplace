@@ -20,11 +20,11 @@ const req = (method: string, body: unknown) => new Request('http://x/api/x', { m
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 const yoga = {
   title: 'Morning Flow', kind: 'class', mode: 'online', platform: 'Zoom', date: '2099-01-05', host: 'Asha Rao', description: 'Gentle yoga.',
-  schedule: { days: ['mon'], time: '07:00', durationMin: 60 }, prices: [{ label: 'Monthly', amountPaise: 150000, sessions: 12 }],
+  schedule: { days: ['mon'], time: '07:00', durationMin: 60 }, prices: [{ label: 'Monthly', amountPaise: 150000, sessions: 12 }], whatsapp: '9989898999',
 };
 const onlineRequest = {
   hostName: 'Asha Yoga', contactName: 'Asha Rao', phone: '99898 98999', email: 'asha@example.com', title: 'Morning Flow', kind: 'class', mode: 'online', description: 'Gentle yoga.',
-  startDate: '2099-01-05', platform: 'Zoom', schedule: { days: ['mon'], time: '07:00', durationMin: 60 }, prices: [{ label: 'Monthly', amountPaise: 150000, sessions: 12 }],
+  startDate: '2099-01-05', platform: 'Zoom', schedule: { days: ['mon'], time: '07:00', durationMin: 60 }, prices: [{ label: 'Monthly', amountPaise: 150000, sessions: 12 }], whatsapp: '9989898999',
 };
 
 beforeEach(async () => { authMock.mockReset(); authMock.mockResolvedValue(null); await resetTestDb(); setMailSenderForTests(async () => {}); });
@@ -76,3 +76,29 @@ describe('creating a listing from a request', () => {
     expect((await (await getTestDb()).select().from(workshops)).length).toBe(3);
   });
 });
+
+describe('deleting and publishing rules', () => {
+  it('deleting a listing opens its request again', async () => {
+    asAdmin();
+    const r = await createWorkshopRequest(onlineRequest);
+    const d = await getTestDb();
+    await d.update(workshopRequests).set({ status: 'received' }).where(eq(workshopRequests.id, r.id));
+    const created = await (await postWorkshop(req('POST', { ...yoga, sourceRequestId: r.id }))).json();
+    const { deleteWorkshop } = await import('@/lib/admin');
+    await deleteWorkshop(created.id);
+    const [row] = await d.select().from(workshopRequests).where(eq(workshopRequests.id, r.id));
+    expect(row).toMatchObject({ status: 'received', listedWorkshopId: null });
+    expect((await postWorkshop(req('POST', { ...yoga, sourceRequestId: r.id }))).status).toBe(201); // and it can be listed again
+  });
+  it('a class cannot be published without a public contact channel, but can be a Draft', async () => {
+    asAdmin();
+    const noContact = { ...yoga, whatsapp: undefined };
+    expect((await postWorkshop(req('POST', noContact))).status).toBe(201);
+    expect((await postWorkshop(req('POST', { ...noContact, status: 'APPROVED' }))).status).toBe(400);
+    expect((await postWorkshop(req('POST', { ...noContact, status: 'APPROVED', website: 'studio.in' }))).status).toBe(201);
+  });
+  it('a class request needs a public contact channel', async () => {
+    await expect(createWorkshopRequest({ ...onlineRequest, whatsapp: undefined })).rejects.toMatchObject({ status: 400, message: expect.stringMatching(/contact the host/i) });
+  });
+});
+

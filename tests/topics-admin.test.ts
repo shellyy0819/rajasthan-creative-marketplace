@@ -40,7 +40,7 @@ describe('topics lib', () => {
   });
   it('an inactive topic leaves the form list but a listing keeps showing its topic name', async () => {
     const t = await createTopic({ name: 'Prenatal Yoga' });
-    const w = await createWorkshop({ title: 'Calm', kind: 'class', mode: 'online', platform: 'Zoom', date: '2099-01-05', host: 'A', description: 'd', topicId: t.id, status: 'APPROVED', schedule: { days: ['mon'], time: '07:00', durationMin: 60 } });
+    const w = await createWorkshop({ title: 'Calm', kind: 'class', mode: 'online', platform: 'Zoom', date: '2099-01-05', host: 'A', description: 'd', topicId: t.id, status: 'APPROVED', whatsapp: '9989898999', schedule: { days: ['mon'], time: '07:00', durationMin: 60 } });
     await setTopicActive(t.id, false);
     expect((await listActiveTopics()).map(x => x.name)).not.toContain('Prenatal Yoga');
     expect((await listTopics()).find(x => x.id === t.id)).toMatchObject({ active: false, listingCount: 1 });
