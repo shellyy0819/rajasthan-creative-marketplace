@@ -10,6 +10,7 @@ const TABS = [
   { href: '/dashboard/listing-requests', label: 'Listing requests' },
   { href: '/dashboard/workshops', label: 'Workshops' },
   { href: '/dashboard/workshop-requests', label: 'Workshop requests' },
+  { href: '/dashboard/workshop-topics', label: 'Workshop topics' },
   { href: '/dashboard/fair-notes', label: 'Fair feedback' },
   { href: '/dashboard/trending', label: 'Trending' },
   { href: '/dashboard/sourcing-types', label: 'Sourcing types' },
