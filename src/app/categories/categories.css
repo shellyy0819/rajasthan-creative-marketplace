@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: center;
   gap: 18px;
-  padding: 8px 6% 64px;
+  padding: 8px 8.5% 64px;
   font-size: 13px;
 }
 .cat-pages-count {
@@ -15,7 +15,7 @@
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 14px;
   margin: 0;
-  padding: 0 6% 64px;
+  padding: 0 8.5% 64px;   /* the same side padding as .page-head and .crumbs, so the cards line up with the heading */
   list-style: none;
 }
 .cat-list a {
@@ -36,5 +36,15 @@
   font-weight: 500;
 }
 .cat-list-home {
-  padding-bottom: 24px;
+  padding: 0 0 24px;   /* inside .section, which already has the side padding */
+}
+@media (max-width: 700px) {
+  .cat-list,
+  .cat-pages {
+    padding-left: 5%;
+    padding-right: 5%;
+  }
+  .cat-list-home {
+    padding: 0 0 24px;
+  }
 }
