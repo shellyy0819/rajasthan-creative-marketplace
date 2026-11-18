@@ -73,7 +73,7 @@ describe('row click opens the seller detail', () => {
   const fetchMock = vi.fn();
   const w = { id: 'w1', title: 'Morning Flow', kind: 'class', mode: 'online', topicId: null, endsOn: null, platform: 'Zoom', schedule: { repeat: 'weekly', days: ['mon'], time: '07:00', durationMin: 60 }, languages: [], level: null, experience: null, certifications: null, freeTrial: false, freeTrialDays: null, whatsapp: null, instagram: null, website: null, images: [], prices: [], booked: 0, status: 'APPROVED', type: 'FREE', pricePaise: 0, city: null, cityId: null, citySlug: null, venue: null, seats: null, date: '2099-01-05', time: '07:00', host: 'Yoga with Swati', description: 'd', createdAt: '2026-11-18T14:05:00.000Z' } as unknown as Workshop;
   const detail = { workshop: { ...w, joinLink: 'https://zoom.us/j/1', contactEmail: 'swati@x.co', contactPhone: '+919989898999', prices: [{ label: 'Monthly', amountPaise: 150000, sessions: 12 }] }, match: 'email',
-    seller: { userId: 'u1', accountEmail: 'swati@x.co', displayName: 'Yoga with Swati', category: 'Wellness', bio: 'Mindful yoga.', instagram: 'swatime', roles: ['seller'] },
+    seller: { userId: 'u1', slug: 'yoga-with-swati-u1', accountEmail: 'swati@x.co', displayName: 'Yoga with Swati', category: 'Wellness', bio: 'Mindful yoga.', instagram: 'swatime', roles: ['seller'] },
     otherWorkshops: [{ ...w, id: 'w2', title: 'Evening Flow' }], products: [{ id: 'p1', name: 'Lac Bangle', category: 'Accessories', pricePaise: 12000, status: 'APPROVED', stock: 3 }] };
   beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal('fetch', fetchMock); fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => detail }); });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
@@ -88,6 +88,9 @@ describe('row click opens the seller detail', () => {
     for (const t of ['Wellness', 'swati@x.co', 'Evening Flow', 'Lac Bangle', 'https://zoom.us/j/1', 'Monthly: ₹1,500 (12 sessions)', '+919989898999']) expect(dlg.textContent, t).toContain(t);
     expect(within(dlg).getByRole('heading', { name: /workshop/i })).toBeTruthy();
     expect(within(dlg).getByRole('heading', { name: /products/i })).toBeTruthy();
+    const profile = within(dlg).getByRole('link', { name: /yoga with swati/i }) as HTMLAnchorElement;
+    expect(profile.getAttribute('href')).toBe('/artists/yoga-with-swati-u1');
+    expect(profile.target).toBe('_blank');
   });
   it('the title is a real button, so the keyboard can open it too', async () => {
     render(<WorkshopsAdmin initial={[w]} topics={[]} />);

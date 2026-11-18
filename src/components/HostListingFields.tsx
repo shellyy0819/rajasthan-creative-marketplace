@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { LanguageSelect } from './LanguageSelect';
 import { CityInput } from './CityInput';
 import { instagramUrl } from '@/lib/social';
@@ -76,6 +76,21 @@ export function EventWhereWhen({ startDate, setStartDate, paid, setPaid, cityReq
 /** Step 2 of an online class: platform, dates, class days, time, duration, price plans and the free trial. */
 export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows, repeat, setRepeat, errors }: { errors?: Record<string, string>; startDate: string; setStartDate: (v: string) => void; rows: PriceDraft[]; setRows: (r: PriceDraft[]) => void; repeat: 'weekly' | 'monthly'; setRepeat: (v: 'weekly' | 'monthly') => void }) {
   const patch = (i: number, p: Partial<PriceDraft>) => setRows(rows.map((r, j) => (j === i ? { ...r, ...p } : r)));
+  const [endsOn, setEndsOn] = useState('');
+  // Start and end on the same day (or no end date, which means the same day): one class, so nothing repeats.
+  const oneDay = !!startDate && (!endsOn || endsOn === startDate);
+  // Drafts and edited listings fill the box from outside and fire `rr-sync`; follow them (and a value already there).
+  const unsync = useRef<() => void>(() => {});
+  const endsOnRef = useCallback((el: HTMLInputElement | null) => {
+    unsync.current();
+    if (!el) return;
+    const read = () => setEndsOn(el.value);
+    el.addEventListener('rr-sync', read);
+    unsync.current = () => el.removeEventListener('rr-sync', read);
+    if (el.value) read();
+  }, []);
+  // One class: nothing repeats, so a leftover "every month" choice must not demand weeks nobody can see.
+  useEffect(() => { if (oneDay && repeat !== 'weekly') setRepeat('weekly'); }, [oneDay, repeat, setRepeat]);
   return (
     <>
       <label><span className="lbl">Online platform</span><input name="platform" list="host-platforms" required maxLength={60} placeholder="Zoom, Google Meet…" autoCapitalize="words" enterKeyHint="next" /><FieldError errors={errors} name="platform" /></label>
@@ -84,13 +99,13 @@ export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows, repe
       <p className="form-note">Private: only our team sees it. It is never shown on the website.</p>
       <div className="admin-form-row">
         <label><span className="lbl">Start date</span><input name="startDate" type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /><FieldError errors={errors} name="startDate" /></label>
-        <label>End date<input name="endsOn" type="date" min={startDate || undefined} /><FieldError errors={errors} name="endsOn" /></label>
+        <label>End date<input name="endsOn" type="date" min={startDate || undefined} ref={endsOnRef} onChange={e => setEndsOn(e.target.value)} /><FieldError errors={errors} name="endsOn" /></label>
       </div>
       <p className="form-note">{startDate ? `If you leave the end date empty, the classes end on ${fmtDate(startDate)}, the start date.` : 'If you leave the end date empty, the classes end on the start date.'}</p>
-      <label>Repeats
+      {!oneDay && <label>Repeats
         <select name="repeat" value={repeat} onChange={e => setRepeat(e.target.value === 'monthly' ? 'monthly' : 'weekly')}><option value="weekly">Every week</option><option value="monthly">Every month</option></select>
-      </label>
-      {repeat === 'monthly' && (
+      </label>}
+      {!oneDay && repeat === 'monthly' && (
         <fieldset className="host-days">
           <legend>Which weeks of the month</legend>
           {/* Every week ticked is the same as "Every week": switch to it so the schedule stays simple. */}

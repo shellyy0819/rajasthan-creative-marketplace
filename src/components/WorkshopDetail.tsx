@@ -76,7 +76,7 @@ export function WorkshopDetail({ workshopId, title, onClose }: { workshopId: str
                 <>
                   {data.match && <p className="form-note">{MATCH[data.match]}.</p>}
                   <dl>
-                    <Row label="Name">{s.displayName}</Row>
+                    <Row label="Name"><a href={`/artists/${s.slug}`} target="_blank" rel="noopener noreferrer">{s.displayName} ↗<span className="sr-only"> (opens the seller's profile in a new tab)</span></a></Row>
                     <Row label="Account">{s.accountEmail}{s.roles.length ? ` (${s.roles.join(', ')})` : ''}</Row>
                     <Row label="Category">{s.category}</Row>
                     <Row label="Bio">{s.bio}</Row>

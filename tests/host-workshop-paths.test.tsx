@@ -310,6 +310,16 @@ describe('duration', () => {
 });
 
 describe('how often a class repeats', () => {
+  it('a class that starts and ends on one day (or has no end date) has nothing to repeat', () => {
+    openClass(); classStep1(); next();
+    expect(screen.getByLabelText('Repeats')).toBeTruthy();
+    val(/start date/i, '2027-01-05');
+    expect(screen.queryByLabelText('Repeats')).toBeNull();
+    val(/end date/i, '2027-01-05');
+    expect(screen.queryByLabelText('Repeats')).toBeNull();
+    val(/end date/i, '2027-02-05');
+    expect(screen.getByLabelText('Repeats')).toBeTruthy();
+  });
   it('weekly is the default; Every month asks which weeks, needs one, and sends repeat and weeks', async () => {
     fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'a@b.co', status: 'pending' }) });
     openClass(); classStep1(); next();
@@ -317,9 +327,10 @@ describe('how often a class repeats', () => {
     expect(Array.from(repeat.options).map(o => o.textContent)).toEqual(['Every week', 'Every month']);
     expect(repeat.value).toBe('weekly');
     expect(screen.queryByLabelText('1st')).toBeNull();
-    fireEvent.change(repeat, { target: { value: 'monthly' } });
+    val(/start date/i, '2027-01-05'); val(/end date/i, '2027-03-30');
+    fireEvent.change(screen.getByLabelText('Repeats'), { target: { value: 'monthly' } });
     for (const w of ['1st', '2nd', '3rd', '4th', 'Last']) expect(screen.getByLabelText(w)).toBeTruthy();
-    val(/online platform/i, 'Zoom'); val(/start date/i, '2027-01-05'); fireEvent.click(screen.getByLabelText('Sat')); val(/class time/i, '07:00');
+    val(/online platform/i, 'Zoom'); fireEvent.click(screen.getByLabelText('Sat')); val(/class time/i, '07:00');
     next();
     expect(stepText()).toBe('Step 2 of 3');
     expect(screen.getByRole('alert').textContent).toMatch(/week of the month/i);

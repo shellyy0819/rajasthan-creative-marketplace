@@ -5,11 +5,12 @@ import { ROLE_ID } from '../db/people';
 import { products, sellerProfiles, userRoles, users, workshops as workshopsT } from '../db/schema';
 import { listAdminWorkshops } from './catalog';
 import { ApiError } from './errors';
+import { artistSlug } from './artist-slug';
 import { getProfileById } from './users';
 import type { Workshop } from './types';
 
 export type SellerSummary = {
-  userId: string; accountEmail: string; displayName: string; category?: string; bio?: string; logoUrl?: string; city?: string;
+  userId: string; /** Public profile page: /artists/<slug>. */ slug: string; accountEmail: string; displayName: string; category?: string; bio?: string; logoUrl?: string; city?: string;
   phone?: string; whatsapp?: string; instagram?: string; website?: string; publicEmail?: string; roles: string[];
 };
 export type SellerProduct = { id: string; name: string; category: string; pricePaise: number | null; status: string; stock: number };
@@ -46,7 +47,7 @@ export async function getWorkshopSellerDetail(id: string): Promise<WorkshopSelle
   const roleRows = await db.select({ roleId: userRoles.roleId }).from(userRoles).where(eq(userRoles.userId, userId));
   const roles = (Object.keys(ROLE_ID) as (keyof typeof ROLE_ID)[]).filter(r => roleRows.some(x => x.roleId === ROLE_ID[r]));
   const seller: SellerSummary = {
-    userId, accountEmail: account?.email ?? '', displayName: profile.displayName, roles,
+    userId, slug: artistSlug(profile.displayName, userId), accountEmail: account?.email ?? '', displayName: profile.displayName, roles,
     ...(profile.category ? { category: profile.category } : {}), ...(profile.bio ? { bio: profile.bio } : {}), ...(profile.logoUrl ? { logoUrl: profile.logoUrl } : {}),
     ...(profile.city ? { city: profile.city } : {}), ...(profile.publicPhone ? { phone: profile.publicPhone } : {}), ...(profile.whatsapp ? { whatsapp: profile.whatsapp } : {}),
     ...(profile.instagram ? { instagram: profile.instagram } : {}), ...(profile.website ? { website: profile.website } : {}), ...(profile.publicEmail ? { publicEmail: profile.publicEmail } : {}),
