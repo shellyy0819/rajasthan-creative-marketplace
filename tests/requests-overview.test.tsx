@@ -43,12 +43,12 @@ describe('RequestsOverview', () => {
   it('shows the first 15 of a kind and says how many more there are', () => {
     render(<RequestsOverview cities={Array.from({ length: PREVIEW + 4 }, (_, i) => city(i + 1))} listings={[]} workshops={[]} />);
     expect(within(block(/New city/)).getAllByRole('listitem')).toHaveLength(PREVIEW);
-    expect(screen.getByText('and 4 more.')).toBeTruthy();
+    expect(screen.getByText(/and 4 more/)).toBeTruthy();
+    expect(screen.getByText(/City requests tab/)).toBeTruthy();
   });
-  it('links each kind to the page where its requests are handled', () => {
+  it('has no Manage buttons: the dashboard tabs already link to each kind\'s own page', () => {
     render(<RequestsOverview cities={[]} listings={[]} workshops={[]} />);
-    expect(screen.getByRole('link', { name: /Manage city requests/ }).getAttribute('href')).toBe('/dashboard/city-requests');
-    expect(screen.getByRole('link', { name: /Manage listing requests/ }).getAttribute('href')).toBe('/dashboard/listing-requests');
-    expect(screen.getByRole('link', { name: /Manage workshop requests/ }).getAttribute('href')).toBe('/dashboard/workshop-requests');
+    expect(screen.queryAllByRole('link')).toHaveLength(0);
+    expect(screen.queryByText(/manage/i)).toBeNull();
   });
 });
