@@ -2,13 +2,13 @@ import './CafeScene.css';
 
 /**
  * A flat illustration for the empty /workshops page: three people crocheting and shaping pottery around a long café table, under bunting and
- * lamps, with a chalkboard sign. The sign says "Workshop today" only when a workshop is hosted today; otherwise it invites hosts ("Host with us").
+ * lamps, with a chalkboard sign. The sign says "Workshop today" only when a workshop is hosted today; otherwise it says "Stay Tuned!".
  * Every colour comes from a class in CafeScene.css, so it follows the site's light and dark themes.
  */
 export function CafeScene({ workshopToday = false }: { workshopToday?: boolean }) {
   return (
     <div className="cafe-scene">
-      <svg viewBox="0 0 560 420" preserveAspectRatio="xMidYMin meet" role="img" aria-label={`Three people crocheting and shaping pottery around a long table in a café, under bunting and hanging lamps, with a chalkboard sign that says ${workshopToday ? 'Workshop today' : 'Host with us'}`}>
+      <svg viewBox="0 0 560 420" preserveAspectRatio="xMidYMin meet" role="img" aria-label={`Three people crocheting and shaping pottery around a long table in a café, under bunting and hanging lamps, with a chalkboard sign that says ${workshopToday ? 'Workshop today' : 'Stay Tuned!'}`}>
         <rect width="560" height="420" className="f-wall" />
         <rect y="340" width="560" height="80" className="f-floor" />
         <path d="M70 340V190A210 140 0 0 1 490 190V340Z" className="f-window s-line s-5" />
@@ -82,7 +82,7 @@ export function CafeScene({ workshopToday = false }: { workshopToday?: boolean }
             <text x="71" y="292" textAnchor="middle" className="cs-text f-chalk">today</text>
           </>
         ) : (
-          <text x="71" y="282" textAnchor="middle" className="cs-text f-chalk">Host with us</text>
+          <text x="71" y="282" textAnchor="middle" className="cs-text f-chalk">Stay Tuned!</text>
         )}
         <path d="M44 308q8-8 16 0t16 0t16 0" className="n-fill s-chalk s-2 cap" />
         <circle cx="71" cy="324" r="5" className="f-orange" />

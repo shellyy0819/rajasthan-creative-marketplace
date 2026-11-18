@@ -10,9 +10,9 @@ describe('CafeScene', () => {
     expect(h).toMatch(/<svg[^>]*role="img"[^>]*aria-label="[^"]*café[^"]*"/);
     expect(h).toContain('viewBox="0 0 560 420"');
   });
-  it('the chalkboard says "Host with us" when no workshop is hosted today', () => {
+  it('the chalkboard says "Stay Tuned!" when no workshop is hosted today', () => {
     const h = renderToStaticMarkup(<CafeScene />);
-    expect(h).toContain('>Host with us<');
+    expect(h).toContain('>Stay Tuned!<');
     expect(h).not.toContain('Workshop today');
     expect(h).not.toContain('Workshop</text>');
   });
@@ -20,7 +20,7 @@ describe('CafeScene', () => {
     const h = renderToStaticMarkup(<CafeScene workshopToday />);
     expect(h).toContain('>Workshop<');
     expect(h).toContain('>today<');
-    expect(h).not.toContain('Host with us');
+    expect(h).not.toContain('Stay Tuned!');
   });
   it('colours come from classes (so light and dark follow the site theme), never hard-coded in the markup', () => {
     const h = renderToStaticMarkup(<CafeScene />);

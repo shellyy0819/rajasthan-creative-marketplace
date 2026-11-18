@@ -29,7 +29,7 @@ describe('/workshops with no workshops at all', () => {
     expect(h).toContain('data-host-button');
     expect(h).toMatch(/first workshops/i);
     expect(h).toContain('role="img"');                // the café illustration
-    expect(h).toContain('>Host with us<');             // its chalkboard, since no workshop is hosted today
+    expect(h).toContain('>Stay Tuned!<');             // its chalkboard, since no workshop is hosted today
     expect(h).not.toContain('data-live-catalog');
     expect(h).not.toContain('Try a different city or filter');
   });
