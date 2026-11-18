@@ -79,7 +79,11 @@ export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows, repe
       {repeat === 'monthly' && (
         <fieldset className="host-days">
           <legend>Which weeks of the month</legend>
-          <div className="host-day-chips">{WEEK_OPTIONS.map(([v, l]) => <label key={v} className="host-day"><input type="checkbox" name="weeks" value={v} /> {l}</label>)}</div>
+          {/* Every week ticked is the same as "Every week": switch to it so the schedule stays simple. */}
+          <div className="host-day-chips" onChange={e => { const box = e.currentTarget.querySelectorAll<HTMLInputElement>('input[name="weeks"]'); if (box.length && Array.from(box).every(b => b.checked)) setRepeat('weekly'); }}>
+            {WEEK_OPTIONS.map(([v, l]) => <label key={v} className="host-day"><input type="checkbox" name="weeks" value={v} /> {l}</label>)}
+            <button type="button" className="host-day host-all-weeks" onClick={() => setRepeat('weekly')}>All weeks</button>
+          </div>
         </fieldset>
       )}
       <fieldset className="host-days">

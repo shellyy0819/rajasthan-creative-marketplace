@@ -146,6 +146,23 @@ describe('free trial length', () => {
   });
 });
 
+describe('all weeks of the month', () => {
+  const toMonthly = () => { openClass(); classStep1(); next(); fireEvent.change(screen.getByLabelText('Repeats'), { target: { value: 'monthly' } }); };
+  it('the "All weeks" chip switches Repeats to Every week', () => {
+    toMonthly();
+    fireEvent.click(screen.getByRole('button', { name: 'All weeks' }));
+    expect((screen.getByLabelText('Repeats') as HTMLSelectElement).value).toBe('weekly');
+    expect(screen.queryByLabelText('1st')).toBeNull();
+  });
+  it('ticking every week by hand does the same, but four of five stays monthly', () => {
+    toMonthly();
+    for (const w of ['1st', '2nd', '3rd', '4th']) fireEvent.click(screen.getByLabelText(w));
+    expect((screen.getByLabelText('Repeats') as HTMLSelectElement).value).toBe('monthly');
+    fireEvent.click(screen.getByLabelText('Last'));
+    expect((screen.getByLabelText('Repeats') as HTMLSelectElement).value).toBe('weekly');
+  });
+});
+
 describe('duration', () => {
   const toDuration = () => { openClass(); classStep1(); next(); val(/online platform/i, 'Zoom'); val(/start date/i, '2027-01-05'); fireEvent.click(screen.getByLabelText('Mon')); val(/class time/i, '07:00'); };
   it('is a number you type plus a Minutes / Hours dropdown, starting at 60 minutes', () => {

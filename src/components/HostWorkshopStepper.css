@@ -102,3 +102,5 @@
 /* "Open on Instagram" link under the Instagram field. */
 .host-instagram .host-open-link { display: inline-block; margin: -6px 0 8px; font-size: 12px; font-weight: 600; color: var(--green); text-decoration: underline; }
 @media (max-width: 900px) { .host-instagram .host-open-link { min-height: 44px; display: inline-flex; align-items: center; } }
+
+.host-all-weeks { font: inherit; font-weight: 600; color: var(--ink); cursor: pointer; }
