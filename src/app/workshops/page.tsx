@@ -52,7 +52,7 @@ export default async function WorkshopsPage({ searchParams }: Props) {
         : <>
             <LiveCatalog kind="workshops" initialItems={workshops} initialValues={f} cities={cities.map(c => ({ name: c.name, slug: c.slug, state: c.state }))} />
             {/* The footer's "Want to host a workshop?" link: with workshops listed there is no host button on the page, so this link brings its own. */}
-            {wantsHostForm(sp) && <div className="host-more"><HostWorkshopButton contactEmail={contactEmail()} defaultOpen initialPath={hostPath(sp)} topics={topics} prefill shareable /></div>}
+            {wantsHostForm(sp) && <div className="host-more"><HostWorkshopButton contactEmail={contactEmail()} defaultOpen initialPath={hostPath(sp)} topics={topics} prefill saveDraft shareable /></div>}
           </>}
     </DataVersionProvider>
   );

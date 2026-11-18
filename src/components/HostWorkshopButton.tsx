@@ -8,6 +8,7 @@ import { DEFAULT_CONTACT_EMAIL } from '@/lib/site';
 import { MAX_REQUEST_IMAGES, submitErrorMessage } from '@/lib/workshop-requests-shared';
 import { HOST_PARAM, hostParamFor, type HostPath } from '@/lib/host-link';
 import { supportLine } from '@/lib/workshop-support';
+import { clearDraft, collectDraft, readDraft, writeDraft, type HostDraft } from '@/lib/host-draft';
 import type { TopicOption } from '@/lib/topics';
 import { ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, type PriceDraft } from './HostListingFields';
 import './HostWorkshopStepper.css';
@@ -22,7 +23,7 @@ const fmtDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(
  * "Host a workshop": opens a form that collects every detail we need to list a workshop, meetup, pop-up or flea market.
  * `defaultOpen` opens it on first render (a shared ?host= link); `shareable` keeps ?host=in-person (or class) in the address bar while it is open.
  */
-export function HostWorkshopButton({ className = 'button outline', contactEmail = DEFAULT_CONTACT_EMAIL, defaultOpen = false, shareable = false, path: preset = 'event', initialPath, topics = [], label = 'Host a workshop', prefill = false }: {
+export function HostWorkshopButton({ className = 'button outline', contactEmail = DEFAULT_CONTACT_EMAIL, defaultOpen = false, shareable = false, path: preset = 'event', initialPath, topics = [], label = 'Host a workshop', prefill = false, saveDraft = false }: {
   className?: string; contactEmail?: string; defaultOpen?: boolean; shareable?: boolean;
   /** The path a click on the button starts on. */
   path?: HostPath;
@@ -31,6 +32,8 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   topics?: TopicOption[]; label?: string;
   /** Fill the form from the signed-in person's own details (name, email and, for sellers, their profile). */
   prefill?: boolean;
+  /** Save what is typed in this browser so the visitor can come back to it (cleared once the details are sent). */
+  saveDraft?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [path, setPath] = useState<HostPath | null>(defaultOpen && initialPath !== undefined ? initialPath : preset);
@@ -52,11 +55,65 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   const shownStep = useRef(0);
   const me = useRef<Record<string, string>>({});
   const [meTick, setMeTick] = useState(0);
+  const [draftImages, setDraftImages] = useState<string[]>([]);
+  const [imagesKey, setImagesKey] = useState(0);
+  const [restored, setRestored] = useState(false);
+  const restore = useRef<HostDraft | null>(null);
+  const applied = useRef(new Set<string>());
+  const [restoreTick, setRestoreTick] = useState(0);
+  const latest = useRef({ path, step: 0, startDate: '', paid: false, repeat: 'weekly' as 'weekly' | 'monthly', priceRows: [] as PriceDraft[] });
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // The form is portalled into document.body, which does not exist while rendering on the server (a ?host=1 link opens it on first render).
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const close = () => { setOpen(false); trigger.current?.focus(); };
+  latest.current = { path, step, startDate, paid, repeat, priceRows };
+  const saveNow = () => {
+    if (!saveDraft || !formRef.current || done || pending) return;
+    writeDraft(collectDraft(formRef.current, latest.current));
+  };
+  const scheduleSave = () => {
+    if (!saveDraft) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(saveNow, 400);
+  };
+  useEffect(() => { if (open) scheduleSave(); }, [path, step, startDate, paid, repeat, priceRows, open]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
+
+  /** Bring back the saved draft when it belongs to the path being opened (a link that asks for the other path starts clean). */
+  function restoreDraft(startPath: HostPath | null) {
+    const d = saveDraft ? readDraft() : null;
+    restore.current = null; applied.current = new Set(); setRestored(false); setDraftImages([]);
+    if (!d || (startPath !== null && d.path !== startPath)) return;
+    restore.current = d;
+    setPath(d.path); setStep(Math.min(Math.max(d.step, 0), 2)); setStartDate(d.startDate); setPaid(d.paid); setRepeat(d.repeat); setPriceRows(d.priceRows);
+    setDraftImages(d.images); setImagesKey(k => k + 1); setRestored(true); setRestoreTick(t => t + 1);
+  }
+  // A shared link opens the form on first render: restore there too (browser only).
+  useEffect(() => { if (defaultOpen) restoreDraft(initialPath === undefined ? preset : initialPath); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Put the saved values into the fields once they exist (fields of the other path or step appear later).
+  useEffect(() => {
+    const form = formRef.current, d = restore.current;
+    if (!form || !d) return;
+    for (const [name, v] of Object.entries(d.fields)) {
+      const el = form.elements.namedItem(name);
+      if (!applied.current.has(name) && (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) { el.value = v; applied.current.add(name); }
+    }
+    const days = form.querySelectorAll<HTMLInputElement>('input[name="days"]');
+    if (days.length && !applied.current.has('days')) { days.forEach(c => { c.checked = d.days.includes(c.value); }); applied.current.add('days'); }
+    const weeks = form.querySelectorAll<HTMLInputElement>('input[name="weeks"]');
+    if (weeks.length && !applied.current.has('weeks')) { weeks.forEach(c => { c.checked = d.weeks.includes(c.value); }); applied.current.add('weeks'); }
+    const trial = form.elements.namedItem('freeTrial');
+    if (trial instanceof HTMLInputElement && !applied.current.has('freeTrial')) { trial.checked = d.freeTrial; applied.current.add('freeTrial'); }
+  }, [restoreTick, path, repeat, paid, step, open, mounted]);
+
+  function startOver() {
+    clearDraft(); restore.current = null; applied.current = new Set();
+    formRef.current?.reset();
+    setStep(0); setStartDate(''); setPaid(false); setRepeat('weekly'); setPriceRows([]); setDraftImages([]); setImagesKey(k => k + 1); setRestored(false);
+  }
+
+  const close = () => { saveNow(); setOpen(false); trigger.current?.focus(); };
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !sending) close(); };
@@ -172,6 +229,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
       const { ok, data, error } = await post('/api/workshop-requests', body);
       if (!ok || !data) { setError(error || submitErrorMessage(0, null, contactEmail)); setSending(false); return; }
       const summary = { name: body.contactName, email: data.email ?? body.email, from: fmtDate(body.startDate), to: fmtDate(lastDate || body.startDate) };
+      clearDraft();
       if (data.status === 'received') { setDone({ ...summary, confirmed: false, notified: false }); setSending(false); return; } // the code email could not be sent; we still have the details
       setPending({ id: data.id ?? '', ...summary });
       setWait(60); setSending(false);
@@ -198,7 +256,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
 
   return (
     <>
-      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setPath(preset); setPriceRows([]); setRepeat('weekly'); setOpen(true); }}>{label} <span>↗</span></button>
+      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setPath(preset); setPriceRows([]); setRepeat('weekly'); restoreDraft(preset); setOpen(true); }}>{label} <span>↗</span></button>
       {open && mounted && createPortal(
         <div className="contact-backdrop admin-modal host-backdrop" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
           <div role="dialog" aria-modal="true" aria-labelledby="host-title" className="contact-card host-dialog">
@@ -222,7 +280,8 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                 </div>
               </form>
             ) : (
-              <form ref={formRef} className="admin-form host-form" noValidate onSubmit={onSubmit}>
+              <form ref={formRef} className="admin-form host-form" noValidate onSubmit={onSubmit} onInput={scheduleSave} onChange={scheduleSave}>
+                {restored && <p className="form-note host-draft-note" role="status">We restored your saved draft. <button type="button" className="text-link" onClick={startOver}>Start over</button></p>}
                 <div className="host-progress">
                   <ol className="host-steps" aria-label="Progress">
                     {STEPS.map((name, i) => <li key={name} className={i < step ? 'done' : undefined} aria-current={i === step ? 'step' : undefined}><span className="host-step-label">{name}</span></li>)}
@@ -258,7 +317,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                     </label>
                   )}
                   <label><span className="lbl">{path === 'class' ? 'About the class' : 'What happens at the event'}</span><textarea name="description" required maxLength={2000} rows={3} /></label>
-                  <ImageUploader initial={[]} max={MAX_REQUEST_IMAGES} endpoint="/api/uploads/workshop-request-image" legend="Photos (up to 3)" onBusyChange={setUploading} />
+                  <ImageUploader key={imagesKey} initial={draftImages} max={MAX_REQUEST_IMAGES} endpoint="/api/uploads/workshop-request-image" legend="Photos (up to 3)" onBusyChange={setUploading} />
                 </div>
                 <div className="host-step" data-step={1} hidden={step !== 1}>
                   {path === 'class'
