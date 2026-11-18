@@ -21,7 +21,7 @@ function classStep1() { val(/event title|class title/i, 'Morning Flow'); val(/wh
 function classStep2() {
   val(/online platform/i, 'Zoom'); val(/start date/i, '2027-01-05');
   fireEvent.click(screen.getByLabelText('Mon')); fireEvent.click(screen.getByLabelText('Wed'));
-  val(/class time/i, '07:00'); val(/duration/i, '60');
+  val(/class time/i, '07:00');
 }
 
 beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal('fetch', fetchMock); window.history.replaceState(null, '', '/workshops'); });
@@ -119,6 +119,59 @@ describe('step 2 and 3 on the online class path', () => {
     });
     expect(body.cityRef).toBeUndefined();
     expect(body.venue).toBeUndefined();
+  });
+});
+
+describe('duration', () => {
+  const toDuration = () => { openClass(); classStep1(); next(); val(/online platform/i, 'Zoom'); val(/start date/i, '2027-01-05'); fireEvent.click(screen.getByLabelText('Mon')); val(/class time/i, '07:00'); };
+  it('is a number you type plus a Minutes / Hours dropdown, starting at 60 minutes', () => {
+    toDuration();
+    expect((screen.getByLabelText(/duration/i) as HTMLInputElement).value).toBe('60');
+    const unit = screen.getByLabelText('Minutes or hours') as HTMLSelectElement;
+    expect(Array.from(unit.options).map(o => o.textContent)).toEqual(['mins', 'hours']);
+    expect(unit.value).toBe('mins');
+  });
+  it('1.5 hours is sent as 90 minutes', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'a@b.co', status: 'pending' }) });
+    toDuration();
+    val(/duration/i, '1.5'); fireEvent.change(screen.getByLabelText('Minutes or hours'), { target: { value: 'hours' } });
+    next();
+    val(/host, studio/i, 'H'); val(/your name/i, 'N'); val(/phone number/i, '9989898999'); val(/^email/i, 'a@b.co'); val(/whatsapp/i, '9989898999');
+    fireEvent.click(screen.getByRole('button', { name: /send details/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).schedule.durationMin).toBe(90);
+  });
+  it('shorter than 15 minutes or longer than 8 hours is refused on the step', () => {
+    toDuration();
+    val(/duration/i, '10'); next();
+    expect(stepText()).toBe('Step 2 of 3');
+    expect(screen.getByRole('alert').textContent).toMatch(/15 minutes and 8 hours/i);
+    fireEvent.change(screen.getByLabelText('Minutes or hours'), { target: { value: 'hours' } });
+    val(/duration/i, '9'); next();
+    expect(stepText()).toBe('Step 2 of 3');
+  });
+});
+
+describe('how often a class repeats', () => {
+  it('weekly is the default; Every month asks which weeks, needs one, and sends repeat and weeks', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'a@b.co', status: 'pending' }) });
+    openClass(); classStep1(); next();
+    const repeat = screen.getByLabelText('Repeats') as HTMLSelectElement;
+    expect(Array.from(repeat.options).map(o => o.textContent)).toEqual(['Every week', 'Every month']);
+    expect(repeat.value).toBe('weekly');
+    expect(screen.queryByLabelText('1st')).toBeNull();
+    fireEvent.change(repeat, { target: { value: 'monthly' } });
+    for (const w of ['1st', '2nd', '3rd', '4th', 'Last']) expect(screen.getByLabelText(w)).toBeTruthy();
+    val(/online platform/i, 'Zoom'); val(/start date/i, '2027-01-05'); fireEvent.click(screen.getByLabelText('Sat')); val(/class time/i, '07:00');
+    next();
+    expect(stepText()).toBe('Step 2 of 3');
+    expect(screen.getByRole('alert').textContent).toMatch(/week of the month/i);
+    fireEvent.click(screen.getByLabelText('1st')); fireEvent.click(screen.getByLabelText('3rd'));
+    next();
+    val(/host, studio/i, 'H'); val(/your name/i, 'N'); val(/phone number/i, '9989898999'); val(/^email/i, 'a@b.co'); val(/whatsapp/i, '9989898999');
+    fireEvent.click(screen.getByRole('button', { name: /send details/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).schedule).toEqual({ repeat: 'monthly', days: ['sat'], weeks: [1, 3], time: '07:00', durationMin: 60 });
   });
 });
 

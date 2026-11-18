@@ -53,8 +53,9 @@ export function workshopJsonLd(w: Workshop) {
     organizer: { '@type': 'Organization', name: w.host },
     ...(w.prices.length ? { offers: w.prices.map(p => ({ '@type': 'Offer', name: p.label, price: (p.amountPaise / 100).toFixed(2), priceCurrency: 'INR', url: abs(path), availability: 'https://schema.org/InStock' })) } : {}),
     ...(w.schedule ? { eventSchedule: {
-      '@type': 'Schedule', repeatFrequency: 'P1W', scheduleTimezone: 'Asia/Kolkata', startTime: w.schedule.time, duration: `PT${w.schedule.durationMin}M`,
-      byDay: w.schedule.days.map(d => `https://schema.org/${DAY_IRI[d]}`), startDate: w.date, ...(w.endsOn ? { endDate: w.endsOn } : {}),
+      '@type': 'Schedule', repeatFrequency: w.schedule.repeat === 'monthly' ? 'P1M' : 'P1W', scheduleTimezone: 'Asia/Kolkata', startTime: w.schedule.time, duration: `PT${w.schedule.durationMin}M`,
+      byDay: w.schedule.days.map(d => `https://schema.org/${DAY_IRI[d]}`),
+      ...(w.schedule.repeat === 'monthly' && w.schedule.weeks ? { byMonthWeek: w.schedule.weeks.map(x => (x === 'last' ? -1 : x)) } : {}), startDate: w.date, ...(w.endsOn ? { endDate: w.endsOn } : {}),
     } } : {}),
   };
 }

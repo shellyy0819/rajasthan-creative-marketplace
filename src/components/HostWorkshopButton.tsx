@@ -9,7 +9,7 @@ import { MAX_REQUEST_IMAGES, submitErrorMessage } from '@/lib/workshop-requests-
 import { HOST_PARAM, type HostPath } from '@/lib/host-link';
 import { supportLine } from '@/lib/workshop-support';
 import type { TopicOption } from '@/lib/topics';
-import { ClassAbout, ClassWhenAndPrice, EventWhereWhen, type PriceDraft } from './HostListingFields';
+import { ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, type PriceDraft } from './HostListingFields';
 import './HostWorkshopStepper.css';
 import './WorkshopListings.css';
 
@@ -35,6 +35,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   const [open, setOpen] = useState(defaultOpen);
   const [path, setPath] = useState<HostPath | null>(defaultOpen && initialPath !== undefined ? initialPath : preset);
   const [priceRows, setPriceRows] = useState<PriceDraft[]>([]);
+  const [repeat, setRepeat] = useState<'weekly' | 'monthly'>('weekly');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [paid, setPaid] = useState(false);
@@ -97,6 +98,11 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     bad?.reportValidity();
     if (bad) return false;
     if (i === 1 && path === 'class' && !stepFields(1).some(el => el.name === 'days' && el.checked)) { setError('Choose at least one class day.'); return false; }
+    if (i === 1 && path === 'class') {
+      const val = (n: string) => stepFields(1).find(el => el.name === n)?.value ?? '';
+      if (!durationValid(durationMinutes(val('durationValue'), val('durationUnit')))) { setError(DURATION_ERROR); return false; }
+    }
+    if (i === 1 && path === 'class' && repeat === 'monthly' && !stepFields(1).some(el => el.name === 'weeks' && el.checked)) { setError('Choose at least one week of the month.'); return false; }
     if (i === 2 && path === 'class') {
       const langs = stepFields(2).find(el => el.name === 'languages')?.value ?? '';
       if (langs.split(',').filter(x => x.trim()).length > 5) { setError('Please list at most five languages.'); return false; }
@@ -151,7 +157,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     };
     const body = isClass ? {
       ...common, mode: 'online', kind: 'class', platform: field(f, 'platform'), endsOn: field(f, 'endsOn') || undefined,
-      schedule: { days: f.getAll('days').map(String), time: field(f, 'classTime'), durationMin: Number(field(f, 'duration')) },
+      schedule: { repeat, days: f.getAll('days').map(String), ...(repeat === 'monthly' ? { weeks: f.getAll('weeks').map(w => (w === 'last' ? 'last' : Number(w))) } : {}), time: field(f, 'classTime'), durationMin: durationMinutes(field(f, 'durationValue'), field(f, 'durationUnit')) },
       prices: priceRows.map(r => ({ label: r.label.trim(), amountPaise: Math.round(Number(r.amount) * 100), sessions: r.sessions ? Number(r.sessions) : null })),
       freeTrial: f.get('freeTrial') === 'on', languages: field(f, 'languages').split(',').map(x => x.trim()).filter(Boolean),
       level: field(f, 'level') || undefined, experience: field(f, 'experience') || undefined, certifications: field(f, 'certifications') || undefined, whatsapp: field(f, 'whatsapp') || undefined,
@@ -192,7 +198,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
 
   return (
     <>
-      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setPath(preset); setPriceRows([]); setOpen(true); }}>{label} <span>↗</span></button>
+      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setPath(preset); setPriceRows([]); setRepeat('weekly'); setOpen(true); }}>{label} <span>↗</span></button>
       {open && mounted && createPortal(
         <div className="contact-backdrop admin-modal host-backdrop" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
           <div role="dialog" aria-modal="true" aria-labelledby="host-title" className="contact-card host-dialog">
@@ -256,7 +262,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                 </div>
                 <div className="host-step" data-step={1} hidden={step !== 1}>
                   {path === 'class'
-                    ? <ClassWhenAndPrice startDate={startDate} setStartDate={setStartDate} rows={priceRows} setRows={setPriceRows} />
+                    ? <ClassWhenAndPrice startDate={startDate} setStartDate={setStartDate} rows={priceRows} setRows={setPriceRows} repeat={repeat} setRepeat={setRepeat} />
                     : <EventWhereWhen startDate={startDate} setStartDate={setStartDate} paid={paid} setPaid={setPaid} />}
                 </div>
                 <div className="host-step" data-step={2} hidden={step !== 2}>

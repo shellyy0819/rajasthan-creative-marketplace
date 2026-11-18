@@ -66,6 +66,29 @@ describe('parseListingFields', () => {
   });
 });
 
+describe('monthly schedules', () => {
+  const monthly = { ...yoga, schedule: { repeat: 'monthly', days: ['sat'], weeks: [1, 3], time: '07:00', durationMin: 60 } };
+  it('accepts every month on chosen weeks and days, and keeps weekly as the default', () => {
+    expect(parseListingFields(monthly).schedule).toEqual({ repeat: 'monthly', days: ['sat'], weeks: [1, 3], time: '07:00', durationMin: 60 });
+    expect(parseListingFields(yoga).schedule).toEqual({ repeat: 'weekly', days: ['mon', 'wed', 'fri'], time: '07:00', durationMin: 60 });
+  });
+  it('monthly needs at least one week, and only 1st to 4th or last', () => {
+    expect(msg({ ...yoga, schedule: { ...monthly.schedule, weeks: [] } })).toMatch(/schedule/);
+    expect(msg({ ...yoga, schedule: { ...monthly.schedule, weeks: undefined } })).toMatch(/schedule/);
+    expect(msg({ ...yoga, schedule: { ...monthly.schedule, weeks: [5] } })).toMatch(/schedule/);
+    expect(parseListingFields({ ...yoga, schedule: { ...monthly.schedule, weeks: [4, 'last', 1, 1] } }).schedule?.weeks).toEqual([1, 4, 'last']);
+  });
+  it('weekly drops any weeks that were sent, and an unknown repeat is refused', () => {
+    expect(parseListingFields({ ...yoga, schedule: { ...yoga.schedule, weeks: [1] } }).schedule).not.toHaveProperty('weeks');
+    expect(msg({ ...yoga, schedule: { ...yoga.schedule, repeat: 'daily' } })).toMatch(/schedule/);
+  });
+  it('is described in words', () => {
+    expect(describeSchedule({ repeat: 'monthly', days: ['sat'], weeks: [1, 3], time: '07:00', durationMin: 60 })).toBe('1st and 3rd Sat of every month at 7:00 am, 60 min');
+    expect(describeSchedule({ repeat: 'monthly', days: ['sun', 'sat'], weeks: [1, 2, 'last'], time: '18:30', durationMin: 45 })).toBe('1st, 2nd and last Sat, Sun of every month at 6:30 pm, 45 min');
+    expect(describeSchedule({ repeat: 'monthly', days: ['fri'], weeks: ['last'], time: '09:00', durationMin: 30 })).toBe('Last Fri of every month at 9:00 am, 30 min');
+  });
+});
+
 describe('optionalWebsite', () => {
   it('adds https and refuses things that are not web addresses', () => {
     expect(optionalWebsite('example.com')).toBe('https://example.com');

@@ -68,6 +68,12 @@ describe('detail page', () => {
     expect(j).toContain('eventSchedule');
     expect(j).not.toContain('PostalAddress');
   });
+  it('JSON-LD for a monthly class repeats every month on those weeks', async () => {
+    const w = await createWorkshop({ ...yoga, schedule: { repeat: 'monthly', days: ['sat'], weeks: [1, 3], time: '07:00', durationMin: 60 } });
+    const j = workshopJsonLd(w) as { eventSchedule: Record<string, unknown> };
+    expect(j.eventSchedule).toMatchObject({ repeatFrequency: 'P1M', byMonthWeek: [1, 3], byDay: ['https://schema.org/Saturday'] });
+    expect(renderToStaticMarkup(<WorkshopCard w={w} />)).toContain('1st and 3rd Sat of every month at 7:00 am, 60 min');
+  });
   it('JSON-LD for an in-person event is as before', async () => {
     const j = JSON.stringify(workshopJsonLd(await createWorkshop(event)));
     expect(j).toContain('OfflineEventAttendanceMode');

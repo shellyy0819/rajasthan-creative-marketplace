@@ -11,7 +11,9 @@ export type Mode = (typeof MODES)[number];
 export type Level = (typeof LEVELS)[number];
 export type Day = (typeof DAYS)[number];
 
-export type Schedule = { days: Day[]; time: string; durationMin: number };
+export type Week = 1 | 2 | 3 | 4 | 'last';
+/** `repeat` weekly: on `days` every week. Monthly: on `days` of the listed `weeks` of every month (for example the 1st and 3rd Saturday). */
+export type Schedule = { repeat?: 'weekly' | 'monthly'; days: Day[]; weeks?: Week[]; time: string; durationMin: number };
 export type PriceRow = { label: string; amountPaise: number; sessions: number | null };
 export type ListingFields = {
   kind: Kind; mode: Mode; topicId: number | null; platform: string | null; schedule: Schedule | null; endsOn: string | null;
@@ -19,6 +21,7 @@ export type ListingFields = {
   whatsapp: string | null; instagram: string | null; website: string | null; prices: PriceRow[];
 };
 
+const WEEKS: Week[] = [1, 2, 3, 4, 'last'];
 const MAX_LANGUAGES = 5;
 const MAX_PRICES = 5;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -54,7 +57,14 @@ function parseSchedule(v: unknown): Schedule | null {
   if (typeof s.time !== 'string' || !TIME_RE.test(s.time)) throw bad(msg);
   const durationMin = s.durationMin;
   if (typeof durationMin !== 'number' || !Number.isInteger(durationMin) || durationMin < 15 || durationMin > 480) throw bad(msg);
-  return { days: Array.from(new Set(days as Day[])), time: s.time, durationMin };
+  const repeat = s.repeat === undefined || s.repeat === null ? 'weekly' : s.repeat;
+  if (repeat !== 'weekly' && repeat !== 'monthly') throw bad(msg);
+  const base = { days: DAYS.filter(d => (days as string[]).includes(d)), time: s.time, durationMin };
+  if (repeat === 'weekly') return { repeat, ...base };
+  const weeks = s.weeks;
+  if (!Array.isArray(weeks) || weeks.length < 1 || !weeks.every(w => w === 'last' || w === 1 || w === 2 || w === 3 || w === 4)) throw bad('schedule needs at least one week of the month (1st to 4th, or last).');
+  const sorted = WEEKS.filter(w => (weeks as unknown[]).includes(w));
+  return { repeat, days: base.days, weeks: sorted, time: base.time, durationMin };
 }
 
 function parsePrices(v: unknown): PriceRow[] {
@@ -118,10 +128,16 @@ export function isCurrent(w: Dated, now: Date = new Date()): boolean {
 }
 
 const DAY_LABEL: Record<Day, string> = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' };
+const ORDINAL: Record<string, string> = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th', last: 'last' };
+const andList = (items: string[]) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`);
 export function describeSchedule(s: Schedule): string {
   const days = DAYS.filter(d => s.days.includes(d)).map(d => DAY_LABEL[d]).join(', ');
   const [h, m] = s.time.split(':').map(Number);
   const clock = `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
+  if (s.repeat === 'monthly' && s.weeks?.length) {
+    const weeks = andList(WEEKS.filter(w => s.weeks!.includes(w)).map(w => ORDINAL[String(w)]));
+    return `${weeks.charAt(0).toUpperCase()}${weeks.slice(1)} ${days} of every month at ${clock}, ${s.durationMin} min`;
+  }
   return `${days} at ${clock}, ${s.durationMin} min`;
 }
 

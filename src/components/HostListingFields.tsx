@@ -4,7 +4,15 @@ import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 const fmtDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
 export const DAY_OPTIONS = [['mon', 'Mon'], ['tue', 'Tue'], ['wed', 'Wed'], ['thu', 'Thu'], ['fri', 'Fri'], ['sat', 'Sat'], ['sun', 'Sun']] as const;
+export const WEEK_OPTIONS = [['1', '1st'], ['2', '2nd'], ['3', '3rd'], ['4', '4th'], ['last', 'Last']] as const;
 export const PRICE_PLAN_LIMIT = 5;
+export const DURATION_ERROR = 'The class must last between 15 minutes and 8 hours.';
+/** Minutes from what was typed and the unit chosen (hours may be fractional: 1.5 hours is 90 minutes). NaN when nothing sensible was typed. */
+export function durationMinutes(value: string, unit: string): number {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.round(n * (unit === 'hours' ? 60 : 1)) : Number.NaN;
+}
+export const durationValid = (minutes: number) => Number.isInteger(minutes) && minutes >= 15 && minutes <= 480;
 export type PriceDraft = { label: string; amount: string; sessions: string };
 
 /** Step 2 of an in-person event: when, where, seats and the single price. */
@@ -34,7 +42,7 @@ export function EventWhereWhen({ startDate, setStartDate, paid, setPaid, cityReq
 }
 
 /** Step 2 of an online class: platform, dates, class days, time, duration, price plans and the free trial. */
-export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows }: { startDate: string; setStartDate: (v: string) => void; rows: PriceDraft[]; setRows: (r: PriceDraft[]) => void }) {
+export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows, repeat, setRepeat }: { startDate: string; setStartDate: (v: string) => void; rows: PriceDraft[]; setRows: (r: PriceDraft[]) => void; repeat: 'weekly' | 'monthly'; setRepeat: (v: 'weekly' | 'monthly') => void }) {
   const patch = (i: number, p: Partial<PriceDraft>) => setRows(rows.map((r, j) => (j === i ? { ...r, ...p } : r)));
   return (
     <>
@@ -45,15 +53,25 @@ export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows }: { 
         <label>End date<input name="endsOn" type="date" min={startDate || undefined} /></label>
       </div>
       <p className="form-note">Leave the end date empty if the classes run until further notice.</p>
+      <label>Repeats
+        <select name="repeat" value={repeat} onChange={e => setRepeat(e.target.value === 'monthly' ? 'monthly' : 'weekly')}><option value="weekly">Every week</option><option value="monthly">Every month</option></select>
+      </label>
+      {repeat === 'monthly' && (
+        <fieldset className="host-days">
+          <legend>Which weeks of the month</legend>
+          <div className="host-day-chips">{WEEK_OPTIONS.map(([v, l]) => <label key={v} className="host-day"><input type="checkbox" name="weeks" value={v} /> {l}</label>)}</div>
+        </fieldset>
+      )}
       <fieldset className="host-days">
         <legend>Class days</legend>
         <div className="host-day-chips">{DAY_OPTIONS.map(([v, l]) => <label key={v} className="host-day"><input type="checkbox" name="days" value={v} /> {l}</label>)}</div>
       </fieldset>
       <div className="admin-form-row">
         <label><span className="lbl">Class time</span><input name="classTime" type="time" required /></label>
-        <label><span className="lbl">Duration</span>
-          <select name="duration" defaultValue="60">{[30, 45, 60, 75, 90, 120].map(m => <option key={m} value={m}>{m} minutes</option>)}</select>
-        </label>
+        <div className="host-duration">
+          <label><span className="lbl">Duration</span><input name="durationValue" type="number" inputMode="decimal" min="0.25" step="any" required defaultValue="60" enterKeyHint="next" /></label>
+          <select name="durationUnit" aria-label="Minutes or hours" defaultValue="mins"><option value="mins">mins</option><option value="hours">hours</option></select>
+        </div>
       </div>
       <fieldset className="host-prices">
         <legend>Price plans</legend>

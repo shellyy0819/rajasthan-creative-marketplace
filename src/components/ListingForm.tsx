@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { ImageUploader } from './ImageUploader';
-import { ClassAbout, ClassWhenAndPrice, EventWhereWhen, type PriceDraft } from './HostListingFields';
+import { ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, type PriceDraft } from './HostListingFields';
 import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 import { MAX_REQUEST_IMAGES } from '@/lib/workshop-requests-shared';
 import type { HostPath } from '@/lib/host-link';
@@ -12,30 +12,32 @@ import type { WorkshopRequest } from '@/lib/workshop-requests';
 const field = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 const rupees = (paise: number) => String(paise / 100);
 
-type Defaults = { path: HostPath; startDate: string; paid: boolean; priceRows: PriceDraft[]; days: string[]; freeTrial: boolean; images: string[]; values: Record<string, string> };
+type Defaults = { path: HostPath; startDate: string; paid: boolean; priceRows: PriceDraft[]; days: string[]; weeks: string[]; repeat: 'weekly' | 'monthly'; freeTrial: boolean; images: string[]; values: Record<string, string> };
 
 /** What the form starts with: an existing listing (edit), a request (create from it), or nothing. */
 function defaultsFor(src: Workshop | WorkshopRequest | undefined): Defaults {
-  const empty: Defaults = { path: 'event', startDate: '', paid: false, priceRows: [], days: [], freeTrial: false, images: [], values: { status: 'DRAFT' } };
+  const empty: Defaults = { path: 'event', startDate: '', paid: false, priceRows: [], days: [], weeks: [], repeat: 'weekly', freeTrial: false, images: [], values: { status: 'DRAFT' } };
   if (!src) return empty;
   const isRequest = 'hostName' in src;
   const online = src.mode === 'online' || src.kind === 'class';
   const prices = src.prices.map(r => ({ label: r.label, amount: rupees(r.amountPaise), sessions: r.sessions ? String(r.sessions) : '' }));
   const paid = !online && (isRequest ? src.priceType === 'PAID' : src.type === 'PAID');
   const paise = isRequest ? src.pricePaise : src.pricePaise;
+  const repeat = src.schedule?.repeat === 'monthly' ? 'monthly' as const : 'weekly' as const;
+  const weeks = (src.schedule?.weeks ?? []).map(String);
   const v: Record<string, string> = {
     status: isRequest ? 'DRAFT' : src.status, title: src.title, description: src.description, topicId: src.topicId ? String(src.topicId) : '', kind: src.kind === 'class' ? '' : src.kind,
     platform: src.platform ?? '', endsOn: src.endsOn ?? '', languages: src.languages.join(', '), level: src.level ?? '', experience: src.experience ?? '', certifications: src.certifications ?? '',
     whatsapp: src.whatsapp ?? '', instagram: src.instagram ?? '', website: src.website ?? '',
-    classTime: src.schedule?.time ?? '', duration: src.schedule ? String(src.schedule.durationMin) : '60',
+    classTime: src.schedule?.time ?? '', ...(src.schedule && src.schedule.durationMin >= 60 && src.schedule.durationMin % 60 === 0 ? { durationValue: String(src.schedule.durationMin / 60), durationUnit: 'hours' } : { durationValue: src.schedule ? String(src.schedule.durationMin) : '60', durationUnit: 'mins' }),
     priceRupees: paid && paise ? rupees(paise) : '',
   };
   if (isRequest) {
     Object.assign(v, { hostName: src.hostName, contactName: src.contactName, contactPhone: src.phone, contactEmail: src.email, venue: src.venue, seats: src.seats ? String(src.seats) : '', startTime: src.startTime ?? '', endTime: src.endTime ?? '', endDate: src.endDate !== src.startDate ? src.endDate : '' });
-    return { path: online ? 'class' : 'event', startDate: src.startDate, paid, priceRows: prices, days: src.schedule?.days ?? [], freeTrial: src.freeTrial, images: src.images, values: v };
+    return { path: online ? 'class' : 'event', startDate: src.startDate, paid, priceRows: prices, days: src.schedule?.days ?? [], weeks, repeat, freeTrial: src.freeTrial, images: src.images, values: v };
   }
   Object.assign(v, { hostName: src.host, contactName: src.contactName ?? '', contactPhone: src.contactPhone ?? '', contactEmail: src.contactEmail ?? '', venue: src.venue ?? '', seats: src.seats ? String(src.seats) : '', startTime: online ? '' : src.time, endDate: !online && src.endsOn ? src.endsOn : '' });
-  return { path: online ? 'class' : 'event', startDate: src.date, paid, priceRows: prices, days: src.schedule?.days ?? [], freeTrial: src.freeTrial, images: src.images, values: v };
+  return { path: online ? 'class' : 'event', startDate: src.date, paid, priceRows: prices, days: src.schedule?.days ?? [], weeks, repeat, freeTrial: src.freeTrial, images: src.images, values: v };
 }
 
 /**
@@ -48,6 +50,7 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
   const [startDate, setStartDate] = useState(d.startDate);
   const [paid, setPaid] = useState(d.paid);
   const [rows, setRows] = useState<PriceDraft[]>(d.priceRows);
+  const [repeat, setRepeat] = useState<'weekly' | 'monthly'>(d.repeat);
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -62,6 +65,7 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
       if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) el.value = value;
     }
     form.querySelectorAll<HTMLInputElement>('input[name="days"]').forEach(c => { c.checked = d.days.includes(c.value); });
+    form.querySelectorAll<HTMLInputElement>('input[name="weeks"]').forEach(c => { c.checked = d.weeks.includes(c.value); });
     const trial = form.elements.namedItem('freeTrial');
     if (trial instanceof HTMLInputElement) trial.checked = d.freeTrial;
   }, [d]);
@@ -77,6 +81,8 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
     if (sending) return;
     const form = e.currentTarget;
     if (path === 'class' && !form.querySelector('input[name="days"]:checked')) { setError('Choose at least one class day.'); return; }
+    if (path === 'class' && !durationValid(durationMinutes(String(new FormData(form).get('durationValue') ?? ''), String(new FormData(form).get('durationUnit') ?? '')))) { setError(DURATION_ERROR); return; }
+    if (path === 'class' && repeat === 'monthly' && !form.querySelector('input[name="weeks"]:checked')) { setError('Choose at least one week of the month.'); return; }
     if (!form.checkValidity()) { form.reportValidity(); return; }
     if (path === 'event' && !/^\d+$/.test(String(new FormData(form).get('seats') ?? '').trim())) { setError('Enter the number of seats.'); return; }
     const f = new FormData(form);
@@ -90,7 +96,7 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
     };
     const body = isClass ? {
       ...common, mode: 'online', kind: 'class', platform: field(f, 'platform'), date: field(f, 'startDate'), time: field(f, 'classTime'), endsOn: field(f, 'endsOn') || null,
-      schedule: { days: f.getAll('days').map(String), time: field(f, 'classTime'), durationMin: Number(field(f, 'duration')) },
+      schedule: { repeat, days: f.getAll('days').map(String), ...(repeat === 'monthly' ? { weeks: f.getAll('weeks').map(w => (w === 'last' ? 'last' : Number(w))) } : {}), time: field(f, 'classTime'), durationMin: durationMinutes(field(f, 'durationValue'), field(f, 'durationUnit')) },
       venue: null, cityId: null, seats: null,
       prices: rows.map(r => ({ label: r.label.trim(), amountPaise: Math.round(Number(r.amount) * 100), sessions: r.sessions ? Number(r.sessions) : null })),
       freeTrial: f.get('freeTrial') === 'on', languages: field(f, 'languages').split(',').map(x => x.trim()).filter(Boolean),
@@ -142,7 +148,7 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
           <label><span className="lbl">{path === 'class' ? 'About the class' : 'What happens at the event'}</span><textarea name="description" required maxLength={2000} rows={3} /></label>
           <ImageUploader initial={d.images} max={MAX_REQUEST_IMAGES} endpoint="/api/uploads/workshop-request-image" legend="Photos (up to 3)" onBusyChange={setUploading} />
           {path === 'class'
-            ? <ClassWhenAndPrice startDate={startDate} setStartDate={setStartDate} rows={rows} setRows={setRows} />
+            ? <ClassWhenAndPrice startDate={startDate} setStartDate={setStartDate} rows={rows} setRows={setRows} repeat={repeat} setRepeat={setRepeat} />
             : <EventWhereWhen startDate={startDate} setStartDate={setStartDate} paid={paid} setPaid={setPaid} cityRequired={!workshop?.cityId} cityDefault={workshop?.cityId && workshop.city ? { id: workshop.cityId, label: workshop.city } : undefined} />}
           <fieldset>
             <legend>Host</legend>

@@ -164,7 +164,7 @@ export const workshops = pgTable('workshops', {
   startsAt: timestamp('starts_at', { withTimezone: true, mode: 'date' }).notNull(),
   endsOn: date('ends_on', { mode: 'string' }), // last day of a multi-day event or a class with an end date; null = open-ended class or one-day event
   platform: text('platform'),
-  schedule: jsonb('schedule').$type<{ days: string[]; time: string; durationMin: number }>(),
+  schedule: jsonb('schedule').$type<{ repeat?: string; days: string[]; weeks?: (number | string)[]; time: string; durationMin: number }>(),
   languages: text('languages').array().notNull().default(sql`'{}'::text[]`),
   level: text('level'),
   experience: text('experience'),
@@ -326,7 +326,7 @@ export const workshopRequests = pgTable('workshop_requests', {
   images: jsonb('images').$type<string[]>().notNull().default(sql`'[]'::jsonb`), // up to 3 public photo urls, first is the cover
   endsOn: date('ends_on', { mode: 'string' }),
   platform: text('platform'),
-  schedule: jsonb('schedule').$type<{ days: string[]; time: string; durationMin: number }>(),
+  schedule: jsonb('schedule').$type<{ repeat?: string; days: string[]; weeks?: (number | string)[]; time: string; durationMin: number }>(),
   languages: text('languages').array().notNull().default(sql`'{}'::text[]`),
   level: text('level'),
   experience: text('experience'),
