@@ -134,7 +134,7 @@ export const toWorkshop = (r: WorkshopJoinRow): Workshop => ({
 /** Admin responses also carry the host's user id and the private contact; the public API never does. */
 export const toAdminWorkshop = (r: WorkshopJoinRow): Workshop => ({
   ...toWorkshop(r), ...opt('hostId', r.w.hostId), ...opt('contactName', r.w.contactName), ...opt('contactPhone', r.w.contactPhone),
-  ...opt('contactEmail', r.w.contactEmail), ...opt('createdBy', r.w.createdBy), ...opt('sourceRequestId', r.w.sourceRequestId), ...opt('joinLink', r.w.joinLink),
+  ...opt('contactEmail', r.w.contactEmail), ...opt('createdBy', r.w.createdBy), ...opt('sourceRequestId', r.w.sourceRequestId), ...opt('joinLink', r.w.joinLink), createdAt: r.w.createdAt.toISOString(),
 });
 
 /** Fills in the price rows (ordered) of each workshop with one query. */

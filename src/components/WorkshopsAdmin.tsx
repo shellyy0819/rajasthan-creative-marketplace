@@ -10,6 +10,8 @@ import type { Workshop } from '@/lib/types';
 import type { WorkshopRequest } from '@/lib/workshop-requests';
 
 const STATUS_LABEL: Record<string, string> = { DRAFT: 'Draft', APPROVED: 'Published', ARCHIVED: 'Archived' };
+/** When the listing was created, in India time: "18 Nov 2026, 7:35 pm". */
+const created = (iso: string) => new Date(iso).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\bam\b|\bpm\b/i, m => m.toLowerCase());
 const day = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
 /** Yellow Recurring (a repeating class), green Ended (past its last day), grey In Draft. A listing can carry several. */
@@ -69,7 +71,7 @@ export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus }: {
       {list.length === 0 ? <p className="empty">No listings yet.</p> : (
         <div className="admin-table-wrap">
           <table className="admin-table">
-            <thead><tr><th>Title</th><th>Host</th><th>Format</th><th>When</th><th>Tags</th><th>Status and actions</th></tr></thead>
+            <thead><tr><th>Title</th><th>Host</th><th>Format</th><th>When</th><th>Starts</th><th>Created</th><th>Tags</th><th>Status and actions</th></tr></thead>
             <tbody>
               {list.map(w => (
                 <tr key={w.id}>
@@ -77,6 +79,8 @@ export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus }: {
                   <td>{w.host}</td>
                   <td>{w.mode === 'online' ? 'Online' : 'In person'}{w.topic ? ` · ${w.topic.name}` : ''}{w.mode !== 'online' && w.city ? <><br /><small className="muted">{w.city}</small></> : null}</td>
                   <td>{w.kind === 'class' && w.schedule ? describeSchedule(w.schedule) : <>{day(w.date)}{w.endsOn ? ` to ${day(w.endsOn)}` : ''}</>}</td>
+                  <td>{day(w.date)}, {w.time}</td>
+                  <td>{w.createdAt ? created(w.createdAt) : '—'}</td>
                   <td><div className="admin-tags">{tagsOf(w).map(t => <span key={t.label} className={`badge ${t.cls}`}>{t.label}</span>)}</div></td>
                   <td>
                     <div className="admin-row-actions">

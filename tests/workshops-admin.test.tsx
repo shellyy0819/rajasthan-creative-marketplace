@@ -55,6 +55,24 @@ describe('listings table', () => {
   });
 });
 
+describe('start and created dates', () => {
+  it('shows when the workshop starts and when the listing was created, in India time', () => {
+    const w = { ...lac, createdAt: '2026-11-18T14:05:00.000Z' } as unknown as Workshop; // 19:35 in India
+    render(<WorkshopsAdmin initial={[w]} topics={topics} />);
+    expect(screen.getByRole('columnheader', { name: 'Starts' })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: 'Created' })).toBeTruthy();
+    const row = screen.getByText('Lac Craft').closest('tr') as HTMLElement;
+    expect(row.textContent).toContain('1 Dec 2099, 16:30');
+    expect(row.textContent).toContain('18 Nov 2026, 7:35 pm');
+  });
+  it('a class shows its start date, and a listing with no created time shows a dash', () => {
+    render(<WorkshopsAdmin initial={[yoga]} topics={topics} />);
+    const row = screen.getByText('Morning Flow').closest('tr') as HTMLElement;
+    expect(row.textContent).toContain('5 Jan 2099, 07:00');
+    expect(row.querySelectorAll('td')[5].textContent).toBe('—');
+  });
+});
+
 describe('tags column', () => {
   const tags = (row: HTMLElement) => Array.from(row.querySelectorAll('.badge')).map(b => [b.textContent, b.className]);
   const rowOf = (title: string) => screen.getByText(title).closest('tr') as HTMLElement;

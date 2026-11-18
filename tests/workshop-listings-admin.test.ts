@@ -120,7 +120,7 @@ describe('public shape never carries admin-only fields', () => {
     const paged = (await getWorkshopBySlug(workshopSlug(c)))!;
     for (const w of [listed, paged]) {
       const j = JSON.stringify(w);
-      for (const k of ['contactName', 'contactPhone', 'contactEmail', 'createdBy', 'sourceRequestId', 'hostId', 'joinLink', 'zoom.us']) expect(j).not.toContain(k);
+      for (const k of ['contactName', 'contactPhone', 'contactEmail', 'createdBy', 'sourceRequestId', 'hostId', 'joinLink', 'zoom.us', 'createdAt']) expect(j).not.toContain(k);
       expect(w.whatsapp).toBe('+919989898999'); // the public contact is the WhatsApp number, not the private phone
     }
   });
