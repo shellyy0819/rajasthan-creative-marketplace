@@ -31,6 +31,10 @@ describe('host form on phones: CSS', () => {
     expect(css).toMatch(/\.host-dialog \{ padding-top: 0; \}/);
     expect(css).toMatch(/\.host-dialog \.dialog-head \{[^}]*position: sticky;[^}]*top: 0;[^}]*background: var\(--white\)/);
   });
+  it('the dialog is a little shorter than the window on tablets and desktop, and its action bar is compact', () => {
+    expect(css).toMatch(/@media \(min-width: 601px\) \{[^@]*\.host-dialog \{[^}]*max-height: calc\(100dvh - 72px\);/);
+    expect(css).toMatch(/\.host-form \.admin-actions \{[^}]*padding: 8px 0 calc\(8px \+ env\(safe-area-inset-bottom\)\);/);
+  });
   it('on small phones the dialog fills the screen and field pairs stack', () => {
     expect(css).toMatch(/@media \(max-width: 600px\)[\s\S]*\.host-dialog[\s\S]*height: 100dvh/);
     expect(css).toMatch(/\.host-form \.admin-form-row \{ grid-template-columns: 1fr; \}/);
