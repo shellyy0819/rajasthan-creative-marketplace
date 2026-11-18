@@ -40,6 +40,23 @@
   font-size: 15px;
   line-height: 1.6;
 }
+/* Tablets: the card and the picture do not fit side by side, so stack them, picture first, both centred and sized to the page. */
+@media (max-width: 1000px) {
+  .ws-empty-wrap {
+    justify-content: center;
+    gap: 28px;
+  }
+  .ws-empty-art {
+    order: -1;
+    flex: 0 1 520px;
+    width: 100%;
+    margin-inline: auto;
+  }
+  .ws-empty {
+    flex: 1 1 100%;
+    max-width: 720px;
+  }
+}
 @media (max-width: 700px) {
   .ws-empty-wrap {
     margin-left: 5%;

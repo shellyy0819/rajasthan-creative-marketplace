@@ -14,4 +14,9 @@ describe('the hosting card on the empty /workshops page', () => {
   it('keeps a smaller padding on phones', () => {
     expect(css).toMatch(/@media \(max-width: 700px\) \{[^@]*\.ws-empty \{ padding: 26px 22px;/);
   });
+  it('on tablets (up to 1000px) the picture sits above a full-width card and both are centred', () => {
+    expect(css).toMatch(/@media \(max-width: 1000px\) \{[^@]*\.ws-empty-wrap \{[^}]*justify-content: center;/);
+    expect(css).toMatch(/@media \(max-width: 1000px\) \{[^@]*\.ws-empty-art \{[^}]*order: -1;[^}]*margin-inline: auto;/);
+    expect(css).toMatch(/@media \(max-width: 1000px\) \{[^@]*\.ws-empty \{[^}]*flex: 1 1 100%;[^}]*max-width: 720px;/);
+  });
 });
