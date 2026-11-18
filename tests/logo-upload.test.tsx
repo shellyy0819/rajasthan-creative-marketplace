@@ -37,6 +37,13 @@ const mount = () => {
 };
 const uploadCalls = () => fetchMock.mock.calls.filter(c => c[0] === '/api/uploads/seller-logo');
 
+describe('logo tip', () => {
+  it('tells people a close-up photo is easier for attendees to see', () => {
+    render(<LogoUpload value="" onChange={() => {}} onBusyChange={() => {}} />);
+    expect(screen.getByText(/close-up photo is much easier for attendees to see/i)).toBeTruthy();
+  });
+});
+
 describe('opening the logo', () => {
   it('the preview is a link that opens the full photo in a new tab', () => {
     render(<LogoUpload value={PUBLIC} onChange={() => {}} onBusyChange={() => {}} />);
