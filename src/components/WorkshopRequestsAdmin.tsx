@@ -19,7 +19,7 @@ export function WorkshopRequestsAdmin({ requests }: { requests: WorkshopRequest[
   return (
     <div className="admin-table-wrap">
       <table className="admin-table">
-        <thead><tr><th>Received</th><th>Event</th><th>When</th><th>Where</th><th>Seats / price</th><th>Host</th><th>Photos</th><th>Contact</th></tr></thead>
+        <thead><tr><th>Received</th><th>Event</th><th>When</th><th>Where</th><th>Seats / price</th><th>Host</th><th>Photos</th><th>Contact</th><th>Listing</th></tr></thead>
         <tbody>
           {requests.map(r => {
             const site = r.website ? safeWebsite(r.website) : undefined;
@@ -35,6 +35,7 @@ export function WorkshopRequestsAdmin({ requests }: { requests: WorkshopRequest[
                 <td>{r.hostName}<br />{r.instagram && <a href={instagramUrl(r.instagram)} target="_blank" rel="noreferrer">{r.instagram}</a>}{site && <> <a href={site} target="_blank" rel="noreferrer">{site.replace(/^https?:\/\//i, '')}</a></>}</td>
                 <td>{r.images.length ? r.images.map((u, i) => <a key={u} href={u} target="_blank" rel="noreferrer">{i ? ', ' : ''}Photo {i + 1}</a>) : '—'}</td>
                 <td>{r.contactName}<br /><a href={`tel:${r.phone}`}>{r.phone}</a><br /><a href={`mailto:${r.email}`}>{r.email}</a>{r.whatsapp && <><br /><a href={`https://wa.me/${r.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">WhatsApp</a></>}{!r.emailVerified && <><br /><small className="muted">Email not confirmed (the code email could not be sent)</small></>}</td>
+                <td>{r.status === 'listed' ? <small className="muted">Listed as {r.listedWorkshopId}</small> : <a className="button" href={`/dashboard/workshops?from=${r.id}`}>Create listing</a>}</td>
               </tr>
             );
           })}

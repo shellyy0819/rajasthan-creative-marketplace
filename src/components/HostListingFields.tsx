@@ -8,7 +8,7 @@ export const PRICE_PLAN_LIMIT = 5;
 export type PriceDraft = { label: string; amount: string; sessions: string };
 
 /** Step 2 of an in-person event: when, where, seats and the single price. */
-export function EventWhereWhen({ startDate, setStartDate, paid, setPaid }: { startDate: string; setStartDate: (v: string) => void; paid: boolean; setPaid: (v: boolean) => void }) {
+export function EventWhereWhen({ startDate, setStartDate, paid, setPaid, cityRequired = true, cityDefault }: { startDate: string; setStartDate: (v: string) => void; paid: boolean; setPaid: (v: boolean) => void; cityRequired?: boolean; cityDefault?: { id: number; label: string } }) {
   return (
     <>
       <div className="admin-form-row">
@@ -21,7 +21,7 @@ export function EventWhereWhen({ startDate, setStartDate, paid, setPaid }: { sta
         <label>End time<input name="endTime" type="time" /></label>
       </div>
       <div className="admin-form-row">
-        <label><span className="lbl">City</span><CityInput required valueFormat="name" /></label>
+        <label><span className="lbl">City</span><CityInput required={cityRequired} valueFormat="name" defaultCity={cityDefault} /></label>
         <label>Seats<input name="seats" type="number" min={1} max={100000} inputMode="numeric" /></label>
       </div>
       <label><span className="lbl">Venue and address</span><input name="venue" required maxLength={300} autoComplete="street-address" /></label>

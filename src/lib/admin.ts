@@ -12,6 +12,7 @@ import type { Actor } from './authz';
 import { ApiError } from './errors';
 import { bad, int, obj, oneOf, optionalEmail, optionalImageUrl, optionalInt, optionalPhone, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
 import { parseListingFields, priceCache, type PriceRow } from './workshop-listing';
+import { markRequestListed } from './workshop-requests';
 import { loadImages, parseImages, resolveImages, saveImages, unreferencedKeys } from './product-images';
 import { deleteObjects, storageConfig } from './storage';
 import type { AdminProduct, Workshop } from './types';
@@ -252,6 +253,7 @@ export async function createWorkshop(input: unknown, adminEmail?: string): Promi
     const [creator] = adminEmail ? await tx.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${adminEmail.toLowerCase()}`) : [];
     await tx.insert(workshopsT).values({ id, ...toWorkshopRow({ ...data, cityId }), hostId: hostId ?? null, booked: 0, createdBy: creator?.id ?? null, sourceRequestId: sourceRequestId ?? null });
     await savePrices(tx, id, data.prices);
+    if (sourceRequestId) await markRequestListed(tx, sourceRequestId, id);
     return loadWorkshop(tx, id);
   });
 }

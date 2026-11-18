@@ -1,6 +1,7 @@
 import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
-import { and, desc, eq, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
+import type { Q } from '../db/client';
 import { workshopRequests, workshopTopics } from '../db/schema';
 import { verifyCityRef } from './city-ref';
 import { ApiError } from './errors';
@@ -37,6 +38,12 @@ const toRequest = (r: typeof workshopRequests.$inferSelect): WorkshopRequest => 
   languages: r.languages ?? [], ...(r.level ? { level: r.level as Level } : {}), ...(r.experience ? { experience: r.experience } : {}), ...(r.certifications ? { certifications: r.certifications } : {}),
   freeTrial: r.freeTrial, ...(r.whatsapp ? { whatsapp: r.whatsapp } : {}), prices: (r.prices ?? []) as PriceRow[], ...(r.listedWorkshopId ? { listedWorkshopId: r.listedWorkshopId } : {}),
 });
+
+/** An admin made a listing from this request: remember which one, and take it out of the to-do state. Throws 400 when the request does not exist. */
+export async function markRequestListed(q: Q, requestId: string, workshopId: string): Promise<void> {
+  const rows = await q.update(workshopRequests).set({ status: 'listed', listedWorkshopId: workshopId }).where(eq(workshopRequests.id, requestId)).returning({ id: workshopRequests.id });
+  if (!rows.length) throw bad('sourceRequestId does not match a request.');
+}
 
 /** The topic's name for display (the row only keeps the id). */
 export async function withTopicName(r: WorkshopRequest): Promise<WorkshopRequest> {
@@ -125,7 +132,7 @@ export async function createWorkshopRequest(input: unknown): Promise<WorkshopReq
 
 /** Requests whose email was confirmed with the emailed code, plus ones kept as received because the code email could not be sent (see emailVerified). */
 export async function listWorkshopRequests(): Promise<WorkshopRequest[]> {
-  const rows = await getDb().select().from(workshopRequests).where(eq(workshopRequests.status, 'received'))
+  const rows = await getDb().select().from(workshopRequests).where(inArray(workshopRequests.status, ['received', 'listed']))
     .orderBy(desc(workshopRequests.createdAt), desc(workshopRequests.id));
   return Promise.all(rows.map(r => withTopicName(toRequest(r))));
 }

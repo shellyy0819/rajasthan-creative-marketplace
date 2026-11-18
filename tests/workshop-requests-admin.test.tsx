@@ -21,4 +21,11 @@ describe('requests table', () => {
     expect(h).toContain('Studio, Jaipur, Rajasthan');
     expect(h).toContain('10 · Rs. 500');
   });
+  it('each request links to Create listing, or says which listing it became', () => {
+    const open = renderToStaticMarkup(<WorkshopRequestsAdmin requests={[base]} />);
+    expect(open).toContain('href="/dashboard/workshops?from=1"');
+    const listed = renderToStaticMarkup(<WorkshopRequestsAdmin requests={[{ ...base, status: 'listed', listedWorkshopId: 'w12' } as WorkshopRequest]} />);
+    expect(listed).toContain('Listed as w12');
+    expect(listed).not.toContain('Create listing');
+  });
 });
