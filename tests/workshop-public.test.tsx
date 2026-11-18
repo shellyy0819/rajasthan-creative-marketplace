@@ -123,6 +123,35 @@ describe('lists and sitemap', () => {
   });
 });
 
+describe('cover photo', () => {
+  const photo = 'https://craftology.example/workshop-requests/public/a.jpg';
+  it('the card shows the cover (first) photo instead of the plain tile, with a small label', async () => {
+    const w = await createWorkshop({ ...yoga, images: [photo, 'https://craftology.example/workshop-requests/public/b.jpg'] });
+    const h = renderToStaticMarkup(<WorkshopCard w={w} />);
+    expect(h).toContain(`<img src="${photo}"`);
+    expect(h).not.toContain('b.jpg');
+    expect(h).toContain('has-photo');
+    expect(h).toContain('workshop-card with-photo');
+    expect(h).toMatch(/tile-chip[^>]*>Online/);
+  });
+  it('an in-person card shows its photo with the date as the label', async () => {
+    const w = await createWorkshop({ ...event, images: [photo] });
+    const h = renderToStaticMarkup(<WorkshopCard w={w} />);
+    expect(h).toContain(`<img src="${photo}"`);
+    expect(h).toMatch(/tile-chip[^>]*>1 Dec/);
+  });
+  it('with no photo the card keeps the plain tile', async () => {
+    const h = renderToStaticMarkup(<WorkshopCard w={await createWorkshop(yoga)} />);
+    expect(h).not.toContain('has-photo');
+    expect(h).toContain('<b>Online</b>');
+  });
+  it('the listing page shows the cover photo, and the structured data lists it first', async () => {
+    const w = await createWorkshop({ ...yoga, images: [photo] });
+    expect(await page(w)).toContain(`<img src="${photo}"`);
+    expect((workshopJsonLd(w) as { image: string[] }).image[0]).toBe(photo);
+  });
+});
+
 describe('free trial length', () => {
   it('the card and the page say how many days the trial lasts', async () => {
     const w = await createWorkshop({ ...yoga, freeTrialDays: 7 });

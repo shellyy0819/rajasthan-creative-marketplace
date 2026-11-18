@@ -44,7 +44,7 @@ export function workshopJsonLd(w: Workshop) {
   return {
     '@context': CTX, '@type': 'Event',
     name: w.title, description: w.description, url: abs(path),
-    image: [abs(`${path}/opengraph-image`)],
+    image: [...w.images, abs(`${path}/opengraph-image`)], // the host's own photos first
     startDate: `${w.date}T${w.time}:00+05:30`,
     ...(w.endsOn ? { endDate: w.endsOn } : {}),
     eventStatus: 'https://schema.org/EventScheduled',

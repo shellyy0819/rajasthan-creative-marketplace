@@ -48,8 +48,9 @@ export default async function WorkshopPage({ params }: Props) {
       <JsonLd data={[workshopJsonLd(w), breadcrumbJsonLd(crumbs)]} />
       <Breadcrumbs items={crumbs} />
       <article className="detail">
-        <div className="detail-art" style={{ background: '#d7dfd1', display: 'grid', placeItems: 'center' }} aria-hidden="true">
-          <div className="date-tile" style={{ background: 'transparent' }}>
+        <div className="detail-art" style={{ background: '#d7dfd1', display: 'grid', placeItems: 'center', position: 'relative', overflow: 'hidden' }} aria-hidden="true">
+          {w.images[0] && /* eslint-disable-next-line @next/next/no-img-element */ <img src={w.images[0]} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+          <div className="date-tile" style={{ background: 'transparent', ...(w.images[0] ? { display: 'none' } : {}) }}>
             {isClass ? <><b style={{ fontSize: 64 }}>Online</b><span style={{ fontSize: 14 }}>{w.platform}</span></> : <><b style={{ fontSize: 96 }}>{day}</b><span style={{ fontSize: 14 }}>{month} · {w.city}</span></>}
           </div>
         </div>
