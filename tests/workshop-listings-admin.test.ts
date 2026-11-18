@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.hoisted(() => { process.env.NEXTAUTH_SECRET = 'test-secret'; }); // the signed city in the fixtures must be made with the key the server checks with, whichever file ran before
 vi.setConfig({ testTimeout: 30_000, hookTimeout: 60_000 }); // DB-backed tests run slowly when the whole suite runs in parallel
 import { eq } from 'drizzle-orm';
 import { createWorkshop, updateWorkshop } from '@/lib/admin';
@@ -161,7 +162,7 @@ describe('review fixes', () => {
   });
 });
 
-describe('one request, several drafts, one published listing', () => {
+describe('one request, several drafts, one current published listing', () => {
   const published = { ...yoga, status: 'APPROVED' };
   it('a draft listing of a request can be duplicated: another draft from the same request is allowed', async () => {
     const rid = await aRequest();
@@ -198,12 +199,20 @@ describe('one request, several drafts, one published listing', () => {
     await createWorkshop(published);
     await createWorkshop(published);
   });
-  it('the database itself refuses two published listings of one request (the backstop for a race)', async () => {
+  it('once the published listing has ended, the same request can be published again (a new run)', async () => {
     const rid = await aRequest();
-    await createWorkshop({ ...published, sourceRequestId: rid });
-    const db = await getTestDb();
-    const [row] = await db.select().from(workshops).where(eq(workshops.sourceRequestId, rid));
-    await expect(db.insert(workshops).values({ ...row, id: 'w777', status: 'APPROVED' })).rejects.toThrow();
+    const old = await createWorkshop({ ...published, sourceRequestId: rid, date: ymd(-5), time: '10:00', schedule: undefined, kind: 'workshop', mode: 'in_person', cityRef: cityRef('Jodhpur'), venue: 'Studio', seats: 5, whatsapp: undefined });
+    expect(old.status).toBe('APPROVED');
+    const again = await createWorkshop({ ...published, sourceRequestId: rid });
+    expect(again.status).toBe('APPROVED');
+    // ...and now that one is current, a third cannot be published
+    await expect(createWorkshop({ ...published, sourceRequestId: rid })).rejects.toMatchObject({ status: 409 });
+  });
+  it('a draft can be published while the other published listing of the request has ended', async () => {
+    const rid = await aRequest();
+    await createWorkshop({ ...published, sourceRequestId: rid, date: ymd(-5), time: '10:00', schedule: undefined, kind: 'workshop', mode: 'in_person', cityRef: cityRef('Jodhpur'), venue: 'Studio', seats: 5, whatsapp: undefined });
+    const draft = await createWorkshop({ ...yoga, sourceRequestId: rid });
+    expect((await updateWorkshop(draft.id, { status: 'APPROVED' })).status).toBe('APPROVED');
   });
   it('deleting one of two listings of a request keeps the request listed, pointing at the one that is left; deleting the last reopens it', async () => {
     const { deleteWorkshop } = await import('@/lib/admin');

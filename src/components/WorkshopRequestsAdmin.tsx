@@ -39,7 +39,7 @@ export function WorkshopRequestsAdmin({ requests }: { requests: WorkshopRequest[
                 <td>{r.contactName}<br /><a href={`tel:${r.phone}`}>{r.phone}</a><br /><a href={`mailto:${r.email}`}>{r.email}</a>{r.whatsapp && <><br /><a href={`https://wa.me/${r.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">WhatsApp</a></>}{!r.emailVerified && <><br /><small className="muted">Email not confirmed (the code email could not be sent)</small></>}</td>
                 <td><RequestStatusSelect request={{ id: r.id, title: r.title, status: r.status, listedWorkshopId: r.listedWorkshopId, listedStatus: r.listedStatus }} /></td>
                 <td>{r.status === 'listed'
-                  ? <><small className="muted">Listed as {r.listedWorkshopId}{r.listedStatus === 'DRAFT' ? ' (draft)' : ''}</small>{r.listedStatus === 'DRAFT' && <><br /><a className="button" href={`/dashboard/workshops?from=${r.id}`}>Duplicate draft</a></>}</>
+                  ? <><small className="muted">Listed as {r.listedWorkshopId}{r.listedStatus === 'DRAFT' ? ' (draft)' : r.listedEnded ? ' (ended)' : ''}</small>{(r.listedStatus === 'DRAFT' || r.listedEnded) && <><br /><a className="button" href={`/dashboard/workshops?from=${r.id}`}>{r.listedEnded && r.listedStatus !== 'DRAFT' ? 'Duplicate' : 'Duplicate draft'}</a></>}</>
                   : <a className="button" href={`/dashboard/workshops?from=${r.id}`}>Create listing</a>}</td>
               </tr>
             );

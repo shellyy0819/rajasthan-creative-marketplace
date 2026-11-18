@@ -1,7 +1,7 @@
 import { and, count, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { allocateId } from '../db/ids';
-import { productsQuery, toAdminProduct, toProductRow, toWorkshop, toAdminWorkshop, toWorkshopRow, withPrices, workshopsQuery, type ProductInput, type WorkshopInput } from '../db/mappers';
+import { istParts, productsQuery, toAdminProduct, toProductRow, toWorkshop, toAdminWorkshop, toWorkshopRow, withPrices, workshopsQuery, type ProductInput, type WorkshopInput } from '../db/mappers';
 import { ROLE_ID, ensureUser } from '../db/people';
 import { products as productsT, userRoles, users, workshopPrices as workshopPricesT, workshopRequests as workshopRequestsT, workshopTopics, workshops as workshopsT } from '../db/schema';
 import type { Tx } from '../db/client';
@@ -11,7 +11,7 @@ import { resolveSourcingTypeId } from './sourcing-types';
 import type { Actor } from './authz';
 import { ApiError } from './errors';
 import { bad, int, obj, oneOf, optionalEmail, optionalImageUrl, optionalInt, optionalPhone, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
-import { CLASS_CONTACT_MESSAGE, parseListingFields, priceCache, type PriceRow } from './workshop-listing';
+import { CLASS_CONTACT_MESSAGE, isCurrent, parseListingFields, priceCache, type PriceRow } from './workshop-listing';
 import { markRequestListed } from './workshop-requests';
 import { loadImages, parseImages, resolveImages, saveImages, unreferencedKeys } from './product-images';
 import { deleteObjects, storageConfig } from './storage';
@@ -227,13 +227,17 @@ function validateWorkshop(v: Raw): WorkshopFields {
   };
 }
 
-const ALREADY_PUBLISHED = 'A published listing already came from this request. Set it to Draft first, or keep this one as a Draft.';
-/** Drafts of one request may be duplicated, but only one listing of a request can be published at a time. */
+const ALREADY_PUBLISHED = 'A published listing that has not ended already came from this request. Set it to Draft first, or keep this one as a Draft.';
+/**
+ * Drafts of one request may be duplicated, and so may a listing that has ended (a new run). But two listings of one request cannot be live
+ * (published and not ended) at the same time. The request row is locked first so two admins cannot both pass the check.
+ */
 async function assertNoOtherPublished(tx: Tx, sourceRequestId: string | null | undefined, exceptId?: string) {
   if (!sourceRequestId) return;
-  const [other] = await tx.select({ id: workshopsT.id }).from(workshopsT)
-    .where(and(eq(workshopsT.sourceRequestId, sourceRequestId), eq(workshopsT.status, 'APPROVED'), exceptId ? ne(workshopsT.id, exceptId) : undefined)).limit(1);
-  if (other) throw new ApiError(409, ALREADY_PUBLISHED);
+  await tx.select({ id: workshopRequestsT.id }).from(workshopRequestsT).where(eq(workshopRequestsT.id, sourceRequestId)).for('update');
+  const others = await tx.select({ startsAt: workshopsT.startsAt, endsOn: workshopsT.endsOn, kind: workshopsT.kind }).from(workshopsT)
+    .where(and(eq(workshopsT.sourceRequestId, sourceRequestId), eq(workshopsT.status, 'APPROVED'), exceptId ? ne(workshopsT.id, exceptId) : undefined));
+  if (others.some(o => isCurrent({ date: istParts(o.startsAt).date, endsOn: o.endsOn, kind: o.kind }))) throw new ApiError(409, ALREADY_PUBLISHED);
 }
 
 async function requireTopic(tx: Tx, id: number | null) {

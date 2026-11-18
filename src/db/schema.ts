@@ -200,8 +200,6 @@ export const workshops = pgTable('workshops', {
   index('workshops_starts_idx').on(t.startsAt),
   index('workshops_city_idx').on(t.cityId),
   index('workshops_topic_idx').on(t.topicId),
-  // Several drafts may come from one request, but only one of them can be published at a time.
-  uniqueIndex('workshops_one_published_per_request').on(t.sourceRequestId).where(sql`${t.status} = 'APPROVED' and ${t.sourceRequestId} is not null`),
 ]);
 
 /** The price plans of a listing (Per session, Monthly, Quarterly, ...). workshops.price_paise / type are derived from these. */

@@ -12,7 +12,8 @@ import { otpSender } from './settings';
 import { notifyTeam } from './workshop-notify';
 import { isRequestImageUrl, storageConfig } from './storage';
 import { EMAIL_RE, bad, int, obj, oneOf, optionalText, text } from './validate';
-import { CLASS_CONTACT_MESSAGE, optionalWebsite, parseListingFields, priceCache, type Level, type PriceRow, type Schedule } from './workshop-listing';
+import { istParts } from '../db/mappers';
+import { CLASS_CONTACT_MESSAGE, isCurrent, optionalWebsite, parseListingFields, priceCache, type Level, type PriceRow, type Schedule } from './workshop-listing';
 
 import { MAX_REQUEST_IMAGES } from './workshop-requests-shared';
 export { MAX_REQUEST_IMAGES };
@@ -24,7 +25,7 @@ export type WorkshopRequest = {
   id: string; hostName: string; contactName: string; phone: string; email: string; city: string; venue: string; title: string;
   kind: RequestKind; mode: 'in_person' | 'online'; topicId?: number; topic?: string; description: string; startDate: string; endDate: string; startTime?: string; endTime?: string;
   status: 'unverified' | 'received' | 'listed' | 'on_hold' | 'archived'; emailVerified: boolean; images: string[]; seats?: number; priceType: 'FREE' | 'PAID'; pricePaise?: number; instagram?: string; website?: string; notes?: string; createdAt: string;
-  endsOn?: string; platform?: string; schedule?: Schedule; languages: string[]; level?: Level; experience?: string; certifications?: string; freeTrial: boolean; freeTrialDays?: number; joinLink?: string; whatsapp?: string; prices: PriceRow[]; listedWorkshopId?: string; listedStatus?: string;
+  endsOn?: string; platform?: string; schedule?: Schedule; languages: string[]; level?: Level; experience?: string; certifications?: string; freeTrial: boolean; freeTrialDays?: number; joinLink?: string; whatsapp?: string; prices: PriceRow[]; listedWorkshopId?: string; listedStatus?: string; listedEnded?: boolean;
 };
 
 const toRequest = (r: typeof workshopRequests.$inferSelect): WorkshopRequest => ({
@@ -148,11 +149,16 @@ export async function createWorkshopRequest(input: unknown): Promise<WorkshopReq
 
 /** Requests whose email was confirmed with the emailed code, plus ones kept as received because the code email could not be sent (see emailVerified). */
 export async function listWorkshopRequests(): Promise<WorkshopRequest[]> {
-  const rows = await getDb().select({ r: workshopRequests, listingStatus: workshops.status }).from(workshopRequests)
+  const rows = await getDb().select({ r: workshopRequests, listingStatus: workshops.status, startsAt: workshops.startsAt, endsOn: workshops.endsOn, kind: workshops.kind }).from(workshopRequests)
     .leftJoin(workshops, eq(workshops.id, workshopRequests.listedWorkshopId))
     .where(inArray(workshopRequests.status, ['received', 'listed', 'on_hold', 'archived']))
     .orderBy(desc(workshopRequests.createdAt), desc(workshopRequests.id));
-  return Promise.all(rows.map(({ r, listingStatus }) => withTopicName({ ...toRequest(r), ...(listingStatus ? { listedStatus: listingStatus } : {}) })));
+  return Promise.all(rows.map(({ r, listingStatus, startsAt, endsOn, kind }) => withTopicName({
+    ...toRequest(r),
+    ...(listingStatus ? { listedStatus: listingStatus } : {}),
+    // A listing that has ended no longer blocks another run of the request.
+    ...(listingStatus && startsAt && kind ? { listedEnded: !isCurrent({ date: istParts(startsAt).date, endsOn, kind }) } : {}),
+  })));
 }
 
 // ---- email verification: a 6-digit code, valid 10 minutes, 5 tries per code, 5 emails per request, 60 seconds between emails ----

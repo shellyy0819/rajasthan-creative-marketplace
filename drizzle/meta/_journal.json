@@ -218,6 +218,13 @@
       "when": 1795027756521,
       "tag": "0030_one_published_per_request",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1795028248478,
+      "tag": "0031_drop_one_published_index",
+      "breakpoints": true
     }
   ]
 }

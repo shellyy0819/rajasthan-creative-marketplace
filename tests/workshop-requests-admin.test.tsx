@@ -33,6 +33,12 @@ describe('requests table', () => {
     expect(live).not.toContain('Duplicate draft');
     expect(live).not.toContain('Create listing');
   });
+  it('a request whose published listing has ended can be duplicated too', () => {
+    const ended = renderToStaticMarkup(<WorkshopRequestsAdmin requests={[{ ...base, status: 'listed', listedWorkshopId: 'w12', listedStatus: 'APPROVED', listedEnded: true } as WorkshopRequest]} />);
+    expect(ended).toContain('Listed as w12 (ended)');
+    expect(ended).toContain('Duplicate');
+    expect(ended).toContain('href="/dashboard/workshops?from=1"');
+  });
   it('each request links to Create listing, or says which listing it became', () => {
     const open = renderToStaticMarkup(<WorkshopRequestsAdmin requests={[base]} />);
     expect(open).toContain('href="/dashboard/workshops?from=1"');
