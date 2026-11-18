@@ -11,7 +11,7 @@ import { supportLine } from '@/lib/workshop-support';
 import { clearDraft, collectDraft, DRAFT_EVENT, hasContent, readDraft, writeDraft, type HostDraft } from '@/lib/host-draft';
 import { CONTINUE_EVENT } from './HostDraftReminder';
 import type { TopicOption } from '@/lib/topics';
-import { ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, type PriceDraft } from './HostListingFields';
+import { activePriceRows, BLANK_PRICE, ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, PRICE_ROW_ERROR, priceRowsIncomplete, type PriceDraft } from './HostListingFields';
 import './HostWorkshopStepper.css';
 import './WorkshopListings.css';
 
@@ -40,7 +40,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [path, setPath] = useState<HostPath | null>(defaultOpen && initialPath !== undefined ? initialPath : preset);
-  const [priceRows, setPriceRows] = useState<PriceDraft[]>([]);
+  const [priceRows, setPriceRows] = useState<PriceDraft[]>([{ ...BLANK_PRICE }]); // one plan open by default
   const [repeat, setRepeat] = useState<'weekly' | 'monthly'>('weekly');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -99,7 +99,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     restore.current = null; applied.current = new Set(); setRestored(false); setDraftImages([]);
     if (!d || (startPath !== null && d.path !== startPath)) return;
     restore.current = d;
-    setPath(d.path); setStep(Math.min(Math.max(d.step, 0), 2)); setStartDate(d.startDate); setPaid(d.paid); setRepeat(d.repeat); setPriceRows(d.priceRows);
+    setPath(d.path); setStep(Math.min(Math.max(d.step, 0), 2)); setStartDate(d.startDate); setPaid(d.paid); setRepeat(d.repeat); setPriceRows(d.priceRows.length ? d.priceRows : [{ ...BLANK_PRICE }]);
     setDraftImages(d.images); setImagesKey(k => k + 1); setRestored(true); setRestoreTick(t => t + 1);
   }
   // A shared link opens the form on first render: restore there too (browser only).
@@ -123,12 +123,12 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   function startOver() {
     clearDraft(); restore.current = null; applied.current = new Set();
     formRef.current?.reset();
-    setStep(0); setStartDate(''); setPaid(false); setRepeat('weekly'); setPriceRows([]); setDraftImages([]); setImagesKey(k => k + 1); setRestored(false);
+    setStep(0); setStartDate(''); setPaid(false); setRepeat('weekly'); setPriceRows([{ ...BLANK_PRICE }]); setDraftImages([]); setImagesKey(k => k + 1); setRestored(false);
   }
 
   /** Open the form from the button (or from the reminder's Continue). With an unfinished draft it continues that draft, whichever path it was on. */
   function begin() {
-    setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setPath(preset); setPriceRows([]); setRepeat('weekly');
+    setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setPath(preset); setPriceRows([{ ...BLANK_PRICE }]); setRepeat('weekly');
     restoreDraft(existing || readDraft() ? null : preset);
     setOpen(true);
   }
@@ -194,6 +194,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     bad?.reportValidity();
     if (bad) return false;
     if (i === 1 && path === 'class' && !stepFields(1).some(el => el.name === 'days' && el.checked)) { setError('Choose at least one class day.'); return false; }
+    if (i === 1 && path === 'class' && priceRowsIncomplete(priceRows)) { setError(PRICE_ROW_ERROR); return false; }
     if (i === 1 && path === 'class') {
       const val = (n: string) => stepFields(1).find(el => el.name === n)?.value ?? '';
       if (!durationValid(durationMinutes(val('durationValue'), val('durationUnit')))) { setError(DURATION_ERROR); return false; }
@@ -255,7 +256,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
       ...common, mode: 'online', kind: 'class', platform: field(f, 'platform'), joinLink: field(f, 'joinLink') || undefined, endsOn: field(f, 'endsOn') || field(f, 'startDate'), // no end date: the classes end on the start date
      
       schedule: { repeat, days: f.getAll('days').map(String), ...(repeat === 'monthly' ? { weeks: f.getAll('weeks').map(w => (w === 'last' ? 'last' : Number(w))) } : {}), time: field(f, 'classTime'), durationMin: durationMinutes(field(f, 'durationValue'), field(f, 'durationUnit')) },
-      prices: priceRows.map(r => ({ label: r.label.trim(), amountPaise: Math.round(Number(r.amount) * 100), sessions: r.sessions ? Number(r.sessions) : null })),
+      prices: activePriceRows(priceRows).map(r => ({ label: r.label.trim(), amountPaise: Math.round(Number(r.amount) * 100), sessions: r.sessions ? Number(r.sessions) : null })),
       freeTrial: !!field(f, 'freeTrialDays'), freeTrialDays: field(f, 'freeTrialDays') ? Number(field(f, 'freeTrialDays')) : undefined, languages: field(f, 'languages').split(',').map(x => x.trim()).filter(Boolean),
       level: field(f, 'level') || undefined, experience: field(f, 'experience') || undefined, certifications: field(f, 'certifications') || undefined, whatsapp: field(f, 'whatsapp') || undefined,
     } : {

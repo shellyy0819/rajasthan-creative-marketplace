@@ -90,10 +90,13 @@ describe('step 2 and 3 on the online class path', () => {
     expect(stepText()).toBe('Step 2 of 3');
     expect(screen.getByRole('alert').textContent).toMatch(/class day/i);
   });
-  it('the price editor adds up to five plans and removes them', () => {
+  it('the price editor starts with one plan open, adds up to five and removes them', () => {
     openClass(); classStep1(); next();
-    const add = () => screen.getByRole('button', { name: /add a price plan/i });
-    for (let i = 0; i < 5; i++) fireEvent.click(add());
+    expect(screen.getAllByLabelText(/^Plan \d name$/)).toHaveLength(1);
+    expect(screen.queryByText(/no price plans means the class is free/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /add a price plan/i })).toBeNull();
+    const add = () => screen.getByRole('button', { name: 'Add new price details' });
+    for (let i = 0; i < 4; i++) fireEvent.click(add());
     expect(screen.getAllByLabelText(/^Plan \d name$/)).toHaveLength(5);
     expect((add() as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Remove plan 5' }));
@@ -108,7 +111,6 @@ describe('step 2 and 3 on the online class path', () => {
     fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'asha@example.com', status: 'pending' }) });
     openClass();
     val('Topic', '1'); classStep1(); next(); classStep2(); val(/meeting link/i, 'https://zoom.us/j/123');
-    fireEvent.click(screen.getByRole('button', { name: /add a price plan/i }));
     fireEvent.change(screen.getByLabelText('Plan 1 name'), { target: { value: 'Monthly' } });
     fireEvent.change(screen.getByLabelText('Plan 1 price (Rs.)'), { target: { value: '1500' } });
     fireEvent.change(screen.getByLabelText('Plan 1 sessions'), { target: { value: '12' } });
@@ -167,6 +169,37 @@ describe('all weeks of the month', () => {
     expect((screen.getByLabelText('Repeats') as HTMLSelectElement).value).toBe('monthly');
     fireEvent.click(screen.getByLabelText('Last'));
     expect((screen.getByLabelText('Repeats') as HTMLSelectElement).value).toBe('weekly');
+  });
+});
+
+describe('the default empty price plan', () => {
+  const toPrices = () => { openClass(); classStep1(); next(); val(/online platform/i, 'Zoom'); val(/start date/i, '2027-01-05'); fireEvent.click(screen.getByLabelText('Mon')); val(/class time/i, '07:00'); };
+  it('left empty it is ignored: the class is free and Next is not blocked', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'a@b.co', status: 'pending' }) });
+    toPrices(); next();
+    expect(screen.getByText('Step 3 of 3')).toBeTruthy();
+    val(/host, studio/i, 'H'); val(/your name/i, 'N'); val(/phone number/i, '9989898999'); val(/^email/i, 'a@b.co'); val(/whatsapp/i, '9989898999');
+    fireEvent.click(screen.getByRole('button', { name: /send details/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).prices).toEqual([]);
+  });
+  it('half filled (a name without a price, or a price without a name) is refused with a clear message', () => {
+    toPrices();
+    fireEvent.change(screen.getByLabelText('Plan 1 name'), { target: { value: 'Monthly' } });
+    next();
+    expect(screen.getByText('Step 2 of 3')).toBeTruthy();
+    expect(screen.getByRole('alert').textContent).toMatch(/name and the price/i);
+    fireEvent.change(screen.getByLabelText('Plan 1 name'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('Plan 1 price (Rs.)'), { target: { value: '500' } });
+    next();
+    expect(screen.getByText('Step 2 of 3')).toBeTruthy();
+  });
+  it('removing the last plan brings back the free note and the Add new price details button', () => {
+    toPrices();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove plan 1' }));
+    expect(screen.getByText(/no price plans means the class is free/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Add new price details' }));
+    expect(screen.getAllByLabelText(/^Plan \d name$/)).toHaveLength(1);
   });
 });
 

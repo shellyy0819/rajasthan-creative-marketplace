@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { ImageUploader } from './ImageUploader';
-import { ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, type PriceDraft } from './HostListingFields';
+import { activePriceRows, BLANK_PRICE, ClassAbout, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, PRICE_ROW_ERROR, priceRowsIncomplete, type PriceDraft } from './HostListingFields';
 import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 import { MAX_REQUEST_IMAGES } from '@/lib/workshop-requests-shared';
 import type { HostPath } from '@/lib/host-link';
@@ -49,7 +49,7 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
   const [path, setPath] = useState<HostPath>(d.path);
   const [startDate, setStartDate] = useState(d.startDate);
   const [paid, setPaid] = useState(d.paid);
-  const [rows, setRows] = useState<PriceDraft[]>(d.priceRows);
+  const [rows, setRows] = useState<PriceDraft[]>(d.priceRows.length ? d.priceRows : [{ ...BLANK_PRICE }]);
   const [repeat, setRepeat] = useState<'weekly' | 'monthly'>(d.repeat);
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -82,6 +82,7 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
     const form = e.currentTarget;
     if (path === 'class' && !form.querySelector('input[name="days"]:checked')) { setError('Choose at least one class day.'); return; }
     if (path === 'class' && !durationValid(durationMinutes(String(new FormData(form).get('durationValue') ?? ''), String(new FormData(form).get('durationUnit') ?? '')))) { setError(DURATION_ERROR); return; }
+    if (path === 'class' && priceRowsIncomplete(rows)) { setError(PRICE_ROW_ERROR); return; }
     if (path === 'class' && repeat === 'monthly' && !form.querySelector('input[name="weeks"]:checked')) { setError('Choose at least one week of the month.'); return; }
     if (!form.checkValidity()) { form.reportValidity(); return; }
     if (path === 'event' && !/^\d+$/.test(String(new FormData(form).get('seats') ?? '').trim())) { setError('Enter the number of seats.'); return; }
@@ -98,7 +99,7 @@ export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }:
       ...common, mode: 'online', kind: 'class', platform: field(f, 'platform'), joinLink: field(f, 'joinLink') || null, date: field(f, 'startDate'), time: field(f, 'classTime'), endsOn: field(f, 'endsOn') || field(f, 'startDate'),
       schedule: { repeat, days: f.getAll('days').map(String), ...(repeat === 'monthly' ? { weeks: f.getAll('weeks').map(w => (w === 'last' ? 'last' : Number(w))) } : {}), time: field(f, 'classTime'), durationMin: durationMinutes(field(f, 'durationValue'), field(f, 'durationUnit')) },
       venue: null, cityId: null, seats: null,
-      prices: rows.map(r => ({ label: r.label.trim(), amountPaise: Math.round(Number(r.amount) * 100), sessions: r.sessions ? Number(r.sessions) : null })),
+      prices: activePriceRows(rows).map(r => ({ label: r.label.trim(), amountPaise: Math.round(Number(r.amount) * 100), sessions: r.sessions ? Number(r.sessions) : null })),
       freeTrial: !!field(f, 'freeTrialDays'), freeTrialDays: field(f, 'freeTrialDays') ? Number(field(f, 'freeTrialDays')) : null, languages: field(f, 'languages').split(',').map(x => x.trim()).filter(Boolean),
       level: field(f, 'level') || null, experience: field(f, 'experience') || null, certifications: field(f, 'certifications') || null, whatsapp: field(f, 'whatsapp') || null,
     } : {

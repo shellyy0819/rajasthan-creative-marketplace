@@ -16,6 +16,13 @@ export function durationMinutes(value: string, unit: string): number {
 }
 export const durationValid = (minutes: number) => Number.isInteger(minutes) && minutes >= 15 && minutes <= 480;
 export type PriceDraft = { label: string; amount: string; sessions: string };
+export const BLANK_PRICE: PriceDraft = { label: '', amount: '', sessions: '' };
+export const PRICE_ROW_ERROR = 'Fill in both the name and the price for each price plan, or remove the empty one.';
+/** A price plan row nobody has typed into: it is ignored, so a class with only that row is free. */
+export const isBlankPrice = (r: PriceDraft) => !r.label.trim() && !r.amount.trim() && !r.sessions.trim();
+export const activePriceRows = (rows: PriceDraft[]) => rows.filter(r => !isBlankPrice(r));
+/** Is some plan half filled (a name without a price, or a price without a name)? */
+export const priceRowsIncomplete = (rows: PriceDraft[]) => activePriceRows(rows).some(r => !r.label.trim() || !r.amount.trim());
 
 /** Instagram handle or link, with a link that opens the profile in a new tab (reads the field when clicked, so pre-filled values work). */
 export function InstagramField() {
@@ -103,13 +110,13 @@ export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows, repe
         <datalist id="host-plan-names"><option value="Per session" /><option value="Monthly" /><option value="Quarterly" /></datalist>
         {rows.map((r, i) => (
           <div key={i} className="host-price-row">
-            <input aria-label={`Plan ${i + 1} name`} list="host-plan-names" required maxLength={30} placeholder="Monthly" value={r.label} onChange={e => patch(i, { label: e.target.value })} />
-            <input aria-label={`Plan ${i + 1} price (Rs.)`} type="number" min={0} max={100000} inputMode="numeric" required placeholder="Rs." value={r.amount} onChange={e => patch(i, { amount: e.target.value })} />
+            <input aria-label={`Plan ${i + 1} name`} list="host-plan-names" maxLength={30} placeholder="Monthly" value={r.label} onChange={e => patch(i, { label: e.target.value })} />
+            <input aria-label={`Plan ${i + 1} price (Rs.)`} type="number" min={0} max={100000} inputMode="numeric" placeholder="Rs." value={r.amount} onChange={e => patch(i, { amount: e.target.value })} />
             <input aria-label={`Plan ${i + 1} sessions`} type="number" min={1} max={1000} inputMode="numeric" placeholder="Sessions" value={r.sessions} onChange={e => patch(i, { sessions: e.target.value })} />
             <button type="button" className="icon-btn" aria-label={`Remove plan ${i + 1}`} onClick={() => setRows(rows.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
-        <button type="button" className="button" disabled={rows.length >= PRICE_PLAN_LIMIT} onClick={() => setRows([...rows, { label: '', amount: '', sessions: '' }])}>Add a price plan</button>
+        <button type="button" className="button" disabled={rows.length >= PRICE_PLAN_LIMIT} onClick={() => setRows([...rows, { ...BLANK_PRICE }])}>Add new price details</button>
       </fieldset>
       <label>Free trial length in days (optional)<input name="freeTrialDays" type="number" min={1} max={365} inputMode="numeric" placeholder="e.g. 7" enterKeyHint="next" /></label>
     </>

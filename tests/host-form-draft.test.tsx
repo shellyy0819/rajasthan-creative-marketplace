@@ -50,7 +50,6 @@ describe('saving the host form as a draft', () => {
     val(/class title/i, 'Flow'); val(/about the class/i, 'Calm'); next();
     fireEvent.change(screen.getByLabelText('Repeats'), { target: { value: 'monthly' } });
     fireEvent.click(screen.getByLabelText('Sat')); fireEvent.click(screen.getByLabelText('1st')); fireEvent.click(screen.getByLabelText('3rd'));
-    fireEvent.click(screen.getByRole('button', { name: /add a price plan/i }));
     fireEvent.change(screen.getByLabelText('Plan 1 name'), { target: { value: 'Monthly' } });
     fireEvent.change(screen.getByLabelText('Plan 1 price (Rs.)'), { target: { value: '1500' } });
     await flush();
@@ -73,6 +72,11 @@ describe('saving the host form as a draft', () => {
     await waitFor(() => screen.getByLabelText(/class title/i));
     expect((screen.getByLabelText(/class title/i) as HTMLInputElement).value).toBe('');
     expect(screen.queryByText(/restored your saved draft/i)).toBeNull();
+  });
+  it('an untouched default price plan is not content: opening the class form and closing it saves nothing', async () => {
+    openForm({ path: 'class' }); await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
   });
   it('never stores the spam trap or the email code, and only keeps a draft for a week', async () => {
     openForm();

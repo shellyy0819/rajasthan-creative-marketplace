@@ -48,7 +48,7 @@ export function clearDraft(): void {
 
 /** Has the person typed or chosen anything yet? An empty form is not worth saving or reminding about. */
 export function hasContent(d: Pick<HostDraft, 'fields' | 'days' | 'weeks' | 'images' | 'priceRows'>): boolean {
-  return Object.keys(d.fields).length > 0 || d.days.length > 0 || d.weeks.length > 0 || d.images.length > 0 || d.priceRows.length > 0;
+  return Object.keys(d.fields).length > 0 || d.days.length > 0 || d.weeks.length > 0 || d.images.length > 0 || d.priceRows.some(r => r.label.trim() || r.amount.trim() || r.sessions.trim());
 }
 
 /** "just now", "5 minutes ago", "3 hours ago", "2 days ago". */
