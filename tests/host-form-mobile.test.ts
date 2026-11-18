@@ -17,6 +17,10 @@ describe('host form on phones: CSS', () => {
     expect(css).toMatch(/@media \(max-width: 900px\)[\s\S]*\.host-form select[\s\S]*font-size: 16px/);
     expect(css).toMatch(/min-height: 44px/);
   });
+  it('dropdown values are small (14px), except on iOS where 16px stops Safari zooming in', () => {
+    expect(css).toMatch(/\.host-form select \{ font-size: 14px; min-height: 44px; \}/);
+    expect(css).toMatch(/@supports \(-webkit-touch-callout: none\)[\s\S]*\.host-form select \{ font-size: 16px; \}/);
+  });
   it('the dialog follows the visible screen height (dvh) and the notch (safe-area), and the action bar stays reachable above the keyboard', () => {
     expect(css).toMatch(/100dvh/);
     expect(css).toMatch(/env\(safe-area-inset-bottom\)/);

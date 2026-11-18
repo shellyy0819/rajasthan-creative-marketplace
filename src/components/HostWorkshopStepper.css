@@ -75,7 +75,9 @@
 .host-form input[type='date'], .host-form input[type='time'] { min-width: 0; min-height: 44px; }
 @media (max-width: 900px) {
   /* 16px stops iOS Safari zooming the page in when a field is focused. */
-  .host-form input:not([type='checkbox']):not([type='radio']), .host-form select, .host-form textarea { font-size: 16px; min-height: 44px; }
+  .host-form input:not([type='checkbox']):not([type='radio']), .host-form textarea { font-size: 16px; min-height: 44px; }
+  /* Dropdowns show their chosen value smaller (Android and desktop); iOS keeps 16px below because Safari zooms into anything smaller. */
+  .host-form select { font-size: 14px; min-height: 44px; }
   .host-form input[type='checkbox'], .host-form input[type='radio'] { width: 22px; height: 22px; }
   .host-form .button, .host-form .icon-btn, .host-day, .host-path-card { min-height: 44px; }
   .host-dialog .dialog-head { position: sticky; top: 0; z-index: 2; background: var(--white); }
@@ -84,4 +86,7 @@
   .host-backdrop { padding: 0; align-items: stretch; }
   .host-dialog { width: 100%; height: 100vh; height: 100dvh; max-height: none; border-radius: 0; padding: 16px 16px 0; }
   .host-form .admin-form-row { grid-template-columns: 1fr; }
+}
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 900px) { .host-form select { font-size: 16px; } }
 }
