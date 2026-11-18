@@ -1,0 +1,60 @@
+// @vitest-environment jsdom
+import fs from 'node:fs';
+import React from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+
+vi.mock('@/components/CityInput', () => ({ CityInput: () => React.createElement('input', { name: 'cityRef' }) }));
+vi.mock('@/components/ImageUploader', () => ({ ImageUploader: () => null }));
+
+import { HostWorkshopButton } from '@/components/HostWorkshopButton';
+
+afterEach(cleanup);
+const css = fs.readFileSync('src/components/HostWorkshopStepper.css', 'utf8');
+
+describe('host form on phones: CSS', () => {
+  it('inputs are 16px on phones and tablets so iOS does not zoom in on focus, with 44px touch targets', () => {
+    expect(css).toMatch(/@media \(max-width: 900px\)[\s\S]*\.host-form select[\s\S]*font-size: 16px/);
+    expect(css).toMatch(/min-height: 44px/);
+  });
+  it('the dialog follows the visible screen height (dvh) and the notch (safe-area), and the action bar stays reachable above the keyboard', () => {
+    expect(css).toMatch(/100dvh/);
+    expect(css).toMatch(/env\(safe-area-inset-bottom\)/);
+    expect(css).toMatch(/\.host-form \.admin-actions \{[^}]*position: sticky;[^}]*bottom: 0/);
+    expect(css).toMatch(/overscroll-behavior: contain/);
+  });
+  it('on small phones the dialog fills the screen and field pairs stack', () => {
+    expect(css).toMatch(/@media \(max-width: 600px\)[\s\S]*\.host-dialog[\s\S]*height: 100dvh/);
+    expect(css).toMatch(/\.host-form \.admin-form-row \{ grid-template-columns: 1fr; \}/);
+  });
+});
+
+describe('host form on phones: typing', () => {
+  const open = () => { render(React.createElement(HostWorkshopButton)); fireEvent.click(screen.getByRole('button', { name: /host a workshop/i })); };
+  const goToLast = () => {
+    const set = (l: RegExp, v: string) => fireEvent.change(screen.getByLabelText(l), { target: { value: v } });
+    set(/event title/i, 'T'); set(/^type/i, 'workshop'); set(/what happens/i, 'd');
+    fireEvent.click(screen.getByRole('button', { name: /^next/i }));
+    set(/start date/i, '2099-01-01'); set(/^city/i, 'x'); set(/venue/i, 'v');
+    fireEvent.click(screen.getByRole('button', { name: /^next/i }));
+  };
+  it('email, handle and web fields turn off auto-capitalise, auto-correct and spellcheck', () => {
+    open(); goToLast();
+    for (const l of [/^email/i, /^instagram/i, /^website/i]) {
+      const el = screen.getByLabelText(l);
+      expect(el.getAttribute('autocapitalize'), String(l)).toBe('none');
+      expect(el.getAttribute('autocorrect'), String(l)).toBe('off');
+      expect(el.getAttribute('spellcheck'), String(l)).toBe('false');
+    }
+  });
+  it('names and titles capitalise, and the keyboard shows Next on text fields', () => {
+    open();
+    expect(screen.getByLabelText(/event title/i).getAttribute('autocapitalize')).toBe('sentences');
+    expect(screen.getByLabelText(/event title/i).getAttribute('enterkeyhint')).toBe('next');
+    goToLast();
+    expect(screen.getByLabelText(/your name/i).getAttribute('autocapitalize')).toBe('words');
+    expect(screen.getByLabelText(/host, studio/i).getAttribute('autocapitalize')).toBe('words');
+    expect(screen.getByLabelText(/phone number/i).getAttribute('enterkeyhint')).toBe('next');
+    expect(screen.getByLabelText(/^email/i).getAttribute('inputmode')).toBe('email');
+  });
+});

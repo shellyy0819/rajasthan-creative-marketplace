@@ -22,13 +22,15 @@ const fmtDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(
  * "Host a workshop": opens a form that collects every detail we need to list a workshop, meetup, pop-up or flea market.
  * `defaultOpen` opens it on first render (a shared ?host=1 link); `shareable` keeps ?host=1 in the address bar while it is open.
  */
-export function HostWorkshopButton({ className = 'button outline', contactEmail = DEFAULT_CONTACT_EMAIL, defaultOpen = false, shareable = false, path: preset = 'event', initialPath, topics = [], label = 'Host a workshop' }: {
+export function HostWorkshopButton({ className = 'button outline', contactEmail = DEFAULT_CONTACT_EMAIL, defaultOpen = false, shareable = false, path: preset = 'event', initialPath, topics = [], label = 'Host a workshop', prefill = false }: {
   className?: string; contactEmail?: string; defaultOpen?: boolean; shareable?: boolean;
   /** The path a click on the button starts on. */
   path?: HostPath;
   /** The path a shared link opens on (null: no choice yet). Defaults to `path`. */
   initialPath?: HostPath | null;
   topics?: TopicOption[]; label?: string;
+  /** Fill the form from the signed-in person's own details (name, email and, for sellers, their profile). */
+  prefill?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [path, setPath] = useState<HostPath | null>(defaultOpen && initialPath !== undefined ? initialPath : preset);
@@ -47,6 +49,8 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   const trigger = useRef<HTMLButtonElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const shownStep = useRef(0);
+  const me = useRef<Record<string, string>>({});
+  const [meTick, setMeTick] = useState(0);
   // The form is portalled into document.body, which does not exist while rendering on the server (a ?host=1 link opens it on first render).
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -100,6 +104,25 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     return true;
   }
   function back() { setError(''); setStep(s => Math.max(0, s - 1)); }
+  // Signed in: fetch the person's own details once per opening, then fill empty fields (never over what they typed).
+  useEffect(() => {
+    if (!prefill || !open) return;
+    let live = true;
+    fetch('/api/host-prefill', { cache: 'no-store' }).then(r => (r?.ok ? r.json() : {})).then((d: Record<string, string>) => {
+      if (live && d && typeof d === 'object') { me.current = d; setMeTick(t => t + 1); }
+    }).catch(() => {});
+    return () => { live = false; };
+  }, [prefill, open]);
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+    const map: Record<string, string | undefined> = { contactName: me.current.name, email: me.current.email, hostName: me.current.hostName, phone: me.current.phone, whatsapp: me.current.whatsapp, instagram: me.current.instagram, website: me.current.website };
+    for (const [name, value] of Object.entries(map)) {
+      const el = form.elements.namedItem(name);
+      if (value && el instanceof HTMLInputElement && !el.value) el.value = value;
+    }
+  }, [meTick, path, open, step]);
+
   // Landing on another step: scroll the dialog to the top and focus its first field.
   useEffect(() => {
     if (shownStep.current === step) return;
@@ -171,8 +194,8 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     <>
       <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => { setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setPath(preset); setPriceRows([]); setOpen(true); }}>{label} <span>↗</span></button>
       {open && mounted && createPortal(
-        <div className="contact-backdrop admin-modal" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="host-title" className="contact-card">
+        <div className="contact-backdrop admin-modal host-backdrop" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="host-title" className="contact-card host-dialog">
             <div className="dialog-head">
               <h2 id="host-title">{done ? 'Welcome to Craftofy' : pending ? 'Please verify your email' : path === 'class' ? 'Teach an online class' : 'Host a workshop or pop-up'}</h2>
               <button type="button" className="icon-btn" aria-label="Close" onClick={close} disabled={sending}>✕</button>
@@ -216,7 +239,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                       {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
                   </label>
-                  <label><span className="lbl">{path === 'class' ? 'Class title' : 'Event title'}</span><input name="title" required maxLength={150} autoFocus /></label>
+                  <label><span className="lbl">{path === 'class' ? 'Class title' : 'Event title'}</span><input name="title" required maxLength={150} autoFocus autoCapitalize="sentences" enterKeyHint="next" /></label>
                   {path !== 'class' && (
                     <label><span className="lbl">Type</span>
                       <select name="kind" required defaultValue="">
@@ -237,15 +260,15 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                     : <EventWhereWhen startDate={startDate} setStartDate={setStartDate} paid={paid} setPaid={setPaid} />}
                 </div>
                 <div className="host-step" data-step={2} hidden={step !== 2}>
-                  <label><span className="lbl">Host, studio, cafe or organiser name</span><input name="hostName" required maxLength={150} autoComplete="organization" /></label>
-                  <label><span className="lbl">Your name</span><input name="contactName" required maxLength={100} autoComplete="name" /></label>
+                  <label><span className="lbl">Host, studio, cafe or organiser name</span><input name="hostName" required maxLength={150} autoComplete="organization" autoCapitalize="words" enterKeyHint="next" /></label>
+                  <label><span className="lbl">Your name</span><input name="contactName" required maxLength={100} autoComplete="name" autoCapitalize="words" enterKeyHint="next" /></label>
                   <div className="admin-form-row">
-                    <label><span className="lbl">Phone number</span><input name="phone" type="tel" inputMode="tel" required maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="9989898999" autoComplete="tel" /></label>
-                    <label><span className="lbl">Email</span><input name="email" type="email" required maxLength={254} autoComplete="email" /></label>
+                    <label><span className="lbl">Phone number</span><input name="phone" type="tel" inputMode="tel" required maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="9989898999" autoComplete="tel" enterKeyHint="next" /></label>
+                    <label><span className="lbl">Email</span><input name="email" type="email" required maxLength={254} autoComplete="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /></label>
                   </div>
                   <div className="admin-form-row">
-                    <label>Instagram<input name="instagram" maxLength={200} placeholder="@yourstudio" /></label>
-                    <label>Website<input name="website" type="text" inputMode="url" maxLength={300} placeholder="yourstudio.in" /></label>
+                    <label>Instagram<input name="instagram" maxLength={200} placeholder="@yourstudio" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /></label>
+                    <label>Website<input name="website" type="text" inputMode="url" maxLength={300} placeholder="yourstudio.in" autoComplete="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /></label>
                   </div>
                   {path === 'class' && <ClassAbout />}
                   <label>Anything else we should know<textarea name="notes" maxLength={2000} rows={2} /></label>

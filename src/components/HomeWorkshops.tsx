@@ -6,5 +6,5 @@ import { listActiveTopics } from '@/lib/topics';
 
 /** Loads the home-page workshops by itself so the page can stream them behind a skeleton. */
 export async function HomeWorkshops() {
-  return <WorkshopList workshops={await listWorkshops()} emptyMessage="No workshops are scheduled yet. Check back soon." emptyAction={<HostWorkshopButton contactEmail={contactEmail()} topics={await listActiveTopics()} />} />;
+  return <WorkshopList workshops={await listWorkshops()} emptyMessage="No workshops are scheduled yet. Check back soon." emptyAction={<HostWorkshopButton contactEmail={contactEmail()} topics={await listActiveTopics()} prefill />} />;
 }

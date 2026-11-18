@@ -24,7 +24,7 @@ export function EventWhereWhen({ startDate, setStartDate, paid, setPaid, cityReq
         <label><span className="lbl">City</span><CityInput required={cityRequired} valueFormat="name" defaultCity={cityDefault} /></label>
         <label>Seats<input name="seats" type="number" min={1} max={100000} inputMode="numeric" /></label>
       </div>
-      <label><span className="lbl">Venue and address</span><input name="venue" required maxLength={300} autoComplete="street-address" /></label>
+      <label><span className="lbl">Venue and address</span><input name="venue" required maxLength={300} autoComplete="street-address" autoCapitalize="words" enterKeyHint="next" /></label>
       <label className="check"><input type="checkbox" checked={paid} onChange={e => setPaid(e.target.checked)} /> Participants pay to attend</label>
       {paid && <label><span className="lbl">Price per person (Rs.)</span><input name="priceRupees" type="number" min={1} max={1000000} inputMode="numeric" required /></label>}
     </>
@@ -36,7 +36,7 @@ export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows }: { 
   const patch = (i: number, p: Partial<PriceDraft>) => setRows(rows.map((r, j) => (j === i ? { ...r, ...p } : r)));
   return (
     <>
-      <label><span className="lbl">Online platform</span><input name="platform" list="host-platforms" required maxLength={60} placeholder="Zoom, Google Meet…" /></label>
+      <label><span className="lbl">Online platform</span><input name="platform" list="host-platforms" required maxLength={60} placeholder="Zoom, Google Meet…" autoCapitalize="words" enterKeyHint="next" /></label>
       <datalist id="host-platforms"><option value="Zoom" /><option value="Google Meet" /><option value="Microsoft Teams" /></datalist>
       <div className="admin-form-row">
         <label><span className="lbl">Start date</span><input name="startDate" type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
@@ -76,7 +76,7 @@ export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows }: { 
 export function ClassAbout() {
   return (
     <>
-      <label>Languages<input name="languages" maxLength={160} placeholder="Hindi, English" /></label>
+      <label>Languages<input name="languages" maxLength={160} placeholder="Hindi, English" autoCapitalize="words" enterKeyHint="next" /></label>
       <label>Level
         <select name="level" defaultValue="">
           <option value="">Not specified</option><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option><option value="all">All levels</option>
@@ -84,7 +84,7 @@ export function ClassAbout() {
       </label>
       <label>Experience<textarea name="experience" maxLength={500} rows={2} /></label>
       <label>Certifications<textarea name="certifications" maxLength={500} rows={2} /></label>
-      <label>WhatsApp number<input name="whatsapp" type="tel" inputMode="tel" maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="9989898999" /></label>
+      <label>WhatsApp number<input name="whatsapp" type="tel" inputMode="tel" maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="9989898999" autoComplete="tel" enterKeyHint="next" /></label>
     </>
   );
 }
