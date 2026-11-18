@@ -14,4 +14,10 @@ describe('category page styles line up with the page heading', () => {
   it('the home block list adds no side padding of its own (its section already has it)', () => {
     expect(css).toMatch(/\.cat-list-home \{ padding: 0 0 24px;/);
   });
+  it('every category block has the same height: equal rows, blocks fill their cell, names clamp at two lines', () => {
+    expect(css).toMatch(/\.cat-list \{[^}]*grid-auto-rows: 1fr;/);
+    expect(css).toMatch(/\.cat-list li \{ display: flex; \}/);
+    expect(css).toMatch(/\.cat-list a \{[^}]*flex: 1;[^}]*min-height: 78px;/);
+    expect(css).toMatch(/\.cat-card-name > span \{[^}]*-webkit-line-clamp: 2;/);
+  });
 });

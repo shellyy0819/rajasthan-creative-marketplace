@@ -13,15 +13,22 @@
 .cat-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-auto-rows: 1fr;   /* every block is as tall as the tallest, in every row */
   gap: 14px;
   margin: 0;
   padding: 0 8.5% 64px;   /* the same side padding as .page-head and .crumbs, so the cards line up with the heading */
   list-style: none;
 }
+.cat-list li {
+  display: flex;
+}
 .cat-list a {
+  flex: 1;
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
+  min-height: 78px;
   padding: 16px 18px;
   background: var(--white);
   border: 1px solid var(--line);
@@ -47,4 +54,53 @@
   .cat-list-home {
     padding: 0 0 24px;
   }
+}
+
+/* Category illustrations: flat shapes in the stall's colours */
+.cat-ic {
+  flex: none;
+  width: 34px;
+  height: 34px;
+}
+.cat-ic-lg {
+  width: 52px;
+  height: 52px;
+  margin-right: 14px;
+  vertical-align: -10px;
+}
+.cat-ic .c-clay { fill: var(--clay); }
+.cat-ic .c-orange { fill: var(--orange); }
+.cat-ic .c-sand { fill: var(--sand); }
+.cat-ic .c-sand-fill { fill: var(--sand-soft); }
+.cat-ic .c-sage { fill: var(--sage); }
+.cat-ic .c-sage-d { fill: var(--sage-d); }
+.cat-ic .c-green { fill: var(--green); }
+.cat-ic .c-line,
+.cat-ic .c-line-sand {
+  fill: none;
+  stroke: var(--sand-line);
+  stroke-width: 1.400;
+  stroke-linecap: round;
+}
+.cat-ic .c-line-sand { stroke: var(--sand); }
+.cat-ic .c-ring-orange,
+.cat-ic .c-ring-sage,
+.cat-ic .c-ring-orange-thin {
+  fill: none;
+  stroke: var(--orange);
+  stroke-width: 4;
+}
+.cat-ic .c-ring-sage { stroke: var(--sage); stroke-width: 2.500; }
+.cat-ic .c-ring-orange-thin { stroke-width: 1.300; }
+.cat-card-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cat-card-name > span {
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;   /* never taller than two lines, so every block keeps the same height */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

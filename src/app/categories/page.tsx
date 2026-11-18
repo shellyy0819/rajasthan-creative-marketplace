@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { CategoryIcon } from '@/components/CategoryIcon';
 import { JsonLd } from '@/components/JsonLd';
 import { capitalize, getCatalogWording } from '@/lib/catalog-wording';
 import { listCategoryIndex } from '@/lib/category-pages';
@@ -38,7 +39,7 @@ export default async function CategoriesPage() {
           {list.map(c => (
             <li key={c.slug}>
               <Link href={`/categories/${c.slug}`}>
-                <span>{c.name}</span>
+                <span className="cat-card-name"><CategoryIcon name={c.name} /><span>{c.name}</span></span>
                 <small>{c.count}</small>
               </Link>
             </li>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CategoryIcon } from './CategoryIcon';
 import { listCategoryIndex } from '@/lib/category-pages';
 import '../app/categories/categories.css';
 
@@ -17,7 +18,7 @@ export async function ShopByCategory() {
       <ul className="cat-list cat-list-home">
         {top.map(c => (
           <li key={c.slug}>
-            <Link href={`/categories/${c.slug}`}><span>{c.name}</span><small>{c.count}</small></Link>
+            <Link href={`/categories/${c.slug}`}><span className="cat-card-name"><CategoryIcon name={c.name} /><span>{c.name}</span></span><small>{c.count}</small></Link>
           </li>
         ))}
       </ul>
