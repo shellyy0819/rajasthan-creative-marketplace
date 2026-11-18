@@ -183,6 +183,13 @@
       "when": 1794823123295,
       "tag": "0025_city_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794995610155,
+      "tag": "0026_workshop_listings",
+      "breakpoints": true
     }
   ]
 }
