@@ -108,7 +108,7 @@ Topic hierarchy screens and pages (`/workshops/yoga`, `/workshops/yoga/prenatal`
 
 - Migration number: this branch's latest is 0025; `feat/category-pages` also adds 0026. Use the next free number at merge time.
 - About 16 test files read or write `workshops.price_paise`, `venue`, `city_id` or `starts_at` through `createWorkshop`, `workshopsQuery`, the fixture or `toWorkshop` (admin, admin-api, users-api, orders, catalog, cities, city-links, jsonld, live-catalog, trending-pages, db-schema, pg-concurrency and others). The domain type `Workshop` gets nullable `cityId`, `venue`, `seats`; consumers must handle null.
-- The email code flow, rate limits, honeypot and image upload rules stay as they are.
+- The email code flow, rate limits, honeypot and image upload rules stay as they are. The team notification email (`notificationMail`) and the dashboard requests table must show the new fields, otherwise an admin cannot see what an instructor sent.
 - Styles live in per-feature CSS files (standing project preference).
 
 ## Left to the builder
