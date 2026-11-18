@@ -142,6 +142,23 @@ export function isCurrent(w: Dated, now: Date = new Date()): boolean {
   return last === null || last >= istParts(now).date;
 }
 
+/**
+ * Is the listing happening today (India time)? A one-day or multi-day event from its start to its last day; a class on its class days
+ * (and chosen weeks of the month, when monthly) once it has started and until it ends.
+ */
+export function isLiveToday(w: Dated & { schedule?: Schedule | null }, now: Date = new Date()): boolean {
+  const today = istParts(now).date;
+  if (w.date > today || !isCurrent(w, now)) return false;
+  if (!w.schedule) return true;
+  const d = new Date(`${today}T00:00:00Z`);
+  if (!w.schedule.days.includes(DAYS[(d.getUTCDay() + 6) % 7])) return false;
+  if (w.schedule.repeat !== 'monthly') return true;
+  const dom = d.getUTCDate();
+  const week = Math.ceil(dom / 7);
+  const isLast = dom + 7 > new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  return (w.schedule.weeks ?? []).some(x => (x === 'last' ? isLast : x === week));
+}
+
 const DAY_LABEL: Record<Day, string> = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' };
 const ORDINAL: Record<string, string> = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th', last: 'last' };
 const andList = (items: string[]) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`);

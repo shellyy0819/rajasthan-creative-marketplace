@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeSchedule, isCurrent, lastDay, optionalWebsite, parseListingFields, priceCache, summarizePrices } from '@/lib/workshop-listing';
+import { describeSchedule, isCurrent, isLiveToday, lastDay, optionalWebsite, parseListingFields, priceCache, summarizePrices } from '@/lib/workshop-listing';
 
 const yoga = {
   kind: 'class', mode: 'online', topicId: 1, platform: 'Zoom',
@@ -155,6 +155,37 @@ describe('lastDay and isCurrent', () => {
   it('a class with an end date ends after it', () => {
     expect(isCurrent(ev('2026-01-01', { kind: 'class', endsOn: '2026-11-17' }), NOW)).toBe(false);
     expect(isCurrent(ev('2026-01-01', { kind: 'class', endsOn: '2026-11-18' }), NOW)).toBe(true);
+  });
+});
+
+describe('isLiveToday', () => {
+  const MON = new Date('2026-11-16T10:00:00+05:30'); // a Monday
+  const ev = (date: string, over: object = {}) => ({ date, kind: 'workshop', endsOn: null, schedule: null, ...over });
+  it('a one-day event is live on its day only', () => {
+    expect(isLiveToday(ev('2026-11-16'), MON)).toBe(true);
+    expect(isLiveToday(ev('2026-11-17'), MON)).toBe(false);
+    expect(isLiveToday(ev('2026-11-15'), MON)).toBe(false);
+  });
+  it('a multi-day event is live on every day from its start to its last day', () => {
+    expect(isLiveToday(ev('2026-11-14', { endsOn: '2026-11-18' }), MON)).toBe(true);
+    expect(isLiveToday(ev('2026-11-17', { endsOn: '2026-11-18' }), MON)).toBe(false);
+  });
+  it('a weekly class is live on its class days once it has started', () => {
+    const c = (days: string[], date = '2026-01-05') => ev(date, { kind: 'class', schedule: { repeat: 'weekly', days, time: '07:00', durationMin: 60 } });
+    expect(isLiveToday(c(['mon', 'wed']), MON)).toBe(true);
+    expect(isLiveToday(c(['tue']), MON)).toBe(false);
+    expect(isLiveToday(c(['mon'], '2026-11-23'), MON)).toBe(false);
+    expect(isLiveToday(c(['mon']), new Date('2026-12-01T10:00:00+05:30'))).toBe(false); // a Tuesday
+  });
+  it('a monthly class is live on its chosen weekday of its chosen weeks, including "last"', () => {
+    const m = (weeks: (number | string)[]) => ev('2026-01-05', { kind: 'class', schedule: { repeat: 'monthly', days: ['mon'], weeks, time: '07:00', durationMin: 60 } });
+    expect(isLiveToday(m([3]), MON)).toBe(true);            // 16 Nov 2026 is the 3rd Monday
+    expect(isLiveToday(m([1, 2]), MON)).toBe(false);
+    expect(isLiveToday(m(['last']), new Date('2026-11-30T10:00:00+05:30'))).toBe(true);  // the last Monday of November
+    expect(isLiveToday(m(['last']), MON)).toBe(false);
+  });
+  it('an ended event or class is never live', () => {
+    expect(isLiveToday(ev('2026-11-10', { endsOn: '2026-11-12' }), MON)).toBe(false);
   });
 });
 
