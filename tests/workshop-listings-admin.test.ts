@@ -3,6 +3,8 @@ import { eq } from 'drizzle-orm';
 import { createWorkshop, updateWorkshop } from '@/lib/admin';
 import { getWorkshopBySlug, listAdminWorkshops, listWorkshops } from '@/lib/catalog';
 import { createBooking } from '@/lib/orders';
+import { createWorkshopRequest } from '@/lib/workshop-requests';
+import { setMailSenderForTests } from '@/lib/mailer';
 import { workshopSlug } from '@/lib/catalog-shared';
 import { isCurrent } from '@/lib/workshop-listing';
 import { workshopPrices, users } from '@/db/schema';
@@ -18,7 +20,9 @@ const yoga = {
   prices: [{ label: 'Monthly', amountPaise: 150000, sessions: 12 }, { label: 'Per session', amountPaise: 50000, sessions: 1 }],
 };
 
-beforeEach(async () => { await resetTestDb(); });
+process.env.NEXTAUTH_SECRET = 'test-secret';
+const aRequest = async () => (await createWorkshopRequest({ hostName: 'Asha', contactName: 'Asha', phone: '9989898999', email: 'a@b.co', title: 'T', kind: 'class', mode: 'online', description: 'd', startDate: '2099-01-05', platform: 'Zoom', schedule: { days: ['mon'], time: '07:00', durationMin: 60 } })).id;
+beforeEach(async () => { await resetTestDb(); setMailSenderForTests(async () => {}); });
 
 describe('createWorkshop: online classes and drafts', () => {
   it('creates an online class with no city, venue or seats, as a Draft, with ordered price rows', async () => {
@@ -41,8 +45,9 @@ describe('createWorkshop: online classes and drafts', () => {
   });
   it('records who added it and the request it came from', async () => {
     const [u] = await (await getTestDb()).select().from(users).limit(1);
-    const w = await createWorkshop({ ...yoga, sourceRequestId: '11111111-1111-4111-8111-111111111111' }, u.email);
-    expect(w).toMatchObject({ createdBy: u.id, sourceRequestId: '11111111-1111-4111-8111-111111111111' });
+    const rid = await aRequest();
+    const w = await createWorkshop({ ...yoga, sourceRequestId: rid }, u.email);
+    expect(w).toMatchObject({ createdBy: u.id, sourceRequestId: rid });
   });
   it('derives FREE/0 when every price row is zero', async () => {
     expect(await createWorkshop({ ...yoga, prices: [{ label: 'Trial', amountPaise: 0, sessions: 1 }] })).toMatchObject({ type: 'FREE', pricePaise: 0 });
@@ -106,7 +111,7 @@ describe('catalog: public lists show only published, current listings', () => {
 
 describe('public shape never carries admin-only fields', () => {
   it('listWorkshops and getWorkshopBySlug omit contact details, creator and source request', async () => {
-    const c = await createWorkshop({ ...yoga, status: 'APPROVED', sourceRequestId: '11111111-1111-4111-8111-111111111111' });
+    const c = await createWorkshop({ ...yoga, status: 'APPROVED', sourceRequestId: await aRequest() });
     const listed = (await listWorkshops()).find(w => w.id === c.id)!;
     const paged = (await getWorkshopBySlug(workshopSlug(c)))!;
     for (const w of [listed, paged]) {
