@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useState } from 'react';
 import { PageLoader } from './PageLoader';
+import './AdminTableControls.css';
 import { Toast, type ToastState } from './Toast';
 import type { AdminTopic } from '@/lib/topics';
 

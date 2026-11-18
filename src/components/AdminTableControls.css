@@ -1,0 +1,25 @@
+/*
+ * Buttons and dropdowns inside the dashboard tables (workshop listings, workshop requests, topics) look like the ones in the other admin rows:
+ * the same height (--control-h), radius, border, font and padding, danger styling for Delete, and the focus ring from the global rule.
+ * (The row styles in globals.css are scoped to .admin-row, which a table row is not.)
+ */
+.admin-table .button,
+.admin-table .admin-status-select,
+.admin-table .request-status select {
+  min-height: var(--control-h);
+  border: 1px solid var(--control-border);
+  border-radius: 3px;
+  background-color: transparent;
+  color: var(--ink);
+  font: 600 11px var(--font-sans);
+  padding: 9px 13px;
+}
+.admin-table .button { cursor: pointer; }
+.admin-table .button:hover,
+.admin-table .admin-status-select:hover { border-color: var(--green); }
+.admin-table .button.danger-outline { color: var(--danger); border-color: var(--danger-line); }
+.admin-table .button.danger { background: var(--danger-solid); border-color: var(--danger-solid); color: #fff; }
+.admin-table .button.primary { background: var(--green); border-color: var(--green); color: #fff; }
+.admin-table .admin-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.admin-table .request-status { display: grid; gap: 4px; }
+.admin-table td { vertical-align: top; }

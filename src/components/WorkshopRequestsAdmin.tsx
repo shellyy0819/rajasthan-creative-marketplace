@@ -2,6 +2,7 @@ import { instagramUrl } from '@/lib/social';
 import { KIND_LABEL, type WorkshopRequest } from '@/lib/workshop-requests';
 import { describeSchedule, summarizePrices } from '@/lib/workshop-listing';
 import { RequestStatusSelect } from './RequestStatusSelect';
+import './AdminTableControls.css';
 
 const when = (iso: string) => new Date(iso).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
 const day = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });

@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useState } from 'react';
 import { ListingForm } from './ListingForm';
+import './AdminTableControls.css';
 import { PageLoader } from './PageLoader';
 import { Toast, type ToastState } from './Toast';
 import { describeSchedule } from '@/lib/workshop-listing';
@@ -59,7 +60,7 @@ export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus }: {
       {list.length === 0 ? <p className="empty">No listings yet.</p> : (
         <div className="admin-table-wrap">
           <table className="admin-table">
-            <thead><tr><th>Title</th><th>Host</th><th>Format</th><th>When</th><th>Status</th><th /></tr></thead>
+            <thead><tr><th>Title</th><th>Host</th><th>Format</th><th>When</th><th>Status and actions</th></tr></thead>
             <tbody>
               {list.map(w => (
                 <tr key={w.id}>
@@ -68,15 +69,15 @@ export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus }: {
                   <td>{w.mode === 'online' ? 'Online' : 'In person'}{w.topic ? ` · ${w.topic.name}` : ''}{w.mode !== 'online' && w.city ? <><br /><small className="muted">{w.city}</small></> : null}</td>
                   <td>{w.kind === 'class' && w.schedule ? describeSchedule(w.schedule) : <>{day(w.date)}{w.endsOn ? ` to ${day(w.endsOn)}` : ''}</>}</td>
                   <td>
+                    <div className="admin-row-actions">
                     <select className="admin-status-select" aria-label={`Status of ${w.title}`} value={w.status} disabled={busy === w.id} onChange={e => void setStatus(w, e.target.value)}>
                       {Object.entries(STATUS_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
-                  </td>
-                  <td className="admin-row-actions">
                     <button type="button" className="button" aria-label={`Edit ${w.title}`} onClick={() => setForm({ workshop: w })}>Edit</button>
                     {confirming === w.id
                       ? <><button type="button" className="button danger" disabled={busy === w.id} onClick={() => void remove(w)}>Confirm delete</button><button type="button" className="button" onClick={() => setConfirming(null)}>Keep</button></>
                       : <button type="button" className="button danger-outline" aria-label={`Delete ${w.title}`} onClick={() => setConfirming(w.id)}>Delete</button>}
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import './AdminTableControls.css';
 
 type Choice = 'published' | 'on_hold' | 'archived';
 type Req = { id: string; title: string; status: string; listedWorkshopId?: string; listedStatus?: string };
