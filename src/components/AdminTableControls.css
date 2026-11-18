@@ -27,3 +27,9 @@
 /* The board text panel above the listings table. */
 .sign-admin { margin: 0 0 28px; padding: 18px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); }
 .sign-admin h2 { margin: 0 0 6px; font: 500 20px var(--font-display); }
+
+/* Tags column: Recurring (yellow), Ended (green, the shared .badge.published) and In Draft (grey, the shared .badge.archived). */
+.admin-tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+.badge.recurring { background: #f6e7a8; color: #6e5400; }
+:root[data-theme='dark'] .badge.recurring { background: #4a4120; color: #f0d77a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .badge.recurring { background: #4a4120; color: #f0d77a; } }

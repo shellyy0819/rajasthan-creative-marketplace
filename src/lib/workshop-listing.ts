@@ -1,4 +1,4 @@
-import { istParts } from '@/db/mappers';
+import { istParts } from './ist';
 import { money } from './money';
 import { validJoinLink } from './join-link';
 import { bad, oneOf, optionalInt, optionalPhone, optionalText, validDate, type Raw } from './validate';

@@ -55,6 +55,40 @@ describe('listings table', () => {
   });
 });
 
+describe('tags column', () => {
+  const tags = (row: HTMLElement) => Array.from(row.querySelectorAll('.badge')).map(b => [b.textContent, b.className]);
+  const rowOf = (title: string) => screen.getByText(title).closest('tr') as HTMLElement;
+  const ended = { ...lac, id: 'w5', title: 'Old Clay', status: 'APPROVED', date: '2020-01-01' } as unknown as Workshop;
+  const weeklyDraft = { ...yoga, id: 'w6', title: 'Weekly Draft', status: 'DRAFT' } as unknown as Workshop;
+  const monthly = { ...yoga, id: 'w7', title: 'Monthly Flow', schedule: { repeat: 'monthly', days: ['sat'], weeks: [1], time: '07:00', durationMin: 60 } } as unknown as Workshop;
+  it('has a Tags column', () => {
+    render(<WorkshopsAdmin initial={[lac]} topics={topics} />);
+    expect(screen.getByRole('columnheader', { name: 'Tags' })).toBeTruthy();
+  });
+  it('a draft shows a grey In Draft tag', () => {
+    render(<WorkshopsAdmin initial={[lac]} topics={topics} />);
+    expect(tags(rowOf('Lac Craft'))).toEqual([['In Draft', 'badge archived']]);
+  });
+  it('a repeating class shows a yellow Recurring tag, weekly or monthly; a published one-off shows none', () => {
+    render(<WorkshopsAdmin initial={[yoga, monthly, { ...lac, id: 'w8', title: 'One Off', status: 'APPROVED' } as unknown as Workshop]} topics={topics} />);
+    expect(tags(rowOf('Morning Flow'))).toEqual([['Recurring', 'badge recurring']]);
+    expect(tags(rowOf('Monthly Flow'))).toEqual([['Recurring', 'badge recurring']]);
+    expect(tags(rowOf('One Off'))).toEqual([]);
+  });
+  it('a listing that has ended shows a green Ended tag', () => {
+    render(<WorkshopsAdmin initial={[ended]} topics={topics} />);
+    expect(tags(rowOf('Old Clay'))).toEqual([['Ended', 'badge published']]);
+  });
+  it('tags add up: a recurring draft is Recurring and In Draft', () => {
+    render(<WorkshopsAdmin initial={[weeklyDraft]} topics={topics} />);
+    expect(tags(rowOf('Weekly Draft')).map(t => t[0])).toEqual(['Recurring', 'In Draft']);
+  });
+  it('an ended recurring class (it has an end date in the past) is Recurring and Ended', () => {
+    render(<WorkshopsAdmin initial={[{ ...yoga, id: 'w9', title: 'Past Series', endsOn: '2020-06-01', date: '2020-01-01' } as unknown as Workshop]} topics={topics} />);
+    expect(tags(rowOf('Past Series')).map(t => t[0])).toEqual(['Recurring', 'Ended']);
+  });
+});
+
 describe('listing form', () => {
   it('New listing opens a form that defaults to Draft and has no email code or honeypot', () => {
     render(<WorkshopsAdmin initial={[]} topics={topics} />);

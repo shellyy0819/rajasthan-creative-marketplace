@@ -4,13 +4,22 @@ import { ListingForm } from './ListingForm';
 import './AdminTableControls.css';
 import { PageLoader } from './PageLoader';
 import { Toast, type ToastState } from './Toast';
-import { describeSchedule } from '@/lib/workshop-listing';
+import { describeSchedule, isCurrent } from '@/lib/workshop-listing';
 import type { TopicOption } from '@/lib/topics';
 import type { Workshop } from '@/lib/types';
 import type { WorkshopRequest } from '@/lib/workshop-requests';
 
 const STATUS_LABEL: Record<string, string> = { DRAFT: 'Draft', APPROVED: 'Published', ARCHIVED: 'Archived' };
 const day = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
+/** Yellow Recurring (a repeating class), green Ended (past its last day), grey In Draft. A listing can carry several. */
+function tagsOf(w: Workshop): { label: string; cls: string }[] {
+  const tags: { label: string; cls: string }[] = [];
+  if (w.schedule) tags.push({ label: 'Recurring', cls: 'recurring' });
+  if (!isCurrent(w)) tags.push({ label: 'Ended', cls: 'published' });
+  if (w.status === 'DRAFT') tags.push({ label: 'In Draft', cls: 'archived' });
+  return tags;
+}
 
 /** Every listing, in every status. An admin adds, edits, publishes and archives listings on behalf of hosts. */
 export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus }: { initial: Workshop[]; topics: TopicOption[]; fromRequest?: WorkshopRequest; presetStatus?: string }) {
@@ -60,7 +69,7 @@ export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus }: {
       {list.length === 0 ? <p className="empty">No listings yet.</p> : (
         <div className="admin-table-wrap">
           <table className="admin-table">
-            <thead><tr><th>Title</th><th>Host</th><th>Format</th><th>When</th><th>Status and actions</th></tr></thead>
+            <thead><tr><th>Title</th><th>Host</th><th>Format</th><th>When</th><th>Tags</th><th>Status and actions</th></tr></thead>
             <tbody>
               {list.map(w => (
                 <tr key={w.id}>
@@ -68,6 +77,7 @@ export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus }: {
                   <td>{w.host}</td>
                   <td>{w.mode === 'online' ? 'Online' : 'In person'}{w.topic ? ` · ${w.topic.name}` : ''}{w.mode !== 'online' && w.city ? <><br /><small className="muted">{w.city}</small></> : null}</td>
                   <td>{w.kind === 'class' && w.schedule ? describeSchedule(w.schedule) : <>{day(w.date)}{w.endsOn ? ` to ${day(w.endsOn)}` : ''}</>}</td>
+                  <td><div className="admin-tags">{tagsOf(w).map(t => <span key={t.label} className={`badge ${t.cls}`}>{t.label}</span>)}</div></td>
                   <td>
                     <div className="admin-row-actions">
                     <select className="admin-status-select" aria-label={`Status of ${w.title}`} value={w.status} disabled={busy === w.id} onChange={e => void setStatus(w, e.target.value)}>
