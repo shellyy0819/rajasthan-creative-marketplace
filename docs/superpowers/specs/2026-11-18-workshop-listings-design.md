@@ -93,7 +93,11 @@ Decided by you: admins add workshops and classes for others. Today there is no a
 - Classes (`kind = 'class'`) show contact buttons instead of `ReserveButton`. In-person events keep Reserve.
 - JSON-LD: online listings use `OnlineEventAttendanceMode` with a `VirtualLocation` (the listing page URL; the join link is never stored or shown). In-person listings are unchanged. Weekly classes add `eventSchedule`; price rows become `offers`.
 - A mode filter (All / In person / Online) next to the existing Free and paid filter.
-- "Upcoming": the list shows a listing while its last date is today or later (one-off: `starts_at`; class: `ends_on`, or always when open-ended). Past ones stay in the database, their page still opens with an "Ended" note and noindex, and they leave the sitemap and the list. (This changes today's behavior, open question 1.)
+- **Current vs ended** (decided by you, for SEO): a listing is current while its last day (IST) is today or later. The last day is `ends_on` when set (multi-day events and classes with an end date), else the day of `starts_at`; a class with no `ends_on` is always current. Only current, Published listings appear on `/workshops`, the home page, city pages and the sitemap.
+  - An ended listing keeps its URL (200, full content) with an "This event has ended" notice and links to upcoming workshops, and sends `noindex, follow`. It is not deleted or redirected: people hold the link and bookings point at it. It also avoids a soft 404 flag from an indexed "ended" page.
+  - Its JSON-LD keeps the original start date and is not marked cancelled. Booking is closed for ended events.
+  - If every listing has ended, `/workshops` shows the empty state and stays noindex (the existing rule, now computed on current listings).
+  - This changes today's behavior, where past workshops stay listed, in the sitemap and bookable.
 
 ### 4. Host form (stepper)
 
@@ -133,9 +137,9 @@ Exact CSS and component structure for the price editor and day chips; copy for t
 - `price_paise` and `type` stay as a cache of the price rows.
 - Recurrence is a weekly `schedule` JSON, not a sessions table.
 - `details` JSON waits for phase 2.
+- Online classes are contact-only (default taken; no seats or booking).
 - Mode filter only; no topic or language filter in phase 1.
 
 ## Open questions for you
 
-1. Should past listings leave `/workshops` and the sitemap (section 3)? Today they never do.
-2. For online classes, is contact-only (WhatsApp / Instagram) right, or do you want booking with seats?
+None. Past listings (section 3) and contact-only online classes were decided.
