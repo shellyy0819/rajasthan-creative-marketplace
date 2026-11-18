@@ -108,6 +108,19 @@ describe('saving the host form as a draft', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(localStorage.getItem(DRAFT_KEY)).toBeNull());
   });
+  it('never saves who the person is: name, email, phone, WhatsApp or host name stay out of the draft', async () => {
+    openForm();
+    val(/event title/i, 'T'); val(/^type/i, 'workshop'); val(/what happens/i, 'd'); next();
+    val(/start date/i, '2099-01-05'); val(/^city/i, 'x'); val(/venue/i, 'v'); next();
+    val(/host, studio/i, 'Asha Yoga'); val(/your name/i, 'Asha Rao'); val(/phone number/i, '9989898999'); val(/^email/i, 'asha@example.com'); val(/^instagram/i, '@asha');
+    await flush();
+    const raw = localStorage.getItem(DRAFT_KEY) ?? '';
+    for (const secret of ['Asha Yoga', 'Asha Rao', '9989898999', 'asha@example.com']) expect(raw, secret).not.toContain(secret);
+    expect(stored().fields.venue).toBe('v');
+    cleanup(); openForm();
+    await waitFor(() => screen.getByText('Step 3 of 3'));
+    expect((screen.getByLabelText(/your name/i) as HTMLInputElement).value).toBe('');
+  });
   it('does nothing unless the page turned drafts on', async () => {
     render(<HostWorkshopButton />);
     fireEvent.click(screen.getByRole('button', { name: /host a workshop/i }));

@@ -10,8 +10,13 @@ export type HostDraft = {
   priceRows: PriceRowDraft[]; fields: Record<string, string>; days: string[]; weeks: string[]; freeTrial: boolean; images: string[];
 };
 
-/** Fields that are never saved: the spam trap, the emailed code, and the ones kept in their own lists below. */
-const SKIP = new Set(['companyWebsite', 'code', 'images', 'days', 'weeks', 'freeTrial', 'path']);
+/**
+ * Fields that are never saved: the spam trap, the emailed code, the ones kept in their own lists below, and everything that identifies
+ * a person (name, email, phone, WhatsApp, host name). A draft sits in the browser on a possibly shared device, so it holds only the event
+ * details; the person's own details are typed again or pre-filled from their account.
+ */
+export const PERSONAL_FIELDS = ['contactName', 'email', 'phone', 'whatsapp', 'hostName'] as const;
+const SKIP = new Set(['companyWebsite', 'code', 'images', 'days', 'weeks', 'freeTrial', 'path', ...PERSONAL_FIELDS]);
 
 const isStrings = (v: unknown): v is string[] => Array.isArray(v) && v.every(x => typeof x === 'string');
 
