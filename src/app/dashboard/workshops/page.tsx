@@ -14,6 +14,7 @@ export default async function WorkshopsDashboardPage({ searchParams }: { searchP
   const from = typeof sp.from === 'string' ? sp.from : undefined;
   const [workshops, topics, requests] = await Promise.all([listAdminWorkshops(), listActiveTopics(), from ? listWorkshopRequests() : Promise.resolve([])]);
   const fromRequest = requests.find(r => r.id === from && r.status !== 'listed');
+  const presetStatus = sp.status === 'APPROVED' ? 'APPROVED' : undefined; // the Published choice on a request opens the form with Published preselected
   const crumbs = [{ name: 'Home', path: hostConfig().publicOrigin ?? '/' }, { name: 'Dashboard', path: '/dashboard' }, { name: 'Workshops', path: '/dashboard/workshops' }];
   return (
     <>
@@ -24,7 +25,7 @@ export default async function WorkshopsDashboardPage({ searchParams }: { searchP
           <p>Every workshop, meetup, pop-up, flea market and online class. A new listing is a Draft: it is not public until you set it to Published. Archived hides it again.</p>
         </div>
         <div className="admin-grid admin-grid-solo">
-          <WorkshopsAdmin initial={workshops} topics={topics} fromRequest={fromRequest} />
+          <WorkshopsAdmin initial={workshops} topics={topics} fromRequest={fromRequest} presetStatus={presetStatus} />
         </div>
       </section>
     </>

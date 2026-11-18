@@ -47,8 +47,8 @@ function defaultsFor(src: Workshop | WorkshopRequest | undefined): Defaults {
  * The admin's listing form: the same fields and limits as the public host form, on one page. An admin adds a listing for a host,
  * edits one, or creates one from a request. Nothing here is emailed or rate limited; the listing is a Draft until the admin publishes it.
  */
-export function ListingForm({ topics, workshop, fromRequest, onSaved, onClose }: { topics: TopicOption[]; workshop?: Workshop; fromRequest?: WorkshopRequest; onSaved: (w: Workshop) => void; onClose: () => void }) {
-  const d = useRef(defaultsFor(workshop ?? fromRequest)).current;
+export function ListingForm({ topics, workshop, fromRequest, presetStatus, onSaved, onClose }: { topics: TopicOption[]; workshop?: Workshop; fromRequest?: WorkshopRequest; presetStatus?: string; onSaved: (w: Workshop) => void; onClose: () => void }) {
+  const d = useRef((() => { const x = defaultsFor(workshop ?? fromRequest); return fromRequest && presetStatus ? { ...x, values: { ...x.values, status: presetStatus } } : x; })()).current;
   const [path, setPath] = useState<HostPath>(d.path);
   const [startDate, setStartDate] = useState(d.startDate);
   const [paid, setPaid] = useState(d.paid);

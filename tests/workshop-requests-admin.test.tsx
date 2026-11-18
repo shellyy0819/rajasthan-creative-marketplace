@@ -1,5 +1,7 @@
 import React from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => {} }) }));
 import { renderToStaticMarkup } from 'react-dom/server';
 import { WorkshopRequestsAdmin } from '@/components/WorkshopRequestsAdmin';
 import type { WorkshopRequest } from '@/lib/workshop-requests';
@@ -27,5 +29,11 @@ describe('requests table', () => {
     const listed = renderToStaticMarkup(<WorkshopRequestsAdmin requests={[{ ...base, status: 'listed', listedWorkshopId: 'w12' } as WorkshopRequest]} />);
     expect(listed).toContain('Listed as w12');
     expect(listed).not.toContain('Create listing');
+  });
+  it('every request has a Status dropdown with Published, On hold and Archived', () => {
+    const h = renderToStaticMarkup(<WorkshopRequestsAdmin requests={[base]} />);
+    expect(h).toContain('aria-label="Status of Morning Flow"');
+    for (const o of ['>Published<', '>On hold<', '>Archived<', '>New<']) expect(h).toContain(o);
+    expect(h).toContain('<th>Status</th>');
   });
 });

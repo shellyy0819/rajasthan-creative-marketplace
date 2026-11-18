@@ -156,6 +156,10 @@ describe('listing form', () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).sourceRequestId).toBeUndefined();
     await waitFor(() => expect(screen.getByText('Morning Flow 2')).toBeTruthy());
   });
+  it('from a request with Published chosen on the request: the form opens with Published preselected', () => {
+    render(<WorkshopsAdmin initial={[]} topics={topics} fromRequest={req} presetStatus="APPROVED" />);
+    expect((within(screen.getByRole('dialog')).getByLabelText('Status') as HTMLSelectElement).value).toBe('APPROVED');
+  });
   it('from a request: opens prefilled as Draft and posts the sourceRequestId', async () => {
     fetchMock.mockResolvedValue(ok({ ...yoga, id: 'w10', status: 'DRAFT', title: 'Evening Flow' }, 201));
     render(<WorkshopsAdmin initial={[]} topics={topics} fromRequest={req} />);

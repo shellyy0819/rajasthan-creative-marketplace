@@ -12,7 +12,7 @@ const STATUS_LABEL: Record<string, string> = { DRAFT: 'Draft', APPROVED: 'Publis
 const day = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
 /** Every listing, in every status. An admin adds, edits, publishes and archives listings on behalf of hosts. */
-export function WorkshopsAdmin({ initial, topics, fromRequest }: { initial: Workshop[]; topics: TopicOption[]; fromRequest?: WorkshopRequest }) {
+export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus }: { initial: Workshop[]; topics: TopicOption[]; fromRequest?: WorkshopRequest; presetStatus?: string }) {
   const [list, setList] = useState(initial);
   const [form, setForm] = useState<{ workshop?: Workshop; request?: WorkshopRequest } | null>(fromRequest ? { request: fromRequest } : null);
   const [busy, setBusy] = useState('');
@@ -84,7 +84,7 @@ export function WorkshopsAdmin({ initial, topics, fromRequest }: { initial: Work
           </table>
         </div>
       )}
-      {form && <ListingForm key={form.workshop?.id ?? form.request?.id ?? 'new'} topics={topics} workshop={form.workshop} fromRequest={form.request} onSaved={saved} onClose={closeForm} />}
+      {form && <ListingForm key={form.workshop?.id ?? form.request?.id ?? 'new'} topics={topics} workshop={form.workshop} fromRequest={form.request} presetStatus={presetStatus} onSaved={saved} onClose={closeForm} />}
       <PageLoader show={!!busy} label="Saving…" />
       <Toast toast={toast} onClose={closeToast} />
     </>

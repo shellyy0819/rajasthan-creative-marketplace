@@ -2,7 +2,7 @@ import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
 import { and, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import type { Q } from '../db/client';
-import { workshopRequests, workshopTopics } from '../db/schema';
+import { workshopRequests, workshopTopics, workshops } from '../db/schema';
 import { verifyCityRef } from './city-ref';
 import { ApiError } from './errors';
 import { mailConfigured, sendMail } from './mailer';
@@ -23,8 +23,8 @@ export const KIND_LABEL: Record<RequestKind, string> = { workshop: 'Workshop', m
 export type WorkshopRequest = {
   id: string; hostName: string; contactName: string; phone: string; email: string; city: string; venue: string; title: string;
   kind: RequestKind; mode: 'in_person' | 'online'; topicId?: number; topic?: string; description: string; startDate: string; endDate: string; startTime?: string; endTime?: string;
-  status: 'unverified' | 'received' | 'listed'; emailVerified: boolean; images: string[]; seats?: number; priceType: 'FREE' | 'PAID'; pricePaise?: number; instagram?: string; website?: string; notes?: string; createdAt: string;
-  endsOn?: string; platform?: string; schedule?: Schedule; languages: string[]; level?: Level; experience?: string; certifications?: string; freeTrial: boolean; freeTrialDays?: number; joinLink?: string; whatsapp?: string; prices: PriceRow[]; listedWorkshopId?: string;
+  status: 'unverified' | 'received' | 'listed' | 'on_hold' | 'archived'; emailVerified: boolean; images: string[]; seats?: number; priceType: 'FREE' | 'PAID'; pricePaise?: number; instagram?: string; website?: string; notes?: string; createdAt: string;
+  endsOn?: string; platform?: string; schedule?: Schedule; languages: string[]; level?: Level; experience?: string; certifications?: string; freeTrial: boolean; freeTrialDays?: number; joinLink?: string; whatsapp?: string; prices: PriceRow[]; listedWorkshopId?: string; listedStatus?: string;
 };
 
 const toRequest = (r: typeof workshopRequests.$inferSelect): WorkshopRequest => ({
@@ -45,6 +45,19 @@ export async function markRequestListed(q: Q, requestId: string, workshopId: str
   if (!row) throw bad('sourceRequestId does not match a request.');
   if (row.status === 'listed') throw new ApiError(409, 'A listing was already made from this request.');
   await q.update(workshopRequests).set({ status: 'listed', listedWorkshopId: workshopId }).where(eq(workshopRequests.id, requestId));
+}
+
+/**
+ * Where an admin has put a reviewed request: New (received), On hold or Archived. A request that is still waiting for its email code
+ * cannot be moved, and one that already became a listing is managed through that listing.
+ */
+export async function setRequestStatus(id: string, status: 'received' | 'on_hold' | 'archived'): Promise<WorkshopRequest> {
+  const [row] = await getDb().select().from(workshopRequests).where(eq(workshopRequests.id, id));
+  if (!row) throw new ApiError(404, 'Request not found.');
+  if (row.status === 'unverified') throw new ApiError(409, 'This request has not been confirmed by email yet.');
+  if (row.status === 'listed') throw new ApiError(409, 'This request became a listing: change the listing instead.');
+  const [updated] = await getDb().update(workshopRequests).set({ status }).where(eq(workshopRequests.id, id)).returning();
+  return toRequest(updated);
 }
 
 /** The topic's name for display (the row only keeps the id). */
@@ -136,9 +149,11 @@ export async function createWorkshopRequest(input: unknown): Promise<WorkshopReq
 
 /** Requests whose email was confirmed with the emailed code, plus ones kept as received because the code email could not be sent (see emailVerified). */
 export async function listWorkshopRequests(): Promise<WorkshopRequest[]> {
-  const rows = await getDb().select().from(workshopRequests).where(inArray(workshopRequests.status, ['received', 'listed']))
+  const rows = await getDb().select({ r: workshopRequests, listingStatus: workshops.status }).from(workshopRequests)
+    .leftJoin(workshops, eq(workshops.id, workshopRequests.listedWorkshopId))
+    .where(inArray(workshopRequests.status, ['received', 'listed', 'on_hold', 'archived']))
     .orderBy(desc(workshopRequests.createdAt), desc(workshopRequests.id));
-  return Promise.all(rows.map(r => withTopicName(toRequest(r))));
+  return Promise.all(rows.map(({ r, listingStatus }) => withTopicName({ ...toRequest(r), ...(listingStatus ? { listedStatus: listingStatus } : {}) })));
 }
 
 // ---- email verification: a 6-digit code, valid 10 minutes, 5 tries per code, 5 emails per request, 60 seconds between emails ----

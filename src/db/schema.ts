@@ -357,7 +357,7 @@ export const workshopRequests = pgTable('workshop_requests', {
   check('workshop_requests_dates_ordered', sql`${t.endDate} >= ${t.startDate}`),
   check('workshop_requests_seats_positive', sql`${t.seats} is null or ${t.seats} >= 1`),
   check('workshop_requests_price_nonneg', sql`${t.pricePaise} is null or ${t.pricePaise} >= 0`),
-  check('workshop_requests_status_valid', sql`${t.status} in ('unverified', 'received', 'listed')`),
+  check('workshop_requests_status_valid', sql`${t.status} in ('unverified', 'received', 'listed', 'on_hold', 'archived')`),
   index('workshop_requests_status_idx').on(t.status),
   index('workshop_requests_created_idx').on(t.createdAt),
 ]);
