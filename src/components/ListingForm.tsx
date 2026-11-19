@@ -47,7 +47,7 @@ function defaultsFor(src: Workshop | WorkshopRequest | undefined): Defaults {
  * The admin's listing form: the same fields and limits as the public host form, on one page. An admin adds a listing for a host,
  * edits one, or creates one from a request. Nothing here is emailed or rate limited; the listing is a Draft until the admin publishes it.
  */
-export function ListingForm({ topics, workshop, fromRequest, presetStatus, onSaved, onClose }: { topics: TopicOption[]; workshop?: Workshop; fromRequest?: WorkshopRequest; presetStatus?: string; onSaved: (w: Workshop) => void; onClose: () => void }) {
+export function ListingForm({ topics, workshop, fromRequest, presetStatus, sellerMode = false, onSaved, onClose }: { topics: TopicOption[]; workshop?: Workshop; fromRequest?: WorkshopRequest; presetStatus?: string; /** A seller editing their own workshop: no Status choice (the team publishes and archives). */ sellerMode?: boolean; onSaved: (w: Workshop) => void; onClose: () => void }) {
   const d = useRef((() => { const x = defaultsFor(workshop ?? fromRequest); return fromRequest && presetStatus ? { ...x, values: { ...x.values, status: presetStatus } } : x; })()).current;
   const [path, setPath] = useState<HostPath>(d.path);
   const [startDate, setStartDate] = useState(d.startDate);
@@ -99,7 +99,7 @@ export function ListingForm({ topics, workshop, fromRequest, presetStatus, onSav
     const f = new FormData(form);
     const isClass = path === 'class';
     const common = {
-      title: field(f, 'title'), description: field(f, 'description'), host: field(f, 'hostName'), status: field(f, 'status') || 'DRAFT',
+      title: field(f, 'title'), description: field(f, 'description'), host: field(f, 'hostName'), status: sellerMode ? (workshop?.status ?? 'DRAFT') : field(f, 'status') || 'DRAFT',
       topicId: field(f, 'topicId') ? Number(field(f, 'topicId')) : null, instagram: field(f, 'instagram') || null, website: field(f, 'website') || null,
       images: f.getAll('images').map(v => String(v).trim()).filter(Boolean),
       contactName: field(f, 'contactName') || null, contactPhone: field(f, 'contactPhone') || null, contactEmail: field(f, 'contactEmail') || null,
@@ -137,7 +137,7 @@ export function ListingForm({ topics, workshop, fromRequest, presetStatus, onSav
     <div className="contact-backdrop admin-modal" onClick={e => { if (e.target === e.currentTarget && !sending) onClose(); }}>
       <div role="dialog" aria-modal="true" aria-labelledby="listing-title" className="contact-card">
         <div className="dialog-head">
-          <h2 id="listing-title">{workshop ? 'Edit listing' : fromRequest ? 'Create listing from request' : 'New listing'}</h2>
+          <h2 id="listing-title">{sellerMode ? 'Edit workshop' : workshop ? 'Edit listing' : fromRequest ? 'Create listing from request' : 'New listing'}</h2>
           <button type="button" className="icon-btn" aria-label="Close" onClick={onClose} disabled={sending}>✕</button>
         </div>
         <form ref={formRef} className="admin-form" noValidate onSubmit={save} onChange={e => { const n = (e.target as unknown as HTMLInputElement).name; if (n) clearFieldError(n); }}>
@@ -149,9 +149,9 @@ export function ListingForm({ topics, workshop, fromRequest, presetStatus, onSav
               <label className="host-path-card"><input type="radio" name="path" value="class" aria-label="Online class" checked={path === 'class'} onChange={() => setPath('class')} /><span><b>Online class</b><small>Regular classes online</small></span></label>
             </div>
           </fieldset>
-          <label>Status
+          {!sellerMode && <label>Status
             <select name="status" defaultValue="DRAFT"><option value="DRAFT">Draft</option><option value="APPROVED">Published</option><option value="ARCHIVED">Archived</option></select>
-          </label>
+          </label>}
           <label>Topic
             <select name="topicId" defaultValue=""><option value="">Other</option>{topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
           </label>
@@ -176,7 +176,7 @@ export function ListingForm({ topics, workshop, fromRequest, presetStatus, onSav
             {path === 'class' && <ClassAbout errors={fieldErrors} />}
           </fieldset>
           <fieldset>
-            <legend>Private contact (staff only, never shown on the site)</legend>
+            <legend>{sellerMode ? 'Private contact (only our team sees it, never shown on the site)' : 'Private contact (staff only, never shown on the site)'}</legend>
             <label>Contact name<input name="contactName" maxLength={100} /><FieldError errors={fieldErrors} name="contactName" /></label>
             <div className="admin-form-row">
               <label>Contact phone<input name="contactPhone" type="tel" inputMode="tel" maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} /><FieldError errors={fieldErrors} name="contactPhone" /></label>
