@@ -225,6 +225,9 @@ select,
 textarea {
   font-family: inherit;
 }
+/* iOS Safari paints buttons and dropdown values in its system blue unless the colour is set: use the page text colour, as on a laptop. */
+button, select { color: inherit; }
+select { -webkit-text-fill-color: currentColor; }
 a {
   color: inherit;
   text-decoration: none;
@@ -878,6 +881,7 @@ dialog::backdrop {
 .icon-btn {
   border: 0;
   background: transparent;
+  color: inherit;
   font-size: 20px;
   cursor: pointer;
 }
@@ -3211,57 +3215,6 @@ main {
   .gallery-slide,
   .gallery-slide[data-active=true] {
     transition: none;
-  }
-}
-
-/* phone splash: shown once per session, fades out by itself */
-.splash {
-  display: none;
-}
-@media (max-width: 600px) {
-  html:not([data-splash="seen"]) .splash {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    background: var(--paper);
-    animation: splash-out 0.45s ease 1.2s forwards;
-  }
-}
-.splash img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.splash-dark {
-  display: none;
-}
-:root[data-theme="dark"] .splash-light {
-  display: none;
-}
-:root[data-theme="dark"] .splash-dark {
-  display: block;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .splash-light {
-    display: none;
-  }
-  :root:not([data-theme="light"]) .splash-dark {
-    display: block;
-  }
-}
-@keyframes splash-out {
-  to {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  html:not([data-splash="seen"]) .splash {
-    animation-duration: 0.01s;
   }
 }
 
