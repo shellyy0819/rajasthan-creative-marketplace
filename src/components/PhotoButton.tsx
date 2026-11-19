@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 /** Full-screen photo viewer: Esc or a click outside closes it, arrow keys (or the buttons) move between photos. */
-function PhotoViewer({ images, start, label, onClose }: { images: string[]; start: number; label: string; onClose: () => void }) {
+export function PhotoViewer({ images, start, label, onClose }: { images: string[]; start: number; label: string; onClose: () => void }) {
   const [i, setI] = useState(start);
   const closeRef = useRef<HTMLButtonElement>(null);
   const many = images.length > 1;
