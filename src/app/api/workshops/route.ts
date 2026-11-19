@@ -7,11 +7,11 @@ import { listWorkshops } from '@/lib/catalog';
 export const dynamic = 'force-dynamic';
 export const GET = (req: Request) => handle(async () => {
   const sp = new URL(req.url).searchParams;
-  return json(await listWorkshops({ city: sp.get('city') ?? undefined, type: sp.get('type') ?? undefined, q: sp.get('q') ?? undefined }));
+  return json(await listWorkshops({ city: sp.get('city') ?? undefined, type: sp.get('type') ?? undefined, mode: sp.get('mode') ?? undefined, q: sp.get('q') ?? undefined }));
 });
 export const POST = (req: Request) => handle(async () => {
-  requireAdmin(await auth());
-  const created = await createWorkshop(await readJson(req));
+  const admin = requireAdmin(await auth());
+  const created = await createWorkshop(await readJson(req), admin.email);
   revalidatePath('/', 'layout');
   return json(created, 201);
 });

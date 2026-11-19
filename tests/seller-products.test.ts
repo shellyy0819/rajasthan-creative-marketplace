@@ -161,7 +161,7 @@ describe('workshop host ids stay out of the public API', () => {
   it('public workshop lists and pages omit hostId; the admin create/update responses include it', async () => {
     const { createWorkshop, updateWorkshop } = await import('@/lib/admin');
     const { listWorkshops, getWorkshopBySlug } = await import('@/lib/catalog');
-    const w = await createWorkshop({ title: 'Hosted', type: 'FREE', pricePaise: 0, cityRef: cityRef('Jaipur'), venue: 'V', date: '2026-12-01', time: '10:00', seats: 5, host: 'H', hostId: A.id, description: 'D' });
+    const w = await createWorkshop({ title: 'Hosted', type: 'FREE', pricePaise: 0, cityRef: cityRef('Jaipur'), venue: 'V', date: '2099-12-01', time: '10:00', seats: 5, host: 'H', hostId: A.id, description: 'D', status: 'APPROVED' });
     expect(w.hostId).toBe(A.id);
     expect((await updateWorkshop(w.id, { seats: 6 })).hostId).toBe(A.id);
     expect(JSON.stringify(await listWorkshops())).not.toContain(A.id);

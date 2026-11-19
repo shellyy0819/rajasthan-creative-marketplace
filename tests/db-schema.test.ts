@@ -133,7 +133,7 @@ describe('constraints protect the data even if app code is wrong', () => {
   });
   it('rejects overbooked or malformed workshops', async () => {
     const db = await getTestDb();
-    const w = { id: 'wx', title: 'T', type: 'PAID', pricePaise: 1, cityId: await jaipurId(), venue: 'V', startsAt: new Date('2026-12-01T10:00:00+05:30'), seats: 5, booked: 0, hostName: 'H', description: 'D', status: 'APPROVED' };
+    const w = { id: 'wx', title: 'T', type: 'PAID', pricePaise: 1, cityId: await jaipurId(), venue: 'V', startsAt: new Date('2099-12-01T10:00:00+05:30'), seats: 5, booked: 0, hostName: 'H', description: 'D', status: 'APPROVED' };
     for (const bad of [{ booked: 6 }, { booked: -1 }, { seats: 0 }, { type: 'MAYBE' }])
       await expect(db.insert(workshops).values({ ...w, ...bad })).rejects.toThrow();
   });
@@ -256,10 +256,10 @@ describe('users, roles and profiles (new tables)', () => {
   });
   it('workshops expose date/time in India time and starts_at round-trips', async () => {
     const w = (await snapshot()).workshops.find(x => x.id === 'w1')!;
-    expect(w).toMatchObject({ date: '2026-11-08', time: '11:00', host: 'Shauk and Stuff' });
+    expect(w).toMatchObject({ date: '2099-11-08', time: '11:00', host: 'Shauk and Stuff' });
     const db = await getTestDb();
     const [row] = await db.select().from(workshops).where(eq(workshops.id, 'w1'));
-    expect(row.startsAt.toISOString()).toBe('2026-11-08T05:30:00.000Z');
+    expect(row.startsAt.toISOString()).toBe('2099-11-08T05:30:00.000Z');
   });
 });
 });

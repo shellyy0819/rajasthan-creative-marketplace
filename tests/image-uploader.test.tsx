@@ -216,3 +216,16 @@ describe('PostForm integration', () => {
     expect(onSubmit.mock.calls[0][0].images).toEqual([...START, `${S3}products/u/new.jpg`]);
   });
 });
+
+describe('opening a photo', () => {
+  it('an uploaded thumbnail links to the full photo in a new tab; the Cover badge and buttons still work', () => {
+    render(<ImageUploader initial={['https://cdn.example/a.jpg', 'https://cdn.example/b.jpg']} />);
+    const a = screen.getByRole('link', { name: 'Open photo 1 in a new tab' });
+    expect(a.getAttribute('href')).toBe('https://cdn.example/a.jpg');
+    expect(a.getAttribute('target')).toBe('_blank');
+    expect(a.getAttribute('rel')).toContain('noopener');
+    expect(screen.getByRole('link', { name: 'Open photo 2 in a new tab' }).getAttribute('href')).toBe('https://cdn.example/b.jpg');
+    expect(screen.getByText('Cover')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Remove photo 1' })).toBeTruthy();
+  });
+});

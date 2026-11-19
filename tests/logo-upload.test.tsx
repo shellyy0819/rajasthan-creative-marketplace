@@ -37,6 +37,28 @@ const mount = () => {
 };
 const uploadCalls = () => fetchMock.mock.calls.filter(c => c[0] === '/api/uploads/seller-logo');
 
+describe('logo tip', () => {
+  it('tells people a close-up photo is easier for attendees to see', () => {
+    render(<LogoUpload value="" onChange={() => {}} onBusyChange={() => {}} />);
+    expect(screen.getByText(/close-up photo is much easier for attendees to see/i)).toBeTruthy();
+  });
+});
+
+describe('opening the logo', () => {
+  it('the preview is a link that opens the full photo in a new tab', () => {
+    render(<LogoUpload value={PUBLIC} onChange={() => {}} onBusyChange={() => {}} />);
+    const a = screen.getByRole('link', { name: /open your logo/i });
+    expect(a.getAttribute('href')).toBe(PUBLIC);
+    expect(a.getAttribute('target')).toBe('_blank');
+    expect(a.getAttribute('rel')).toContain('noopener');
+    expect(a.querySelector('img')).not.toBeNull();
+  });
+  it('with no photo yet there is nothing to open', () => {
+    render(<LogoUpload value="" onChange={() => {}} onBusyChange={() => {}} />);
+    expect(screen.queryByRole('link', { name: /open your logo/i })).toBeNull();
+  });
+});
+
 describe('LogoUpload', () => {
   it('logo under 400x400 rejected with message', async () => {
     dims = { width: 399, height: 800 };

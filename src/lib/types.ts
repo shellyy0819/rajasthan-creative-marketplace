@@ -1,3 +1,4 @@
+import type { Kind, Level, Mode, PriceRow, Schedule } from './workshop-listing';
 /** How a product came to be listed. Managed by admins; see lib/sourcing-types.ts. */
 export type SourcingType = { id: number; name: string; countsAsHandmade: boolean; showBadge: boolean; position: number; active: boolean };
 export type AdminSourcingType = SourcingType & { productCount: number };
@@ -14,9 +15,16 @@ export type AdminProduct = Product & {
   publishedByEmail?: string; workshopTitle?: string; createdAt?: string; updatedAt?: string;
 };
 export type Workshop = {
-  id: string; title: string; type: 'FREE' | 'PAID'; pricePaise: number; city: string; cityId: number; citySlug: string; cityState?: string;
-  venue: string; date: string; time: string; seats: number; booked: number;
+  id: string; title: string; type: 'FREE' | 'PAID'; pricePaise: number;
+  kind: Kind; mode: Mode; topicId: number | null; topic?: { id: number; name: string; slug: string };
+  city: string | null; cityId: number | null; citySlug: string | null; cityState?: string;
+  venue: string | null; date: string; time: string; endsOn: string | null; seats: number | null; booked: number;
   host: string; description: string; status: string; hostId?: string;
+  platform: string | null; schedule: Schedule | null; languages: string[]; level: Level | null;
+  experience: string | null; certifications: string | null; freeTrial: boolean; freeTrialDays: number | null;
+  whatsapp: string | null; instagram: string | null; website: string | null; images: string[]; prices: PriceRow[];
+  /** Admin-only: how staff reach the host, who added the listing and which request it came from. The public mapper never sets these. */
+  contactName?: string; contactPhone?: string; contactEmail?: string; createdBy?: string; sourceRequestId?: string; joinLink?: string; createdAt?: string;
 };
 export type OrderItem = {
   productId: string; name: string; seller: string; quantity: number;

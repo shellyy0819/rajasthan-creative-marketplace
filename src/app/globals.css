@@ -10,6 +10,7 @@
   --line: #e5ddd1;
   --white: #fffdf9;
   --control-border: #cfc5b7;
+  --backdrop: #0b0e0ae6; /* behind every modal: near black, so it dims the dark theme too */
   --muted-2: #6e7068;
   --bar-bg: #f8f4eef2;
   --veil: #f8f4eecc;
@@ -859,8 +860,8 @@ dialog {
   color: var(--ink);
 }
 dialog::backdrop {
-  background: #1f251dcc;
-  backdrop-filter: blur(3px);
+  background: var(--backdrop);
+  backdrop-filter: blur(4px);
 }
 .dialog-head {
   display: flex;
@@ -1813,7 +1814,8 @@ a.maker-head:hover .maker-name {
 .admin-modal {
   position: fixed;
   inset: 0;
-  background: #1f251dcc;
+  background: var(--backdrop);
+  backdrop-filter: blur(4px);
   display: grid;
   place-items: center;
   z-index: 40;
@@ -2950,6 +2952,7 @@ main {
   object-fit: cover;
   display: block;
 }
+.uploader-open { display: block; width: 100%; height: 100%; cursor: zoom-in; }
 .uploader-tile.uploading img {
   opacity: .5;
 }
@@ -3515,6 +3518,7 @@ button.onboard-stepper-btn {
   height: 100%;
   object-fit: cover;
 }
+.logo-preview .logo-open { display: block; width: 100%; height: 100%; cursor: zoom-in; }
 .logo-actions {
   display: flex;
   flex-direction: column;

@@ -1,7 +1,8 @@
 import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
-import { and, desc, eq, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
-import { workshopRequests } from '../db/schema';
+import type { Q } from '../db/client';
+import { workshopRequests, workshopTopics, workshops } from '../db/schema';
 import { verifyCityRef } from './city-ref';
 import { ApiError } from './errors';
 import { mailConfigured, sendMail } from './mailer';
@@ -11,27 +12,60 @@ import { otpSender } from './settings';
 import { notifyTeam } from './workshop-notify';
 import { isRequestImageUrl, storageConfig } from './storage';
 import { EMAIL_RE, bad, int, obj, oneOf, optionalText, text } from './validate';
+import { istParts } from '../db/mappers';
+import { CLASS_CONTACT_MESSAGE, isCurrent, optionalWebsite, parseListingFields, priceCache, type Level, type PriceRow, type Schedule } from './workshop-listing';
 
 import { MAX_REQUEST_IMAGES } from './workshop-requests-shared';
 export { MAX_REQUEST_IMAGES };
-export const REQUEST_KINDS = ['workshop', 'meetup', 'popup', 'market'] as const;
+export const REQUEST_KINDS = ['workshop', 'meetup', 'popup', 'market', 'class'] as const;
 export type RequestKind = (typeof REQUEST_KINDS)[number];
-export const KIND_LABEL: Record<RequestKind, string> = { workshop: 'Workshop', meetup: 'Meetup', popup: 'Pop-up', market: 'Flea market' };
+export const KIND_LABEL: Record<RequestKind, string> = { workshop: 'Workshop', meetup: 'Meetup', popup: 'Pop-up', market: 'Flea market', class: 'Online class' };
 
 export type WorkshopRequest = {
   id: string; hostName: string; contactName: string; phone: string; email: string; city: string; venue: string; title: string;
-  kind: RequestKind; description: string; startDate: string; endDate: string; startTime?: string; endTime?: string;
-  status: 'unverified' | 'received'; emailVerified: boolean; images: string[]; seats?: number; priceType: 'FREE' | 'PAID'; pricePaise?: number; instagram?: string; website?: string; notes?: string; createdAt: string;
+  kind: RequestKind; mode: 'in_person' | 'online'; topicId?: number; topic?: string; description: string; startDate: string; endDate: string; startTime?: string; endTime?: string;
+  status: 'unverified' | 'received' | 'listed' | 'on_hold' | 'archived'; emailVerified: boolean; images: string[]; seats?: number; priceType: 'FREE' | 'PAID'; pricePaise?: number; instagram?: string; website?: string; notes?: string; createdAt: string;
+  endsOn?: string; platform?: string; schedule?: Schedule; languages: string[]; level?: Level; experience?: string; certifications?: string; freeTrial: boolean; freeTrialDays?: number; joinLink?: string; whatsapp?: string; prices: PriceRow[]; listedWorkshopId?: string; listedStatus?: string; listedEnded?: boolean;
 };
 
 const toRequest = (r: typeof workshopRequests.$inferSelect): WorkshopRequest => ({
-  id: r.id, hostName: r.hostName, contactName: r.contactName, phone: r.phone, email: r.email, city: r.city, venue: r.venue, title: r.title,
-  kind: r.kind as RequestKind, description: r.description, startDate: r.startDate, endDate: r.endDate,
+  id: r.id, hostName: r.hostName, contactName: r.contactName, phone: r.phone, email: r.email, city: r.city ?? '', venue: r.venue ?? '', title: r.title,
+  kind: r.kind as RequestKind, mode: r.mode as 'in_person' | 'online', ...(r.topicId != null ? { topicId: r.topicId } : {}), description: r.description, startDate: r.startDate, endDate: r.endDate,
   ...(r.startTime ? { startTime: r.startTime } : {}), ...(r.endTime ? { endTime: r.endTime } : {}),
   ...(r.seats != null ? { seats: r.seats } : {}), priceType: r.priceType as 'FREE' | 'PAID', ...(r.pricePaise != null ? { pricePaise: r.pricePaise } : {}),
   ...(r.instagram ? { instagram: r.instagram } : {}), ...(r.website ? { website: r.website } : {}), ...(r.notes ? { notes: r.notes } : {}),
-  status: r.status as 'unverified' | 'received', emailVerified: r.verifiedAt != null, images: r.images ?? [], createdAt: r.createdAt.toISOString(),
+  status: r.status as WorkshopRequest['status'], emailVerified: r.verifiedAt != null, images: r.images ?? [], createdAt: r.createdAt.toISOString(),
+  ...(r.endsOn ? { endsOn: r.endsOn } : {}), ...(r.platform ? { platform: r.platform } : {}), ...(r.schedule ? { schedule: r.schedule as Schedule } : {}),
+  languages: r.languages ?? [], ...(r.level ? { level: r.level as Level } : {}), ...(r.experience ? { experience: r.experience } : {}), ...(r.certifications ? { certifications: r.certifications } : {}),
+  freeTrial: r.freeTrial, ...(r.freeTrialDays != null ? { freeTrialDays: r.freeTrialDays } : {}), ...(r.joinLink ? { joinLink: r.joinLink } : {}), ...(r.whatsapp ? { whatsapp: r.whatsapp } : {}), prices: (r.prices ?? []) as PriceRow[], ...(r.listedWorkshopId ? { listedWorkshopId: r.listedWorkshopId } : {}),
 });
+
+/** An admin made a listing from this request: remember which one, and take it out of the to-do state. Throws 400 when the request does not exist. */
+export async function markRequestListed(q: Q, requestId: string, workshopId: string): Promise<void> {
+  const [row] = await q.select({ status: workshopRequests.status }).from(workshopRequests).where(eq(workshopRequests.id, requestId)).for('update');
+  if (!row) throw bad('sourceRequestId does not match a request.');
+  await q.update(workshopRequests).set({ status: 'listed', listedWorkshopId: workshopId }).where(eq(workshopRequests.id, requestId));
+}
+
+/**
+ * Where an admin has put a reviewed request: New (received), On hold or Archived. A request that is still waiting for its email code
+ * cannot be moved, and one that already became a listing is managed through that listing.
+ */
+export async function setRequestStatus(id: string, status: 'received' | 'on_hold' | 'archived'): Promise<WorkshopRequest> {
+  const [row] = await getDb().select().from(workshopRequests).where(eq(workshopRequests.id, id));
+  if (!row) throw new ApiError(404, 'Request not found.');
+  if (row.status === 'unverified') throw new ApiError(409, 'This request has not been confirmed by email yet.');
+  if (row.status === 'listed') throw new ApiError(409, 'This request became a listing: change the listing instead.');
+  const [updated] = await getDb().update(workshopRequests).set({ status }).where(eq(workshopRequests.id, id)).returning();
+  return toRequest(updated);
+}
+
+/** The topic's name for display (the row only keeps the id). */
+export async function withTopicName(r: WorkshopRequest): Promise<WorkshopRequest> {
+  if (r.topicId == null || r.topic) return r;
+  const [t] = await getDb().select({ name: workshopTopics.name }).from(workshopTopics).where(eq(workshopTopics.id, r.topicId));
+  return t ? { ...r, topic: t.name } : r;
+}
 
 function isoDate(v: unknown, field: string): string {
   const s = typeof v === 'string' ? v.trim() : '';
@@ -44,16 +78,6 @@ function optionalTime(v: unknown, field: string): string | undefined {
   if (typeof v !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(v.trim())) throw bad(`${field} must be a time like 18:30.`);
   return v.trim();
 }
-function optionalWebsite(v: unknown): string | undefined {
-  const raw = optionalText(v, 'website', 300);
-  if (!raw) return undefined;
-  const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(raw) ? raw : `https://${raw}`;
-  let u: URL;
-  try { u = new URL(withScheme); } catch { throw bad('website must be a web address like example.com.'); }
-  if ((u.protocol !== 'https:' && u.protocol !== 'http:') || !u.hostname.includes('.')) throw bad('website must be a web address like example.com.');
-  return withScheme;
-}
-
 /** Up to 3 distinct photo urls that were uploaded through the form's own upload area; anything else is refused. */
 function requestImages(v: unknown): string[] {
   if (v === undefined || v === null) return [];
@@ -78,22 +102,35 @@ export async function createWorkshopRequest(input: unknown): Promise<WorkshopReq
   if (!phone) throw bad('phone must be a valid Indian mobile number, e.g. 9989898999.');
   const email = typeof raw.email === 'string' ? raw.email.trim() : '';
   if (!email || email.length > 254 || !EMAIL_RE.test(email)) throw bad('email must be a valid email address.');
+  const l = parseListingFields(raw);
+  if (l.mode === 'hybrid') throw bad('mode must be in_person or online.');
+  const online = l.mode === 'online';
+  if ((online || l.kind === 'class') && !l.whatsapp && !l.instagram && !l.website) throw bad(CLASS_CONTACT_MESSAGE);
   const startDate = isoDate(raw.startDate, 'startDate');
-  // No end date given: a one-day event, so it ends on the start date.
-  const endDate = raw.endDate === undefined || raw.endDate === null || raw.endDate === '' ? startDate : isoDate(raw.endDate, 'endDate');
-  if (endDate < startDate) throw bad('endDate cannot be before startDate.');
-  const startTime = optionalTime(raw.startTime, 'startTime');
-  const endTime = optionalTime(raw.endTime, 'endTime');
+  // No end date given: a one-day event, so it ends on the start date. An online class's own end date (endsOn) is its end date, and blank means the start date too.
+  const endDate = online && l.endsOn ? l.endsOn : raw.endDate === undefined || raw.endDate === null || raw.endDate === '' ? startDate : isoDate(raw.endDate, 'endDate');
+  if (endDate < startDate) throw bad(online ? 'endsOn cannot be before startDate.' : 'endDate cannot be before startDate.');
+  const startTime = optionalTime(raw.startTime, 'startTime') ?? (online ? l.schedule?.time : undefined);
+  const endTime = online ? undefined : optionalTime(raw.endTime, 'endTime');
   if (startTime && endTime && endDate === startDate && endTime <= startTime) throw bad('endTime must be after startTime.');
-  const priceType = oneOf(raw.priceType, 'priceType', ['FREE', 'PAID'] as const);
-  const pricePaise = priceType === 'PAID' ? int(raw.priceRupees, 'priceRupees', 1, 1_000_000) * 100 : null;
-  const seats = raw.seats === undefined || raw.seats === null || raw.seats === '' ? null : int(raw.seats, 'seats', 1, 100_000);
+  let priceType: 'FREE' | 'PAID'; let pricePaise: number | null;
+  if (l.prices.length) { const c = priceCache(l.prices); priceType = c.type; pricePaise = c.type === 'PAID' ? c.pricePaise : null; }
+  else if (online && raw.priceType === undefined) { priceType = 'FREE'; pricePaise = null; }
+  else { priceType = oneOf(raw.priceType, 'priceType', ['FREE', 'PAID'] as const); pricePaise = priceType === 'PAID' ? int(raw.priceRupees, 'priceRupees', 1, 1_000_000) * 100 : null; }
+  const seats = online || raw.seats === undefined || raw.seats === null || raw.seats === '' ? null : int(raw.seats, 'seats', 1, 100_000);
+  if (l.topicId != null) {
+    const [t] = await getDb().select({ id: workshopTopics.id }).from(workshopTopics).where(and(eq(workshopTopics.id, l.topicId), eq(workshopTopics.active, true)));
+    if (!t) throw bad('topicId does not match a topic.');
+  }
   const [row] = await getDb().insert(workshopRequests).values({
     hostName: text(raw.hostName, 'hostName', 150), contactName: text(raw.contactName, 'contactName', 100), phone: `+91${phone.slice(-10)}`, email,
-    city: cityLabel(raw.cityRef), venue: text(raw.venue, 'venue', 300), title: text(raw.title, 'title', 150),
-    kind: oneOf(raw.kind, 'kind', REQUEST_KINDS), description: text(raw.description, 'description', 2000),
+    city: online ? null : cityLabel(raw.cityRef), venue: online ? null : text(raw.venue, 'venue', 300), title: text(raw.title, 'title', 150),
+    kind: l.kind, mode: l.mode, topicId: l.topicId, description: text(raw.description, 'description', 2000),
     startDate, endDate, startTime: startTime ?? null, endTime: endTime ?? null, seats, priceType, pricePaise,
-    instagram: optionalText(raw.instagram, 'instagram', 200) ?? null, website: optionalWebsite(raw.website) ?? null, notes: optionalText(raw.notes, 'notes', 2000) ?? null, images: requestImages(raw.images),
+    instagram: l.instagram, website: l.website, notes: optionalText(raw.notes, 'notes', 2000) ?? null, images: requestImages(raw.images),
+    // No end date: the classes end on the start date.
+    endsOn: online ? l.endsOn ?? startDate : null, platform: online ? l.platform : null, schedule: online ? l.schedule : null, languages: l.languages, level: l.level,
+    experience: l.experience, certifications: l.certifications, freeTrial: l.freeTrial, freeTrialDays: l.freeTrialDays, joinLink: online ? l.joinLink : null, whatsapp: l.whatsapp, prices: l.prices,
   }).returning();
   try {
     await issueCode(row.id, row.email);
@@ -112,8 +149,16 @@ export async function createWorkshopRequest(input: unknown): Promise<WorkshopReq
 
 /** Requests whose email was confirmed with the emailed code, plus ones kept as received because the code email could not be sent (see emailVerified). */
 export async function listWorkshopRequests(): Promise<WorkshopRequest[]> {
-  return (await getDb().select().from(workshopRequests).where(eq(workshopRequests.status, 'received'))
-    .orderBy(desc(workshopRequests.createdAt), desc(workshopRequests.id))).map(toRequest);
+  const rows = await getDb().select({ r: workshopRequests, listingStatus: workshops.status, startsAt: workshops.startsAt, endsOn: workshops.endsOn, kind: workshops.kind }).from(workshopRequests)
+    .leftJoin(workshops, eq(workshops.id, workshopRequests.listedWorkshopId))
+    .where(inArray(workshopRequests.status, ['received', 'listed', 'on_hold', 'archived']))
+    .orderBy(desc(workshopRequests.createdAt), desc(workshopRequests.id));
+  return Promise.all(rows.map(({ r, listingStatus, startsAt, endsOn, kind }) => withTopicName({
+    ...toRequest(r),
+    ...(listingStatus ? { listedStatus: listingStatus } : {}),
+    // A listing that has ended no longer blocks another run of the request.
+    ...(listingStatus && startsAt && kind ? { listedEnded: !isCurrent({ date: istParts(startsAt).date, endsOn, kind }) } : {}),
+  })));
 }
 
 // ---- email verification: a 6-digit code, valid 10 minutes, 5 tries per code, 5 emails per request, 60 seconds between emails ----

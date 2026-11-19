@@ -72,7 +72,7 @@ export async function seedFromJson(db: Database, data: LegacyDb) {
     }
     for (const w of data.workshops ?? []) {
       const r = await tx.insert(workshops).values({
-        id: w.id, title: w.title, type: w.type, pricePaise: w.pricePaise, cityId: await cityId(w.city), venue: w.venue,
+        id: w.id, title: w.title, type: w.type, pricePaise: w.pricePaise, cityId: await cityId(w.city as string), venue: w.venue,
         startsAt: istToDate(w.date, w.time), seats: w.seats, booked: w.booked, hostName: w.host,
         description: w.description, status: w.status,
       }).onConflictDoNothing().returning({ id: workshops.id });
