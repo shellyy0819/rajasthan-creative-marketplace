@@ -1,0 +1,55 @@
+/* The /workshops page while no workshop exists: the hosting card beside a café illustration */
+.ws-empty-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 40px;
+  margin: 8px 8.5% 72px;
+}
+.ws-empty-art {
+  flex: 1 1 380px;
+  max-width: 520px;
+}
+.ws-empty {
+  flex: 1 1 460px;
+  display: grid;
+  justify-items: start;
+  gap: 18px;
+  max-width: 660px;
+  box-sizing: border-box;
+  padding: 40px 44px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.ws-empty h2 {
+  margin: 0;
+  font: 500 clamp(26px, 3.4vw, 36px)/1.2 var(--font-display);
+}
+.ws-empty p {
+  margin: 0;
+  color: var(--muted-2);
+  font-size: 16px;
+  line-height: 1.7;
+}
+.ws-empty-steps {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 6px;
+  padding-left: 22px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+@media (max-width: 700px) {
+  .ws-empty-wrap {
+    margin-left: 5%;
+    margin-right: 5%;
+    gap: 20px;
+  }
+  .ws-empty-art {
+    order: -1;   /* the picture first on a phone */
+  }
+  .ws-empty {
+    padding: 26px 22px;
+  }
+}

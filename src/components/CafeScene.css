@@ -1,0 +1,124 @@
+/* The café illustration on the empty /workshops page: every colour is a variable, light by default, dark with the site's dark theme */
+.cafe-scene {
+  --cs-wall: #f5e8d6;
+  --cs-floor: #e7d5bd;
+  --cs-window: #dfe6d6;
+  --cs-hill: #a8b39a;
+  --cs-hill2: #8b987e;
+  --cs-sun: #d18c60;
+  --cs-clay: #d18c60;
+  --cs-orange: #c66b43;
+  --cs-sage: #a8b39a;
+  --cs-sageD: #8b987e;
+  --cs-line: #c3a78c;
+  --cs-ink: #2b3a30;
+  --cs-green: #405746;
+  --cs-cup: #fffdf9;
+  --cs-chalk: #f5e8d6;
+  --cs-glow: #fff1d0;
+  --cs-hair: #3b2a22;
+  --cs-skin1: #e0aa82;
+  --cs-skin2: #c98b63;
+  --cs-skin3: #a8704a;
+  --cs-shadow: #00000020;
+  width: 100%;
+  aspect-ratio: 560 / 420;
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--cs-wall);
+}
+:root[data-theme="dark"] .cafe-scene {
+  --cs-wall: #1f2a24;
+  --cs-floor: #262e28;
+  --cs-window: #2a3c33;
+  --cs-hill: #3d5446;
+  --cs-hill2: #334a3d;
+  --cs-sun: #d6a56f;
+  --cs-clay: #c98558;
+  --cs-orange: #d9774a;
+  --cs-sage: #7e8b73;
+  --cs-sageD: #62705a;
+  --cs-line: #4a5548;
+  --cs-ink: #101612;
+  --cs-green: #4d6b56;
+  --cs-cup: #efe6d6;
+  --cs-chalk: #efe6d6;
+  --cs-glow: #ffd98f;
+  --cs-hair: #1c1411;
+  --cs-skin1: #e0aa82;
+  --cs-skin2: #c98b63;
+  --cs-skin3: #a8704a;
+  --cs-shadow: #00000030;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cafe-scene {
+    --cs-wall: #1f2a24;
+    --cs-floor: #262e28;
+    --cs-window: #2a3c33;
+    --cs-hill: #3d5446;
+    --cs-hill2: #334a3d;
+    --cs-sun: #d6a56f;
+    --cs-clay: #c98558;
+    --cs-orange: #d9774a;
+    --cs-sage: #7e8b73;
+    --cs-sageD: #62705a;
+    --cs-line: #4a5548;
+    --cs-ink: #101612;
+    --cs-green: #4d6b56;
+    --cs-cup: #efe6d6;
+    --cs-chalk: #efe6d6;
+    --cs-glow: #ffd98f;
+    --cs-hair: #1c1411;
+    --cs-skin1: #e0aa82;
+    --cs-skin2: #c98b63;
+    --cs-skin3: #a8704a;
+    --cs-shadow: #00000030;
+  }
+}
+.cafe-scene svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.cafe-scene .f-wall { fill: var(--cs-wall); }
+.cafe-scene .f-floor { fill: var(--cs-floor); }
+.cafe-scene .f-window { fill: var(--cs-window); }
+.cafe-scene .f-hill { fill: var(--cs-hill); }
+.cafe-scene .f-hill2 { fill: var(--cs-hill2); }
+.cafe-scene .f-sun { fill: var(--cs-sun); }
+.cafe-scene .f-clay { fill: var(--cs-clay); }
+.cafe-scene .f-orange { fill: var(--cs-orange); }
+.cafe-scene .f-sage { fill: var(--cs-sage); }
+.cafe-scene .f-sageD { fill: var(--cs-sageD); }
+.cafe-scene .f-line { fill: var(--cs-line); }
+.cafe-scene .f-ink { fill: var(--cs-ink); }
+.cafe-scene .f-green { fill: var(--cs-green); }
+.cafe-scene .f-cup { fill: var(--cs-cup); }
+.cafe-scene .f-chalk { fill: var(--cs-chalk); }
+.cafe-scene .f-glow { fill: var(--cs-glow); }
+.cafe-scene .f-hair { fill: var(--cs-hair); }
+.cafe-scene .f-skin1 { fill: var(--cs-skin1); }
+.cafe-scene .f-skin2 { fill: var(--cs-skin2); }
+.cafe-scene .f-skin3 { fill: var(--cs-skin3); }
+.cafe-scene .f-shadow { fill: var(--cs-shadow); }
+.cafe-scene .s-line { stroke: var(--cs-line); }
+.cafe-scene .s-ink { stroke: var(--cs-ink); }
+.cafe-scene .s-skin1 { stroke: var(--cs-skin1); }
+.cafe-scene .s-skin2 { stroke: var(--cs-skin2); }
+.cafe-scene .s-skin3 { stroke: var(--cs-skin3); }
+.cafe-scene .s-cup { stroke: var(--cs-cup); }
+.cafe-scene .s-chalk { stroke: var(--cs-chalk); }
+.cafe-scene .s-orange { stroke: var(--cs-orange); }
+.cafe-scene .n-fill { fill: none; }
+.cafe-scene .cap { stroke-linecap: round; }
+.cafe-scene .s-2 { stroke-width: 2; }
+.cafe-scene .s-3 { stroke-width: 3; }
+.cafe-scene .s-4 { stroke-width: 4; }
+.cafe-scene .s-5 { stroke-width: 5; }
+.cafe-scene .s-9 { stroke-width: 9; }
+.cafe-scene .s-14 { stroke-width: 1.4; }
+.cafe-scene .s-16 { stroke-width: 1.6; }
+.cafe-scene .o-28 { opacity: 0.28; }
+.cafe-scene .cs-text {
+  font: 700 14px var(--font-sans), sans-serif;
+}
