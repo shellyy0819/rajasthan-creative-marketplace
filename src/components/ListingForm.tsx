@@ -4,7 +4,7 @@ import { ImageUploader } from './ImageUploader';
 import { fieldErrorFromMessage } from '@/lib/field-errors';
 import { JOIN_LINK_HINT, validJoinLink } from '@/lib/join-link';
 import { useFieldErrors } from './useFieldErrors';
-import { activePriceRows, BLANK_PRICE, ClassAbout, FieldError, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, PRICE_ROW_ERROR, priceRowsIncomplete, type PriceDraft } from './HostListingFields';
+import { activePriceRows, BLANK_PRICE, ClassAbout, craftFields, EventAbout, FieldError, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, PRICE_ROW_ERROR, priceRowsIncomplete, type PriceDraft } from './HostListingFields';
 import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 import { MAX_REQUEST_IMAGES } from '@/lib/workshop-requests-shared';
 import type { HostPath } from '@/lib/host-link';
@@ -34,6 +34,8 @@ function defaultsFor(src: Workshop | WorkshopRequest | undefined): Defaults {
     whatsapp: src.whatsapp ?? '', freeTrialDays: src.freeTrialDays ? String(src.freeTrialDays) : '', instagram: src.instagram ?? '', website: src.website ?? '',
     classTime: src.schedule?.time ?? '', ...(src.schedule && src.schedule.durationMin >= 60 && src.schedule.durationMin % 60 === 0 ? { durationValue: String(src.schedule.durationMin / 60), durationUnit: 'hours' } : { durationValue: src.schedule ? String(src.schedule.durationMin) : '60', durationUnit: 'mins' }),
     priceRupees: paid && paise ? rupees(paise) : '',
+    minAge: src.minAge ? String(src.minAge) : '', included: (src.included ?? []).join('\n'), bring: (src.bring ?? []).join('\n'),
+    ...Object.fromEntries((src.makes ?? []).flatMap((m, i) => [[`makeTitle${i + 1}`, m.title], [`makeText${i + 1}`, m.text]])),
   };
   if (isRequest) {
     Object.assign(v, { hostName: src.hostName, contactName: src.contactName, contactPhone: src.phone, contactEmail: src.email, venue: src.venue, seats: src.seats ? String(src.seats) : '', startTime: src.startTime ?? '', endTime: src.endTime ?? '', endDate: src.endDate !== src.startDate ? src.endDate : '' });
@@ -115,7 +117,7 @@ export function ListingForm({ topics, workshop, fromRequest, presetStatus, selle
     } : {
       ...common, mode: 'in_person', kind: field(f, 'kind') || 'workshop', venue: field(f, 'venue'), date: field(f, 'startDate'), time: field(f, 'startTime') || '09:00',
       endsOn: field(f, 'endDate') || null, seats: Number(field(f, 'seats')),
-      platform: null, schedule: null, prices: [], languages: [], level: null, freeTrial: false,
+      platform: null, schedule: null, prices: [], freeTrial: false, ...craftFields(f),
       ...(field(f, 'cityRef') ? { cityRef: field(f, 'cityRef') } : field(f, 'cityId') ? { cityId: Number(field(f, 'cityId')) } : {}),
       type: paid ? 'PAID' : 'FREE', pricePaise: paid ? Math.round(Number(field(f, 'priceRupees')) * 100) : 0,
     };
@@ -173,7 +175,7 @@ export function ListingForm({ topics, workshop, fromRequest, presetStatus, selle
               <InstagramField errors={fieldErrors} />
               <label>Website<input name="website" type="text" inputMode="url" maxLength={300} placeholder="yourstudio.in" /><FieldError errors={fieldErrors} name="website" /></label>
             </div>
-            {path === 'class' && <ClassAbout errors={fieldErrors} />}
+            {path === 'class' ? <ClassAbout errors={fieldErrors} /> : <EventAbout errors={fieldErrors} />}
           </fieldset>
           <fieldset>
             <legend>{sellerMode ? 'Private contact (only our team sees it, never shown on the site)' : 'Private contact (staff only, never shown on the site)'}</legend>
