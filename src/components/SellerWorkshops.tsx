@@ -34,7 +34,7 @@ export function SellerWorkshops({ initial, topics, contactEmail }: { initial: Wo
     <section className="admin-posts seller-workshops" aria-labelledby="my-workshops">
       <div className="page-head">
         <h1 id="my-workshops">My workshops</h1>
-        <p>See and edit the workshops and classes you host. Our team lists new ones and publishes them; edits to a published workshop go live straight away.</p>
+        <p>See and edit the workshops and classes you host. New workshops start as a Draft until our team publishes them; edits to a published workshop go live straight away.</p>
       </div>
       {/* The same single-column wrapper as My products, so both tabs have the same side margins. */}
       <div className="admin-grid admin-grid-solo"><div>
@@ -52,7 +52,7 @@ export function SellerWorkshops({ initial, topics, contactEmail }: { initial: Wo
         <table className="admin-table">
           <thead><tr><th>Title</th><th>When</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
-            {shown.length === 0 && <tr><td colSpan={4} className="empty">{list.length === 0 ? 'No workshops yet. Use Host a Workshop and it will show up here once our team has listed it.' : 'No workshops match those filters.'}</td></tr>}
+            {shown.length === 0 && <tr><td colSpan={4} className="empty">{list.length === 0 ? 'No workshops yet. Use Host a Workshop: once you confirm your email, it shows up here as a Draft that our team reviews and publishes.' : 'No workshops match those filters.'}</td></tr>}
             {shown.map(w => (
               <tr key={w.id}>
                 <td><b>{w.title}</b></td>

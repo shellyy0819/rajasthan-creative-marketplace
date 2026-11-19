@@ -36,6 +36,17 @@ afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 const flush = async (ms = 0) => { await act(async () => { await vi.advanceTimersByTimeAsync(ms); }); };
 
+describe('LiveCatalog count line', () => {
+  it('the workshops list has no "N experiences" line, while the shop keeps its "finds to love" line', () => {
+    renderCat(<LiveCatalog cities={CITIES} kind="workshops" initialItems={[ws('w1', 'Old') as never]} initialValues={{}} />);
+    expect(screen.queryByText(/experience/i)).toBeNull();
+    expect(screen.queryByText(/around India/i)).toBeNull();
+    cleanup();
+    renderCat(<LiveCatalog cities={CITIES} kind="products" initialItems={[prod('p1', 'Pot') as never]} initialValues={{}} />);
+    expect(screen.getByText(/1 find to love/i)).toBeTruthy();
+  });
+});
+
 describe('LiveCatalog (products)', () => {
   const initial = [prod('p1', 'Initial Bowl'), prod('p2', 'Second Dish')];
   const mount = () => renderCat(<LiveCatalog cities={CITIES} kind="products" initialItems={initial as any} initialValues={{}} />);

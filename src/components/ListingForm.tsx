@@ -102,7 +102,7 @@ export function ListingForm({ topics, workshop, fromRequest, presetStatus, selle
       title: field(f, 'title'), description: field(f, 'description'), host: field(f, 'hostName'), status: sellerMode ? (workshop?.status ?? 'DRAFT') : field(f, 'status') || 'DRAFT',
       topicId: field(f, 'topicId') ? Number(field(f, 'topicId')) : null, instagram: field(f, 'instagram') || null, website: field(f, 'website') || null,
       images: f.getAll('images').map(v => String(v).trim()).filter(Boolean),
-      contactName: field(f, 'contactName') || null, contactPhone: field(f, 'contactPhone') || null, contactEmail: field(f, 'contactEmail') || null,
+      contactName: field(f, 'contactName') || null, contactPhone: field(f, 'contactPhone') || null, phonePublic: f.get('phonePublic') === 'on', contactEmail: field(f, 'contactEmail') || null,
       ...(fromRequest ? { sourceRequestId: fromRequest.id } : {}),
     };
     const body = isClass ? {
@@ -182,6 +182,7 @@ export function ListingForm({ topics, workshop, fromRequest, presetStatus, selle
               <label>Contact phone<input name="contactPhone" type="tel" inputMode="tel" maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} /><FieldError errors={fieldErrors} name="contactPhone" /></label>
               <label>Contact email<input name="contactEmail" type="email" maxLength={200} /><FieldError errors={fieldErrors} name="contactEmail" /></label>
             </div>
+            <label className="host-check"><input type="checkbox" name="phonePublic" defaultChecked={!!(workshop?.phonePublic ?? fromRequest?.phonePublic)} /> <span>Show this number to the audience</span><small>Adds a Call button with this number to the public listing. Leave it off to keep the number private.</small></label>
           </fieldset>
           <div className="admin-actions">
             <button type="button" className="button" onClick={onClose} disabled={sending}>Cancel</button>

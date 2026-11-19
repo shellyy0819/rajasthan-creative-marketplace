@@ -225,6 +225,13 @@
       "when": 1795028248478,
       "tag": "0031_drop_one_published_index",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1795067580682,
+      "tag": "0032_workshop_phone_public",
+      "breakpoints": true
     }
   ]
 }

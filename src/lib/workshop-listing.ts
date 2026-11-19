@@ -90,7 +90,7 @@ function parsePrices(v: unknown): PriceRow[] {
   });
 }
 
-export const CLASS_CONTACT_MESSAGE = 'An online class needs at least one way to contact the host: WhatsApp, Instagram or a website.';
+export const CLASS_CONTACT_MESSAGE = 'An online class needs at least one way to contact the host: WhatsApp, Instagram, a website, or a phone number shown to the audience.';
 
 /** The fields an online class or a richer listing adds, validated the same way for a public request and for an admin listing. */
 export function parseListingFields(raw: Raw): ListingFields {

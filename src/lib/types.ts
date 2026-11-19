@@ -23,8 +23,10 @@ export type Workshop = {
   platform: string | null; schedule: Schedule | null; languages: string[]; level: Level | null;
   experience: string | null; certifications: string | null; freeTrial: boolean; freeTrialDays: number | null;
   whatsapp: string | null; instagram: string | null; website: string | null; images: string[]; prices: PriceRow[];
+  /** Public: the host's phone number, only when the host chose to show it. */
+  publicPhone?: string;
   /** Admin-only: how staff reach the host, who added the listing and which request it came from. The public mapper never sets these. */
-  contactName?: string; contactPhone?: string; contactEmail?: string; createdBy?: string; sourceRequestId?: string; joinLink?: string; createdAt?: string;
+  phonePublic?: boolean; contactName?: string; contactPhone?: string; contactEmail?: string; createdBy?: string; sourceRequestId?: string; joinLink?: string; createdAt?: string;
 };
 export type OrderItem = {
   productId: string; name: string; seller: string; quantity: number;
