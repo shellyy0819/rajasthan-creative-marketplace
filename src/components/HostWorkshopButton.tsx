@@ -6,7 +6,7 @@ import { ImageUploader } from './ImageUploader';
 import { PHONE_HINT, PHONE_PATTERN } from '@/lib/phone';
 import { DEFAULT_CONTACT_EMAIL } from '@/lib/site';
 import { MAX_REQUEST_IMAGES, submitErrorMessage } from '@/lib/workshop-requests-shared';
-import { HOST_PARAM, LEGACY_HOST_PARAM, hostParamFor, type HostPath } from '@/lib/host-link';
+import { HOST_PARAM, LEGACY_HOST_PARAM, HOST_OPEN_EVENT, hostParamFor, type HostOpenDetail, type HostPath } from '@/lib/host-link';
 import { supportLine } from '@/lib/workshop-support';
 import { clearDraft, collectDraft, DRAFT_EVENT, hasContent, readDraft, writeDraft, type HostDraft } from '@/lib/host-draft';
 import { CONTINUE_EVENT } from './HostDraftReminder';
@@ -134,9 +134,10 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   }
 
   /** Open the form from the button (or from the reminder's Continue). With an unfinished draft it continues that draft, whichever path it was on. */
-  function begin() {
-    setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setPath(preset); setPriceRows([{ ...BLANK_PRICE }]); setRepeat('weekly');
-    restoreDraft(existing || readDraft() ? null : preset);
+  function begin(from?: HostPath) {
+    setError(''); setDone(null); setPaid(false); setStartDate(''); setUploading(false); setPending(null); setInfo(''); setWait(0); setStep(0); setPath(from ?? preset); setPriceRows([{ ...BLANK_PRICE }]); setRepeat('weekly');
+    // A link that asks for a path starts on it (a draft on the other path is not forced on it); the plain button continues any draft.
+    restoreDraft(from ? from : existing || readDraft() ? null : preset);
     setOpen(true);
   }
   const beginRef = useRef(begin);
@@ -144,8 +145,11 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   useEffect(() => {
     if (!reminderTarget) return;
     const go = () => beginRef.current();
+    // The footer's host links on this page: open on the path they ask for, every time, without leaving the page.
+    const openFor = (e: Event) => beginRef.current((e as CustomEvent<HostOpenDetail>).detail?.path);
     window.addEventListener(CONTINUE_EVENT, go);
-    return () => window.removeEventListener(CONTINUE_EVENT, go);
+    window.addEventListener(HOST_OPEN_EVENT, openFor);
+    return () => { window.removeEventListener(CONTINUE_EVENT, go); window.removeEventListener(HOST_OPEN_EVENT, openFor); };
   }, [reminderTarget]);
 
   const close = () => { saveNow(); setOpen(false); trigger.current?.focus(); };
@@ -215,12 +219,13 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     return true;
   }
   function back() { setError(''); clearFieldErrors(); setStep(s => Math.max(0, s - 1)); }
-  // Signed in: fetch the person's own details once per opening, then fill empty fields (never over what they typed).
+  // Signed in: fetch the person's own details the first time the form opens (later openings on this page reuse them, so opening is free), then fill empty fields (never over what they typed).
+  const prefillLoaded = useRef(false);
   useEffect(() => {
-    if (!prefill || !open) return;
+    if (!prefill || !open || prefillLoaded.current) return;
     let live = true;
     fetch('/api/host-prefill', { cache: 'no-store' }).then(r => (r?.ok ? r.json() : {})).then((d: Record<string, string>) => {
-      if (live && d && typeof d === 'object') { me.current = d; setMeTick(t => t + 1); }
+      if (d && typeof d === 'object') { prefillLoaded.current = true; me.current = d; if (live) setMeTick(t => t + 1); }
     }).catch(() => {});
     return () => { live = false; };
   }, [prefill, open]);
@@ -311,7 +316,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
 
   return (
     <>
-      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={begin}>{existing ? 'Continue your listing' : label} <span>↗</span></button>
+      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={() => begin()}>{existing ? 'Continue your listing' : label} <span>↗</span></button>
       {open && mounted && createPortal(
         <div className="contact-backdrop admin-modal host-backdrop" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
           <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="host-title" className={`contact-card host-dialog${!done && !pending ? ' host-dialog-form' : ''}`}>

@@ -39,6 +39,7 @@ export default async function WorkshopsPage({ searchParams }: Props) {
   const f = parseFilters(sp);
   const [workshops, cities, version, topics, signText] = await Promise.all([listWorkshops(f), listActiveCities(), getDataVersion(), listActiveTopics(), getSignText()]);
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Workshops', path: '/workshops' }];
+  const noneListed = workshops.length === 0 && !hasFilters(f);
   return (
     <DataVersionProvider version={version}>
       <HostDraftReminder />
@@ -50,14 +51,12 @@ export default async function WorkshopsPage({ searchParams }: Props) {
         <p>Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.</p>
         <p className="ws-supports">{supportLine()}</p>
         {/* The button sits in the header on every screen, so it is the first thing to reach. */}
-        <div className="ws-head-cta"><HostWorkshopButton className="button primary" contactEmail={contactEmail()} topics={topics} prefill saveDraft shareable reminderTarget /></div>
+        <div className="ws-head-cta"><HostWorkshopButton className="button primary" contactEmail={contactEmail()} topics={topics} defaultOpen={wantsHostForm(sp) && !noneListed} initialPath={hostPath(sp)} prefill saveDraft shareable reminderTarget /></div>
       </div>
-      {workshops.length === 0 && !hasFilters(f)
+      {noneListed
         ? <WorkshopsEmptyState openHostForm={wantsHostForm(sp)} initialPath={hostPath(sp)} topics={topics} signText={signText} />
         : <>
             <LiveCatalog kind="workshops" initialItems={workshops} initialValues={f} cities={cities.map(c => ({ name: c.name, slug: c.slug, state: c.state }))} />
-            {/* The footer's "Want to host a workshop?" link: with workshops listed there is no host button on the page, so this link brings its own. */}
-            {wantsHostForm(sp) && <div className="host-more"><HostWorkshopButton contactEmail={contactEmail()} defaultOpen initialPath={hostPath(sp)} topics={topics} prefill saveDraft shareable /></div>}
           </>}
     </DataVersionProvider>
   );

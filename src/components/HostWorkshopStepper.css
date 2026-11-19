@@ -48,8 +48,6 @@
 }
 
 /* The host button under the workshops list when a shared ?host=1 link opens the form. */
-.host-more { margin: 8px 8.5% 56px; }
-@media (max-width: 700px) { .host-more { margin-inline: 5%; } }
 
 /* Phones and tablets (iOS and Android): the dialog follows the visible screen, typing is comfortable, Next stays above the keyboard. */
 .host-backdrop {
