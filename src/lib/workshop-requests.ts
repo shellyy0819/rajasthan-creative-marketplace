@@ -22,14 +22,14 @@ export type RequestKind = (typeof REQUEST_KINDS)[number];
 export const KIND_LABEL: Record<RequestKind, string> = { workshop: 'Workshop', meetup: 'Meetup', popup: 'Pop-up', market: 'Flea market', class: 'Online class' };
 
 export type WorkshopRequest = {
-  id: string; hostName: string; contactName: string; phone: string; email: string; city: string; venue: string; title: string;
+  id: string; hostName: string; contactName: string; phone: string; phonePublic: boolean; email: string; city: string; venue: string; title: string;
   kind: RequestKind; mode: 'in_person' | 'online'; topicId?: number; topic?: string; description: string; startDate: string; endDate: string; startTime?: string; endTime?: string;
   status: 'unverified' | 'received' | 'listed' | 'on_hold' | 'archived'; emailVerified: boolean; images: string[]; seats?: number; priceType: 'FREE' | 'PAID'; pricePaise?: number; instagram?: string; website?: string; notes?: string; createdAt: string;
   endsOn?: string; platform?: string; schedule?: Schedule; languages: string[]; level?: Level; experience?: string; certifications?: string; freeTrial: boolean; freeTrialDays?: number; joinLink?: string; whatsapp?: string; prices: PriceRow[]; listedWorkshopId?: string; listedStatus?: string; listedEnded?: boolean;
 };
 
 const toRequest = (r: typeof workshopRequests.$inferSelect): WorkshopRequest => ({
-  id: r.id, hostName: r.hostName, contactName: r.contactName, phone: r.phone, email: r.email, city: r.city ?? '', venue: r.venue ?? '', title: r.title,
+  id: r.id, hostName: r.hostName, contactName: r.contactName, phone: r.phone, phonePublic: r.phonePublic, email: r.email, city: r.city ?? '', venue: r.venue ?? '', title: r.title,
   kind: r.kind as RequestKind, mode: r.mode as 'in_person' | 'online', ...(r.topicId != null ? { topicId: r.topicId } : {}), description: r.description, startDate: r.startDate, endDate: r.endDate,
   ...(r.startTime ? { startTime: r.startTime } : {}), ...(r.endTime ? { endTime: r.endTime } : {}),
   ...(r.seats != null ? { seats: r.seats } : {}), priceType: r.priceType as 'FREE' | 'PAID', ...(r.pricePaise != null ? { pricePaise: r.pricePaise } : {}),
@@ -105,7 +105,8 @@ export async function createWorkshopRequest(input: unknown): Promise<WorkshopReq
   const l = parseListingFields(raw);
   if (l.mode === 'hybrid') throw bad('mode must be in_person or online.');
   const online = l.mode === 'online';
-  if ((online || l.kind === 'class') && !l.whatsapp && !l.instagram && !l.website) throw bad(CLASS_CONTACT_MESSAGE);
+  const phonePublic = raw.phonePublic === true || raw.phonePublic === 'true';
+  if ((online || l.kind === 'class') && !l.whatsapp && !l.instagram && !l.website && !phonePublic) throw bad(CLASS_CONTACT_MESSAGE);
   const startDate = isoDate(raw.startDate, 'startDate');
   // No end date given: a one-day event, so it ends on the start date. An online class's own end date (endsOn) is its end date, and blank means the start date too.
   const endDate = online && l.endsOn ? l.endsOn : raw.endDate === undefined || raw.endDate === null || raw.endDate === '' ? startDate : isoDate(raw.endDate, 'endDate');
@@ -123,7 +124,7 @@ export async function createWorkshopRequest(input: unknown): Promise<WorkshopReq
     if (!t) throw bad('topicId does not match a topic.');
   }
   const [row] = await getDb().insert(workshopRequests).values({
-    hostName: text(raw.hostName, 'hostName', 150), contactName: text(raw.contactName, 'contactName', 100), phone: `+91${phone.slice(-10)}`, email,
+    hostName: text(raw.hostName, 'hostName', 150), contactName: text(raw.contactName, 'contactName', 100), phone: `+91${phone.slice(-10)}`, phonePublic, email,
     city: online ? null : cityLabel(raw.cityRef), venue: online ? null : text(raw.venue, 'venue', 300), title: text(raw.title, 'title', 150),
     kind: l.kind, mode: l.mode, topicId: l.topicId, description: text(raw.description, 'description', 2000),
     startDate, endDate, startTime: startTime ?? null, endTime: endTime ?? null, seats, priceType, pricePaise,

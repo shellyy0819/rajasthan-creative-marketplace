@@ -147,3 +147,8 @@
   .host-lang-panel li { padding: 12px 10px; font-size: 16px; }
   .host-lang-chip { min-height: 36px; font-size: 13px; }
 }
+
+/* "Show this number to the audience": a checkbox with a hint, under the phone number. */
+.host-check { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 8px; font-weight: 600; }
+.host-check input { width: 18px; height: 18px; margin: 0; }
+.host-check small { grid-column: 2; font-weight: 400; color: var(--muted); }

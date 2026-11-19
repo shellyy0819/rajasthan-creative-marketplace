@@ -253,7 +253,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     const isClass = path === 'class';
     const topicId = field(f, 'topicId') ? Number(field(f, 'topicId')) : undefined;
     const common = {
-      hostName: field(f, 'hostName'), contactName: field(f, 'contactName'), phone: field(f, 'phone'), email: field(f, 'email'),
+      hostName: field(f, 'hostName'), contactName: field(f, 'contactName'), phone: field(f, 'phone'), phonePublic: f.get('phonePublic') === 'on', email: field(f, 'email'),
       title: field(f, 'title'), description: field(f, 'description'), topicId, startDate: field(f, 'startDate'),
       instagram: field(f, 'instagram'), website: field(f, 'website'), notes: field(f, 'notes'), images: f.getAll('images').map(v => String(v).trim()).filter(Boolean), companyWebsite: field(f, 'companyWebsite'),
     };
@@ -382,6 +382,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                     <label><span className="lbl">Phone number</span><input name="phone" type="tel" inputMode="tel" required maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="Example: 9999999999" autoComplete="tel" enterKeyHint="next" /><FieldError errors={fieldErrors} name="phone" /></label>
                     <label><span className="lbl">Email</span><input name="email" type="email" required maxLength={254} autoComplete="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /><FieldError errors={fieldErrors} name="email" /></label>
                   </div>
+                  <label className="host-check"><input type="checkbox" name="phonePublic" /> <span>Show this number to the audience</span><small>Off by default: only our team sees your number. Tick it to show a Call button on your listing.</small></label>
                   <div className="admin-form-row">
                     <InstagramField errors={fieldErrors} />
                     <label>Website<input name="website" type="text" inputMode="url" maxLength={300} placeholder="yourstudio.in" autoComplete="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /><FieldError errors={fieldErrors} name="website" /></label>

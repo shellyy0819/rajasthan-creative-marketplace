@@ -21,7 +21,7 @@ const PRODUCT_KEYS = ['name', 'category', 'sourcingTypeId', 'cityId', 'cityRef',
 const WORKSHOP_KEYS = [
   'title', 'type', 'pricePaise', 'cityId', 'cityRef', 'venue', 'date', 'time', 'seats', 'host', 'hostId', 'description', 'status',
   'kind', 'mode', 'topicId', 'platform', 'schedule', 'endsOn', 'languages', 'level', 'experience', 'certifications', 'freeTrial', 'freeTrialDays',
-  'whatsapp', 'instagram', 'website', 'images', 'prices', 'joinLink', 'contactName', 'contactPhone', 'contactEmail', 'sourceRequestId',
+  'whatsapp', 'instagram', 'website', 'images', 'prices', 'joinLink', 'contactName', 'contactPhone', 'phonePublic', 'contactEmail', 'sourceRequestId',
 ] as const;
 const MAX_WORKSHOP_IMAGES = 3;
 const PRODUCT_STATUSES = ['APPROVED', 'DRAFT', 'ARCHIVED'] as const;
@@ -204,10 +204,13 @@ function validateWorkshop(v: Raw): WorkshopFields {
   const images = v.images === undefined || v.images === null ? [] : Array.isArray(v.images) && v.images.length <= MAX_WORKSHOP_IMAGES ? v.images.map(u => optionalImageUrl(u) ?? '').filter(Boolean) : (() => { throw bad(`images must be a list of up to ${MAX_WORKSHOP_IMAGES} https URLs.`); })();
   const status = oneOf(v.status ?? 'DRAFT', 'status', WORKSHOP_STATUSES);
   // A class is contact-only: a published one needs at least one public way to reach the host.
-  if (status === 'APPROVED' && (l.kind === 'class' || online) && !l.whatsapp && !l.instagram && !(l.website && /^https?:\/\//i.test(l.website))) throw bad(CLASS_CONTACT_MESSAGE);
+  const phone = v.contactPhone === undefined ? undefined : optionalPhone(v.contactPhone, 'contactPhone');
+  const phonePublic = v.phonePublic === true || v.phonePublic === 'true';
+  if (phonePublic && !phone) throw bad('contactPhone is needed to show the phone number to the audience.');
+  // (a phone number shown to the audience counts as a public contact)
+  if (status === 'APPROVED' && (l.kind === 'class' || online) && !l.whatsapp && !l.instagram && !phonePublic && !(l.website && /^https?:\/\//i.test(l.website))) throw bad(CLASS_CONTACT_MESSAGE);
   const date = validDate(v.date);
   if (l.endsOn && l.endsOn < date) throw bad('endsOn cannot be before the start date.');
-  const phone = v.contactPhone === undefined ? undefined : optionalPhone(v.contactPhone, 'contactPhone');
   return {
     title: text(v.title, 'title', 200),
     ...cache,
@@ -222,6 +225,7 @@ function validateWorkshop(v: Raw): WorkshopFields {
     freeTrial: l.freeTrial, freeTrialDays: l.freeTrialDays, whatsapp: l.whatsapp,
     ...(v.joinLink === undefined ? {} : { joinLink: l.joinLink }), instagram: l.instagram, website: l.website, images, prices: l.prices,
     ...(v.contactName === undefined ? {} : { contactName: optionalText(v.contactName, 'contactName', 100) ?? null }),
+    phonePublic,
     ...(phone === undefined && v.contactPhone === undefined ? {} : { contactPhone: phone ? `+91${phone.slice(-10)}` : null }),
     ...(v.contactEmail === undefined ? {} : { contactEmail: optionalEmail(v.contactEmail, 'contactEmail') ?? null }),
   };
@@ -292,8 +296,9 @@ export async function updateWorkshop(id: string, input: unknown, opts: { owns?: 
     const [joined] = await workshopsQuery(tx).where(eq(workshopsT.id, id)).for('update', { of: workshopsT });
     if (!joined) throw new ApiError(404, 'Workshop not found.');
     const row = joined.w;
-    const [current] = await withPrices(tx, [toWorkshop(joined)]);
-    if (opts.owns) { const [owned] = await withPrices(tx, [toAdminWorkshop(joined)]); if (!opts.owns(owned)) throw new ApiError(404, 'Workshop not found.'); }
+    // The admin view: it carries the private phone and the choice to show it, so an edit that leaves them alone keeps them.
+    const [current] = await withPrices(tx, [toAdminWorkshop(joined)]);
+    if (opts.owns && !opts.owns(current)) throw new ApiError(404, 'Workshop not found.');
     const merged: Raw = { ...current, ...patch, ...(opts.keepStatus ? { status: current.status } : {}) };
     // Clearing every price plan without naming a type means "no plans": the old cached type and price must not survive.
     if (Array.isArray(patch.prices) && patch.prices.length === 0 && !('type' in patch)) { delete merged.type; delete merged.pricePaise; }

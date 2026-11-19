@@ -179,6 +179,8 @@ export const workshops = pgTable('workshops', {
   joinLink: text('join_link'), // the instructor's meeting link: staff only, never published
   contactName: text('contact_name'),
   contactPhone: text('contact_phone'),
+  /** The host chose to show this number to the audience (a Call button). Off unless ticked; the number is never public otherwise. */
+  phonePublic: boolean('phone_public').notNull().default(false),
   contactEmail: text('contact_email'),
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
   sourceRequestId: uuid('source_request_id'),
@@ -308,6 +310,7 @@ export const workshopRequests = pgTable('workshop_requests', {
   hostName: text('host_name').notNull(),
   contactName: text('contact_name').notNull(),
   phone: text('phone').notNull(),
+  phonePublic: boolean('phone_public').notNull().default(false), // the host chose to show this number to the audience
   email: text('email').notNull(),
   city: text('city'), // null for an online class
   venue: text('venue'),
