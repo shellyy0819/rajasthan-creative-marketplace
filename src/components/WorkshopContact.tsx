@@ -12,7 +12,7 @@ export function WorkshopContact({ w }: { w: Pick<Workshop, 'whatsapp' | 'instagr
   return (
     <span className="ws-contact">
       {w.whatsapp && <a className="button" href={whatsappChat(w.whatsapp)} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
-      {w.instagram && <a className="button" href={instagramUrl(w.instagram)} target="_blank" rel="noopener noreferrer">Instagram</a>}
+      {w.instagram && <a className="button" href={instagramUrl(w.instagram)} target="_blank" rel="noopener noreferrer">Open Instructor&apos;s Instagram</a>}
       {site && <a className="button" href={site} target="_blank" rel="noopener noreferrer">Website</a>}
     </span>
   );
