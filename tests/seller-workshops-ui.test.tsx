@@ -50,6 +50,13 @@ describe('My workshops on the seller dashboard', () => {
     expect(screen.getByText(/no workshops yet/i)).toBeTruthy();
     expect(screen.getByRole('button', { name: /host a workshop/i })).toBeTruthy();
   });
+  it('uses the same single-column wrapper as My products, so the side margins match', () => {
+    const { container } = render(<SellerWorkshops initial={[w]} topics={[]} />);
+    const wrap = container.querySelector('.admin-grid.admin-grid-solo');
+    expect(wrap?.querySelector('.admin-toolbar')).toBeTruthy();
+    expect(wrap?.querySelector('table.admin-table')).toBeTruthy();
+    expect(container.querySelector('.page-head')?.closest('.admin-grid')).toBeNull();
+  });
   it('searches by title and filters by status', () => {
     render(<SellerWorkshops initial={[w, { ...w, id: 'w2', title: 'Draft Flow', status: 'DRAFT' }]} topics={[]} />);
     fireEvent.change(screen.getByLabelText('Search workshops'), { target: { value: 'draft' } });

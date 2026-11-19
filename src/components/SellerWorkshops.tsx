@@ -36,6 +36,8 @@ export function SellerWorkshops({ initial, topics, contactEmail }: { initial: Wo
         <h1 id="my-workshops">My workshops</h1>
         <p>See and edit the workshops and classes you host. Our team lists new ones and publishes them; edits to a published workshop go live straight away.</p>
       </div>
+      {/* The same single-column wrapper as My products, so both tabs have the same side margins. */}
+      <div className="admin-grid admin-grid-solo"><div>
       <div className="admin-toolbar">
         <input aria-label="Search workshops" placeholder="Search workshops…" value={q} onChange={e => setQ(e.target.value)} />
         <select aria-label="Filter by status" value={status} onChange={e => setStatus(e.target.value)}>
@@ -67,6 +69,7 @@ export function SellerWorkshops({ initial, topics, contactEmail }: { initial: Wo
           </tbody>
         </table>
       </div>
+      </div></div>
       {editing && <ListingForm key={editing.id} topics={topics} workshop={editing} sellerMode onSaved={saved} onClose={closeForm} />}
       <Toast toast={toast} onClose={closeToast} />
     </section>
