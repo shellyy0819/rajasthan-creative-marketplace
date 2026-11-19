@@ -1,4 +1,5 @@
 import React from 'react';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ClassDetail } from '@/components/class/ClassDetail';
@@ -14,6 +15,14 @@ const base = {
 } as unknown as Workshop;
 const now = new Date('2026-11-18T00:30:00Z'); // Wednesday 06:00 in India
 const html = (over: Partial<Workshop> = {}, ended = false, hostPhoto?: string) => renderToStaticMarkup(<ClassDetail w={{ ...base, ...over } as Workshop} ended={ended} now={now} hostPhoto={hostPhoto} />);
+
+describe('online class page on tablets and phones (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('the photos are capped in height so the title, instructor and next class show below them', () => {
+    expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-mosaic \{[^}]*height: clamp\(220px, 42vw, 340px\)/);
+    expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-art \{[^}]*width: min\(100%, 360px\)/);
+  });
+});
 
 describe('online class page', () => {
   it('shows the title, topic, instructor, trial badge, next class and the main contact button above the facts', () => {

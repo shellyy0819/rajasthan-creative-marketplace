@@ -83,12 +83,14 @@
   .cd { padding: 4px 5% 110px; }
   .cd-hero { grid-template-columns: 1fr; gap: 20px; padding-top: 12px; }
   .cd-media { order: -1; }
+  /* Photos stay short so the title, instructor and next class are visible below them. */
+  .cd-mosaic { aspect-ratio: auto; height: clamp(220px, 42vw, 340px); }
+  .cd-art { width: min(100%, 360px); margin: 0 auto; }
 }
 @media (max-width: 700px) {
-  .cd-art, .cd-mosaic { aspect-ratio: 4 / 3; }
   /* Photos become a swipeable strip; the next photo peeks in. */
-  .cd-mosaic-2, .cd-mosaic-3 { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; border-radius: 0; scrollbar-width: none; aspect-ratio: auto; margin: 0 -5%; padding: 0 5%; }
-  .cd-mosaic-2 .cd-tile, .cd-mosaic-3 .cd-tile { flex: 0 0 86%; aspect-ratio: 4 / 3; scroll-snap-align: start; border-radius: 6px; }
+  .cd-mosaic-2, .cd-mosaic-3 { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; border-radius: 0; scrollbar-width: none; height: auto; margin: 0 -5%; padding: 0 5%; }
+  .cd-mosaic-2 .cd-tile, .cd-mosaic-3 .cd-tile { flex: 0 0 86%; height: clamp(220px, 42vw, 340px); scroll-snap-align: start; border-radius: 6px; }
   .cd-chip { display: none; }
   .cd-dots { display: flex; }
   .cd-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
