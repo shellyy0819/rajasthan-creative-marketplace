@@ -21,6 +21,9 @@ function Button({ c, outline }: { c: Channel; outline?: boolean }) {
 export function ClassDetail({ w, ended, now = new Date(), hostPhoto }: { w: Workshop; ended: boolean; now?: Date; /** The seller's profile photo (https), when the class is linked to a seller who has one. */ hostPhoto?: string }) {
   const ch = contactChannels(w);
   const next = ended ? null : nextSession(w, now);
+  // The main button (and any outline buttons) already carry their channel; the icon row lists only the others, so nothing shows twice.
+  const shown = new Set([ch.primary?.kind, ...ch.secondary.map(c => c.kind)].filter(Boolean));
+  const icons = ended ? ch.icons : ch.icons.filter(c => !shown.has(c.kind));
   const week = !ended && w.schedule ? weekStrip(w, now) : [];
   const trial = w.freeTrial ? (w.freeTrialDays ? `${w.freeTrialDays}-day free trial` : 'Free trial') : null;
   const free = !w.prices.length && w.type === 'FREE';
@@ -47,8 +50,9 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto }: { w: Work
               <span className="cd-label">YOUR INSTRUCTOR</span>
               <span className="cd-name">{w.host}</span>
               {(w.experience || w.certifications) && <span className="cd-sub">{[w.experience, w.certifications].filter(Boolean).join(' · ')}</span>}
-              {ch.icons.length > 0 && (
-                <span className="cd-icons">{ch.icons.map(c => <a key={c.kind} href={c.href} aria-label={c.short} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} /></a>)}</span>
+              {!ended && ch.primary && <span className="cd-cta"><Button c={ch.primary} />{ch.secondary.map(c => <Button key={c.kind} c={c} outline />)}</span>}
+              {icons.length > 0 && (
+                <span className="cd-icons">{icons.map(c => <a key={c.kind} href={c.href} aria-label={c.short} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} /></a>)}</span>
               )}
             </div>
           </div>
@@ -58,7 +62,6 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto }: { w: Work
               <span><span className="cd-label">NEXT CLASS</span><span className="cd-next-text">{describeNext(next, now)}</span></span>
             </div>
           )}
-          {!ended && ch.primary && <div className="cd-cta"><Button c={ch.primary} />{ch.secondary.map(c => <Button key={c.kind} c={c} outline />)}</div>}
         </div>
         {w.images.length ? <PhotoMosaic images={w.images} title={w.title} /> : <ClassIllustration title={w.title} yoga={w.topic?.slug === 'yoga'} />}
       </section>
@@ -86,9 +89,12 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto }: { w: Work
           )}
 
           {free ? (
-            <section className="cd-free" aria-labelledby="cd-price-h">
+            <section aria-labelledby="cd-price-h">
               <h2 id="cd-price-h">Price</h2>
-              <p><strong>Free.</strong> Every class is free; nothing to pay.</p>
+              <div className="cd-free">
+                <span className="cd-free-badge">Free</span>
+                <p><strong>Every class is free.</strong> There is nothing to pay.</p>
+              </div>
             </section>
           ) : (
           <section aria-labelledby="cd-plans-h">

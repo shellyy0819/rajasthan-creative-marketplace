@@ -27,6 +27,18 @@ describe('online class page', () => {
     expect(h).toContain('href="https://wa.me/919989898999"');
     expect(h.indexOf('Chat on WhatsApp')).toBeLessThan(h.indexOf('Class at a glance'));
   });
+  it('each contact channel shows once on a wide screen: the main button sits inside the instructor card, and the icons are only the other channels', () => {
+    const h = html({ whatsapp: '+919989898999', instagram: 'anaya.yoga' });
+    const card = h.slice(h.indexOf('cd-teacher'), h.indexOf('cd-facts'));
+    expect(card).toContain('Chat on WhatsApp');
+    expect((card.match(/wa\.me/g) ?? []).length).toBe(1); // the button, not also an icon
+    expect((card.match(/instagram\.com/g) ?? []).length).toBe(1); // the icon
+    expect(h.slice(0, h.indexOf('cd-teacher'))).not.toContain('Chat on WhatsApp');
+    const insta = html({ whatsapp: null, instagram: 'anaya.yoga' });
+    const c2 = insta.slice(insta.indexOf('cd-teacher'), insta.indexOf('cd-facts'));
+    expect((c2.match(/instagram\.com/g) ?? []).length).toBe(1); // only the button, no second Instagram icon next to it
+    expect(c2).toContain('Open Insta');
+  });
   it('the facts strip, this week, plans (with the per-class cost) and how to join come from the class data', () => {
     const h = html();
     expect(h).toContain('60 minutes');
@@ -77,10 +89,11 @@ describe('online class page', () => {
   it('a free class says so, with no plan cards; an ended class has no contact button and says it ended', () => {
     const free = html({ type: 'FREE', pricePaise: 0, prices: [], freeTrial: false } as never);
     expect(free).toContain('This class is free.');
-    expect(free).toContain('cd-free');
+    expect(free).toContain('cd-free-badge');
     expect(free).not.toContain('cd-plan');
     expect(free).not.toContain('You pay the instructor directly');
-    expect(free).toContain('Every class is free');
+    expect(free).toContain('Every class is free.');
+    expect(free).toMatch(/cd-free-badge">Free</);
     const ended = html({ endsOn: '2026-11-10' }, true);
     expect(ended).toContain('This class has ended.');
     expect(ended).not.toContain('Chat on WhatsApp');

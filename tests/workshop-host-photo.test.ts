@@ -22,6 +22,13 @@ describe('the instructor photo on a class page', () => {
     const w = await createWorkshop({ ...cls, contactEmail: 'Swati@X.co' });
     expect(await getWorkshopHostPhoto(w.id)).toBe('https://img.test/swati.jpg');
   });
+  it('never falls back to another account\'s photo when the class is linked to a seller by id', async () => {
+    const mine = await makeSeller('swati@x.co', 'Swati'); // linked by id, has no photo
+    const other = await makeSeller('other@x.co', 'Other');
+    await setLogo(other.id, 'https://img.test/other.jpg');
+    const w = await createWorkshop({ ...cls, hostId: mine.id, contactEmail: 'other@x.co' });
+    expect(await getWorkshopHostPhoto(w.id)).toBeUndefined();
+  });
   it('is nothing when no account is linked, the seller has no photo, or the photo is not https', async () => {
     const s = await makeSeller('swati@x.co', 'Swati');
     expect(await getWorkshopHostPhoto((await createWorkshop({ ...cls, host: 'Swati' })).id)).toBeUndefined(); // same name alone does not link
