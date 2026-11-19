@@ -47,3 +47,9 @@
 .workshop-card.with-photo { grid-template-columns: 120px 1fr auto; }
 .date-tile.has-photo { aspect-ratio: 1; width: 100%; border-radius: 6px; }
 @media (max-width: 900px) { .workshop-card.with-photo { grid-template-columns: 88px 1fr; } }
+
+/* The whole card opens the workshop page: the title link stretches over the card; the contact and reserve controls sit above it and keep their own clicks. */
+.workshop-card { position: relative; }
+.workshop-card:hover { border-color: var(--control-border); }
+.workshop-card h3 a::after { content: ''; position: absolute; inset: 0; }
+.workshop-card .workshop-price a, .workshop-card .workshop-price button { position: relative; z-index: 1; }
