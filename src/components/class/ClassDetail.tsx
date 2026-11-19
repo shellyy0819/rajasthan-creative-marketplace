@@ -8,6 +8,7 @@ import { LEVEL_LABEL } from '@/lib/workshop-support';
 import { ChannelIcon } from './ChannelIcon';
 import { ClassIllustration } from './ClassIllustration';
 import { PhotoMosaic } from './PhotoMosaic';
+import '@/components/WorkshopListings.css';
 import './ClassDetail.css';
 
 const date = (iso: string) => { const d = formatDay(iso); return `${d.day} ${d.month} ${d.year}`; };
