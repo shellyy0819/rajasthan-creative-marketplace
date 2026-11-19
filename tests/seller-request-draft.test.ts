@@ -38,6 +38,26 @@ async function confirm(input: Record<string, unknown>) {
 }
 const requestOf = async (id: string) => (await listWorkshopRequests()).find(x => x.id === id)!;
 
+import { eq } from 'drizzle-orm';
+import { workshopRequests } from '@/db/schema';
+import { draftForSeller } from '@/lib/seller-draft';
+import { getTestDb } from './helpers/testdb';
+
+describe('no draft without a confirmed email', () => {
+  it('a request whose code email could not be sent (received, email never confirmed) is not drafted, even if someone calls verify with its id', async () => {
+    await makeSeller('swati@x.co', 'Swati');
+    setMailSenderForTests(async () => { throw new Error('mail down'); });
+    const r = await createWorkshopRequest(online('swati@x.co'));
+    const [row] = await (await getTestDb()).select().from(workshopRequests).where(eq(workshopRequests.id, r.id));
+    expect(row).toMatchObject({ status: 'received', verifiedAt: null });
+    const res = await verifyRoute(new Request('http://x', { method: 'POST', body: JSON.stringify({ id: r.id, code: '123456' }), headers: { 'content-type': 'application/json' } }));
+    expect(res.status).toBe(200);
+    expect(await draftForSeller((await requestOf(r.id)))).toBeNull();
+    expect((await requestOf(r.id)).status).toBe('received');
+    expect((await listAdminWorkshops()).some(x => x.sourceRequestId === r.id)).toBe(false);
+  });
+});
+
 describe('a seller\'s confirmed workshop request becomes a Draft listing of their own', () => {
   it('an online class: Draft, linked to the seller, request marked listed, nothing public yet', async () => {
     const s = await makeSeller('swati@x.co', 'Swati');

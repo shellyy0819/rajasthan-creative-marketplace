@@ -33,7 +33,8 @@ async function cityIdFor(label: string): Promise<number | undefined> {
  * for example when an in-person city cannot be matched: the request is then left as it is.
  */
 export async function draftForSeller(r: WorkshopRequest): Promise<Workshop | null> {
-  if (r.status !== 'received' || r.listedWorkshopId) return null;
+  // Only a request whose email was confirmed with the code: the email is what proves whose seller account this is.
+  if (r.status !== 'received' || !r.emailVerified || r.listedWorkshopId) return null;
   const hostId = await sellerIdFor(r.email);
   if (!hostId) return null;
   const online = r.mode === 'online' || r.kind === 'class';

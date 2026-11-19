@@ -214,9 +214,10 @@ export async function resendWorkshopRequestCode(id: unknown): Promise<void> {
 }
 
 /** Confirms the emailed code; the request then becomes visible to admins. Five wrong tries burn the code. */
-export async function verifyWorkshopRequestCode(id: unknown, code: unknown): Promise<WorkshopRequest & { notified: boolean }> {
+/** `justConfirmed` is true only for the one call that checked the code and moved the request from unverified to received. */
+export async function verifyWorkshopRequestCode(id: unknown, code: unknown): Promise<WorkshopRequest & { notified: boolean; justConfirmed: boolean }> {
   const row = await loadUnverified(id);
-  if (row.status === 'received') return { ...toRequest(row), notified: false };
+  if (row.status === 'received') return { ...toRequest(row), notified: false, justConfirmed: false };
   const given = typeof code === 'string' ? code.trim() : '';
   if (!/^\d{6}$/.test(given)) throw bad('code must be the 6 digits from the email.');
   if (!row.codeHash || !row.codeExpiresAt) throw new ApiError(400, 'Ask for a new code.');
@@ -232,7 +233,7 @@ export async function verifyWorkshopRequestCode(id: unknown, code: unknown): Pro
     .where(and(eq(workshopRequests.id, row.id), eq(workshopRequests.status, 'unverified'))).returning();
   const confirmed = toRequest(done ?? { ...row, status: 'received', verifiedAt: new Date() });
   // Only the call that confirmed it tells the team, so repeating the call never sends a second email.
-  return { ...confirmed, notified: done ? await notifyTeam(confirmed, KIND_LABEL[confirmed.kind]) : false };
+  return { ...confirmed, notified: done ? await notifyTeam(confirmed, KIND_LABEL[confirmed.kind]) : false, justConfirmed: !!done };
 }
 
 /** Drops requests that never confirmed their email within a day. */
