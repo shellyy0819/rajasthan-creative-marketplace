@@ -18,6 +18,10 @@ const html = (over: Partial<Workshop> = {}, ended = false, hostPhoto?: string) =
 
 describe('online class page on tablets and phones (source contract)', () => {
   const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('photos are shown whole (contain), never cropped', () => {
+    expect(css).toMatch(/\.cd-tile img \{[^}]*object-fit: contain/);
+    expect(css).not.toMatch(/\.cd-tile img \{[^}]*object-fit: cover/);
+  });
   it('the photos are capped in height so the title, instructor and next class show below them', () => {
     expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-mosaic \{[^}]*height: clamp\(220px, 42vw, 340px\)/);
     expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-art \{[^}]*width: min\(100%, 360px\)/);

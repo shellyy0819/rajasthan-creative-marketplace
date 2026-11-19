@@ -35,9 +35,8 @@
 .cd-mosaic-2 .cd-cover, .cd-mosaic-3 .cd-cover { grid-column: 1 / 3; }
 .cd-mosaic-2 .cd-tile:not(.cd-cover) { grid-column: 1 / 3; }
 .cd-tile { padding: 0; border: 0; background: var(--cream); position: relative; cursor: pointer; overflow: hidden; }
-.cd-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.cd-mosaic-3 .cd-tile:nth-child(2) img { object-position: 20% 50%; }
-.cd-mosaic-3 .cd-tile:nth-child(3) img { object-position: 80% 50%; }
+/* Photos are shown whole, never cropped: a seller's own framing is kept, with the tile colour around it. */
+.cd-tile img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .cd-chip { position: absolute; left: 12px; bottom: 12px; padding: 6px 12px; border-radius: 30px; background: var(--card-2); color: var(--ink); font: 600 13px var(--font-sans); }
 .cd-dots { display: none; justify-content: center; gap: 6px; margin-top: 10px; }
 .cd-dots span { width: 6px; height: 6px; border-radius: 3px; background: var(--control-border); }
