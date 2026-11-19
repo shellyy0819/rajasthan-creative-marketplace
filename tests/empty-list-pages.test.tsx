@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 vi.mock('@/components/LiveCatalog', () => ({ LiveCatalog: ({ kind }: any) => <div data-live-catalog={kind} /> }));
-vi.mock('@/components/HostWorkshopButton', () => ({ HostWorkshopButton: () => <button data-host-button>Host a workshop</button> }));
+vi.mock('@/components/HostWorkshopButton', () => ({ HostWorkshopButton: ({ defaultOpen }: any) => <button data-host-button data-open={String(!!defaultOpen)}>Host a workshop</button> }));
 vi.mock('@/components/DataVersion', () => ({ DataVersionProvider: ({ children }: any) => <>{children}</> }));
 vi.mock('@/lib/data-version', () => ({ getDataVersion: async () => 'v1' }));
 vi.mock('@/lib/request-origin', () => ({ requestOrigin: async () => 'https://craftofy.online' }));
@@ -36,6 +36,10 @@ describe('/workshops with no workshops at all', () => {
   it('is left out of the sitemap', async () => {
     expect(await urls()).not.toContain('https://craftofy.online/workshops');
   });
+  it('?host=1 opens the host form straight away; without it the form starts closed', async () => {
+    expect(renderToStaticMarkup(await WorkshopsPage(sp({ host: '1' })))).toContain('data-open="true"');
+    expect(renderToStaticMarkup(await WorkshopsPage(sp()))).toContain('data-open="false"');
+  });
   it('with a filter it keeps the normal catalogue (and noindex), not the hosting block', async () => {
     const h = renderToStaticMarkup(await WorkshopsPage(sp({ city: 'jaipur' })));
     expect(h).toContain('data-live-catalog="workshops"');
@@ -46,6 +50,16 @@ describe('/workshops with no workshops at all', () => {
 
 describe('/workshops with workshops', () => {
   beforeEach(async () => { await resetTestDb(); });
+  it('?host=1 still opens the host form (footer link), under the catalogue; without it there is no host button', async () => {
+    const withLink = renderToStaticMarkup(await WorkshopsPage(sp({ host: '1' })));
+    expect(withLink).toContain('data-live-catalog="workshops"');
+    expect(withLink).toContain('data-open="true"');
+  });
+  it('?host=1 is noindex (a way into the form, not a page) and keeps /workshops as canonical', async () => {
+    const m = await workshopsMeta(sp({ host: '1' }));
+    expect(m.robots).toEqual({ index: false, follow: true });
+    expect(m.alternates?.canonical).toBe('/workshops');
+  });
   it('is indexable, in the sitemap, and shows the normal catalogue', async () => {
     expect((await workshopsMeta(sp())).robots).toBeUndefined();
     expect(await urls()).toContain('https://craftofy.online/workshops');
