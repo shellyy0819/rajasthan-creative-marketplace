@@ -22,6 +22,7 @@ export type Workshop = {
   host: string; description: string; status: string; hostId?: string;
   platform: string | null; schedule: Schedule | null; languages: string[]; level: Level | null;
   experience: string | null; certifications: string | null; freeTrial: boolean; freeTrialDays: number | null;
+  makes: { title: string; text: string }[]; included: string[]; bring: string[]; minAge: number | null;
   whatsapp: string | null; instagram: string | null; website: string | null; images: string[]; prices: PriceRow[];
   /** Public: the host's phone number, only when the host chose to show it. */
   publicPhone?: string;

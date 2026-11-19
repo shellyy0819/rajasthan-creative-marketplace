@@ -13,7 +13,7 @@ import { notifyTeam } from './workshop-notify';
 import { isRequestImageUrl, storageConfig } from './storage';
 import { EMAIL_RE, bad, int, obj, oneOf, optionalText, text } from './validate';
 import { istParts } from '../db/mappers';
-import { CLASS_CONTACT_MESSAGE, isCurrent, optionalWebsite, parseListingFields, priceCache, type Level, type PriceRow, type Schedule } from './workshop-listing';
+import { CLASS_CONTACT_MESSAGE, isCurrent, type Make, optionalWebsite, parseListingFields, priceCache, type Level, type PriceRow, type Schedule } from './workshop-listing';
 
 import { MAX_REQUEST_IMAGES } from './workshop-requests-shared';
 export { MAX_REQUEST_IMAGES };
@@ -25,6 +25,7 @@ export type WorkshopRequest = {
   id: string; hostName: string; contactName: string; phone: string; phonePublic: boolean; email: string; city: string; venue: string; title: string;
   kind: RequestKind; mode: 'in_person' | 'online'; topicId?: number; topic?: string; description: string; startDate: string; endDate: string; startTime?: string; endTime?: string;
   status: 'unverified' | 'received' | 'listed' | 'on_hold' | 'archived'; emailVerified: boolean; images: string[]; seats?: number; priceType: 'FREE' | 'PAID'; pricePaise?: number; instagram?: string; website?: string; notes?: string; createdAt: string;
+  makes: Make[]; included: string[]; bring: string[]; minAge?: number;
   endsOn?: string; platform?: string; schedule?: Schedule; languages: string[]; level?: Level; experience?: string; certifications?: string; freeTrial: boolean; freeTrialDays?: number; joinLink?: string; whatsapp?: string; prices: PriceRow[]; listedWorkshopId?: string; listedStatus?: string; listedEnded?: boolean;
 };
 
@@ -37,6 +38,7 @@ const toRequest = (r: typeof workshopRequests.$inferSelect): WorkshopRequest => 
   status: r.status as WorkshopRequest['status'], emailVerified: r.verifiedAt != null, images: r.images ?? [], createdAt: r.createdAt.toISOString(),
   ...(r.endsOn ? { endsOn: r.endsOn } : {}), ...(r.platform ? { platform: r.platform } : {}), ...(r.schedule ? { schedule: r.schedule as Schedule } : {}),
   languages: r.languages ?? [], ...(r.level ? { level: r.level as Level } : {}), ...(r.experience ? { experience: r.experience } : {}), ...(r.certifications ? { certifications: r.certifications } : {}),
+  makes: (r.makes ?? []) as Make[], included: r.included ?? [], bring: r.bring ?? [], ...(r.minAge != null ? { minAge: r.minAge } : {}),
   freeTrial: r.freeTrial, ...(r.freeTrialDays != null ? { freeTrialDays: r.freeTrialDays } : {}), ...(r.joinLink ? { joinLink: r.joinLink } : {}), ...(r.whatsapp ? { whatsapp: r.whatsapp } : {}), prices: (r.prices ?? []) as PriceRow[], ...(r.listedWorkshopId ? { listedWorkshopId: r.listedWorkshopId } : {}),
 });
 
@@ -131,7 +133,7 @@ export async function createWorkshopRequest(input: unknown): Promise<WorkshopReq
     instagram: l.instagram, website: l.website, notes: optionalText(raw.notes, 'notes', 2000) ?? null, images: requestImages(raw.images),
     // No end date: the classes end on the start date.
     endsOn: online ? l.endsOn ?? startDate : null, platform: online ? l.platform : null, schedule: online ? l.schedule : null, languages: l.languages, level: l.level,
-    experience: l.experience, certifications: l.certifications, freeTrial: l.freeTrial, freeTrialDays: l.freeTrialDays, joinLink: online ? l.joinLink : null, whatsapp: l.whatsapp, prices: l.prices,
+    experience: l.experience, certifications: l.certifications, makes: l.makes, included: l.included, bring: l.bring, minAge: l.minAge, freeTrial: l.freeTrial, freeTrialDays: l.freeTrialDays, joinLink: online ? l.joinLink : null, whatsapp: l.whatsapp, prices: l.prices,
   }).returning();
   try {
     await issueCode(row.id, row.email);
