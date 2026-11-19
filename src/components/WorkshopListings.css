@@ -27,10 +27,9 @@
 .ws-ended { margin: 10px 0; padding: 10px 14px; border: 1px solid var(--control-border); border-radius: 4px; background: var(--cream); font-size: 13px; }
 .ws-supports { margin-top: 6px; font-size: 13px; color: var(--muted); }
 
-/* The Host a workshop button in the /workshops header: phones only. */
-.ws-head-cta { display: none; }
+/* The Host a workshop button in the /workshops header, on every screen size. */
+.ws-head-cta { display: block; margin: 18px 0 6px; }
 @media (max-width: 700px) {
-  .ws-head-cta { display: block; margin: 18px 0 6px; }
   /* A phone's first screen: heading, short intro, the button and the whole picture, with the picture not cut off at the bottom. */
   .page-head.ws-head { padding-top: 20px; padding-bottom: 0; }
   .page-head.ws-head h1 { font-size: 32px; margin: 10px 0; }

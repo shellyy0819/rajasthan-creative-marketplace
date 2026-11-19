@@ -49,7 +49,7 @@ export default async function WorkshopsPage({ searchParams }: Props) {
         <h1>Creative workshops &amp; pop-ups</h1>
         <p>Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.</p>
         <p className="ws-supports">{supportLine()}</p>
-        {/* Phones only: the card with the button is a long scroll away, so the button is also up here. */}
+        {/* The button sits in the header on every screen, so it is the first thing to reach. */}
         <div className="ws-head-cta"><HostWorkshopButton className="button primary" contactEmail={contactEmail()} topics={topics} prefill saveDraft shareable reminderTarget /></div>
       </div>
       {workshops.length === 0 && !hasFilters(f)

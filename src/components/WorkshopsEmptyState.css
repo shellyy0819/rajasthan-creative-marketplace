@@ -77,8 +77,8 @@
   .ws-empty {
     padding: 26px 22px;
   }
-  /* The header already has the Host a workshop button on phones; the card's own would be a second one on the same screen. */
-  .ws-empty > .button {
-    display: none;
-  }
+}
+/* The header has the Host a workshop button; the card's own would be a second one on the same screen. */
+.ws-empty > .button {
+  display: none;
 }
