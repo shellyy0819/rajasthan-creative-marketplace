@@ -109,9 +109,8 @@ export function LiveCatalog(props: Props) {
   const cityLabel = cityMatch ? labelOf(cityMatch) : cityValue;
   const dirty = Object.values(values).some(Boolean);
   const n = total;
-  const summary = kind === 'products'
-    ? `${n} ${n === 1 ? 'find' : 'finds'} to love${cityLabel ? ` in ${cityLabel}` : ''}.`
-    : `${n} ${n === 1 ? 'experience' : 'experiences'}${cityLabel ? ` in ${cityLabel}` : ' around India'}.`;
+  // The workshops page shows no count line; only the shop does.
+  const summary = kind === 'products' ? `${n} ${n === 1 ? 'find' : 'finds'} to love${cityLabel ? ` in ${cityLabel}` : ''}.` : '';
   const set = (patch: Values, wait: number) => { setDelay(wait); setValues(v => ({ ...v, ...patch })); };
 
   const form = (
@@ -176,7 +175,7 @@ export function LiveCatalog(props: Props) {
 
   const body = (
     <>
-      <p className="muted" role="status" style={{ margin: '0 0 12px' }}>{summary}</p>
+      {summary && <p className="muted" role="status" style={{ margin: '0 0 12px' }}>{summary}</p>}
       {form}
       {results}
     </>
