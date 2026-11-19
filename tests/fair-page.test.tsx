@@ -7,7 +7,7 @@ const getFairData = vi.hoisted(() => vi.fn());
 const isFairOpen = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/catalog-wording', async orig => ({ ...(await orig<typeof import('@/lib/catalog-wording')>()), getCatalogWording: async () => ({ adjective: 'handmade', products: 'handmade products', finds: 'handmade finds', handmadeType: 'Handmade', stats: { products: 3, makers: 2, cities: 1 } }) })); // the real one reads the database
 vi.mock('@/lib/fair-data', () => ({ getFairData }));
-vi.mock('@/lib/fair-settings', () => ({ isFairOpen }));
+vi.mock('@/lib/fair-settings', () => ({ isFairOpen, getFairSettings: async () => ({ enabled: true, source: 'sample', mela: null }) }));
 vi.mock('@/components/fair/FairGame', () => ({ FairGame: ({ data }: { data: { source: string } }) => <div data-testid="game">{data.source}</div> }));
 
 import FairPage, { generateMetadata } from '@/app/fair/page';
