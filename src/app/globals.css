@@ -5021,16 +5021,10 @@ button.fair-opt:hover { background: var(--cream); }
   cursor: not-allowed;
 }
 
-/* Desktop: the photo sits against the details column (not floating in the middle of a wide empty frame), thumbnails follow it */
+/* Desktop: the photo sits against the details column (not floating in the middle of a wide empty frame); the thumbnails stay centred under the gallery */
 @media (min-width: 901px) {
   .detail .gallery-slide {
     place-items: center end;
-  }
-  .detail .gallery-thumbs {
-    justify-content: flex-start;
-  }
-  .detail .gallery-thumbs .gallery-thumb:last-child {
-    margin-right: 0;
   }
 }
 /* The maker's own words, when they have shared a bio */

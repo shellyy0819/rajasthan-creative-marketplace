@@ -45,6 +45,16 @@ describe('pre-filling the host form for a signed-in person', () => {
     fireEvent.click(screen.getByRole('button', { name: /^next/i }));
     await waitFor(() => expect(val(/whatsapp/i)).toBe('9989898999'));
   });
+  it('asks for the details once: closing and opening the form again does not fetch them again, and they are still filled in', async () => {
+    fetchMock.mockResolvedValue(json(me));
+    open();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    fireEvent.click(screen.getByRole('button', { name: /host a workshop/i }));
+    toLast();
+    await waitFor(() => expect(val(/your name/i)).toBe('Asha Rao'));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
   it('never overwrites something the visitor already typed', async () => {
     let resolve!: (v: unknown) => void;
     fetchMock.mockReturnValue(new Promise(r => { resolve = r; }));

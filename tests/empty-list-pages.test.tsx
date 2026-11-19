@@ -73,10 +73,25 @@ describe('/workshops with no workshops at all', () => {
 
 describe('/workshops with workshops', () => {
   beforeEach(async () => { await resetTestDb(); });
-  it('?host=1 still opens the host form (footer link), under the catalogue; without it there is no host button', async () => {
+  it('?host=1 still opens the host form (the header button opens it) above the catalogue', async () => {
     const withLink = renderToStaticMarkup(await WorkshopsPage(sp({ host: '1' })));
     expect(withLink).toContain('data-live-catalog="workshops"');
     expect(withLink).toContain('data-open="true"');
+  });
+  it('the footer links open the one Host button in the header, on the path they ask for, and no second Host button is added under the catalogue', async () => {
+    const one = (h: string) => h.match(/data-host-button/g)?.length;
+    const inPerson = renderToStaticMarkup(await WorkshopsPage(sp({ type: 'in-person' })));
+    expect(one(inPerson)).toBe(1);
+    expect(inPerson).toMatch(/<div class="ws-head-cta"><button data-host-button[^>]*data-open="true" data-initial="event"/);
+    const online = renderToStaticMarkup(await WorkshopsPage(sp({ type: 'online' })));
+    expect(one(online)).toBe(1);
+    expect(online).toMatch(/<div class="ws-head-cta"><button data-host-button[^>]*data-open="true" data-initial="class"/);
+    expect(inPerson).not.toContain('host-more');
+  });
+  it('without a host link the header button starts closed and is the only one', async () => {
+    const h = renderToStaticMarkup(await WorkshopsPage(sp()));
+    expect(h.match(/data-host-button/g)).toHaveLength(1);
+    expect(h).toContain('data-open="false"');
   });
   it('?host=1 is noindex (a way into the form, not a page) and keeps /workshops as canonical', async () => {
     const m = await workshopsMeta(sp({ host: '1' }));

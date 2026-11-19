@@ -30,3 +30,10 @@ export function hostPath(sp: SP): HostPath | null {
 
 /** The value the address bar shows while a path's form is open. */
 export const hostParamFor = (path: HostPath | null): string => (path === 'class' ? 'online' : 'in-person');
+
+/**
+ * The footer's host links on /workshops open the form in place (no navigation, so no server round trip or data reload).
+ * They announce the wanted path with this event; the page's main Host button listens for it.
+ */
+export const HOST_OPEN_EVENT = 'craftofy:host-open';
+export type HostOpenDetail = { path: HostPath };
