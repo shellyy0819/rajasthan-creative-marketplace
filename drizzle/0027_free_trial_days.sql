@@ -1,0 +1,4 @@
+ALTER TABLE "workshop_requests" ADD COLUMN "free_trial_days" integer;--> statement-breakpoint
+ALTER TABLE "workshops" ADD COLUMN "free_trial_days" integer;--> statement-breakpoint
+ALTER TABLE "workshop_requests" ADD CONSTRAINT "workshop_requests_trial_days_valid" CHECK ("workshop_requests"."free_trial_days" is null or ("workshop_requests"."free_trial_days" >= 1 and "workshop_requests"."free_trial_days" <= 365));--> statement-breakpoint
+ALTER TABLE "workshops" ADD CONSTRAINT "workshops_trial_days_valid" CHECK ("workshops"."free_trial_days" is null or ("workshops"."free_trial_days" >= 1 and "workshops"."free_trial_days" <= 365));

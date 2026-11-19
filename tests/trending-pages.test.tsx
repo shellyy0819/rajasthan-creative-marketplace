@@ -151,7 +151,13 @@ describe('city listings come from active cities', () => {
       : !React.isValidElement(node) ? node
       : [TrendingSection, HomeShelf, HomeWorkshops].includes(node.type as never) ? null
       : (node.props as any)?.children === undefined ? node : React.cloneElement(node, { children: drop((node.props as any).children) } as any);
-    render(<QueryClientProvider client={new QueryClient()}>{drop(await Home())}</QueryClientProvider>);
+    // The sections below the hero are one async component (HomeSections) inside a Suspense: find it in the tree and call it, as the server would.
+    const find = (node: any, name: string): any => Array.isArray(node) ? node.map(n => find(n, name)).find(Boolean)
+      : !React.isValidElement(node) ? undefined
+      : (node.type as { name?: string }).name === name ? node : find((node.props as any)?.children, name);
+    const sections = find(await Home(), 'HomeSections');
+    expect(sections, 'HomeSections in the home page tree').toBeTruthy();
+    render(<QueryClientProvider client={new QueryClient()}>{drop(await (sections.type as (p: unknown) => Promise<unknown>)(sections.props))}</QueryClientProvider>);
     const row = screen.getByRole('navigation', { name: 'Explore by city' });
     expect(Array.from(row.querySelectorAll('a')).map(a => a.getAttribute('href'))).toEqual(['/cities/jodhpur', '/cities/udaipur']);
   });

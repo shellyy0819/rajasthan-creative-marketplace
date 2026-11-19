@@ -100,7 +100,7 @@ export function LogoUpload({ value, onChange, onBusyChange, invalid, describedBy
       <div className={`logo-preview${value ? ' has-photo' : ''}`}>
         {value
           // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={value} alt="Your logo" />
+          ? <a className="logo-open" href={value} target="_blank" rel="noopener noreferrer" aria-label="Open your logo in a new tab"><img src={value} alt="Your logo" /></a>
           : <span aria-hidden="true">Logo</span>}
         {busy && <span className="rr-spinner" role="presentation" />}
       </div>
@@ -112,6 +112,7 @@ export function LogoUpload({ value, onChange, onBusyChange, invalid, describedBy
             onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; void pick(f); }} />
         </label>
         <small className="onboard-hint">Camera or gallery. JPG or PNG, up to 5 MB.</small>
+        <small className="onboard-hint logo-tip">Tip: a close-up photo is much easier for attendees to see in the small round frame.</small>
         {busy && <small className="onboard-hint" role="status">Uploading…</small>}
         {error && (
           <p className="field-error" id="err-logo-upload" role="alert"><span>{error}</span></p>

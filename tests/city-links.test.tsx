@@ -27,7 +27,7 @@ describe('city links on detail pages use the stored city slug', () => {
     expect(tri.slug).toBe('udaipur-tripura');
     const u = await ensureUser(db, 's@x.invalid', 'S');
     await db.insert(products).values({ id: 'p9', sellerId: u.id, name: 'Bowl', category: 'Pottery', cityId: tri.id, pricePaise: 100, description: 'd', stock: 1, status: 'APPROVED' });
-    await db.insert(workshops).values({ id: 'w9', title: 'Clay', type: 'FREE', pricePaise: 0, cityId: tri.id, venue: 'V', startsAt: new Date('2026-12-01T10:00:00+05:30'), seats: 5, booked: 0, hostName: 'H', description: 'd', status: 'APPROVED' });
+    await db.insert(workshops).values({ id: 'w9', title: 'Clay', type: 'FREE', pricePaise: 0, cityId: tri.id, venue: 'V', startsAt: new Date('2099-12-01T10:00:00+05:30'), seats: 5, booked: 0, hostName: 'H', description: 'd', status: 'APPROVED' });
     const p = (await getProductBySlug(productSlug({ id: 'p9', name: 'Bowl' } as never)))!;
     const w = (await getWorkshopBySlug(workshopSlug({ id: 'w9', title: 'Clay' } as never)))!;
     const ph = renderToStaticMarkup(await ProductPage({ params: Promise.resolve({ slug: productSlug(p) }) }));

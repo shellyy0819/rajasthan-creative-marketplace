@@ -61,6 +61,14 @@ describe('AuthButton signed in', () => {
     expect(items.map(i => i.textContent)).toEqual(['My profile', 'Logout']);
     expect(items[0].getAttribute('href')).toBe('/dashboard/posts?profile=1');
   });
+  it('Logout also removes any saved host-form draft from this browser', () => {
+    session.value = { data: { user: { email: 's@x.co', role: 'seller' } }, status: 'authenticated' };
+    localStorage.setItem('craftofy:host-draft:v1', '{}');
+    render(<AuthButton />);
+    menu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Logout' }));
+    expect(localStorage.getItem('craftofy:host-draft:v1')).toBeNull();
+  });
   it('My profile uses the dashboard origin when split-host; Logout signs out', async () => {
     const { signOut } = await import('next-auth/react');
     session.value = { data: { user: { email: 's@x.co', role: 'seller' } }, status: 'authenticated' };

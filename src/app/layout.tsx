@@ -13,8 +13,7 @@ import { AuthProvider } from '@/components/AuthProvider';
 import { QueryProvider } from '@/components/QueryProvider';
 import { Analytics } from '@/components/Analytics';
 import { hostConfig } from '@/lib/hosts';
-import { SplashScreen } from '@/components/SplashScreen';
-import { themeInitScript, splashInitScript } from '@/lib/init-scripts';
+import { themeInitScript } from '@/lib/init-scripts';
 import { ThemeBanner } from '@/components/theme/ThemeBanner';
 import { ThemeHead } from '@/components/theme/ThemeHead';
 import { ThemePreviewBar } from '@/components/theme/ThemePreviewBar';
@@ -38,10 +37,6 @@ export async function generateMetadata(): Promise<Metadata> {
   },
   appleWebApp: {
     capable: true, title: SITE.name, statusBarStyle: 'default',
-    startupImage: [
-      { url: '/splash/screen-color-1284x2778.png', media: '(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (prefers-color-scheme: light)' },
-      { url: '/splash/screen-dark-1284x2778.png', media: '(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (prefers-color-scheme: dark)' },
-    ],
   },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } },
   };
@@ -53,9 +48,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const [theme, fairOpen, wording] = await Promise.all([getRenderTheme(), isFairOpen(), getCatalogWording()]);
   return (
     <html lang="en-IN" className={sans.variable} data-festival={theme.preset} suppressHydrationWarning>
-      <head><script dangerouslySetInnerHTML={{ __html: `${themeInitScript};${splashInitScript}` }} /><ThemeHead preset={theme.preset} css={theme.css} /></head>
+      <head><script dangerouslySetInnerHTML={{ __html: themeInitScript }} /><ThemeHead preset={theme.preset} css={theme.css} /></head>
       <body>
-        <SplashScreen />
         <a className="skip-link" href="#main">Skip to content</a>
         <JsonLd data={[organizationJsonLd(siteCopy(wording).description), websiteJsonLd()]} />
         <AuthProvider>

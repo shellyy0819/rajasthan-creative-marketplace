@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 vi.mock('@/components/LiveCatalog', () => ({ LiveCatalog: ({ kind }: any) => <div data-live-catalog={kind} /> }));
-vi.mock('@/components/HostWorkshopButton', () => ({ HostWorkshopButton: ({ defaultOpen }: any) => <button data-host-button data-open={String(!!defaultOpen)}>Host a workshop</button> }));
+vi.mock('@/components/HostWorkshopButton', () => ({ HostWorkshopButton: ({ defaultOpen, initialPath, label, className }: any) => <button data-host-button data-class={className} data-open={String(!!defaultOpen)} data-initial={String(initialPath)}>{label ?? 'Host a workshop'}</button> }));
 vi.mock('@/components/DataVersion', () => ({ DataVersionProvider: ({ children }: any) => <>{children}</> }));
 vi.mock('@/lib/data-version', () => ({ getDataVersion: async () => 'v1' }));
 vi.mock('@/lib/request-origin', () => ({ requestOrigin: async () => 'https://craftofy.online' }));
@@ -29,12 +29,35 @@ describe('/workshops with no workshops at all', () => {
     expect(h).toContain('data-host-button');
     expect(h).toMatch(/first workshops/i);
     expect(h).toContain('role="img"');                // the café illustration
-    expect(h).toContain('>Host with us<');             // its chalkboard, since no workshop is hosted today
+    expect(h).toContain('>Stay Tuned!<');             // its chalkboard, since no workshop is hosted today
     expect(h).not.toContain('data-live-catalog');
     expect(h).not.toContain('Try a different city or filter');
   });
   it('is left out of the sitemap', async () => {
     expect(await urls()).not.toContain('https://craftofy.online/workshops');
+  });
+  it('the page\'s first primary button, Host a workshop, is the filled green style, in the header and in the card', async () => {
+    const h = renderToStaticMarkup(await WorkshopsPage(sp()));
+    expect(h.match(/data-class="button primary"/g)).toHaveLength(2);
+  });
+  it('a Host a workshop button is also in the page header, for phones where the card is far down', async () => {
+    const h = renderToStaticMarkup(await WorkshopsPage(sp()));
+    expect(h).toMatch(/<div class="ws-head-cta"><button data-host-button/);
+  });
+  it('?host=class opens the form on the class path; ?host=1 leaves the choice open; the empty state has just the one Host a workshop button', async () => {
+    const cls = renderToStaticMarkup(await WorkshopsPage(sp({ host: 'class' })));
+    expect(cls).toContain('data-open="true" data-initial="class"');
+    expect(renderToStaticMarkup(await WorkshopsPage(sp({ host: '1' })))).toContain('data-open="true" data-initial="null"');
+    expect(cls).not.toContain('>Teach an online class<');
+    expect(cls.match(/<section class="ws-empty"[\s\S]*<\/section>/)![0].match(/data-host-button/g)).toHaveLength(1); // the card has the one button
+  });
+  it('?type=in-person and ?type=online open the form on that path', async () => {
+    expect(renderToStaticMarkup(await WorkshopsPage(sp({ type: 'in-person' })))).toContain('data-open="true" data-initial="event"');
+    expect(renderToStaticMarkup(await WorkshopsPage(sp({ type: 'online' })))).toContain('data-open="true" data-initial="class"');
+    expect((await workshopsMeta(sp({ type: 'online' }))).robots).toEqual({ index: false, follow: true });
+  });
+  it('?host=in-person opens the form on the in-person path', async () => {
+    expect(renderToStaticMarkup(await WorkshopsPage(sp({ host: 'in-person' })))).toContain('data-open="true" data-initial="event"');
   });
   it('?host=1 opens the host form straight away; without it the form starts closed', async () => {
     expect(renderToStaticMarkup(await WorkshopsPage(sp({ host: '1' })))).toContain('data-open="true"');
@@ -43,7 +66,7 @@ describe('/workshops with no workshops at all', () => {
   it('with a filter it keeps the normal catalogue (and noindex), not the hosting block', async () => {
     const h = renderToStaticMarkup(await WorkshopsPage(sp({ city: 'jaipur' })));
     expect(h).toContain('data-live-catalog="workshops"');
-    expect(h).not.toContain('data-host-button');
+    expect(h).not.toContain('ws-empty-wrap'); // no hosting card (the phone-only header button is still there)
     expect((await workshopsMeta(sp({ city: 'jaipur' }))).robots).toEqual({ index: false, follow: true });
   });
 });
@@ -65,7 +88,7 @@ describe('/workshops with workshops', () => {
     expect(await urls()).toContain('https://craftofy.online/workshops');
     const h = renderToStaticMarkup(await WorkshopsPage(sp()));
     expect(h).toContain('data-live-catalog="workshops"');
-    expect(h).not.toContain('data-host-button');
+    expect(h).not.toContain('ws-empty-wrap'); // no hosting card (the phone-only header button is still there)
   });
 });
 

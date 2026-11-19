@@ -1,10 +1,11 @@
-import { eq, sql } from 'drizzle-orm';
+import { asc, eq, inArray, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { AdminProduct, Booking, Order, OrderItem, Product, Workshop } from '../lib/types';
+import type { Kind, Level, Mode, PriceRow, Schedule } from '../lib/workshop-listing';
 import { artistSlug } from '../lib/artist-slug';
 import { publicLogo } from '../lib/public-logo';
 import type { Q } from './client';
-import { bookings, cities, orderItems, orders, products, sellerProfiles, sourcingTypes, users, workshops } from './schema';
+import { bookings, cities, orderItems, orders, products, sellerProfiles, sourcingTypes, users, workshopPrices, workshopTopics, workshops } from './schema';
 
 type ProductRow = typeof products.$inferSelect;
 type WorkshopRow = typeof workshops.$inferSelect;
@@ -101,39 +102,62 @@ export const toProductRow = (p: ProductInput) => ({
 });
 
 // ---------- workshops (starts_at <-> the API's date + time strings, India time) ----------
-const IST_PARTS = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
-});
-export function istParts(d: Date): { date: string; time: string } {
-  const p = Object.fromEntries(IST_PARTS.formatToParts(d).map(x => [x.type, x.value]));
-  return { date: `${p.year}-${p.month}-${p.day}`, time: `${p.hour}:${p.minute}` };
-}
-export const istToDate = (date: string, time: string) => new Date(`${date}T${time}:00+05:30`);
+export { istParts, istToDate } from '../lib/ist';
+import { istParts, istToDate } from '../lib/ist';
 
 export const workshopSelect = {
   w: workshops,
   cityName: cities.name,
   citySlug: cities.slug,
   cityState: cities.state,
+  topicName: workshopTopics.name,
+  topicSlug: workshopTopics.slug,
 };
-export type WorkshopJoinRow = { w: WorkshopRow; cityName: string; citySlug: string; cityState: string | null };
-/** SELECT workshops + their city. Add .where(...) / .orderBy(...) / .for('update', { of: workshops }) as needed. */
+export type WorkshopJoinRow = { w: WorkshopRow; cityName: string | null; citySlug: string | null; cityState: string | null; topicName: string | null; topicSlug: string | null };
+/** SELECT workshops + their city and topic (both optional: an online class has no city). Add .where(...) / .orderBy(...) / .for('update', { of: workshops }) as needed. */
 export const workshopsQuery = (q: Q) =>
-  q.select(workshopSelect).from(workshops).innerJoin(cities, eq(cities.id, workshops.cityId));
+  q.select(workshopSelect).from(workshops)
+    .leftJoin(cities, eq(cities.id, workshops.cityId))
+    .leftJoin(workshopTopics, eq(workshopTopics.id, workshops.topicId));
 
 export const toWorkshop = (r: WorkshopJoinRow): Workshop => ({
   id: r.w.id, title: r.w.title, type: r.w.type as Workshop['type'], pricePaise: r.w.pricePaise,
+  kind: r.w.kind as Kind, mode: r.w.mode as Mode, topicId: r.w.topicId,
+  ...(r.w.topicId != null && r.topicName && r.topicSlug ? { topic: { id: r.w.topicId, name: r.topicName, slug: r.topicSlug } } : {}),
   city: r.cityName, cityId: r.w.cityId, citySlug: r.citySlug, ...opt('cityState', r.cityState),
-  venue: r.w.venue, ...istParts(r.w.startsAt), seats: r.w.seats, booked: r.w.booked, host: r.w.hostName,
+  venue: r.w.venue, ...istParts(r.w.startsAt), endsOn: r.w.endsOn, seats: r.w.seats, booked: r.w.booked, host: r.w.hostName,
   description: r.w.description, status: r.w.status,
+  platform: r.w.platform, schedule: (r.w.schedule ?? null) as Schedule | null, languages: r.w.languages, level: r.w.level as Level | null,
+  experience: r.w.experience, certifications: r.w.certifications, freeTrial: r.w.freeTrial, freeTrialDays: r.w.freeTrialDays,
+  whatsapp: r.w.whatsapp, instagram: r.w.instagram, website: r.w.website, images: r.w.images, prices: [],
+  // The private phone is public only when the host chose to show it.
+  ...(r.w.phonePublic && r.w.contactPhone ? { publicPhone: r.w.contactPhone } : {}),
 });
-/** Admin responses also carry the host's user id; the public API never does. */
-export const toAdminWorkshop = (r: WorkshopJoinRow): Workshop => ({ ...toWorkshop(r), ...opt('hostId', r.w.hostId) });
+/** Admin responses also carry the host's user id and the private contact; the public API never does. */
+export const toAdminWorkshop = (r: WorkshopJoinRow): Workshop => ({
+  ...toWorkshop(r), ...opt('hostId', r.w.hostId), ...opt('contactName', r.w.contactName), ...opt('contactPhone', r.w.contactPhone), phonePublic: r.w.phonePublic,
+  ...opt('contactEmail', r.w.contactEmail), ...opt('createdBy', r.w.createdBy), ...opt('sourceRequestId', r.w.sourceRequestId), ...opt('joinLink', r.w.joinLink), createdAt: r.w.createdAt.toISOString(),
+});
 
-export type WorkshopInput = Omit<Workshop, 'id' | 'booked' | 'hostId' | 'city' | 'citySlug' | 'cityState'>;
+/** Fills in the price rows (ordered) of each workshop with one query. */
+export async function withPrices(q: Q, list: Workshop[]): Promise<Workshop[]> {
+  if (!list.length) return list;
+  const rows = await q.select().from(workshopPrices).where(inArray(workshopPrices.workshopId, list.map(w => w.id))).orderBy(asc(workshopPrices.position), asc(workshopPrices.id));
+  const by = new Map<string, PriceRow[]>();
+  for (const r of rows) by.set(r.workshopId, [...(by.get(r.workshopId) ?? []), { label: r.label, amountPaise: r.amountPaise, sessions: r.sessions }]);
+  return list.map(w => ({ ...w, prices: by.get(w.id) ?? [] }));
+}
+
+export type WorkshopInput = Pick<Workshop, 'title' | 'type' | 'pricePaise' | 'kind' | 'mode' | 'topicId' | 'cityId' | 'venue' | 'date' | 'time' | 'endsOn' | 'seats' | 'host' | 'description' | 'status'
+  | 'platform' | 'schedule' | 'languages' | 'level' | 'experience' | 'certifications' | 'freeTrial' | 'freeTrialDays' | 'whatsapp' | 'instagram' | 'website' | 'images'>
+  & { phonePublic?: boolean; contactName?: string | null; contactPhone?: string | null; contactEmail?: string | null; joinLink?: string | null };
 export const toWorkshopRow = (w: WorkshopInput) => ({
-  title: w.title, type: w.type, pricePaise: w.pricePaise, cityId: w.cityId, venue: w.venue,
-  startsAt: istToDate(w.date, w.time), seats: w.seats, hostName: w.host, description: w.description, status: w.status,
+  title: w.title, type: w.type, pricePaise: w.pricePaise, kind: w.kind, mode: w.mode, topicId: w.topicId, cityId: w.cityId, venue: w.venue,
+  startsAt: istToDate(w.date, w.time), endsOn: w.endsOn, seats: w.seats, hostName: w.host, description: w.description, status: w.status,
+  platform: w.platform, schedule: w.schedule, languages: w.languages, level: w.level, experience: w.experience, certifications: w.certifications,
+  freeTrial: w.freeTrial, freeTrialDays: w.freeTrialDays, whatsapp: w.whatsapp, instagram: w.instagram, website: w.website, images: w.images,
+  ...(w.contactName !== undefined ? { contactName: w.contactName } : {}), ...(w.contactPhone !== undefined ? { contactPhone: w.contactPhone } : {}),
+  ...(w.phonePublic !== undefined ? { phonePublic: w.phonePublic } : {}), ...(w.contactEmail !== undefined ? { contactEmail: w.contactEmail } : {}), ...(w.joinLink !== undefined ? { joinLink: w.joinLink } : {}),
 });
 
 // ---------- orders & bookings ----------

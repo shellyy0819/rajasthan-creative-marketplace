@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
+import { clearDraft } from '@/lib/host-draft';
 
 /** Fired on the window to open the profile when the dashboard posts page is already showing. */
 export const OPEN_PROFILE_EVENT = 'craftofy:open-profile';
@@ -90,7 +91,7 @@ export function AuthButton({ dashboardUrl = '' }: { dashboardUrl?: string }) {
         {open && (
           <div className="user-menu-list" role="menu" aria-label="Account">
             {staff && <Link role="menuitem" href={profileHref} onClick={openProfile}>My profile</Link>}
-            <button type="button" role="menuitem" onClick={() => signOut({ callbackUrl: '/?signedout=1' })}>Logout</button>
+            <button type="button" role="menuitem" onClick={() => { clearDraft(); void signOut({ callbackUrl: '/?signedout=1' }); }}>Logout</button>
           </div>
         )}
       </div>

@@ -40,6 +40,23 @@
   font-size: 15px;
   line-height: 1.6;
 }
+/* Tablets: the card and the picture do not fit side by side, so stack them, picture first, both centred and sized to the page. */
+@media (max-width: 1000px) {
+  .ws-empty-wrap {
+    justify-content: center;
+    gap: 28px;
+  }
+  .ws-empty-art {
+    order: -1;
+    flex: 0 1 520px;
+    width: 100%;
+    margin-inline: auto;
+  }
+  .ws-empty {
+    flex: 1 1 100%;
+    max-width: 720px;
+  }
+}
 @media (max-width: 700px) {
   .ws-empty-wrap {
     margin-left: 5%;
@@ -47,9 +64,21 @@
     gap: 20px;
   }
   .ws-empty-art {
-    order: -1;   /* the picture first on a phone */
+    order: -1;   /* the picture first on a phone, small enough to fit the first screen under the button */
+    max-width: 360px;
+    margin: 8px auto 36px; /* room above and below: the picture fills the rest of the first screen */
+  }
+  .ws-empty-art .cafe-scene {
+    aspect-ratio: 560 / 470; /* a little taller than the scene; the extra is floor */
+    background: var(--cs-floor);
+    overflow: hidden;
+    border-radius: 24px;
   }
   .ws-empty {
     padding: 26px 22px;
   }
+}
+/* The header has the Host a workshop button; the card's own would be a second one on the same screen. */
+.ws-empty > .button {
+  display: none;
 }

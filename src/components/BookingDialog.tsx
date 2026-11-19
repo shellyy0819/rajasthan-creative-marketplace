@@ -13,7 +13,7 @@ export function BookingDialog() {
     if (booking && !d.open) d.showModal();
     if (!booking && d.open) d.close();
   }, [booking]);
-  const max = booking ? Math.min(4, booking.seats - booking.booked) : 1;
+  const max = booking ? Math.min(4, (booking.seats ?? 0) - booking.booked) : 1;
   return (
     <dialog ref={ref} onClose={closeBooking} aria-labelledby="booking-title">
       <div className="dialog-head">

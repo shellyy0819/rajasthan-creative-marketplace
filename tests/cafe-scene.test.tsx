@@ -10,17 +10,28 @@ describe('CafeScene', () => {
     expect(h).toMatch(/<svg[^>]*role="img"[^>]*aria-label="[^"]*café[^"]*"/);
     expect(h).toContain('viewBox="0 0 560 420"');
   });
-  it('the chalkboard says "Host with us" when no workshop is hosted today', () => {
+  it('the chalkboard says "Stay Tuned!" when no workshop is hosted today', () => {
     const h = renderToStaticMarkup(<CafeScene />);
-    expect(h).toContain('>Host with us<');
+    expect(h).toContain('>Stay Tuned!<');
     expect(h).not.toContain('Workshop today');
     expect(h).not.toContain('Workshop</text>');
   });
-  it('the chalkboard says "Workshop today" when one is', () => {
-    const h = renderToStaticMarkup(<CafeScene workshopToday />);
+  it('the chalkboard says "Workshop live" when one workshop is live today', () => {
+    const h = renderToStaticMarkup(<CafeScene liveCount={1} />);
     expect(h).toContain('>Workshop<');
-    expect(h).toContain('>today<');
-    expect(h).not.toContain('Host with us');
+    expect(h).toContain('>live<');
+    expect(h).not.toContain('Stay Tuned!');
+    expect(h).toContain('says Workshop live');
+  });
+  it('the chalkboard says "N workshops live" when several are', () => {
+    const h = renderToStaticMarkup(<CafeScene liveCount={10} />);
+    expect(h).toContain('>10 workshops<');
+    expect(h).toContain('>live<');
+    expect(h).toContain('says 10 workshops live');
+    expect(renderToStaticMarkup(<CafeScene liveCount={2} />)).toContain('>2 workshops<');
+  });
+  it('a huge count is shown as 99+', () => {
+    expect(renderToStaticMarkup(<CafeScene liveCount={250} />)).toContain('>99+ workshops<');
   });
   it('colours come from classes (so light and dark follow the site theme), never hard-coded in the markup', () => {
     const h = renderToStaticMarkup(<CafeScene />);

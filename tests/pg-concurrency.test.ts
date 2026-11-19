@@ -76,7 +76,7 @@ describe.skipIf(!adminUrl)('real Postgres: concurrency and locking', () => {
   it('50 parallel product creates and 20 workshop creates get unique ids', async () => {
     const ps = await Promise.all(Array.from({ length: 50 }, () => createProduct(product, adminActor)));
     expect(new Set(ps.map(p => p.id)).size).toBe(50);
-    const ws = await Promise.all(Array.from({ length: 20 }, () => createWorkshop({ title: 'T', type: 'FREE', pricePaise: 0, cityRef: cityRef('Jaipur'), venue: 'V', date: '2026-12-01', time: '10:00', seats: 5, host: 'H', description: 'D' })));
+    const ws = await Promise.all(Array.from({ length: 20 }, () => createWorkshop({ title: 'T', type: 'FREE', pricePaise: 0, cityRef: cityRef('Jaipur'), venue: 'V', date: '2099-12-01', time: '10:00', seats: 5, host: 'H', description: 'D' })));
     expect(new Set(ws.map(w => w.id)).size).toBe(20);
   });
 

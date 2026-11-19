@@ -16,7 +16,7 @@ const back = () => fireEvent.click(screen.getByRole('button', { name: /^back/i }
 const open = () => { render(<HostWorkshopButton />); fireEvent.click(screen.getByRole('button', { name: /host a workshop/i })); };
 
 function fillStep1() { val(/event title/i, 'Crochet night'); val(/^type/i, 'workshop'); val(/what happens/i, 'We crochet.'); }
-function fillStep2() { val(/start date/i, '2026-12-01'); val(/^city/i, 'Jaipur'); val(/venue and address/i, '12 MI Road'); }
+function fillStep2() { val(/start date/i, '2099-12-01'); val(/^city/i, 'Jaipur'); val(/venue and address/i, '12 MI Road'); }
 function fillStep3() { val(/host, studio/i, 'Studio X'); val(/your name/i, 'Asha Rao'); val(/phone number/i, '9989898999'); val(/^email/i, 'asha@example.com'); }
 
 beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal('fetch', fetchMock); });
@@ -86,7 +86,7 @@ describe('Host a workshop stepper', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('/api/workshop-requests');
-    expect(JSON.parse(init.body)).toMatchObject({ title: 'Crochet night', kind: 'workshop', venue: '12 MI Road', startDate: '2026-12-01', hostName: 'Studio X', contactName: 'Asha Rao', phone: '9989898999', email: 'asha@example.com', images: ['https://img.test/a.jpg'] });
+    expect(JSON.parse(init.body)).toMatchObject({ title: 'Crochet night', kind: 'workshop', venue: '12 MI Road', startDate: '2099-12-01', hostName: 'Studio X', contactName: 'Asha Rao', phone: '9989898999', email: 'asha@example.com', images: ['https://img.test/a.jpg'] });
     await waitFor(() => expect(screen.getByRole('heading', { name: /verify your email/i })).toBeTruthy());
   });
 
@@ -104,5 +104,13 @@ describe('Host a workshop stepper', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     fireEvent.click(screen.getByRole('button', { name: /host a workshop/i }));
     expect(screen.getByText('Step 1 of 3')).toBeTruthy();
+  });
+
+  it('the progress steps are outside the scrolling form, so they stay in place', () => {
+    open();
+    const list = screen.getByRole('list', { name: /progress/i });
+    expect(list.closest('form')).toBeNull();
+    expect(list.closest('.host-dialog-form')).not.toBeNull();
+    expect(screen.getByText('Step 1 of 3').closest('form')).toBeNull();
   });
 });

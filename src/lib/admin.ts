@@ -1,22 +1,29 @@
-import { and, count, eq, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { allocateId } from '../db/ids';
-import { productsQuery, toAdminProduct, toProductRow, toWorkshop, toAdminWorkshop, toWorkshopRow, workshopsQuery, type ProductInput, type WorkshopInput } from '../db/mappers';
+import { istParts, productsQuery, toAdminProduct, toProductRow, toWorkshop, toAdminWorkshop, toWorkshopRow, withPrices, workshopsQuery, type ProductInput, type WorkshopInput } from '../db/mappers';
 import { ROLE_ID, ensureUser } from '../db/people';
-import { products as productsT, userRoles, users, workshops as workshopsT } from '../db/schema';
+import { products as productsT, userRoles, users, workshopPrices as workshopPricesT, workshopRequests as workshopRequestsT, workshopTopics, workshops as workshopsT } from '../db/schema';
 import type { Tx } from '../db/client';
 import { resolveCityInput } from './cities';
 import { canonicalCategory } from './categories';
 import { resolveSourcingTypeId } from './sourcing-types';
 import type { Actor } from './authz';
 import { ApiError } from './errors';
-import { bad, int, obj, oneOf, optionalInt, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
+import { bad, int, obj, oneOf, optionalEmail, optionalImageUrl, optionalInt, optionalPhone, optionalText, optionalUuid, pick, text, validDate, type Raw } from './validate';
+import { CLASS_CONTACT_MESSAGE, isCurrent, parseListingFields, priceCache, type PriceRow } from './workshop-listing';
+import { markRequestListed } from './workshop-requests';
 import { loadImages, parseImages, resolveImages, saveImages, unreferencedKeys } from './product-images';
 import { deleteObjects, storageConfig } from './storage';
 import type { AdminProduct, Workshop } from './types';
 
 const PRODUCT_KEYS = ['name', 'category', 'sourcingTypeId', 'cityId', 'cityRef', 'pricePaise', 'description', 'stock', 'status', 'images', 'workshopId', 'pickupLocation'] as const;
-const WORKSHOP_KEYS = ['title', 'type', 'pricePaise', 'cityId', 'cityRef', 'venue', 'date', 'time', 'seats', 'host', 'hostId', 'description', 'status'] as const;
+const WORKSHOP_KEYS = [
+  'title', 'type', 'pricePaise', 'cityId', 'cityRef', 'venue', 'date', 'time', 'seats', 'host', 'hostId', 'description', 'status',
+  'kind', 'mode', 'topicId', 'platform', 'schedule', 'endsOn', 'languages', 'level', 'experience', 'certifications', 'freeTrial', 'freeTrialDays',
+  'whatsapp', 'instagram', 'website', 'images', 'prices', 'joinLink', 'contactName', 'contactPhone', 'phonePublic', 'contactEmail', 'sourceRequestId',
+] as const;
+const MAX_WORKSHOP_IMAGES = 3;
 const PRODUCT_STATUSES = ['APPROVED', 'DRAFT', 'ARCHIVED'] as const;
 const WORKSHOP_STATUSES = ['APPROVED', 'DRAFT', 'ARCHIVED'] as const;
 const PUBLISH_DENIED = () => new ApiError(403, 'Only an admin can publish a product.');
@@ -180,21 +187,72 @@ export async function deleteProduct(id: string): Promise<void> {
   await dropStoredPhotos(keys);
 }
 
-function validateWorkshop(v: Raw): Omit<WorkshopInput, 'cityId'> {
-  const type = oneOf(v.type, 'type', ['FREE', 'PAID'] as const);
-  const pricePaise = type === 'FREE' ? 0 : int(v.pricePaise, 'pricePaise', 1, 10_000_000);
-  if (typeof v.time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(v.time)) throw bad('time must be HH:MM (24-hour).');
+type WorkshopFields = Omit<WorkshopInput, 'cityId'> & { prices: PriceRow[] };
+function validateWorkshop(v: Raw): WorkshopFields {
+  const l = parseListingFields(v);
+  const online = l.mode === 'online';
+  // The price rows decide FREE/PAID and the "from" price. Without rows the old single type + price applies (an online class with neither is free).
+  let cache: { type: 'FREE' | 'PAID'; pricePaise: number };
+  if (l.prices.length) cache = priceCache(l.prices);
+  else if (online && v.type === undefined) cache = { type: 'FREE', pricePaise: 0 };
+  else {
+    const type = oneOf(v.type, 'type', ['FREE', 'PAID'] as const);
+    cache = { type, pricePaise: type === 'FREE' ? 0 : int(v.pricePaise, 'pricePaise', 1, 10_000_000) };
+  }
+  const time = v.time ?? l.schedule?.time;
+  if (typeof time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw bad('time must be HH:MM (24-hour).');
+  const images = v.images === undefined || v.images === null ? [] : Array.isArray(v.images) && v.images.length <= MAX_WORKSHOP_IMAGES ? v.images.map(u => optionalImageUrl(u) ?? '').filter(Boolean) : (() => { throw bad(`images must be a list of up to ${MAX_WORKSHOP_IMAGES} https URLs.`); })();
+  const status = oneOf(v.status ?? 'DRAFT', 'status', WORKSHOP_STATUSES);
+  // A class is contact-only: a published one needs at least one public way to reach the host.
+  const phone = v.contactPhone === undefined ? undefined : optionalPhone(v.contactPhone, 'contactPhone');
+  const phonePublic = v.phonePublic === true || v.phonePublic === 'true';
+  if (phonePublic && !phone) throw bad('contactPhone is needed to show the phone number to the audience.');
+  // (a phone number shown to the audience counts as a public contact)
+  if (status === 'APPROVED' && (l.kind === 'class' || online) && !l.whatsapp && !l.instagram && !phonePublic && !(l.website && /^https?:\/\//i.test(l.website))) throw bad(CLASS_CONTACT_MESSAGE);
+  const date = validDate(v.date);
+  if (l.endsOn && l.endsOn < date) throw bad('endsOn cannot be before the start date.');
   return {
     title: text(v.title, 'title', 200),
-    type, pricePaise,
-    venue: text(v.venue, 'venue', 200),
-    date: validDate(v.date),
-    time: v.time,
-    seats: int(v.seats, 'seats', 1, 1000),
+    ...cache,
+    kind: l.kind, mode: l.mode, topicId: l.topicId,
+    venue: online ? optionalText(v.venue, 'venue', 200) ?? null : text(v.venue, 'venue', 200),
+    date, time, endsOn: l.endsOn,
+    seats: online ? optionalInt(v.seats, 'seats', 1, 1000) : int(v.seats, 'seats', 1, 1000),
     host: text(v.host, 'host', 200),
     description: text(v.description, 'description', 2000),
-    status: oneOf(v.status ?? 'APPROVED', 'status', WORKSHOP_STATUSES),
+    status,
+    platform: l.platform, schedule: l.schedule, languages: l.languages, level: l.level, experience: l.experience, certifications: l.certifications,
+    freeTrial: l.freeTrial, freeTrialDays: l.freeTrialDays, whatsapp: l.whatsapp,
+    ...(v.joinLink === undefined ? {} : { joinLink: l.joinLink }), instagram: l.instagram, website: l.website, images, prices: l.prices,
+    ...(v.contactName === undefined ? {} : { contactName: optionalText(v.contactName, 'contactName', 100) ?? null }),
+    phonePublic,
+    ...(phone === undefined && v.contactPhone === undefined ? {} : { contactPhone: phone ? `+91${phone.slice(-10)}` : null }),
+    ...(v.contactEmail === undefined ? {} : { contactEmail: optionalEmail(v.contactEmail, 'contactEmail') ?? null }),
   };
+}
+
+const ALREADY_PUBLISHED = 'A published listing that has not ended already came from this request. Set it to Draft first, or keep this one as a Draft.';
+/**
+ * Drafts of one request may be duplicated, and so may a listing that has ended (a new run). But two listings of one request cannot be live
+ * (published and not ended) at the same time. The request row is locked first so two admins cannot both pass the check.
+ */
+async function assertNoOtherPublished(tx: Tx, sourceRequestId: string | null | undefined, exceptId?: string) {
+  if (!sourceRequestId) return;
+  await tx.select({ id: workshopRequestsT.id }).from(workshopRequestsT).where(eq(workshopRequestsT.id, sourceRequestId)).for('update');
+  const others = await tx.select({ startsAt: workshopsT.startsAt, endsOn: workshopsT.endsOn, kind: workshopsT.kind }).from(workshopsT)
+    .where(and(eq(workshopsT.sourceRequestId, sourceRequestId), eq(workshopsT.status, 'APPROVED'), exceptId ? ne(workshopsT.id, exceptId) : undefined));
+  if (others.some(o => isCurrent({ date: istParts(o.startsAt).date, endsOn: o.endsOn, kind: o.kind }))) throw new ApiError(409, ALREADY_PUBLISHED);
+}
+
+async function requireTopic(tx: Tx, id: number | null) {
+  if (id === null) return;
+  const [t] = await tx.select({ id: workshopTopics.id }).from(workshopTopics).where(eq(workshopTopics.id, id));
+  if (!t) throw bad('topicId does not match a topic.');
+}
+
+async function savePrices(tx: Tx, workshopId: string, rows: PriceRow[]) {
+  await tx.delete(workshopPricesT).where(eq(workshopPricesT.workshopId, workshopId));
+  if (rows.length) await tx.insert(workshopPricesT).values(rows.map((r, position) => ({ workshopId, label: r.label, amountPaise: r.amountPaise, sessions: r.sessions, position })));
 }
 
 async function requireHost(tx: Tx, id: string | undefined) {
@@ -205,24 +263,32 @@ async function requireHost(tx: Tx, id: string | undefined) {
 
 async function loadWorkshop(tx: Tx, id: string): Promise<Workshop> {
   const [row] = await workshopsQuery(tx).where(eq(workshopsT.id, id));
-  return toAdminWorkshop(row);
+  return (await withPrices(tx, [toAdminWorkshop(row)]))[0];
 }
 
-export async function createWorkshop(input: unknown): Promise<Workshop> {
+/** `adminEmail` (the signed-in admin) is recorded as the creator. A new listing is a Draft unless the input says otherwise. */
+export async function createWorkshop(input: unknown, adminEmail?: string): Promise<Workshop> {
   rejectFreeTextCity(obj(input));
-  const raw: Raw = { ...pick(obj(input), WORKSHOP_KEYS), status: undefined };
+  const raw: Raw = pick(obj(input), WORKSHOP_KEYS);
   const hostId = optionalUuid(raw.hostId, 'hostId');
+  const sourceRequestId = optionalUuid(raw.sourceRequestId, 'sourceRequestId');
   const data = validateWorkshop(raw);
   return getDb().transaction(async tx => {
     await requireHost(tx, hostId);
-    const cityId = (await resolveCityInput(tx, raw, { required: true }))!;
+    await requireTopic(tx, data.topicId);
+    if (data.status === 'APPROVED') await assertNoOtherPublished(tx, sourceRequestId);
+    const cityId = await resolveCityInput(tx, raw, { required: data.mode !== 'online' });
     const id = await allocateId(tx, 'w');
-    await tx.insert(workshopsT).values({ id, ...toWorkshopRow({ ...data, cityId }), hostId: hostId ?? null, booked: 0 });
+    const [creator] = adminEmail ? await tx.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${adminEmail.toLowerCase()}`) : [];
+    await tx.insert(workshopsT).values({ id, ...toWorkshopRow({ ...data, cityId }), hostId: hostId ?? null, booked: 0, createdBy: creator?.id ?? null, sourceRequestId: sourceRequestId ?? null });
+    await savePrices(tx, id, data.prices);
+    if (sourceRequestId) await markRequestListed(tx, sourceRequestId, id);
     return loadWorkshop(tx, id);
   });
 }
 
-export async function updateWorkshop(id: string, input: unknown): Promise<Workshop> {
+/** `owns` and `keepStatus` are for a seller editing their own listing: the check and the kept status use the locked row, so nothing can change in between. */
+export async function updateWorkshop(id: string, input: unknown, opts: { owns?: (w: Workshop) => boolean; keepStatus?: boolean } = {}): Promise<Workshop> {
   rejectFreeTextCity(obj(input));
   const patch = pick(obj(input), WORKSHOP_KEYS);
   const hostId = optionalUuid(patch.hostId, 'hostId');
@@ -230,13 +296,22 @@ export async function updateWorkshop(id: string, input: unknown): Promise<Worksh
     const [joined] = await workshopsQuery(tx).where(eq(workshopsT.id, id)).for('update', { of: workshopsT });
     if (!joined) throw new ApiError(404, 'Workshop not found.');
     const row = joined.w;
-    const next = validateWorkshop({ ...toWorkshop(joined), ...patch });
-    const cityId = (await resolveCityInput(tx, { cityId: row.cityId, ...patch }, { required: true }))!;
-    if (next.seats < row.booked) throw bad(`seats cannot be less than the ${row.booked} already booked.`);
+    // The admin view: it carries the private phone and the choice to show it, so an edit that leaves them alone keeps them.
+    const [current] = await withPrices(tx, [toAdminWorkshop(joined)]);
+    if (opts.owns && !opts.owns(current)) throw new ApiError(404, 'Workshop not found.');
+    const merged: Raw = { ...current, ...patch, ...(opts.keepStatus ? { status: current.status } : {}) };
+    // Clearing every price plan without naming a type means "no plans": the old cached type and price must not survive.
+    if (Array.isArray(patch.prices) && patch.prices.length === 0 && !('type' in patch)) { delete merged.type; delete merged.pricePaise; }
+    const next = validateWorkshop(merged);
+    await requireTopic(tx, next.topicId);
+    const cityId = await resolveCityInput(tx, { cityId: row.cityId ?? undefined, ...patch }, { required: next.mode !== 'online' });
+    if (next.status === 'APPROVED') await assertNoOtherPublished(tx, row.sourceRequestId, id);
+    if (next.seats !== null && next.seats < row.booked) throw bad(`seats cannot be less than the ${row.booked} already booked.`);
     if (hostId) await requireHost(tx, hostId);
     await tx.update(workshopsT).set({
       ...toWorkshopRow({ ...next, cityId }), updatedAt: new Date(), ...(hostId ? { hostId } : patch.hostId === null || patch.hostId === '' ? { hostId: null } : {}),
     }).where(eq(workshopsT.id, id));
+    if ('prices' in patch) await savePrices(tx, id, next.prices);
     return loadWorkshop(tx, id);
   });
 }
@@ -245,8 +320,16 @@ export async function updateWorkshop(id: string, input: unknown): Promise<Worksh
 export async function deleteWorkshop(id: string): Promise<{ unlinkedProducts: number }> {
   return getDb().transaction(async tx => {
     const [{ n }] = await tx.select({ n: count() }).from(productsT).where(eq(productsT.workshopId, id));
+    const [gone] = await tx.select({ source: workshopsT.sourceRequestId }).from(workshopsT).where(eq(workshopsT.id, id));
+    // A request that became this listing is open again, so an admin can list it anew (before the delete: the foreign key would clear the link first)...
+    await tx.update(workshopRequestsT).set({ status: 'received', listedWorkshopId: null }).where(and(eq(workshopRequestsT.listedWorkshopId, id), eq(workshopRequestsT.status, 'listed')));
     const rows = await tx.delete(workshopsT).where(eq(workshopsT.id, id)).returning({ id: workshopsT.id });
     if (!rows.length) throw new ApiError(404, 'Workshop not found.');
+    // ...unless another listing of the same request is left: then the request points at the newest of those.
+    if (gone?.source) {
+      const [newest] = await tx.select({ id: workshopsT.id }).from(workshopsT).where(eq(workshopsT.sourceRequestId, gone.source)).orderBy(sql`length(${workshopsT.id}) desc`, desc(workshopsT.id)).limit(1);
+      if (newest) await tx.update(workshopRequestsT).set({ status: 'listed', listedWorkshopId: newest.id }).where(eq(workshopRequestsT.id, gone.source));
+    }
     return { unlinkedProducts: n };
   });
 }

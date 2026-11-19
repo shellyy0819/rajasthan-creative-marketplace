@@ -111,9 +111,15 @@ export function ImageUploader({ initial, onBusyChange, uploadTimeoutMs = 60_000,
         {items.map((i, index) => (
           <li key={i.id} className={`uploader-tile ${i.status}`}>
             <div className="uploader-thumb">
-              {(i.url || i.preview) && (
+              {i.url ? (
+                // An uploaded photo opens full size in a new tab.
+                <a className="uploader-open" href={i.url} target="_blank" rel="noopener noreferrer" aria-label={`Open photo ${index + 1} in a new tab`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={i.url} alt="" loading="lazy" />
+                </a>
+              ) : i.preview && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={i.url ?? i.preview} alt="" loading="lazy" />
+                <img src={i.preview} alt="" loading="lazy" />
               )}
               {i.status === 'uploading' && <span className="rr-spinner" role="presentation" />}
               {index === 0 && i.status === 'done' && <span className="uploader-badge">Cover</span>}
