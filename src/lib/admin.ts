@@ -283,7 +283,8 @@ export async function createWorkshop(input: unknown, adminEmail?: string): Promi
   });
 }
 
-export async function updateWorkshop(id: string, input: unknown): Promise<Workshop> {
+/** `owns` and `keepStatus` are for a seller editing their own listing: the check and the kept status use the locked row, so nothing can change in between. */
+export async function updateWorkshop(id: string, input: unknown, opts: { owns?: (w: Workshop) => boolean; keepStatus?: boolean } = {}): Promise<Workshop> {
   rejectFreeTextCity(obj(input));
   const patch = pick(obj(input), WORKSHOP_KEYS);
   const hostId = optionalUuid(patch.hostId, 'hostId');
@@ -292,7 +293,8 @@ export async function updateWorkshop(id: string, input: unknown): Promise<Worksh
     if (!joined) throw new ApiError(404, 'Workshop not found.');
     const row = joined.w;
     const [current] = await withPrices(tx, [toWorkshop(joined)]);
-    const merged: Raw = { ...current, ...patch };
+    if (opts.owns) { const [owned] = await withPrices(tx, [toAdminWorkshop(joined)]); if (!opts.owns(owned)) throw new ApiError(404, 'Workshop not found.'); }
+    const merged: Raw = { ...current, ...patch, ...(opts.keepStatus ? { status: current.status } : {}) };
     // Clearing every price plan without naming a type means "no plans": the old cached type and price must not survive.
     if (Array.isArray(patch.prices) && patch.prices.length === 0 && !('type' in patch)) { delete merged.type; delete merged.pricePaise; }
     const next = validateWorkshop(merged);

@@ -28,7 +28,7 @@ export function SellerWorkshops({ initial, topics }: { initial: Workshop[]; topi
   return (
     <section className="seller-workshops" aria-labelledby="my-workshops">
       <h2 id="my-workshops">My workshops</h2>
-      <div className="admin-table-wrap">
+      {list.length === 0 ? <p className="empty">You have no workshops yet. <Link href="/workshops">Host a workshop</Link> and it will show up here once our team has listed it.</p> : <div className="admin-table-wrap">
         <table className="admin-table">
           <thead><tr><th>Title</th><th>When</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
@@ -47,7 +47,7 @@ export function SellerWorkshops({ initial, topics }: { initial: Workshop[]; topi
             ))}
           </tbody>
         </table>
-      </div>
+      </div>}
       {editing && <ListingForm key={editing.id} topics={topics} workshop={editing} sellerMode onSaved={saved} onClose={closeForm} />}
       <Toast toast={toast} onClose={closeToast} />
     </section>

@@ -50,3 +50,5 @@
 /* A seller's own workshops sit under their products on /dashboard/posts. */
 .seller-workshops { margin-top: 36px; }
 .seller-workshops h2 { margin: 0 0 14px; }
+
+.seller-tabs { margin: 0 0 22px; }

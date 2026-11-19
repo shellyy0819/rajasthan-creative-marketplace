@@ -6,3 +6,7 @@ export function wantsNewPost(searchParams: { [key: string]: string | string[] | 
 export function wantsProfile(searchParams: { [key: string]: string | string[] | undefined }): boolean {
   return searchParams.profile === '1';
 }
+/** A seller's dashboard has two tabs: `?tab=workshops` shows My workshops, anything else My products. */
+export function sellerTab(searchParams: { [key: string]: string | string[] | undefined }): 'products' | 'workshops' {
+  return searchParams.tab === 'workshops' ? 'workshops' : 'products';
+}

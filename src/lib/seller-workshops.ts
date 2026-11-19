@@ -1,9 +1,8 @@
-import { eq, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { toAdminWorkshop, withPrices, workshopsQuery } from '../db/mappers';
 import { users, workshops as workshopsT } from '../db/schema';
 import { updateWorkshop } from './admin';
-import { ApiError } from './errors';
 import type { Workshop } from './types';
 
 /** A workshop is a seller's own when it is linked to their account, or was made with their account email as its private contact. */
@@ -28,10 +27,8 @@ export async function listSellerWorkshops(email: string): Promise<Workshop[]> {
  */
 export async function updateOwnWorkshop(id: string, input: unknown, email: string): Promise<Workshop> {
   const userId = await userIdOf(email);
-  const [row] = await workshopsQuery(getDb()).where(eq(workshopsT.id, id));
-  const [current] = row ? await withPrices(getDb(), [toAdminWorkshop(row)]) : [];
-  if (!current || !mine(current, userId, email)) throw new ApiError(404, 'Workshop not found.');
   const body = input && typeof input === 'object' && !Array.isArray(input) ? { ...(input as Record<string, unknown>) } : {};
   delete body.hostId; delete body.sourceRequestId;
-  return updateWorkshop(id, { ...body, status: current.status });
+  // Ownership and the kept status are checked on the row locked by the update itself.
+  return updateWorkshop(id, body, { owns: w => mine(w, userId, email), keepStatus: true });
 }

@@ -136,6 +136,20 @@ describe('saving the host form as a draft', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(localStorage.getItem(DRAFT_KEY)).toBeNull());
   });
+  it('a draft saved a moment before the send cannot come back after it', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'a@b.co', status: 'pending' }) });
+    openForm();
+    val(/event title/i, 'T'); val(/^type/i, 'workshop'); val(/what happens/i, 'd'); next();
+    val(/start date/i, '2099-01-05'); val(/^city/i, 'x'); val(/venue/i, 'v'); next();
+    val(/host, studio/i, 'H'); val(/your name/i, 'N'); val(/phone number/i, '9989898999'); val(/^email/i, 'a@b.co');
+    fireEvent.click(screen.getByRole('button', { name: /send details/i })); // no pause: the auto-save timer is still waiting
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await flush();
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await flush();
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
   it('never saves who the person is: name, email, phone, WhatsApp or host name stay out of the draft', async () => {
     openForm();
     val(/event title/i, 'T'); val(/^type/i, 'workshop'); val(/what happens/i, 'd'); next();
