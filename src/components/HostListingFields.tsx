@@ -148,6 +148,56 @@ export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows, repe
   );
 }
 
+const MAKE_ROWS = 3;
+/**
+ * The optional questions an in-person workshop asks on the last step, for craft and art workshops: who it is for, what people make,
+ * what is included, what to bring. Read back with `craftFields`.
+ */
+export function EventAbout({ errors }: { errors?: Record<string, string> }) {
+  return (
+    <fieldset className="host-craft">
+      <legend>About the workshop (optional)</legend>
+      <LanguageSelect error={errors?.languages} />
+      <div className="admin-form-row">
+        <label>Level
+          <select name="level" defaultValue="">
+            <option value="">Not specified</option><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option><option value="all">All levels</option>
+          </select>
+          <FieldError errors={errors} name="level" />
+        </label>
+        <label>Minimum age<input name="minAge" type="number" min={1} max={99} inputMode="numeric" placeholder="Example: 14" /><FieldError errors={errors} name="minAge" /></label>
+      </div>
+      <div className="host-makes" data-field="makes">
+        <span className="lbl">What people will make (up to 3)</span>
+        {Array.from({ length: MAKE_ROWS }, (_, i) => (
+          <div key={i} className="host-make-row">
+            <input name={`makeTitle${i + 1}`} aria-label={`Item ${i + 1} title`} maxLength={60} placeholder={i === 0 ? 'Example: A cotton tote bag' : 'Title'} />
+            <input name={`makeText${i + 1}`} aria-label={`Item ${i + 1} short line`} maxLength={120} placeholder="One short line (optional)" />
+          </div>
+        ))}
+        <FieldError errors={errors} name="makes" />
+      </div>
+      <label>What is included (one per line, up to 6)<textarea name="included" rows={3} maxLength={500} placeholder={'Blocks and dyes\nMasala chai'} /><FieldError errors={errors} name="included" /></label>
+      <label>What to bring (one per line, up to 6)<textarea name="bring" rows={2} maxLength={500} placeholder="Old clothes you do not mind staining" /><FieldError errors={errors} name="bring" /></label>
+    </fieldset>
+  );
+}
+
+/** Reads the `EventAbout` fields from a submitted form into what the API takes. Empty fields are left out or empty. */
+export function craftFields(f: FormData) {
+  const get = (k: string) => String(f.get(k) ?? '').trim();
+  const makes = Array.from({ length: MAKE_ROWS }, (_, i) => ({ title: get(`makeTitle${i + 1}`), text: get(`makeText${i + 1}`) }))
+    .filter(m => m.title || m.text);
+  return {
+    makes,
+    included: get('included').split('\n').map(x => x.trim()).filter(Boolean),
+    bring: get('bring').split('\n').map(x => x.trim()).filter(Boolean),
+    minAge: get('minAge') ? Number(get('minAge')) : null,
+    level: get('level') || null,
+    languages: get('languages').split(',').map(x => x.trim()).filter(Boolean),
+  };
+}
+
 /** The extra questions an online class asks on the last step. */
 export function ClassAbout({ errors }: { errors?: Record<string, string> }) {
   return (

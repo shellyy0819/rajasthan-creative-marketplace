@@ -63,6 +63,12 @@ export function describeNext(n: NextSession, now: Date = new Date()): string {
   return `${DAY_NAME[d.getUTCDay()]} ${d.getUTCDate()} ${MONTH[d.getUTCMonth()]}, ${at}`;
 }
 
+/** "Today", "Tomorrow" or "Starts in 3 days" for an event date (India date); null once the day has passed. */
+export function startsIn(date: string, now: Date = new Date()): string | null {
+  const days = Math.round((utc(date).getTime() - utc(istParts(now).date).getTime()) / 86_400_000);
+  return days < 0 ? null : days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `Starts in ${days} days`;
+}
+
 export type WeekDay = { date: string; label: string; dom: number; state: 'done' | 'today' | 'upcoming' | 'rest'; time?: string };
 
 /** Monday to Sunday of the current India-time week: which days the class met, meets today, meets later, or rests. */

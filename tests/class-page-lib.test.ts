@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contactChannels, describeNext, nextSession, weekStrip } from '@/lib/class-page';
+import { contactChannels, describeNext, nextSession, startsIn, weekStrip } from '@/lib/class-page';
 
 const cls = (over: Record<string, unknown> = {}) => ({
   kind: 'class', date: '2026-11-02', endsOn: '2027-02-28', schedule: { repeat: 'weekly', days: ['mon', 'tue', 'wed', 'thu', 'fri'], time: '06:30', durationMin: 60 },
@@ -35,6 +35,16 @@ describe('nextSession', () => {
   it('a monthly class only counts the chosen weeks (the 1st and 3rd Saturday)', () => {
     const monthly = cls({ schedule: { repeat: 'monthly', days: ['sat'], weeks: [1, 3], time: '10:00', durationMin: 90 }, date: '2026-11-01' });
     expect(nextSession(monthly, wed6am)).toMatchObject({ date: '2026-11-21' }); // 3rd Saturday of November
+  });
+});
+
+describe('startsIn', () => {
+  it('says today, tomorrow or how many days (India date), and nothing once the day has passed', () => {
+    expect(startsIn('2026-11-18', wed6am)).toBe('Today');
+    expect(startsIn('2026-11-19', wed6am)).toBe('Tomorrow');
+    expect(startsIn('2026-11-21', wed6am)).toBe('Starts in 3 days');
+    expect(startsIn('2026-11-17', wed6am)).toBeNull();
+    expect(startsIn('2026-11-18', new Date('2026-11-17T19:00:00Z'))).toBe('Today'); // 00:30 IST on the 18th
   });
 });
 

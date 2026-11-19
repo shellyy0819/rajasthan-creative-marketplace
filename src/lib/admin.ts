@@ -20,7 +20,7 @@ import type { AdminProduct, Workshop } from './types';
 const PRODUCT_KEYS = ['name', 'category', 'sourcingTypeId', 'cityId', 'cityRef', 'pricePaise', 'description', 'stock', 'status', 'images', 'workshopId', 'pickupLocation'] as const;
 const WORKSHOP_KEYS = [
   'title', 'type', 'pricePaise', 'cityId', 'cityRef', 'venue', 'date', 'time', 'seats', 'host', 'hostId', 'description', 'status',
-  'kind', 'mode', 'topicId', 'platform', 'schedule', 'endsOn', 'languages', 'level', 'experience', 'certifications', 'freeTrial', 'freeTrialDays',
+  'kind', 'mode', 'topicId', 'platform', 'schedule', 'endsOn', 'languages', 'level', 'experience', 'certifications', 'freeTrial', 'freeTrialDays', 'makes', 'included', 'bring', 'minAge',
   'whatsapp', 'instagram', 'website', 'images', 'prices', 'joinLink', 'contactName', 'contactPhone', 'phonePublic', 'contactEmail', 'sourceRequestId',
 ] as const;
 const MAX_WORKSHOP_IMAGES = 3;
@@ -222,7 +222,7 @@ function validateWorkshop(v: Raw): WorkshopFields {
     description: text(v.description, 'description', 2000),
     status,
     platform: l.platform, schedule: l.schedule, languages: l.languages, level: l.level, experience: l.experience, certifications: l.certifications,
-    freeTrial: l.freeTrial, freeTrialDays: l.freeTrialDays, whatsapp: l.whatsapp,
+    freeTrial: l.freeTrial, freeTrialDays: l.freeTrialDays, makes: l.makes, included: l.included, bring: l.bring, minAge: l.minAge, whatsapp: l.whatsapp,
     ...(v.joinLink === undefined ? {} : { joinLink: l.joinLink }), instagram: l.instagram, website: l.website, images, prices: l.prices,
     ...(v.contactName === undefined ? {} : { contactName: optionalText(v.contactName, 'contactName', 100) ?? null }),
     phonePublic,

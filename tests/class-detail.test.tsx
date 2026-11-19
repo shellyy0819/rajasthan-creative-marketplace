@@ -22,6 +22,12 @@ describe('online class page on tablets and phones (source contract)', () => {
     expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-tile img \{[^}]*object-fit: contain/);
     expect(css).toMatch(/\.cd-tile img \{ width: 100%; height: 100%; object-fit: cover/);
   });
+  it('the instructor, Where and next class rows live in one panel, and the booking row has the same width', () => {
+    const width = (sel: string) => new RegExp(`\\${sel} \\{[^}]*max-width: 560px`).test(css);
+    expect(width('.cd-panel')).toBe(true);
+    expect(width('.cd-cta')).toBe(true); // the contact button under the panel is as wide as the panel, not as wide as the column // one panel holds the instructor, Where and next class rows, so they cannot differ in width
+    expect(readFileSync('src/components/class/CraftDetail.css', 'utf8')).toMatch(/\.cr-book \{[^}]*max-width: 560px/);
+  });
   it('the photos are capped in height so the title, instructor and next class show below them', () => {
     expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-mosaic \{[^}]*height: clamp\(220px, 42vw, 340px\)/);
     expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-art \{[^}]*width: min\(100%, 360px\)/);
@@ -63,6 +69,18 @@ describe('online class page', () => {
     expect(h).toContain('24 sessions · about ₹146 a class');
     expect(h).toContain('Try the free class');
     expect(h).toContain('Craftofy collects no payment');
+  });
+  it('has a Where card in the first screen: an online class says where it is live, a class with a venue shows it with Open in Maps', () => {
+    const online = html();
+    expect(online).toContain('>WHERE<');
+    expect(online.indexOf('>WHERE<')).toBeLessThan(online.indexOf('Class at a glance'));
+    expect(online).toContain('Live on Zoom');
+    expect(online).not.toContain('maps/search');
+    expect(online.match(/Live on Zoom/g)?.length).toBe(1); // said once: the facts strip no longer repeats it
+    const hybrid = html({ mode: 'hybrid', venue: 'Rang Studio, Bani Park', city: 'Jaipur' } as never);
+    expect(hybrid).toContain('Rang Studio, Bani Park, Jaipur');
+    expect(hybrid).toContain('https://www.google.com/maps/search/?api=1&amp;query=Rang%20Studio%2C%20Bani%20Park%2C%20Jaipur');
+    expect(hybrid).toContain('Also live on Zoom');
   });
   it('shows the illustration when there are no photos (yoga figures for yoga, a plain arch for other topics)', () => {
     expect(html()).toContain('six people practising yoga');

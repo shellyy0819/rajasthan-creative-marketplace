@@ -14,7 +14,7 @@ import type { TopicOption } from '@/lib/topics';
 import { fieldErrorFromMessage } from '@/lib/field-errors';
 import { JOIN_LINK_HINT, validJoinLink } from '@/lib/join-link';
 import { useFieldErrors } from './useFieldErrors';
-import { activePriceRows, BLANK_PRICE, ClassAbout, FieldError, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, PRICE_ROW_ERROR, priceRowsIncomplete, type PriceDraft } from './HostListingFields';
+import { activePriceRows, BLANK_PRICE, ClassAbout, craftFields, EventAbout, FieldError, ClassWhenAndPrice, DURATION_ERROR, durationMinutes, durationValid, EventWhereWhen, InstagramField, PRICE_ROW_ERROR, priceRowsIncomplete, type PriceDraft } from './HostListingFields';
 import './HostWorkshopStepper.css';
 import './WorkshopListings.css';
 
@@ -272,6 +272,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
       endDate: field(f, 'endDate'), startTime: field(f, 'startTime'), endTime: field(f, 'endTime'),
       seats: field(f, 'seats') ? Number(field(f, 'seats')) : undefined,
       priceType: paid ? 'PAID' : 'FREE', priceRupees: paid ? Number(field(f, 'priceRupees')) : undefined,
+      ...craftFields(f),
     };
     const lastDate = isClass ? field(f, 'endsOn') : field(f, 'endDate');
     try {
@@ -390,7 +391,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                     <InstagramField errors={fieldErrors} />
                     <label>Website<input name="website" type="text" inputMode="url" maxLength={300} placeholder="yourstudio.in" autoComplete="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /><FieldError errors={fieldErrors} name="website" /></label>
                   </div>
-                  {path === 'class' && <ClassAbout errors={fieldErrors} />}
+                  {path === 'class' ? <ClassAbout errors={fieldErrors} /> : <EventAbout errors={fieldErrors} />}
                   <label>Anything else we should know<textarea name="notes" maxLength={2000} rows={2} /><FieldError errors={fieldErrors} name="notes" /></label>
                   <div aria-hidden="true" className="hp-field"><input name="companyWebsite" tabIndex={-1} autoComplete="off" defaultValue="" /></div>
                 </div>

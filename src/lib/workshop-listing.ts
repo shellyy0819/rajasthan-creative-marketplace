@@ -20,7 +20,12 @@ export type ListingFields = {
   kind: Kind; mode: Mode; topicId: number | null; platform: string | null; schedule: Schedule | null; endsOn: string | null;
   languages: string[]; level: Level | null; experience: string | null; certifications: string | null; freeTrial: boolean; freeTrialDays: number | null; joinLink: string | null;
   whatsapp: string | null; instagram: string | null; website: string | null; prices: PriceRow[];
+  /** Craft and art workshops: what people make (up to 3), what is included and what to bring (up to 6 lines each), the minimum age. */
+  makes: Make[]; included: string[]; bring: string[]; minAge: number | null;
 };
+export type Make = { title: string; text: string };
+const MAX_MAKES = 3;
+const MAX_LINES = 6;
 
 const WEEKS: Week[] = [1, 2, 3, 4, 'last'];
 const MAX_LANGUAGES = 5;
@@ -92,6 +97,28 @@ function parsePrices(v: unknown): PriceRow[] {
 
 export const CLASS_CONTACT_MESSAGE = 'An online class needs at least one way to contact the host: WhatsApp, Instagram, a website, or a phone number shown to the audience.';
 
+function parseMakes(v: unknown): Make[] {
+  if (v === undefined || v === null || v === '') return [];
+  if (!Array.isArray(v) || v.length > MAX_MAKES) throw bad(`makes must be a list of up to ${MAX_MAKES} items, each with a title and a short line.`);
+  return v.map(x => {
+    const o = x && typeof x === 'object' && !Array.isArray(x) ? (x as Raw) : {};
+    const title = optionalText(o.title, 'makes title', 60);
+    if (!title) throw bad('makes: every item needs a title (up to 60 characters).');
+    return { title, text: optionalText(o.text, 'makes text', 120) ?? '' };
+  });
+}
+
+/** A list of short lines, from an array or from text with one item per line. Blank lines are dropped. */
+function parseLines(v: unknown, field: string): string[] {
+  if (v === undefined || v === null || v === '') return [];
+  const raw = typeof v === 'string' ? v.split('\n') : v;
+  if (!Array.isArray(raw)) throw bad(`${field} must be a list of short lines.`);
+  const lines = raw.map(x => (typeof x === 'string' ? x.trim() : '')).filter(Boolean);
+  if (lines.length > MAX_LINES) throw bad(`${field} can have up to ${MAX_LINES} lines.`);
+  if (lines.some(l => l.length > 80)) throw bad(`each line of ${field} must be 80 characters or fewer.`);
+  return lines;
+}
+
 /** The fields an online class or a richer listing adds, validated the same way for a public request and for an admin listing. */
 export function parseListingFields(raw: Raw): ListingFields {
   const kind = oneOf(raw.kind ?? 'workshop', 'kind', KINDS);
@@ -120,6 +147,8 @@ export function parseListingFields(raw: Raw): ListingFields {
     instagram: optionalText(raw.instagram, 'instagram', 200) ?? null,
     website: optionalWebsite(raw.website) ?? null,
     prices: parsePrices(raw.prices),
+    makes: parseMakes(raw.makes), included: parseLines(raw.included, 'included'), bring: parseLines(raw.bring, 'bring'),
+    minAge: optionalInt(raw.minAge, 'minAge', 1, 99),
   };
 }
 

@@ -232,6 +232,13 @@
       "when": 1795067580682,
       "tag": "0032_workshop_phone_public",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1795084441004,
+      "tag": "0033_craft_workshop_fields",
+      "breakpoints": true
     }
   ]
 }
