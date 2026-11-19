@@ -149,6 +149,9 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   }, [reminderTarget]);
 
   const close = () => { saveNow(); setOpen(false); trigger.current?.focus(); };
+  // Opening puts focus on the dialog itself, not on a field: no cursor in the title and no keyboard popping up on a phone.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (open && mounted) dialogRef.current?.focus({ preventScroll: true }); }, [open, mounted]);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !sending) close(); };
@@ -310,7 +313,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
       <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={begin}>{existing ? 'Continue your listing' : label} <span>↗</span></button>
       {open && mounted && createPortal(
         <div className="contact-backdrop admin-modal host-backdrop" onClick={e => { if (e.target === e.currentTarget && !sending) close(); }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="host-title" className={`contact-card host-dialog${!done && !pending ? ' host-dialog-form' : ''}`}>
+          <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="host-title" className={`contact-card host-dialog${!done && !pending ? ' host-dialog-form' : ''}`}>
             <div className="dialog-head">
               <h2 id="host-title">{done ? 'Welcome to Craftofy' : pending ? 'Please verify your email' : path === 'class' ? 'Teach an online class' : 'Host a workshop or pop-up'}</h2>
               <button type="button" className="icon-btn" aria-label="Close" onClick={close} disabled={sending}>✕</button>
@@ -355,7 +358,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
                       {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
                   </label>
-                  <label><span className="lbl">{path === 'class' ? 'Class title' : 'Event title'}</span><input name="title" required maxLength={150} autoFocus autoCapitalize="sentences" enterKeyHint="next" /><FieldError errors={fieldErrors} name="title" /></label>
+                  <label><span className="lbl">{path === 'class' ? 'Class title' : 'Event title'}</span><input name="title" required maxLength={150} autoCapitalize="sentences" enterKeyHint="next" /><FieldError errors={fieldErrors} name="title" /></label>
                   {path !== 'class' && (
                     <label><span className="lbl">Type</span>
                       <select name="kind" required defaultValue="">
