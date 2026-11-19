@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useCallback, useState } from 'react';
+import { HostWorkshopButton } from './HostWorkshopButton';
 import { ListingForm } from './ListingForm';
 import './AdminTableControls.css';
 import { Toast, type ToastState } from './Toast';
@@ -14,10 +15,12 @@ const STATUS_CLASS: Record<string, string> = { DRAFT: 'archived', APPROVED: 'pub
 const day = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
 /** A seller's own workshops on their dashboard: view and edit. Publishing, archiving and deleting stay with the team. */
-export function SellerWorkshops({ initial, topics }: { initial: Workshop[]; topics: TopicOption[] }) {
+export function SellerWorkshops({ initial, topics, contactEmail }: { initial: Workshop[]; topics: TopicOption[]; contactEmail?: string }) {
   const [list, setList] = useState(initial);
   const [editing, setEditing] = useState<Workshop | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
+  const [q, setQ] = useState('');
+  const [status, setStatus] = useState('');
   const closeToast = useCallback(() => setToast(null), []);
   const closeForm = useCallback(() => setEditing(null), []);
   const saved = (w: Workshop) => {
@@ -25,14 +28,30 @@ export function SellerWorkshops({ initial, topics }: { initial: Workshop[]; topi
     setEditing(null);
     setToast({ id: Date.now() + Math.random(), kind: 'success', text: `${w.title} saved.` });
   };
+  const needle = q.trim().toLowerCase();
+  const shown = list.filter(w => (!status || w.status === status) && (!needle || `${w.title} ${w.host}`.toLowerCase().includes(needle)));
   return (
-    <section className="seller-workshops" aria-labelledby="my-workshops">
-      <h2 id="my-workshops">My workshops</h2>
-      {list.length === 0 ? <p className="empty">You have no workshops yet. <Link href="/workshops">Host a workshop</Link> and it will show up here once our team has listed it.</p> : <div className="admin-table-wrap">
+    <section className="admin-posts seller-workshops" aria-labelledby="my-workshops">
+      <div className="page-head">
+        <h1 id="my-workshops">My workshops</h1>
+        <p>See and edit the workshops and classes you host. Our team lists new ones and publishes them; edits to a published workshop go live straight away.</p>
+      </div>
+      <div className="admin-toolbar">
+        <input aria-label="Search workshops" placeholder="Search workshops…" value={q} onChange={e => setQ(e.target.value)} />
+        <select aria-label="Filter by status" value={status} onChange={e => setStatus(e.target.value)}>
+          <option value="">All statuses</option>
+          <option value="APPROVED">Published</option>
+          <option value="DRAFT">Drafts</option>
+          <option value="ARCHIVED">Archived</option>
+        </select>
+        <HostWorkshopButton className="button primary" label="Host a Workshop" contactEmail={contactEmail} topics={topics} prefill saveDraft shareable />
+      </div>
+      <div className="admin-table-wrap">
         <table className="admin-table">
           <thead><tr><th>Title</th><th>When</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
-            {list.map(w => (
+            {shown.length === 0 && <tr><td colSpan={4} className="empty">{list.length === 0 ? 'No workshops yet. Use Host a Workshop and it will show up here once our team has listed it.' : 'No workshops match those filters.'}</td></tr>}
+            {shown.map(w => (
               <tr key={w.id}>
                 <td><b>{w.title}</b></td>
                 <td>{w.kind === 'class' && w.schedule ? describeSchedule(w.schedule) : <>{day(w.date)}{w.endsOn ? ` to ${day(w.endsOn)}` : ''}</>}</td>
@@ -47,7 +66,7 @@ export function SellerWorkshops({ initial, topics }: { initial: Workshop[]; topi
             ))}
           </tbody>
         </table>
-      </div>}
+      </div>
       {editing && <ListingForm key={editing.id} topics={topics} workshop={editing} sellerMode onSaved={saved} onClose={closeForm} />}
       <Toast toast={toast} onClose={closeToast} />
     </section>

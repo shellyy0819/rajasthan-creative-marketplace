@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 vi.mock('@/components/CityInput', () => ({ CityInput: () => <input name="cityRef" /> }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }), usePathname: () => '/dashboard/posts', useSearchParams: () => new URLSearchParams() }));
 vi.mock('@/components/ImageUploader', () => ({ ImageUploader: () => <div /> }));
 
 import { SellerWorkshops } from '@/components/SellerWorkshops';
@@ -38,9 +39,27 @@ describe('My workshops on the seller dashboard', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(screen.getByText('Evening Flow')).toBeTruthy();
   });
-  it('has no Delete, no Publish and no Archive', () => {
+  it('has no Delete, Publish or Archive buttons and no per-row status choice', () => {
     render(<SellerWorkshops initial={[w]} topics={[]} />);
     expect(screen.queryByRole('button', { name: /delete|publish|archive/i })).toBeNull();
-    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(screen.queryByLabelText(/^status of/i)).toBeNull();
+  });
+  it('shows the table headers and a Host a Workshop button even with no workshops yet', () => {
+    render(<SellerWorkshops initial={[]} topics={[]} />);
+    for (const h of ['Title', 'When', 'Status', 'Actions']) expect(screen.getByRole('columnheader', { name: h })).toBeTruthy();
+    expect(screen.getByText(/no workshops yet/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /host a workshop/i })).toBeTruthy();
+  });
+  it('searches by title and filters by status', () => {
+    render(<SellerWorkshops initial={[w, { ...w, id: 'w2', title: 'Draft Flow', status: 'DRAFT' }]} topics={[]} />);
+    fireEvent.change(screen.getByLabelText('Search workshops'), { target: { value: 'draft' } });
+    expect(screen.queryByText('Morning Flow')).toBeNull();
+    expect(screen.getByText('Draft Flow')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Search workshops'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('Filter by status'), { target: { value: 'APPROVED' } });
+    expect(screen.queryByText('Draft Flow')).toBeNull();
+    expect(screen.getByText('Morning Flow')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Search workshops'), { target: { value: 'zzz' } });
+    expect(screen.getByText(/no workshops match/i)).toBeTruthy();
   });
 });

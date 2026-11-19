@@ -7,6 +7,7 @@ import { listArtists, listProductsForAdmin, listSellerOptions, listWorkshopOptio
 import { listCategories } from '@/lib/categories';
 import { listSourcingTypes } from '@/lib/sourcing-types';
 import { hostConfig } from '@/lib/hosts';
+import { contactEmail } from '@/lib/site';
 import { sellerTab, wantsNewPost, wantsProfile } from '@/lib/new-post-param';
 import { listSellerWorkshops } from '@/lib/seller-workshops';
 import { listActiveTopics } from '@/lib/topics';
@@ -39,7 +40,7 @@ export default async function AdminPostsPage({ searchParams }: { searchParams: P
       <Breadcrumbs items={crumbs} />
       {!isAdmin && <SellerTabs current={tab} />}
       {tab === 'workshops'
-        ? <SellerWorkshops initial={myWorkshops} topics={topics} />
+        ? <SellerWorkshops initial={myWorkshops} topics={topics} contactEmail={contactEmail()} />
         : <PostsAdmin initialProducts={products} initialArtists={artists} role={user.role} categories={categories} sourcingTypes={sourcingTypes} workshops={workshops} sellers={sellers} me={{ id: profile.userId, name: profile.displayName, email: user.email, phone: profile.publicPhone }} profile={profile} openNew={openNew} openProfile={openProfile} />}
     </>
   );

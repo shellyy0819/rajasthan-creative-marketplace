@@ -47,8 +47,8 @@
 .workshop-detail ul { margin: 0; padding-left: 18px; font-size: 13px; }
 @media (max-width: 600px) { .workshop-detail dl { grid-template-columns: 1fr; } }
 
-/* A seller's own workshops sit under their products on /dashboard/posts. */
-.seller-workshops { margin-top: 36px; }
-.seller-workshops h2 { margin: 0 0 14px; }
+/* A seller's workshops tab looks like their products tab: same page head and toolbar. */
+.seller-workshops .admin-table-wrap { margin-top: 4px; }
+.seller-workshops td.empty { text-align: center; padding: 28px 12px; color: var(--muted); }
 
 .seller-tabs { margin: 0 0 22px; }

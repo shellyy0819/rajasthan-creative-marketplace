@@ -1,7 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { SellerTabs } from '@/components/SellerTabs';
-import { SellerWorkshops } from '@/components/SellerWorkshops';
 import { sellerTab } from '@/lib/new-post-param';
 
 describe('seller dashboard tabs', () => {
@@ -18,10 +17,5 @@ describe('seller dashboard tabs', () => {
     expect(h).toMatch(/<a aria-current="page" href="\/dashboard\/posts\?tab=workshops">My Workshops/);
     expect(h).toMatch(/<a href="\/dashboard\/posts">My Products/);
     expect(renderToStaticMarkup(<SellerTabs current="products" />)).toMatch(/<a aria-current="page" href="\/dashboard\/posts">My Products/);
-  });
-  it('a seller with no workshops yet is told so, with a way to host one', () => {
-    const h = renderToStaticMarkup(<SellerWorkshops initial={[]} topics={[]} />);
-    expect(h).toMatch(/no workshops yet/i);
-    expect(h).toContain('href="/workshops"');
   });
 });
