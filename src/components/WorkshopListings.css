@@ -53,3 +53,5 @@
 .workshop-card:hover { border-color: var(--control-border); }
 .workshop-card h3 a::after { content: ''; position: absolute; inset: 0; }
 .workshop-card .workshop-price a, .workshop-card .workshop-price button { position: relative; z-index: 1; }
+
+.ws-contact .ws-insta { display: inline-flex; align-items: center; gap: 7px; }
