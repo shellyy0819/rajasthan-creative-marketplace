@@ -22,6 +22,11 @@ describe('online class page on tablets and phones (source contract)', () => {
     expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-tile img \{[^}]*object-fit: contain/);
     expect(css).toMatch(/\.cd-tile img \{ width: 100%; height: 100%; object-fit: cover/);
   });
+  it('every card in the hero column has the same width (the instructor, Where, next class and booking cards line up)', () => {
+    const width = (sel: string) => new RegExp(`\\${sel} \\{[^}]*max-width: 560px`).test(css);
+    for (const sel of ['.cd-teacher', '.cd-next', '.cr-card']) expect(width(sel), sel).toBe(true);
+    expect(readFileSync('src/components/class/CraftDetail.css', 'utf8')).toMatch(/\.cr-book \{[^}]*max-width: 560px/);
+  });
   it('the photos are capped in height so the title, instructor and next class show below them', () => {
     expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-mosaic \{[^}]*height: clamp\(220px, 42vw, 340px\)/);
     expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-art \{[^}]*width: min\(100%, 360px\)/);
