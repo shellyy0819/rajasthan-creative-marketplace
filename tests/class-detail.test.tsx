@@ -13,7 +13,7 @@ const base = {
   prices: [{ label: 'Single class', amountPaise: 30000, sessions: 1 }, { label: 'Monthly', amountPaise: 350000, sessions: 24 }],
 } as unknown as Workshop;
 const now = new Date('2026-11-18T00:30:00Z'); // Wednesday 06:00 in India
-const html = (over: Partial<Workshop> = {}, ended = false) => renderToStaticMarkup(<ClassDetail w={{ ...base, ...over } as Workshop} ended={ended} now={now} />);
+const html = (over: Partial<Workshop> = {}, ended = false, hostPhoto?: string) => renderToStaticMarkup(<ClassDetail w={{ ...base, ...over } as Workshop} ended={ended} now={now} hostPhoto={hostPhoto} />);
 
 describe('online class page', () => {
   it('shows the title, topic, instructor, trial badge, next class and the main contact button above the facts', () => {
@@ -68,10 +68,19 @@ describe('online class page', () => {
     const priv = html({ contactPhone: '+919000000000', contactEmail: 'secret@x.co', joinLink: 'https://zoom.us/j/1' } as never);
     for (const s of ['+919000000000', 'secret@x.co', 'zoom.us/j/1']) expect(priv).not.toContain(s);
   });
+  it('the instructor card shows the seller\'s profile photo when there is one, and the initials when there is not', () => {
+    const withPhoto = html({}, false, 'https://img.test/swati.jpg');
+    expect(withPhoto).toMatch(/class="cd-avatar"[^>]*><img src="https:\/\/img\.test\/swati\.jpg"/);
+    expect(withPhoto).not.toContain('>AS<');
+    expect(html()).toContain('>AS<');
+  });
   it('a free class says so, with no plan cards; an ended class has no contact button and says it ended', () => {
     const free = html({ type: 'FREE', pricePaise: 0, prices: [], freeTrial: false } as never);
     expect(free).toContain('This class is free.');
-    expect(free).toContain('>Free<');
+    expect(free).toContain('cd-free');
+    expect(free).not.toContain('cd-plan');
+    expect(free).not.toContain('You pay the instructor directly');
+    expect(free).toContain('Every class is free');
     const ended = html({ endsOn: '2026-11-10' }, true);
     expect(ended).toContain('This class has ended.');
     expect(ended).not.toContain('Chat on WhatsApp');

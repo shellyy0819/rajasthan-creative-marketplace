@@ -5,6 +5,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { ReserveButton } from '@/components/ReserveButton';
 import { getWorkshopBySlug, workshopSlug } from '@/lib/catalog';
+import { getWorkshopHostPhoto } from '@/lib/workshop-host';
 import { formatDay } from '@/lib/format';
 import { breadcrumbJsonLd, workshopJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
@@ -48,7 +49,7 @@ export default async function WorkshopPage({ params }: Props) {
     <>
       <JsonLd data={[workshopJsonLd(w), breadcrumbJsonLd(crumbs)]} />
       <Breadcrumbs items={crumbs} />
-      {isClass ? <ClassDetail w={w} ended={ended} /> : (
+      {isClass ? <ClassDetail w={w} ended={ended} hostPhoto={await getWorkshopHostPhoto(w.id)} /> : (
       <article className="detail">
         <div className="detail-art" style={{ background: '#d7dfd1', display: 'grid', placeItems: 'center', position: 'relative', overflow: 'hidden' }} aria-hidden="true">
           {w.images[0] && /* eslint-disable-next-line @next/next/no-img-element */ <img src={w.images[0]} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}

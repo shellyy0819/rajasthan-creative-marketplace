@@ -18,7 +18,7 @@ function Button({ c, outline }: { c: Channel; outline?: boolean }) {
 }
 
 /** The detail page of an online class: photos, who teaches it, when it meets, what it costs and how to reach the host. Public details only. */
-export function ClassDetail({ w, ended, now = new Date() }: { w: Workshop; ended: boolean; now?: Date }) {
+export function ClassDetail({ w, ended, now = new Date(), hostPhoto }: { w: Workshop; ended: boolean; now?: Date; /** The seller's profile photo (https), when the class is linked to a seller who has one. */ hostPhoto?: string }) {
   const ch = contactChannels(w);
   const next = ended ? null : nextSession(w, now);
   const week = !ended && w.schedule ? weekStrip(w, now) : [];
@@ -42,7 +42,7 @@ export function ClassDetail({ w, ended, now = new Date() }: { w: Workshop; ended
           <p className="cd-lead">{w.description}</p>
           {trial && <p className="cd-badges"><span className="cd-badge">{trial}</span></p>}
           <div className="cd-teacher">
-            <div className="cd-avatar" aria-hidden="true">{initials(w.host)}</div>
+            <div className="cd-avatar" aria-hidden="true">{hostPhoto ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={hostPhoto} alt="" referrerPolicy="no-referrer" /> : initials(w.host)}</div>
             <div>
               <span className="cd-label">YOUR INSTRUCTOR</span>
               <span className="cd-name">{w.host}</span>
@@ -85,12 +85,17 @@ export function ClassDetail({ w, ended, now = new Date() }: { w: Workshop; ended
             </section>
           )}
 
+          {free ? (
+            <section className="cd-free" aria-labelledby="cd-price-h">
+              <h2 id="cd-price-h">Price</h2>
+              <p><strong>Free.</strong> Every class is free; nothing to pay.</p>
+            </section>
+          ) : (
           <section aria-labelledby="cd-plans-h">
-            <h2 id="cd-plans-h">{free ? 'Price' : 'Plans'}</h2>
+            <h2 id="cd-plans-h">Plans</h2>
             <p className="cd-note">You pay the instructor directly. Craftofy collects no payment.</p>
             <div className="cd-plans">
-              {free && <div className="cd-plan"><span className="cd-plan-name">Every class</span><span className="cd-plan-price">Free</span></div>}
-              {!free && !w.prices.length && <div className="cd-plan"><span className="cd-plan-name">Per class</span><span className="cd-plan-price">{money(w.pricePaise)}</span></div>}
+              {!w.prices.length && <div className="cd-plan"><span className="cd-plan-name">Per class</span><span className="cd-plan-price">{money(w.pricePaise)}</span></div>}
               {w.prices.map(p => (
                 <div key={p.label} className="cd-plan">
                   <span className="cd-plan-name">{p.label}</span>
@@ -100,6 +105,7 @@ export function ClassDetail({ w, ended, now = new Date() }: { w: Workshop; ended
               ))}
             </div>
           </section>
+          )}
 
           {!ended && ch.primary && (
             <section aria-labelledby="cd-join-h">
