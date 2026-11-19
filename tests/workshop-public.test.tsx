@@ -54,7 +54,7 @@ describe('cards', () => {
 describe('detail page', () => {
   it('an online class lists every price plan, the schedule and the details, with no seats or Reserve', async () => {
     const h = await page(await createWorkshop(yoga));
-    for (const s of ['Online on Zoom', 'Monthly: ₹1,500 (12 sessions)', 'Per session: ₹500 (1 session)', 'Mon, Wed, Fri at 7:00 am, 60 min', 'Hindi, English', 'Beginner', '8 years', 'RYT 500', 'Free trial', 'wa.me/919989898999']) expect(h, s).toContain(s);
+    for (const s of ['Live on Zoom', 'Monthly', '₹1,500', '12 sessions · about ₹125 a class', 'Per session', '₹500', '1 session', 'Mon, Wed, Fri at 7:00 am, 60 min', 'Hindi, English', 'Beginners', '8 years', 'RYT 500', 'free trial', 'wa.me/919989898999']) expect(h, s).toContain(s);
     expect(h).not.toContain('data-reserve');
     expect(h).not.toContain('Seats left');
     expect(h).not.toContain('private@example.com');
