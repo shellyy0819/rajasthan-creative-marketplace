@@ -143,10 +143,12 @@ describe('product routes by role', () => {
     asAdmin();
     expect((await deleteProductRoute(req('DELETE'), idCtx(mine.id))).status).toBe(200);
   });
-  it('seller cannot use workshop or summary routes', async () => {
+  it('seller cannot create or delete workshops or use the summary route, and cannot edit a workshop that is not theirs', async () => {
     asSeller();
-    for (const r of [await postWorkshop(req('POST', workshop)), await patchWorkshop(req('PATCH', { seats: 9 }), idCtx('w1')), await deleteWorkshopRoute(req('DELETE'), idCtx('w1')), await summaryRoute()])
+    for (const r of [await postWorkshop(req('POST', workshop)), await deleteWorkshopRoute(req('DELETE'), idCtx('w1')), await summaryRoute()])
       expect(r.status).toBe(403);
+    // A seller may edit their own workshops (see seller-workshops.test.ts); w1 is not theirs, so it is simply not found.
+    expect((await patchWorkshop(req('PATCH', { seats: 9 }), idCtx('w1'))).status).toBe(404);
   });
   it('seller read APIs are scoped to their own products; admin sees all with sellerEmail; public API never leaks it', async () => {
     const B = await makeSeller('beta@x.co', 'Beta Artist');

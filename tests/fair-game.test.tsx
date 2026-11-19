@@ -42,7 +42,7 @@ const soundSwitch = (name: string | RegExp) => {
   if (!document.getElementById('fair-menu')) fireEvent.click(screen.getByRole('button', { name: 'Menu' }));
   return screen.getByRole('switch', { name });
 };
-const play = async (data: FairData = sampleFairData()) => { render(<FairGame data={data} />); await screen.findByRole('heading', { name: 'Your player' }); };
+const play = async (data: FairData = sampleFairData(), schedule?: Parameters<typeof FairGame>[0]['schedule']) => { render(<FairGame data={data} schedule={schedule} />); await screen.findByRole('heading', { name: 'Your player' }); };
 const shownCode = () => screen.getByText(/^[A-Z2-9]{3}-[A-Z2-9]{3}$/).textContent!;
 const claims = () => fetchMock.mock.calls.filter(c => c[0] === '/api/fair/claim').map(c => JSON.parse(c[1].body));
 const typeCode = (v: string) => { fireEvent.change(screen.getByLabelText('Play with a code'), { target: { value: v } }); fireEvent.click(screen.getByRole('button', { name: 'Play' })); };
@@ -115,7 +115,7 @@ describe('FairGame: who is playing', () => {
 
 describe('FairGame: the fair', () => {
   it('shows the default stalls, three quests and the code\'s promise to remember', async () => {
-    await play();
+    await play(sampleFairData(), null); // no mela: the result must not depend on today's date
     const makers = screen.getByRole('heading', { name: 'Makers at the fair' }).closest('section')!;
     expect(within(makers).getAllByRole('button')).toHaveLength(8);
     for (const name of ['Rangili Dhaga', 'Resin Rang', 'Kaath Ghar', 'Bandhej Boutique', 'Noel Nest']) expect(within(makers).getByText(name)).toBeTruthy();
