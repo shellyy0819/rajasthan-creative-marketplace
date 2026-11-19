@@ -64,6 +64,18 @@ describe('online class page', () => {
     expect(h).toContain('Try the free class');
     expect(h).toContain('Craftofy collects no payment');
   });
+  it('has a Where card in the first screen: an online class says where it is live, a class with a venue shows it with Open in Maps', () => {
+    const online = html();
+    expect(online).toContain('>WHERE<');
+    expect(online.indexOf('>WHERE<')).toBeLessThan(online.indexOf('Class at a glance'));
+    expect(online).toContain('Live on Zoom');
+    expect(online).not.toContain('maps/search');
+    expect(online.match(/Live on Zoom/g)?.length).toBe(1); // said once: the facts strip no longer repeats it
+    const hybrid = html({ mode: 'hybrid', venue: 'Rang Studio, Bani Park', city: 'Jaipur' } as never);
+    expect(hybrid).toContain('Rang Studio, Bani Park, Jaipur');
+    expect(hybrid).toContain('https://www.google.com/maps/search/?api=1&amp;query=Rang%20Studio%2C%20Bani%20Park%2C%20Jaipur');
+    expect(hybrid).toContain('Also live on Zoom');
+  });
   it('shows the illustration when there are no photos (yoga figures for yoga, a plain arch for other topics)', () => {
     expect(html()).toContain('six people practising yoga');
     const other = html({ topic: { id: 2, name: 'Crochet', slug: 'crochet' } as never });
