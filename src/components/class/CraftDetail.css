@@ -1,8 +1,8 @@
 /* In-person craft and art workshop page. Shares the .cd hero, photos and facts with the online class page; sizes follow the site's type scale. */
 .cr .cd-name { display: block; }
-.cr-date { border-radius: 6px; background: var(--green); color: #fffdf9; text-align: center; padding: 10px 0; display: flex; flex-direction: column; gap: 2px; }
-.cr-date span { font: 700 10px var(--font-sans); letter-spacing: 1px; }
-.cr-date b { font: 600 22px/1.1 var(--font-sans); }
+.cr-date { width: 48px; border-radius: 6px; background: var(--green); color: #fffdf9; text-align: center; padding: 6px 0; display: flex; flex-direction: column; gap: 1px; }
+.cr-date span { font: 700 9px var(--font-sans); letter-spacing: 1px; }
+.cr-date b { font: 600 18px/1.1 var(--font-sans); }
 .cr-book { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 16px; align-items: center;  max-width: 560px; }
 .cr-seats-line { display: flex; justify-content: space-between; font: 600 12px var(--font-sans); margin-bottom: 6px; }
 .cr-bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }

@@ -43,7 +43,8 @@ export function CraftDetail({ w, ended, now = new Date() }: { w: Workshop; ended
           {ended && <p className="ws-ended" role="status">This event has ended. <Link href="/workshops">See upcoming workshops</Link></p>}
           <p className="cd-lead">{w.description}</p>
 
-          <div className="cd-teacher">
+          <div className="cd-panel">
+          <div className="cd-row cd-teacher">
             <div className="cd-avatar" aria-hidden="true">{initials(w.host)}</div>
             <div>
               <span className="cd-label">YOUR HOST</span>
@@ -53,16 +54,17 @@ export function CraftDetail({ w, ended, now = new Date() }: { w: Workshop; ended
             </div>
           </div>
 
-          <div className="cr-card">
+          <div className="cd-row">
             <div className="cr-date" aria-hidden="true"><span>{weekday(w.date)}</span><b>{d.day}</b><span>{d.month.toUpperCase()}</span></div>
             <div><span className="cd-label">WHEN</span><span className="cr-line"><time dateTime={`${w.date}T${w.time}+05:30`}>{when}</time></span>{soon && <span className="cr-sub">{soon}</span>}</div>
           </div>
           {where && (
-            <div className="cr-card">
-              <div className="cr-pin" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z" /><circle cx="12" cy="10" r="2.5" /></svg></div>
+            <div className="cd-row">
+              <div className="cd-ico" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z" /><circle cx="12" cy="10" r="2.5" /></svg></div>
               <div><span className="cd-label">WHERE</span><span className="cr-line">{where}</span><a className="cr-maps" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(where)}`} target="_blank" rel="noopener noreferrer">Open in Maps</a></div>
             </div>
           )}
+          </div>
 
           {!ended && (
             <div className="cr-book">

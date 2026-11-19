@@ -46,20 +46,20 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto }: { w: Work
           {ended && <p className="ws-ended" role="status">This class has ended. <Link href="/workshops">See upcoming workshops</Link></p>}
           <p className="cd-lead">{w.description}</p>
           {trial && <p className="cd-badges"><span className="cd-badge">{trial}</span></p>}
-          <div className="cd-teacher">
+          <div className="cd-panel">
+          <div className="cd-row cd-teacher">
             <div className="cd-avatar" aria-hidden="true">{hostPhoto ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={hostPhoto} alt="" referrerPolicy="no-referrer" /> : initials(w.host)}</div>
             <div>
               <span className="cd-label">YOUR INSTRUCTOR</span>
               <span className="cd-name">{w.host}</span>
               {(w.experience || w.certifications) && <span className="cd-sub">{[w.experience, w.certifications].filter(Boolean).join(' · ')}</span>}
-              {!ended && ch.primary && <span className="cd-cta"><Button c={ch.primary} />{ch.secondary.map(c => <Button key={c.kind} c={c} outline />)}</span>}
               {icons.length > 0 && (
                 <span className="cd-icons">{icons.map(c => <a key={c.kind} href={c.href} aria-label={c.short} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} /></a>)}</span>
               )}
             </div>
           </div>
-          <div className="cr-card">
-            <div className="cr-pin" aria-hidden="true">
+          <div className="cd-row">
+            <div className="cd-ico" aria-hidden="true">
               {where
                 ? <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
                 : <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="14" height="12" rx="3" /><path d="M16 10l6-3v10l-6-3z" /></svg>}
@@ -73,11 +73,13 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto }: { w: Work
             </div>
           </div>
           {next && (
-            <div className="cd-next">
-              <span aria-hidden="true" className="cd-next-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></span>
+            <div className="cd-row cd-next">
+              <span aria-hidden="true" className="cd-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></span>
               <span><span className="cd-label">NEXT CLASS</span><span className="cd-next-text">{describeNext(next, now)}</span></span>
             </div>
           )}
+          </div>
+          {!ended && ch.primary && <div className="cd-cta"><Button c={ch.primary} />{ch.secondary.map(c => <Button key={c.kind} c={c} outline />)}</div>}
         </div>
         {w.images.length ? <PhotoMosaic images={w.images} title={w.title} /> : <ClassIllustration title={w.title} yoga={w.topic?.slug === 'yoga'} />}
       </section>
