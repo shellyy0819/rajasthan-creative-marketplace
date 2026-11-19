@@ -225,6 +225,9 @@ select,
 textarea {
   font-family: inherit;
 }
+/* iOS Safari paints buttons and dropdown values in its system blue unless the colour is set: use the page text colour, as on a laptop. */
+button, select { color: inherit; }
+select { -webkit-text-fill-color: currentColor; }
 a {
   color: inherit;
   text-decoration: none;
@@ -878,6 +881,7 @@ dialog::backdrop {
 .icon-btn {
   border: 0;
   background: transparent;
+  color: inherit;
   font-size: 20px;
   cursor: pointer;
 }

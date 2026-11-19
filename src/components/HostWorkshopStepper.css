@@ -147,3 +147,5 @@
   .host-lang-panel li { padding: 12px 10px; font-size: 16px; }
   .host-lang-chip { min-height: 36px; font-size: 13px; }
 }
+
+.host-dialog:focus { outline: none; }
