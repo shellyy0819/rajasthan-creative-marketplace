@@ -54,3 +54,7 @@
 .workshop-card .workshop-price a, .workshop-card .workshop-price button { position: relative; z-index: 1; }
 
 .ws-contact .ws-insta { display: inline-flex; align-items: center; gap: 7px; }
+
+/* On a card the contact buttons line up with the price above them: flush right, no side padding of their own. */
+.workshop-card .ws-contact { display: flex; justify-content: flex-end; }
+.workshop-card .ws-contact .button { padding-left: 0; padding-right: 0; background: transparent; }
