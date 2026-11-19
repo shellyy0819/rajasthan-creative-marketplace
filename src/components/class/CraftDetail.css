@@ -30,5 +30,4 @@
   .cr-book { grid-template-columns: 1fr; }
   .cr-price { text-align: left; }
   .cr-reserve { grid-column: auto; }
-    .cr-icons { grid-column: 1 / 3; }
 }
