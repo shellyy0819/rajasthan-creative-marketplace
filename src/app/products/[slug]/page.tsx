@@ -6,6 +6,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { JsonLd } from "@/components/JsonLd";
 import { MakerCard } from "@/components/MakerCard";
 import { LikeButton } from "@/components/LikeButton";
+import { Share } from "@/components/Share";
 import { TrackOnMount } from "@/components/TrackOnMount";
 import { ProductGallery } from "@/components/ProductGallery";
 import { visualIndex } from "@/components/ProductCard";
@@ -43,6 +44,7 @@ export default async function ProductPage({ params }: Props) {
     { name: "Shop", path: "/shop" },
     { name: p.name, path: `/products/${productSlug(p)}` },
   ];
+  const share = await Share({ path: `/products/${productSlug(p)}`, title: p.name, kind: "product", by: p.seller, subtitle: `${p.seller} · ${p.city}`, itemId: p.id, image: p.images?.[0] ?? p.imageUrl });
   return (
     <>
       <JsonLd data={[productJsonLd(p), breadcrumbJsonLd(crumbs)]} />
@@ -131,6 +133,7 @@ export default async function ProductPage({ params }: Props) {
               <b>Appreciate the craft</b>
               <span>If you really liked the product, give it a like</span>
             </p>
+            {share}
           </div>
         </div>
       </article>

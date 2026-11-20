@@ -37,3 +37,8 @@ export function gaSignUp(method: string): void {
 export function gaListingSubmit(listingId: string, category: string): void {
   gaEvent('listing_submit', { listing_id: listingId, category });
 }
+
+/** GA4: a page was shared. `method` is the channel (whatsapp, instagram, facebook, copy_link, or native for the phone's own share sheet), `content_type` the kind of page. */
+export function gaShare(p: { method: string; kind: string; itemId?: string }): void {
+  gaEvent('share', { method: p.method, content_type: p.kind, ...(p.itemId ? { item_id: p.itemId } : {}) });
+}

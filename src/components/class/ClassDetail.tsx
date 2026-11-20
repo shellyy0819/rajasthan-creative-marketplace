@@ -19,7 +19,7 @@ function Button({ c, outline }: { c: Channel; outline?: boolean }) {
 }
 
 /** The detail page of an online class: photos, who teaches it, when it meets, what it costs and how to reach the host. Public details only. */
-export function ClassDetail({ w, ended, now = new Date(), hostPhoto }: { w: Workshop; ended: boolean; now?: Date; /** The seller's profile photo (https), when the class is linked to a seller who has one. */ hostPhoto?: string }) {
+export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { w: Workshop; ended: boolean; now?: Date; /** The seller's profile photo (https), when the class is linked to a seller who has one. */ hostPhoto?: string; /** The Share button, when this viewer may see it (decided by the page). */ share?: React.ReactNode }) {
   const ch = contactChannels(w);
   const next = ended ? null : nextSession(w, now);
   // The main button (and any outline buttons) already carry their channel; the icon row lists only the others, so nothing shows twice.
@@ -80,6 +80,7 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto }: { w: Work
           )}
           </div>
           {!ended && ch.primary && <div className="cd-cta"><Button c={ch.primary} />{ch.secondary.map(c => <Button key={c.kind} c={c} outline />)}</div>}
+          {share && <div className="share-slot">{share}</div>}
         </div>
         {w.images.length ? <PhotoMosaic images={w.images} title={w.title} /> : <ClassIllustration title={w.title} yoga={w.topic?.slug === 'yoga'} />}
       </section>

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
+import { Share } from '@/components/Share';
 import { getWorkshopBySlug, workshopSlug } from '@/lib/catalog';
 import { getWorkshopHostPhoto } from '@/lib/workshop-host';
 import { breadcrumbJsonLd, workshopJsonLd } from '@/lib/jsonld';
@@ -37,11 +38,12 @@ export default async function WorkshopPage({ params }: Props) {
   const ended = !isCurrent(w);
   const isClass = w.kind === 'class' || w.mode === 'online';
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Workshops', path: '/workshops' }, { name: w.title, path: `/workshops/${workshopSlug(w)}` }];
+  const share = await Share({ path: `/workshops/${workshopSlug(w)}`, title: w.title, kind: 'workshop', by: w.host, subtitle: `${w.host} · ${isClass ? 'Online' : w.city}`, itemId: w.id, image: w.images[0] });
   return (
     <>
       <JsonLd data={[workshopJsonLd(w), breadcrumbJsonLd(crumbs)]} />
       <Breadcrumbs items={crumbs} />
-      {isClass ? <ClassDetail w={w} ended={ended} hostPhoto={await getWorkshopHostPhoto(w.id)} /> : <CraftDetail w={w} ended={ended} />}
+      {isClass ? <ClassDetail w={w} ended={ended} hostPhoto={await getWorkshopHostPhoto(w.id)} share={share} /> : <CraftDetail w={w} ended={ended} share={share} />}
     </>
   );
 }
