@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { Share } from '@/components/Share';
 import { CategoryListTracker } from '@/components/CategoryListTracker';
 import { CategoryPagination } from '@/components/CategoryPagination';
 import { JsonLd } from '@/components/JsonLd';
@@ -55,6 +56,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   if (!list) notFound();
   const base = `/categories/${entry.slug}`;
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Categories', path: '/categories' }, { name: entry.name, path: base }];
+  const share = await Share({ path: base, title: entry.name, kind: 'category', subtitle: `${entry.count} ${w.products}` });
   return (
     <>
       <JsonLd data={[breadcrumbJsonLd(crumbs), categoryJsonLd(entry.name, base, list.products)]} />
@@ -63,6 +65,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         <span className="eyebrow">CATEGORY</span>
         <h1>{entry.name}</h1>
         <p>{categoryIntro(entry, w.products)}</p>
+        {share && <div className="share-slot">{share}</div>}
       </div>
       <section className="section" aria-label={`${entry.name} products`}>
         <CategoryListTracker slug={entry.slug} page={page}><ProductGrid products={list.products} /></CategoryListTracker>

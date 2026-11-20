@@ -18,7 +18,7 @@ const weekday = (iso: string) => new Date(`${iso}T12:00:00+05:30`).toLocaleStrin
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]!.toUpperCase()).join('') || '·';
 
 /** The detail page of an in-person workshop, built for craft and art: when, where, seats and price first, then what people make. Public details only. */
-export function CraftDetail({ w, ended, now = new Date() }: { w: Workshop; ended: boolean; now?: Date }) {
+export function CraftDetail({ w, ended, now = new Date(), share }: { w: Workshop; ended: boolean; now?: Date; /** The Share button, when this viewer may see it (decided by the page). */ share?: React.ReactNode }) {
   const ch = contactChannels(w);
   const d = formatDay(w.date);
   const seats = w.seats;
@@ -80,6 +80,7 @@ export function CraftDetail({ w, ended, now = new Date() }: { w: Workshop; ended
             </div>
           )}
           {!ended && <p className="cd-note cr-note">No payment is collected on Craftofy. You reserve here, and the host confirms and takes payment.</p>}
+          {share && <div className="share-slot">{share}</div>}
         </div>
         {w.images.length ? <PhotoMosaic images={w.images} title={w.title} /> : <ClassIllustration title={w.title} yoga={false} />}
       </section>

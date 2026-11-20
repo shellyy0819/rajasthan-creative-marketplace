@@ -43,3 +43,16 @@ Both are per page in Reports, Engagement, Pages and screens. Custom events (`lik
 | `contact_seller` and `contact_<method>` | unchanged, plus `item_category` (the product's category) when the contact is about a product | |
 
 To report on `category_slug`, `source`, `item_list_name`, `item_category` and `page`, register each as an **event-scoped custom dimension** in GA4 (Admin, Custom definitions). They only fill from the day they are registered.
+
+## 6. Share event
+The Share button (product, workshop, artist and category pages) sends one GA4 event, `share`, when a visitor picks a way to share.
+
+| Parameter | Value |
+|---|---|
+| `method` | `whatsapp`, `sms` (Messages), `email`, `copy_link`, `instagram`, `facebook`, or `native` (the phone's own share sheet, where Instagram and other apps are) |
+| `content_type` | `product`, `workshop`, `artist` or `category` |
+| `item_id` | the product or workshop id (not sent for artist and category pages) |
+
+Links shared to WhatsApp, Messages, Email, Instagram, Facebook and the phone's share sheet carry `?utm_source=<method>&utm_medium=share`, so visits that come from shares appear in Reports, Acquisition, Traffic acquisition (Session source / medium). Copy adds nothing, because we cannot know where the link is pasted. The address is built from the hostname the page is open on.
+
+Register `method` and `content_type` as event-scoped custom dimensions to report on them. Who sees the button is set under Dashboard, Settings, Sharing (admins only, or everyone).

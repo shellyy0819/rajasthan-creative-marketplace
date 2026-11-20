@@ -22,7 +22,8 @@ export function sharedCategory(products: Product[]): string | undefined {
   return top && n * 2 > products.length ? top : undefined;
 }
 
-export function ArtistHero({ a }: { a: Artist }) {
+/** `share`: the Share button, when this viewer may see it (decided by the page). */
+export function ArtistHero({ a, share }: { a: Artist; share?: React.ReactNode }) {
   const category = sharedCategory(a.products);
   const n = a.products.length;
   const first = a.products.slice(0, 3);
@@ -42,6 +43,7 @@ export function ArtistHero({ a }: { a: Artist }) {
         <div className="ah-acts">
           <ContactArtistButton product={a.products[0]} artistLevel />
           {a.instagram && <a className="button ah-ig" href={instagramUrl(a.instagram)} target="_blank" rel="noreferrer">Instagram ↗</a>}
+          {share}
         </div>
         {(a.phone || a.email || a.youtube) && (
           <ul className="ah-links">

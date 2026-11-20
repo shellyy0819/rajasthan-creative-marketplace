@@ -1,0 +1,84 @@
+/* Share button and its dialog. Tokens and sizes from the site's own scale; the dialog frame (.contact-backdrop, .contact-card, .dialog-head) is the one the other dialogs use. */
+.share-btn {
+  gap: 7px;
+  min-height: var(--control-h);
+  padding: 0 14px;
+  border: 1px solid var(--control-border);
+  background: transparent;
+  color: var(--ink);
+}
+/* In the row under the product photo (phones) the button is a round icon like the heart beside it */
+.detail-actions-m .share-btn { width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 50%; }
+.detail-actions-m .share-label { display: none; }
+.detail-actions-m .share-btn svg { width: 15px; height: 15px; }
+.share-card { display: grid; gap: 14px; }
+.share-card .dialog-head { margin-bottom: 2px; }
+.share-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+/* ProductImage draws the photo with position: absolute; inset: 0, so this box must be the positioned parent or the photo fills the whole screen */
+.share-thumb { position: relative; flex: none; width: 56px; height: 56px; border-radius: 4px; overflow: hidden; background: var(--cream); display: block; }
+.share-thumb .product-photo { object-fit: cover; }
+.share-what { display: grid; gap: 2px; min-width: 0; }
+.share-what b { font-size: 14px; font-weight: 600; }
+.share-what span { font-size: 12px; color: var(--muted-2); }
+.share-lbl { margin: 2px 0 -6px; font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--muted-2); }
+/* The row of round actions, like the sheets phones' own shops use */
+.share-tiles, .share-tiles-more { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 8px; }
+.share-tiles-more { justify-content: flex-start; gap: 12px 22px; }
+.share-tile {
+  flex: 1 1 0;
+  min-width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  font: 600 12px var(--font-sans);
+  text-decoration: none;
+  cursor: pointer;
+}
+.share-tiles-more .share-tile { flex: none; }
+.share-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: var(--white);
+  border: 1px solid var(--control-border);
+  border-radius: 50%;
+  color: var(--ink);
+}
+.share-tile:hover { text-decoration: none; }
+.share-tile:hover .share-ico { border-color: var(--green); background: var(--chip-green); color: var(--green-d); }
+.share-tile[aria-expanded="true"] .share-ico { border-color: var(--green); color: var(--green-d); }
+.share-more { display: grid; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+.share-note { margin: 0; font-size: 11px; line-height: 1.6; color: var(--muted-2); }
+.share-link-input {
+  width: 100%;
+  height: var(--control-h);
+  box-sizing: border-box;
+  padding: 0 12px;
+  background: var(--white);
+  border: 1px solid var(--control-border);
+  border-radius: 3px;
+  color: var(--ink);
+  font: 400 12px var(--font-sans);
+}
+/* On phones the dialog is a sheet from the bottom of the screen */
+@media (max-width: 600px) {
+  .admin-modal.share-backdrop { align-items: end; padding: 0; }
+  .share-card { width: 100%; border-radius: 10px 10px 0 0; padding-bottom: 24px; }
+  .share-btn { min-height: 44px; }
+}
+.share-slot { margin-top: 14px; }
