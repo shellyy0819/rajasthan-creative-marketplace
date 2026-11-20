@@ -45,7 +45,7 @@ describe('InstagramMessageButton', () => {
     fireEvent.click(link());
     expect(w).toHaveBeenCalledWith('Is it available in blue?');
     expect(sendEvent).toHaveBeenCalledWith('contact_instagram', 'p1');
-    expect(gaContactSeller).toHaveBeenCalledWith({ sellerSlug: 'studio-a-1', method: 'instagram', productId: 'p1' });
+    expect(gaContactSeller).toHaveBeenCalledWith({ sellerSlug: 'studio-a-1', method: 'instagram', productId: 'p1', category: 'Pottery' });
     await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/message copied/i));
   });
   it('when copying is refused or unavailable it selects the text and tells the buyer to copy it', async () => {

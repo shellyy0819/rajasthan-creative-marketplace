@@ -1,14 +1,15 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { CategoryIcon } from '@/components/CategoryIcon';
 import { Share } from '@/components/Share';
+import { CategoryListTracker } from '@/components/CategoryListTracker';
 import { CategoryPagination } from '@/components/CategoryPagination';
 import { JsonLd } from '@/components/JsonLd';
 import { ProductGrid } from '@/components/ProductGrid';
 import { capitalize, getCatalogWording } from '@/lib/catalog-wording';
 import { SHOP_PAGE_SIZE } from '@/lib/catalog-shared';
-import { getCategoryEntry, listCategoryPage } from '@/lib/category-pages';
+import { loadCategoryEntry, loadCategoryPage } from '@/lib/category-cache';
+import { categoryIntro } from '@/lib/category-pages';
 import { breadcrumbJsonLd, categoryJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
 import '../categories.css';
@@ -23,12 +24,14 @@ function pageOf(sp: SP): number | null {
   if (v === undefined) return 1;
   return /^[1-9]\d{0,5}$/.test(v) ? Number(v) : null;
 }
-/** Any parameter other than `page` (city, sort, source, search) makes this a filtered view, which search engines should not index. */
-const filtered = (sp: SP) => Object.keys(sp).some(k => k !== 'page');
+/** Parameters that only say where a visitor came from. They do not change the list, so they must not make the page `noindex`. */
+const TRACKING = /^(utm_[a-z0-9_]+|fbclid|gclid|gbraid|wbraid|msclkid|igshid|igsh|mc_cid|mc_eid|_ga|_gl)$/i;
+/** Any other parameter besides `page` (city, sort, source, search) makes this a filtered view, which search engines should not index. */
+const filtered = (sp: SP) => Object.keys(sp).some(k => k !== 'page' && !TRACKING.test(k));
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const [{ slug }, sp] = await Promise.all([params, searchParams]);
-  const entry = await getCategoryEntry(slug);
+  const entry = await loadCategoryEntry(slug);
   if (!entry) return { title: 'Category not found', robots: { index: false } };
   const page = pageOf(sp);
   // The page itself will be a 404 (a bad or too-high page number): never index it (the response can still be a 200 while it streams).
@@ -38,7 +41,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const noindex = filtered(sp);
   return pageMetadata({
     title: `${entry.name}: ${capitalize(w.products)} from Indian Artisans${page > 1 && !noindex ? ` (page ${page})` : ''}`,
-    description: `Browse ${entry.count} ${w.products} in ${entry.name} from independent makers across India and contact the maker directly to order.`,
+    description: categoryIntro(entry, w.products),
     path: page > 1 && !noindex ? `${base}?page=${page}` : base,
     noindex,
   });
@@ -46,11 +49,11 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 
 export default async function CategoryPage({ params, searchParams }: Props) {
   const [{ slug }, sp] = await Promise.all([params, searchParams]);
-  const entry = await getCategoryEntry(slug);
+  const entry = await loadCategoryEntry(slug);
   const page = pageOf(sp);
   if (!entry || page === null) notFound();
-  const [w, list] = await Promise.all([getCatalogWording(), listCategoryPage(entry, page)]);
-  if (page > list.pages) notFound();
+  const [w, list] = await Promise.all([getCatalogWording(), loadCategoryPage(entry, page)]);
+  if (!list) notFound();
   const base = `/categories/${entry.slug}`;
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Categories', path: '/categories' }, { name: entry.name, path: base }];
   const share = await Share({ path: base, title: entry.name, kind: 'category', subtitle: `${entry.count} ${w.products}` });
@@ -60,12 +63,12 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       <Breadcrumbs items={crumbs} />
       <div className="page-head">
         <span className="eyebrow">CATEGORY</span>
-        <h1><CategoryIcon name={entry.name} large />{entry.name}</h1>
-        <p>Browse {entry.count} {w.products} in {entry.name} from independent makers across India. Contact the maker directly to order.</p>
+        <h1>{entry.name}</h1>
+        <p>{categoryIntro(entry, w.products)}</p>
         {share && <div className="share-slot">{share}</div>}
       </div>
       <section className="section" aria-label={`${entry.name} products`}>
-        <ProductGrid products={list.products} />
+        <CategoryListTracker slug={entry.slug} page={page}><ProductGrid products={list.products} /></CategoryListTracker>
       </section>
       <CategoryPagination base={base} page={page} pages={list.pages} />
     </>

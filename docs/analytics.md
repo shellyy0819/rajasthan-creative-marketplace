@@ -34,7 +34,17 @@ Both are per page in Reports, Engagement, Pages and screens. Custom events (`lik
 - GA4 anonymises IP addresses by default.
 - Consent is stored in the browser (`localStorage`, key `rr_consent`), not per account.
 
-## 5. Share event
+## 5. Category-page events
+| Event | When | Parameters |
+|---|---|---|
+| `category_click` | a link to a category page is clicked | `category_slug`, `source` (`home` block or `index` list) |
+| `view_item_list` | a category page is shown (once per page of the list) | `item_list_id` and `item_list_name` (the category slug), `page` |
+| `select_item` | a product is opened from a category page | `item_id`, `item_list_id`, `item_list_name` |
+| `contact_seller` and `contact_<method>` | unchanged, plus `item_category` (the product's category) when the contact is about a product | |
+
+To report on `category_slug`, `source`, `item_list_name`, `item_category` and `page`, register each as an **event-scoped custom dimension** in GA4 (Admin, Custom definitions). They only fill from the day they are registered.
+
+## 6. Share event
 The Share button (product, workshop, artist and category pages) sends one GA4 event, `share`, when a visitor picks a way to share.
 
 | Parameter | Value |

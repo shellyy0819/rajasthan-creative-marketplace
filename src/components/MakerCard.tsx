@@ -62,7 +62,7 @@ export function MakerCard({ product: p, productUrl }: { product: Product; produc
   ) : m.form ? (
     <EmailMakerButton key={m.key} product={p} className={className} icon={icon(m.key, onGreen)}>{m.label}</EmailMakerButton>
   ) : (
-    <TrackedLink key={m.key} className={className} productId={p.id} sellerSlug={p.sellerSlug} method={m.key} type={m.type} href={m.href}
+    <TrackedLink key={m.key} className={className} productId={p.id} sellerSlug={p.sellerSlug} category={p.category} method={m.key} type={m.type} href={m.href}
       {...(m.external ? { target: '_blank', rel: 'noreferrer' } : {})}>
       {icon(m.key, onGreen)}{m.label}
     </TrackedLink>

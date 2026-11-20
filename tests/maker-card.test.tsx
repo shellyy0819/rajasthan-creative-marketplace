@@ -86,7 +86,7 @@ describe('MakerCard', () => {
     render(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co' })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
     fireEvent.click(screen.getByRole('link', { name: /whatsapp/i }));
     expect(sendEvent).toHaveBeenLastCalledWith('contact', 'p1');
-    expect(gaContactSeller).toHaveBeenLastCalledWith({ sellerSlug: 'meera-textile-studio-abc', method: 'whatsapp', productId: 'p1' });
+    expect(gaContactSeller).toHaveBeenLastCalledWith({ sellerSlug: 'meera-textile-studio-abc', method: 'whatsapp', productId: 'p1', category: 'Crochet' });
   });
 
   it('is a narrow card when there are at most two other buttons, and full width when there are more', () => {

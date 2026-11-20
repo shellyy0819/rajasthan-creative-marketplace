@@ -2,6 +2,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
+vi.mock('next/cache', async orig => ({ ...(await orig<typeof import('next/cache')>()), unstable_cache: (fn: unknown) => fn }));   // no Next cache outside a request: call straight through
 vi.mock('@/lib/catalog-wording', async orig => ({ ...(await orig<typeof import('@/lib/catalog-wording')>()), getCatalogWording: async () => ({ adjective: '', products: 'products', finds: 'finds', stats: { products: 0, makers: 0, cities: 0 } }) }));
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 
@@ -51,3 +52,16 @@ describe('categories index page', () => {
     expect(String(m.title)).toMatch(/Shop by Category/);
   });
 });
+
+describe('categories index: search engines and screen readers', () => {
+  it('is noindex while no category has a product, indexable once one does', async () => {
+    expect((await generateMetadata()).robots).toEqual({ index: false, follow: true });
+    await add('T-B1', 'Brass Work');
+    expect((await generateMetadata()).robots).toBeUndefined();
+  });
+  it('announces each count as "N products", not a bare number', async () => {
+    await add('T-B1', 'Brass Work'); await add('T-B2', 'Brass Work');
+    expect(await html()).toContain('<small aria-label="2 products">2</small>');
+  });
+});
+

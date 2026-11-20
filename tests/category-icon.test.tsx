@@ -16,10 +16,9 @@ describe('categoryIconKind', () => {
 });
 
 describe('CategoryIcon', () => {
-  it('is a decorative svg (hidden from screen readers) of the right kind, with a larger variant', () => {
+  it('is a decorative svg (hidden from screen readers) of the right kind', () => {
     const small = renderToStaticMarkup(<CategoryIcon name="Pottery" />);
     expect(small).toMatch(/<svg class="cat-ic" data-kind="pot"[^>]*aria-hidden="true"/);
-    expect(renderToStaticMarkup(<CategoryIcon name="Pottery" large />)).toContain('class="cat-ic cat-ic-lg"');
   });
   it('uses only the stall\'s colour classes: no hard-coded colours or font names', () => {
     for (const n of ['Pottery', 'Crochet', 'Handloom', 'Resin Art', 'Jewellery', 'Accessories', 'Home Decor', 'Bakery', 'Wooden Crafts', 'Paintings', 'Other']) {

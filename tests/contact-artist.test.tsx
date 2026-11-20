@@ -111,7 +111,7 @@ describe('ContactArtistButton', () => {
     click(within(d).getByRole('button', { name: 'Copy phone' }));
     expect(track.sendEvent.mock.calls.map(c => c[0])).toEqual(['contact_call', 'contact_email', 'contact_instagram', 'contact_youtube', 'contact_copy']);
     expect(track.sendEvent).toHaveBeenCalledWith('contact_call', 'p1', undefined);
-    const prm = { seller_id: 'shauk-and-stuff-6b13cbf3', contact_method: 'call', product_id: 'p1' };
+    const prm = { seller_id: 'shauk-and-stuff-6b13cbf3', contact_method: 'call', product_id: 'p1', item_category: 'Crochet' };
     expect(track.gaEvent).toHaveBeenCalledWith('contact_seller', prm);
     expect(track.gaEvent).toHaveBeenCalledWith('contact_call', prm);
     expect(track.gaEvent).toHaveBeenCalledWith('contact_email', { ...prm, contact_method: 'email' });

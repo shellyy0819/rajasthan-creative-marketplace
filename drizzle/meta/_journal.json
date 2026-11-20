@@ -246,6 +246,13 @@
       "when": 1795160273558,
       "tag": "0034_category_slugs",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1795161241305,
+      "tag": "0035_category_description",
+      "breakpoints": true
     }
   ]
 }

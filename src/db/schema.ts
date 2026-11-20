@@ -89,6 +89,8 @@ export const categories = pgTable('categories', {
   name: text('name').notNull().unique(),
   /** Stable address of the category page. Made by the database (trigger `categories_set_slug`, function `category_slug_unique`), never in code. */
   slug: text('slug').notNull().default(''),
+  /** Two or three sentences about the category, shown above its product list and used as its meta description. Empty = the page uses a generic intro. Set by an admin. */
+  description: text('description').notNull().default(''),
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }, t => [uniqueIndex('categories_name_lower_idx').on(sql`lower(${t.name})`), uniqueIndex('categories_slug_idx').on(t.slug).where(sql`${t.slug} <> ''`)]);

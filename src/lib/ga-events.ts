@@ -7,8 +7,9 @@ const METHOD_EVENT: Partial<Record<GaContactMethod, string>> = {
 
 /** The public seller handle (artist slug) is the `seller_id`: internal user ids never leave the server.
  *  GA4: one `contact_seller` for any contact action, plus the method's own event (WhatsApp, call, email, Instagram, YouTube; "copy" has none). Call only on a real contact action, never on opening the sheet. */
-export function gaContactSeller(p: { sellerSlug: string; method: GaContactMethod; productId?: string }): void {
-  const params = { seller_id: p.sellerSlug, contact_method: p.method, ...(p.productId ? { product_id: p.productId } : {}) };
+export function gaContactSeller(p: { sellerSlug: string; method: GaContactMethod; productId?: string; category?: string }): void {
+  // `item_category` (the product's category) lets GA4 show which categories bring contacts; it is only known when the contact is about a product.
+  const params = { seller_id: p.sellerSlug, contact_method: p.method, ...(p.productId ? { product_id: p.productId } : {}), ...(p.productId && p.category ? { item_category: p.category } : {}) };
   gaEvent('contact_seller', params);
   const specific = METHOD_EVENT[p.method];
   if (specific) gaEvent(specific, params);
@@ -41,4 +42,19 @@ export function gaListingSubmit(listingId: string, category: string): void {
 /** GA4: a page was shared. `method` is the channel (whatsapp, instagram, facebook, copy_link, or native for the phone's own share sheet), `content_type` the kind of page. */
 export function gaShare(p: { method: string; kind: string; itemId?: string }): void {
   gaEvent('share', { method: p.method, content_type: p.kind, ...(p.itemId ? { item_id: p.itemId } : {}) });
+}
+
+/** GA4: a link to a category page was clicked, from the home block (`home`) or the all-categories list (`index`). */
+export function gaCategoryClick(categorySlug: string, source: 'home' | 'index'): void {
+  gaEvent('category_click', { category_slug: categorySlug, source });
+}
+
+/** GA4: a category page was shown (once per page of the list). The denominator for `select_item`. */
+export function gaViewCategoryList(categorySlug: string, page: number): void {
+  gaEvent('view_item_list', { item_list_id: categorySlug, item_list_name: categorySlug, page });
+}
+
+/** GA4: a product was opened from a category page's list. */
+export function gaSelectItem(itemId: string, categorySlug: string): void {
+  gaEvent('select_item', { item_id: itemId, item_list_id: categorySlug, item_list_name: categorySlug });
 }

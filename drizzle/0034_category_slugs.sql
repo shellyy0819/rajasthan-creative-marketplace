@@ -1,7 +1,7 @@
 ALTER TABLE "categories" ADD COLUMN "slug" text DEFAULT '' NOT NULL;--> statement-breakpoint
 CREATE FUNCTION category_slug_base(n text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
   select coalesce(nullif(trim(both '-' from regexp_replace(
-    translate(lower(replace(n, '&', ' and ')), 'áàâäãåéèêëíìîïóòôöõúùûüçñýÿ', 'aaaaaaeeeeiiiiooooouuuucnyy'),
+    translate(lower(replace(n, '&', ' and ')), 'áàâäãåéèêëíìîïóòôöõúùûüçñýÿÁÀÂÄÃÅÉÈÊËÍÌÎÏÓÒÔÖÕÚÙÛÜÇÑÝ', 'aaaaaaeeeeiiiiooooouuuucnyyaaaaaaeeeeiiiiooooouuuucny'),
     '[^a-z0-9]+', '-', 'g')), ''), 'category')
 $$;--> statement-breakpoint
 CREATE FUNCTION category_slug_unique(n text, exclude_id integer) RETURNS text LANGUAGE plpgsql AS $$

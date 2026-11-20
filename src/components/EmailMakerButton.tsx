@@ -61,7 +61,7 @@ export function EmailMakerButton({ product: p, className, children, icon }: { pr
                   const data = await r.json().catch(() => null);
                   if (!r.ok) { setError({ text: data?.error ?? 'Something went wrong. Please try again.', offerMailto: r.status === 502 || r.status === 503 }); setSending(false); return; }
                   sendEvent('contact_email', p.id);
-                  if (p.sellerSlug) gaContactSeller({ sellerSlug: p.sellerSlug, method: 'email', productId: p.id });
+                  if (p.sellerSlug) gaContactSeller({ sellerSlug: p.sellerSlug, method: 'email', productId: p.id, category: p.category });
                   setSending(false);
                   setOpen(false);
                   setToast({ id: Date.now(), kind: 'success', text: 'Your email is successfully sent to seller' });

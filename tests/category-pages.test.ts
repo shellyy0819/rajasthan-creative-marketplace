@@ -37,7 +37,7 @@ describe('category pages library', () => {
   });
   it('getCategoryEntry finds by slug and returns the product count; unknown slugs are undefined', async () => {
     await add('T-C1', 'Crochet'); await add('T-C2', 'Crochet');
-    expect(await getCategoryEntry('crochet')).toEqual({ name: 'Crochet', slug: 'crochet', count: 2 });
+    expect(await getCategoryEntry('crochet')).toEqual({ name: 'Crochet', slug: 'crochet', description: '', count: 2 });
     expect(await getCategoryEntry('nope')).toBeUndefined();
     expect(await getCategoryEntry('')).toBeUndefined();
   });
@@ -62,7 +62,7 @@ describe('category pages library', () => {
     const d = await getTestDb();
     await d.update(categories).set({ name: 'Brassware' }).where(eq(categories.name, 'Brass Work'));
     const e = await getCategoryEntry('brass-work');
-    expect(e).toEqual({ name: 'Brassware', slug: 'brass-work', count: 1 });
+    expect(e).toEqual({ name: 'Brassware', slug: 'brass-work', description: '', count: 1 });
     expect((await listCategoryPage(e!, 1)).products.map(p => p.name)).toEqual(['T-B1']);
   });
   it('slugForCategory returns the slug, or undefined for a category with no products', async () => {
