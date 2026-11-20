@@ -3,6 +3,9 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
+const router = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
+vi.mock('next/navigation', () => ({ useRouter: () => router }));
+vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 vi.mock('@/components/CityInput', () => ({ CityInput: ({ required }: { required?: boolean }) => <input aria-label="City" name="cityRef" required={required} /> }));
 vi.mock('@/components/ImageUploader', () => ({ ImageUploader: () => <input type="hidden" name="images" value="https://img.test/a.jpg" /> }));
 
@@ -25,7 +28,7 @@ const req = { id: 'r1', hostName: 'Asha Yoga', contactName: 'Asha', phone: '+919
   languages: ['English'], level: 'all', freeTrial: true, freeTrialDays: 7, whatsapp: '+919989898999', prices: [{ label: 'Per session', amountPaise: 50000, sessions: 1 }] } as unknown as WorkshopRequest;
 const ok = (body: unknown, status = 200) => ({ ok: status < 400, status, json: async () => body });
 
-beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal('fetch', fetchMock); });
+beforeEach(() => { fetchMock.mockReset(); router.push.mockReset(); vi.stubGlobal('fetch', fetchMock); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe('listings table', () => {
@@ -251,3 +254,32 @@ describe('listing form', () => {
     expect(within(dlg).getByRole('alert').textContent).toMatch(/seats/i);
   });
 });
+
+describe('opening a listing', () => {
+  it('a click on the row goes to the listing\'s preview page', () => {
+    render(<WorkshopsAdmin initial={[lac, yoga]} topics={topics} />);
+    fireEvent.click(screen.getAllByRole('row')[2]);
+    expect(router.push).toHaveBeenCalledWith('/dashboard/workshops/w2');
+  });
+  it('the title is a real link to the preview, so the keyboard, middle click and open-in-new-tab work too', () => {
+    render(<WorkshopsAdmin initial={[lac]} topics={topics} />);
+    const a = screen.getByRole('link', { name: 'Preview Lac Craft' }) as HTMLAnchorElement;
+    expect(a.getAttribute('href')).toBe('/dashboard/workshops/w1');
+  });
+  it('clicks on the row\'s own controls keep their meaning and do not open the preview', () => {
+    render(<WorkshopsAdmin initial={[lac]} topics={topics} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Lac Craft' }));
+    fireEvent.click(screen.getByLabelText('Status of Lac Craft'));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Lac Craft' }));
+    expect(router.push).not.toHaveBeenCalled();
+  });
+  it('with editId (the preview page\'s Edit button) that listing\'s edit form is open at once; an unknown id opens nothing', () => {
+    render(<WorkshopsAdmin initial={[lac, yoga]} topics={topics} editId="w2" />);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect((screen.getByLabelText(/title/i) as HTMLInputElement).value).toBe('Morning Flow');
+    cleanup();
+    render(<WorkshopsAdmin initial={[lac]} topics={topics} editId="w404" />);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+

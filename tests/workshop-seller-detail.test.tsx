@@ -7,11 +7,12 @@ vi.hoisted(() => { process.env.NEXTAUTH_SECRET = 'test-secret'; });
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 const authMock = vi.hoisted(() => vi.fn());
 vi.mock('@/auth', () => ({ auth: authMock }));
+vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 vi.mock('@/components/CityInput', () => ({ CityInput: () => <input name="cityRef" /> }));
 vi.mock('@/components/ImageUploader', () => ({ ImageUploader: () => <div /> }));
 
 import { GET as detailRoute } from '@/app/api/workshops/[id]/detail/route';
-import { WorkshopsAdmin } from '@/components/WorkshopsAdmin';
+import { WorkshopPreviewBar } from '@/components/WorkshopPreviewBar';
 import { createProduct, createWorkshop } from '@/lib/admin';
 import { getWorkshopSellerDetail } from '@/lib/workshop-detail';
 import { sellerProfiles } from '@/db/schema';
@@ -69,7 +70,7 @@ describe('seller detail for a workshop', () => {
   });
 });
 
-describe('row click opens the seller detail', () => {
+describe('the preview page\'s "Host and seller details" opens the seller detail', () => {
   const fetchMock = vi.fn();
   const w = { id: 'w1', title: 'Morning Flow', kind: 'class', mode: 'online', topicId: null, endsOn: null, platform: 'Zoom', schedule: { repeat: 'weekly', days: ['mon'], time: '07:00', durationMin: 60 }, languages: [], level: null, experience: null, certifications: null, freeTrial: false, freeTrialDays: null, whatsapp: null, instagram: null, website: null, images: [], prices: [], booked: 0, status: 'APPROVED', type: 'FREE', pricePaise: 0, city: null, cityId: null, citySlug: null, venue: null, seats: null, date: '2099-01-05', time: '07:00', host: 'Yoga with Swati', description: 'd', createdAt: '2026-11-18T14:05:00.000Z' } as unknown as Workshop;
   const detail = { workshop: { ...w, joinLink: 'https://zoom.us/j/1', contactEmail: 'swati@x.co', contactPhone: '+919989898999', prices: [{ label: 'Monthly', amountPaise: 150000, sessions: 12 }] }, match: 'email',
@@ -77,11 +78,10 @@ describe('row click opens the seller detail', () => {
     otherWorkshops: [{ ...w, id: 'w2', title: 'Evening Flow' }], products: [{ id: 'p1', name: 'Lac Bangle', category: 'Accessories', pricePaise: 12000, status: 'APPROVED', stock: 3 }] };
   beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal('fetch', fetchMock); fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => detail }); });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
-  const row = () => screen.getByText('Morning Flow').closest('tr') as HTMLElement;
+  const open = () => { render(<WorkshopPreviewBar id="w1" title="Morning Flow" status="APPROVED" ended={false} />); fireEvent.click(screen.getByRole('button', { name: /host and seller details/i })); };
 
-  it('clicking the row opens a dialog with the workshop, the seller, their other workshops and their products', async () => {
-    render(<WorkshopsAdmin initial={[w]} topics={[]} />);
-    fireEvent.click(row());
+  it('pressing the button opens a dialog with the workshop, the seller, their other workshops and their products', async () => {
+    open();
     const dlg = await screen.findByRole('dialog', { name: /yoga with swati/i });
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/workshops/w1/detail', expect.anything()));
     await within(dlg).findByText('Mindful yoga.');
@@ -92,43 +92,44 @@ describe('row click opens the seller detail', () => {
     expect(profile.getAttribute('href')).toBe('/artists/yoga-with-swati-u1');
     expect(profile.target).toBe('_blank');
   });
-  it('the title is a real button, so the keyboard can open it too', async () => {
-    render(<WorkshopsAdmin initial={[w]} topics={[]} />);
-    fireEvent.click(screen.getByRole('button', { name: /details of morning flow/i }));
-    await screen.findByRole('dialog');
-  });
-  it('clicks on the row\'s own controls keep their meaning and do not open the detail', () => {
-    render(<WorkshopsAdmin initial={[w]} topics={[]} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Morning Flow' }));
-    expect(screen.getAllByRole('dialog')).toHaveLength(1); // the edit form, not the detail
-    expect(fetchMock).not.toHaveBeenCalledWith('/api/workshops/w1/detail', expect.anything());
-    cleanup();
-    render(<WorkshopsAdmin initial={[w]} topics={[]} />);
-    fireEvent.click(screen.getByLabelText('Status of Morning Flow'));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Morning Flow' }));
+  it('nothing is fetched until the button is pressed', () => {
+    render(<WorkshopPreviewBar id="w1" title="Morning Flow" status="APPROVED" ended={false} />);
     expect(screen.queryByRole('dialog')).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
-  it('Escape, Done and the close button close it; focus goes back to the title button', async () => {
-    render(<WorkshopsAdmin initial={[w]} topics={[]} />);
-    const opener = screen.getByRole('button', { name: /details of morning flow/i });
-    fireEvent.click(opener);
+  it('Escape, Done and the close button close it', async () => {
+    open();
     await screen.findByRole('dialog');
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(document.activeElement).toBe(opener);
-    fireEvent.click(opener);
+    fireEvent.click(screen.getByRole('button', { name: /host and seller details/i }));
     fireEvent.click(await screen.findByRole('button', { name: 'Done' }));
     expect(screen.queryByRole('dialog')).toBeNull();
   });
   it('says when no seller account matches, and shows a failure to load', async () => {
     fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ ...detail, seller: null, match: null, products: [], otherWorkshops: [] }) });
-    render(<WorkshopsAdmin initial={[w]} topics={[]} />);
-    fireEvent.click(row());
+    open();
     expect((await screen.findByRole('dialog')).textContent).toMatch(/no seller account is linked/i);
     cleanup();
     fetchMock.mockResolvedValue({ ok: false, status: 500, json: async () => ({ error: 'Boom' }) });
-    render(<WorkshopsAdmin initial={[w]} topics={[]} />);
-    fireEvent.click(row());
+    open();
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Boom/));
+  });
+});
+
+describe('the preview bar', () => {
+  afterEach(cleanup);
+  it('goes back to the list, shows the status, links Edit to that listing, and links the public page only when there is one', () => {
+    render(<WorkshopPreviewBar id="w7" title="Lac Craft" status="DRAFT" ended={false} />);
+    expect(screen.getByRole('link', { name: /all workshops/i }).getAttribute('href')).toBe('/dashboard/workshops');
+    expect(screen.getByText('Draft')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Edit' }).getAttribute('href')).toBe('/dashboard/workshops?edit=w7');
+    expect(screen.queryByRole('link', { name: /public page/i })).toBeNull();
+    cleanup();
+    render(<WorkshopPreviewBar id="w7" title="Lac Craft" status="APPROVED" ended publicUrl="https://craftofy.online/workshops/lac-craft-w7" />);
+    expect(screen.getByText('Published')).toBeTruthy(); expect(screen.getByText('Ended')).toBeTruthy();
+    const pub = screen.getByRole('link', { name: /open the public page/i }) as HTMLAnchorElement;
+    expect(pub.getAttribute('href')).toBe('https://craftofy.online/workshops/lac-craft-w7');
+    expect(pub.target).toBe('_blank'); expect(pub.rel).toContain('noopener');
   });
 });

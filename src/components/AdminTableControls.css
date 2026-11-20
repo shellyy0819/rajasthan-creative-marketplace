@@ -37,7 +37,7 @@
 /* A listing row opens its detail on click; the title is a real button for the keyboard. */
 .admin-click-row { cursor: pointer; }
 .admin-click-row:hover td { background: var(--cream); }
-.admin-table .row-title { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.admin-table .row-title { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
 .workshop-detail { width: min(640px, 100%); outline: none; }
 .workshop-detail section { margin: 0 0 18px; }
 .workshop-detail h3 { margin: 0 0 8px; font: 700 12px var(--font-sans); letter-spacing: .8px; text-transform: uppercase; color: var(--orange); }
