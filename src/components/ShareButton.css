@@ -7,6 +7,10 @@
   background: transparent;
   color: var(--ink);
 }
+/* In the row under the product photo (phones) the button is a round icon like the heart beside it */
+.detail-actions-m .share-btn { width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 50%; }
+.detail-actions-m .share-label { display: none; }
+.detail-actions-m .share-btn svg { width: 15px; height: 15px; }
 .share-card { display: grid; gap: 14px; }
 .share-card .dialog-head { margin-bottom: 2px; }
 .share-preview {

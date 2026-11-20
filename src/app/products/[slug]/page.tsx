@@ -56,6 +56,17 @@ export default async function ProductPage({ params }: Props) {
           variant={i}
           fallback={<ProductPlaceholder />}
         />
+        {/* Phones only: Like and Share right under the photo (the strip further down is hidden there). */}
+        <div className="detail-actions-m">
+          <LikeButton
+            productId={p.id}
+            initialCount={p.likeCount ?? 0}
+            productName={p.name}
+            showCount={false}
+            quiet
+          />
+          {share}
+        </div>
         <div>
           <span className="product-meta">{p.category}</span>
           <h1>{p.name}</h1>

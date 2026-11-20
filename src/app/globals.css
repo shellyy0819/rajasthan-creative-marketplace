@@ -620,7 +620,10 @@ h2 em {
   border-radius: 14px;
 }
 /* The like button is the heart on the left of the strip: a round button, no count shown */
-.detail-like .like-btn {
+/* Phones: Like and Share sit right under the photo. Hidden elsewhere, where the strip below is used. */
+.detail-actions-m { display: none; }
+.detail-like .like-btn,
+.detail-actions-m .like-btn {
   flex: none;
   justify-content: center;
   width: 44px;
@@ -629,6 +632,12 @@ h2 em {
   border-radius: 50%;
   font-size: 20px;
   line-height: 1;
+}
+/* The row under the photo is smaller than the strip's heart */
+.detail-actions-m .like-btn {
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
 }
 .detail-like-text {
   display: grid;
@@ -1041,6 +1050,10 @@ form label select {
   .section-heading .muted {
     padding-top: 20px;
   }
+  /* Product page sections (Similar products, More from the maker): the "See all" link shares the small label's line instead of sitting higher than it */
+  .section-heading.related-head {
+    align-items: baseline;
+  }
   .filters {
     flex-wrap: wrap;
   }
@@ -1348,6 +1361,7 @@ form label select {
   display: grid;
   gap: 16px;
 }
+.maker-contact-h { display: none; }
 .maker-card.compact {
   max-width: 560px;
 }
@@ -1570,7 +1584,52 @@ a.maker-head:hover .maker-name {
 @media (max-width: 700px) {
   .detail {
     grid-template-columns: 1fr;
+    row-gap: 16px;   /* the photo, the Like/Share row and the details sit close together (the desktop 5% gap is far too much in one column) */
   }
+  .detail-actions-m {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;   /* the two icons sit at the right, under the photo */
+    gap: 8px;
+  }
+  .detail-like { display: none; }
+  /* Contact methods on a phone: a small heading, then only the icons (the words stay for screen readers) */
+  .maker-contact-h {
+    display: block;
+    margin: 0 0 -6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted-2);
+  }
+  .maker-card .maker-actions,
+  .maker-card.compact .maker-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .maker-card .maker-chips { display: contents; }
+  .maker-card .maker-main,
+  .maker-card .maker-chip {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    gap: 0;
+    border-radius: 50%;
+    justify-content: center;
+  }
+  .maker-card .maker-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .maker-card .maker-brand { width: 26px; height: 26px; }
+  .maker-card .maker-icon { width: 20px; height: 20px; }
   .detail .product-visual,
   .detail .detail-art {
     height: 260px;
@@ -3949,14 +4008,14 @@ body.modal-open {
     margin-top: 10px;
   }
   .product-card .contact-btn.contact-icon-btn {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     background: var(--green);
     color: var(--on-green);
   }
   .product-card .contact-handset {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
   }
 }
 @media (max-width: 600px) {
@@ -3966,14 +4025,26 @@ body.modal-open {
   .product-card .product-visual {
     height: auto;
   }
+  /* The title and maker lines keep one fixed height (min = max, two lines each), and the price and phone row is pinned to the bottom,
+     so that row sits on the same line in every card of a row, whatever the title or maker name length. */
   .product-card .product-info {
     padding: 12px;
+    flex: 1 1 auto;
   }
   .product-card .product-info h3 {
     font-size: 14px;
+    min-height: 2.4em;   /* two lines at the 1.2 line height */
+    max-height: 2.4em;
   }
   .product-card .product-info p.pc-who {
     font-size: 11px;
+    min-height: 2.6em;   /* two lines at the 1.3 line height */
+    max-height: 2.6em;
+    overflow: hidden;
+  }
+  .product-card .product-bottom {
+    margin-top: auto;
+    padding-top: 10px;
   }
   /* Maker and city: up to 2 lines, then an ellipsis (not one line cut off) */
   .pc-who span:last-child {

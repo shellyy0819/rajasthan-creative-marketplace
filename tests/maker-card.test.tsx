@@ -133,4 +133,17 @@ describe('MakerCard', () => {
     expect(text.endsWith('\n\nhttps://craftofy.online/products/crochet-flower-tie-back-p1')).toBe(true);
     expect(text).not.toContain('localhost');
   });
+
+  it('has a "Contact via" heading above the methods, and each method\'s name is in a .maker-label (shown as text on large screens, kept only for screen readers on phones)', () => {
+    const { container } = render(<MakerCard product={product({ whatsapp: '9876543210', phone: '9123456789', email: 'm@x.co', instagram: '@meera', youtube: 'meera' })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
+    expect(screen.getByRole('heading', { name: 'Contact via' }).className).toBe('maker-contact-h');
+    const labels = [...container.querySelectorAll('.maker-actions .maker-label')].map(e => e.textContent);
+    expect(labels).toEqual(['WhatsApp', 'Call', 'Email', 'Instagram', 'YouTube']);
+    for (const name of [/whatsapp/i, /call/i, /youtube/i]) expect(screen.getByRole('link', { name })).toBeTruthy();   // still found by name
+    expect(screen.getByRole('button', { name: /email/i })).toBeTruthy(); expect(screen.getByRole('button', { name: /instagram/i })).toBeTruthy();
+  });
+  it('has no "Contact via" heading when the maker has shared nothing', () => {
+    render(<MakerCard product={product({ whatsapp: undefined, phone: undefined, email: undefined, instagram: undefined, youtube: undefined })} productUrl="http://localhost:3000/products/crochet-flower-tie-back-p1" />);
+    expect(screen.queryByRole('heading', { name: 'Contact via' })).toBeNull();
+  });
 });

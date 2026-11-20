@@ -52,6 +52,12 @@ describe('Share on a product page', () => {
     const h = renderToStaticMarkup(await ProductPage({ params: Promise.resolve({ slug: productSlug(p) }) }));
     expect(marker(h)).toMatchObject({ kind: 'product', path: `/products/${productSlug(p)}`, title: 'Blue Vase', by: 'Studio A', sub: 'Studio A · Jaipur', item: p.id });
     expect(inside(h, 'detail-like')).toBe(true);
+    // phones: the same Like and Share, in a row right under the photo (before the product details), hidden on larger screens by CSS
+    const gallery = h.indexOf('class="gallery"'), row = h.indexOf('detail-actions-m'), details = h.indexOf('product-meta');
+    expect(gallery).toBeGreaterThan(-1);
+    expect(row).toBeGreaterThan(gallery); expect(row).toBeLessThan(details);
+    expect(inside(h, 'detail-actions-m')).toBe(true);
+    expect(h.match(/data-share=""/g)).toHaveLength(2);   // the row and the strip: only one is visible at a time
     data.on = false;
     expect(renderToStaticMarkup(await ProductPage({ params: Promise.resolve({ slug: productSlug(p) }) }))).not.toContain('data-share');
   });

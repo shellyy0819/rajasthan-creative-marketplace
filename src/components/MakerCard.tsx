@@ -58,13 +58,13 @@ export function MakerCard({ product: p, productUrl }: { product: Product; produc
   const [main, ...rest] = methods;
   const compact = rest.length <= 2;
   const link = (m: Method, className: string, onGreen = false) => m.form && m.key === 'instagram' ? (
-    <InstagramMessageButton key={m.key} product={p} productUrl={productUrl} className={className} icon={icon(m.key, onGreen)}>{m.label}</InstagramMessageButton>
+    <InstagramMessageButton key={m.key} product={p} productUrl={productUrl} className={className} icon={icon(m.key, onGreen)}><span className="maker-label">{m.label}</span></InstagramMessageButton>
   ) : m.form ? (
-    <EmailMakerButton key={m.key} product={p} className={className} icon={icon(m.key, onGreen)}>{m.label}</EmailMakerButton>
+    <EmailMakerButton key={m.key} product={p} className={className} icon={icon(m.key, onGreen)}><span className="maker-label">{m.label}</span></EmailMakerButton>
   ) : (
     <TrackedLink key={m.key} className={className} productId={p.id} sellerSlug={p.sellerSlug} category={p.category} method={m.key} type={m.type} href={m.href}
       {...(m.external ? { target: '_blank', rel: 'noreferrer' } : {})}>
-      {icon(m.key, onGreen)}{m.label}
+      {icon(m.key, onGreen)}<span className="maker-label">{m.label}</span>
     </TrackedLink>
   );
   const name = (
@@ -83,6 +83,8 @@ export function MakerCard({ product: p, productUrl }: { product: Product; produc
       {p.artistBio && <p className="maker-bio">{p.artistBio}</p>}
       {main ? (
         <>
+          {/* Phones only (CSS): a heading, then the methods as icons. The words stay in the page for screen readers. */}
+          <h2 className="maker-contact-h">Contact via</h2>
           <div className="maker-actions">
             {compact ? link(main, 'button maker-chip') : link(main, 'button primary maker-main', true)}
             {rest.length > 0 && <div className="maker-chips">{rest.map(m => link(m, 'button maker-chip'))}</div>}

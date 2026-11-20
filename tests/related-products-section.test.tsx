@@ -23,6 +23,7 @@ describe('RelatedProducts', () => {
     related.get.mockResolvedValue({ fromMaker: [prod('p2', 'Maker piece')], similar: [prod('p3', 'Similar piece')] });
     const { container } = render(<>{await RelatedProducts({ product: current })}</>);
     expect(screen.getByRole('heading', { name: 'More from Studio A' })).toBeTruthy();
+    expect([...container.querySelectorAll('.section-heading')].every(h => h.classList.contains('related-head'))).toBe(true);   // the phone alignment rule below applies to both
     expect(screen.getByRole('link', { name: /View all/ }).getAttribute('href')).toBe('/artists/studio-a-1a2b3c4d');
     expect(screen.getByRole('heading', { name: 'Similar products' })).toBeTruthy();
     expect(screen.getByRole('link', { name: /See all Paintings & Prints/ }).getAttribute('href')).toBe('/categories/paintings-and-prints');

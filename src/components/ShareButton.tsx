@@ -90,7 +90,7 @@ export function ShareButton({ path, title, kind, by, subtitle, itemId, image, cl
 
   return (
     <>
-      <button ref={trigger} type="button" className={className} aria-haspopup="dialog" onClick={openDialog}><ShareIcon />Share</button>
+      <button ref={trigger} type="button" className={className} aria-label="Share" aria-haspopup="dialog" onClick={openDialog}><ShareIcon /><span className="share-label">Share</span></button>
       <Toast toast={toast} onClose={closeToast} />
       {open && createPortal(
         <div className="contact-backdrop admin-modal share-backdrop" onClick={e => { if (e.target === e.currentTarget) close(); }}>
