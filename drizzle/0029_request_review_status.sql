@@ -1,0 +1,2 @@
+ALTER TABLE "workshop_requests" DROP CONSTRAINT "workshop_requests_status_valid";--> statement-breakpoint
+ALTER TABLE "workshop_requests" ADD CONSTRAINT "workshop_requests_status_valid" CHECK ("workshop_requests"."status" in ('unverified', 'received', 'listed', 'on_hold', 'archived'));

@@ -137,32 +137,92 @@ export const products = pgTable('products', {
   index('products_sourcing_idx').on(t.sourcingTypeId),
 ]);
 
+/** What a workshop or class is about (Yoga, Crochet, ...). `parent_id` lets a topic sit under another one (Prenatal Yoga under Yoga). */
+export const workshopTopics = pgTable('workshop_topics', {
+  id: serial('id').primaryKey(),
+  slug: text('slug').notNull().unique(),
+  name: text('name').notNull(),
+  parentId: integer('parent_id').references((): AnyPgColumn => workshopTopics.id, { onDelete: 'restrict' }),
+  position: integer('position').notNull().default(0),
+  active: boolean('active').notNull().default(true),
+}, t => [uniqueIndex('workshop_topics_name_lower_idx').on(sql`lower(${t.name})`)]);
+
 export const workshops = pgTable('workshops', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
-  type: text('type').notNull(),
-  pricePaise: integer('price_paise').notNull(),
-  cityId: integer('city_id').notNull().references(() => cities.id, { onDelete: 'restrict' }),
-  venue: text('venue').notNull(),
-  seats: integer('seats').notNull(),
+  type: text('type').notNull(), // FREE or PAID; a cache of the price rows (see workshop_prices)
+  pricePaise: integer('price_paise').notNull(), // the lowest paid price row, 0 when free
+  kind: text('kind').notNull().default('workshop'),
+  mode: text('mode').notNull().default('in_person'),
+  topicId: integer('topic_id').references(() => workshopTopics.id, { onDelete: 'set null' }),
+  cityId: integer('city_id').references(() => cities.id, { onDelete: 'restrict' }), // null only for online listings
+  venue: text('venue'),
+  seats: integer('seats'), // null for classes (no seat counter)
   booked: integer('booked').notNull().default(0),
   description: text('description').notNull(),
   status: text('status').notNull().default('APPROVED'),
   hostId: uuid('host_id').references(() => users.id, { onDelete: 'restrict' }),
   hostName: text('host_name').notNull(),
   startsAt: timestamp('starts_at', { withTimezone: true, mode: 'date' }).notNull(),
+  endsOn: date('ends_on', { mode: 'string' }), // last day of a multi-day event or a class with an end date; null = open-ended class or one-day event
+  platform: text('platform'),
+  schedule: jsonb('schedule').$type<{ repeat?: string; days: string[]; weeks?: (number | string)[]; time: string; durationMin: number }>(),
+  languages: text('languages').array().notNull().default(sql`'{}'::text[]`),
+  level: text('level'),
+  experience: text('experience'),
+  certifications: text('certifications'),
+  freeTrial: boolean('free_trial').notNull().default(false),
+  freeTrialDays: integer('free_trial_days'),
+  // Craft and art workshops: what people make, what is included, what to bring, the minimum age. All optional.
+  makes: jsonb('makes').$type<{ title: string; text: string }[]>().notNull().default(sql`'[]'::jsonb`),
+  included: text('included').array().notNull().default(sql`'{}'::text[]`),
+  bring: text('bring').array().notNull().default(sql`'{}'::text[]`),
+  minAge: integer('min_age'),
+  whatsapp: text('whatsapp'),
+  instagram: text('instagram'),
+  website: text('website'),
+  images: jsonb('images').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  // Admin-only: how staff reach the host, who added the listing, and the request it came from. Never sent to the public.
+  joinLink: text('join_link'), // the instructor's meeting link: staff only, never published
+  contactName: text('contact_name'),
+  contactPhone: text('contact_phone'),
+  /** The host chose to show this number to the audience (a Call button). Off unless ticked; the number is never public otherwise. */
+  phonePublic: boolean('phone_public').notNull().default(false),
+  contactEmail: text('contact_email'),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  sourceRequestId: uuid('source_request_id'),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }, t => [
   check('workshops_type_valid', sql`${t.type} in ('FREE', 'PAID')`),
   check('workshops_price_nonneg', sql`${t.pricePaise} >= 0`),
-  check('workshops_seats_positive', sql`${t.seats} >= 1`),
-  check('workshops_booked_range', sql`${t.booked} >= 0 and ${t.booked} <= ${t.seats}`),
+  check('workshops_kind_valid', sql`${t.kind} in ('workshop', 'meetup', 'popup', 'market', 'class')`),
+  check('workshops_mode_valid', sql`${t.mode} in ('in_person', 'online', 'hybrid')`),
+  check('workshops_min_age_valid', sql`${t.minAge} is null or (${t.minAge} >= 1 and ${t.minAge} <= 99)`),
+  check('workshops_trial_days_valid', sql`${t.freeTrialDays} is null or (${t.freeTrialDays} >= 1 and ${t.freeTrialDays} <= 365)`),
+  check('workshops_level_valid', sql`${t.level} is null or ${t.level} in ('beginner', 'intermediate', 'advanced', 'all')`),
+  check('workshops_place_by_mode', sql`${t.mode} = 'online' or (${t.cityId} is not null and ${t.venue} is not null)`),
+  check('workshops_seats_positive', sql`${t.seats} is null or ${t.seats} >= 1`),
+  check('workshops_booked_range', sql`${t.booked} >= 0 and (${t.seats} is null or ${t.booked} <= ${t.seats})`),
   check('workshops_status_valid', sql`${t.status} in ('APPROVED', 'DRAFT', 'ARCHIVED')`),
   index('workshops_status_idx').on(t.status),
   index('workshops_host_idx').on(t.hostId),
   index('workshops_starts_idx').on(t.startsAt),
   index('workshops_city_idx').on(t.cityId),
+  index('workshops_topic_idx').on(t.topicId),
+]);
+
+/** The price plans of a listing (Per session, Monthly, Quarterly, ...). workshops.price_paise / type are derived from these. */
+export const workshopPrices = pgTable('workshop_prices', {
+  id: serial('id').primaryKey(),
+  workshopId: text('workshop_id').notNull().references(() => workshops.id, { onDelete: 'cascade' }),
+  label: text('label').notNull(),
+  amountPaise: integer('amount_paise').notNull(),
+  sessions: integer('sessions'),
+  position: integer('position').notNull().default(0),
+}, t => [
+  check('workshop_prices_amount_nonneg', sql`${t.amountPaise} >= 0`),
+  index('workshop_prices_workshop_idx').on(t.workshopId),
 ]);
 
 export const orders = pgTable('orders', {
@@ -258,11 +318,14 @@ export const workshopRequests = pgTable('workshop_requests', {
   hostName: text('host_name').notNull(),
   contactName: text('contact_name').notNull(),
   phone: text('phone').notNull(),
+  phonePublic: boolean('phone_public').notNull().default(false), // the host chose to show this number to the audience
   email: text('email').notNull(),
-  city: text('city').notNull(),
-  venue: text('venue').notNull(),
+  city: text('city'), // null for an online class
+  venue: text('venue'),
   title: text('title').notNull(),
   kind: text('kind').notNull(),
+  mode: text('mode').notNull().default('in_person'),
+  topicId: integer('topic_id').references(() => workshopTopics.id, { onDelete: 'set null' }),
   description: text('description').notNull(),
   startDate: date('start_date', { mode: 'string' }).notNull(),
   endDate: date('end_date', { mode: 'string' }).notNull(), // the form leaves it blank for a one-day event; the server then stores the start date
@@ -275,7 +338,25 @@ export const workshopRequests = pgTable('workshop_requests', {
   website: text('website'),
   notes: text('notes'),
   images: jsonb('images').$type<string[]>().notNull().default(sql`'[]'::jsonb`), // up to 3 public photo urls, first is the cover
-  status: text('status').notNull().default('unverified'), // 'received' once the emailed code is confirmed
+  endsOn: date('ends_on', { mode: 'string' }),
+  platform: text('platform'),
+  schedule: jsonb('schedule').$type<{ repeat?: string; days: string[]; weeks?: (number | string)[]; time: string; durationMin: number }>(),
+  languages: text('languages').array().notNull().default(sql`'{}'::text[]`),
+  level: text('level'),
+  experience: text('experience'),
+  certifications: text('certifications'),
+  freeTrial: boolean('free_trial').notNull().default(false),
+  freeTrialDays: integer('free_trial_days'),
+  // Craft and art workshops: what people make, what is included, what to bring, the minimum age. All optional.
+  makes: jsonb('makes').$type<{ title: string; text: string }[]>().notNull().default(sql`'[]'::jsonb`),
+  included: text('included').array().notNull().default(sql`'{}'::text[]`),
+  bring: text('bring').array().notNull().default(sql`'{}'::text[]`),
+  minAge: integer('min_age'),
+  joinLink: text('join_link'),
+  whatsapp: text('whatsapp'),
+  prices: jsonb('prices').$type<{ label: string; amountPaise: number; sessions: number | null }[]>().notNull().default(sql`'[]'::jsonb`),
+  listedWorkshopId: text('listed_workshop_id').references(() => workshops.id, { onDelete: 'set null' }),
+  status: text('status').notNull().default('unverified'), // 'received' once the emailed code is confirmed, 'listed' once an admin made a listing from it
   codeHash: text('code_hash'),
   codeExpiresAt: timestamp('code_expires_at', { withTimezone: true, mode: 'date' }),
   codeAttempts: integer('code_attempts').notNull().default(0),
@@ -284,12 +365,16 @@ export const workshopRequests = pgTable('workshop_requests', {
   verifiedAt: timestamp('verified_at', { withTimezone: true, mode: 'date' }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }, t => [
-  check('workshop_requests_kind_valid', sql`${t.kind} in ('workshop', 'meetup', 'popup', 'market')`),
+  check('workshop_requests_kind_valid', sql`${t.kind} in ('workshop', 'meetup', 'popup', 'market', 'class')`),
+  check('workshop_requests_min_age_valid', sql`${t.minAge} is null or (${t.minAge} >= 1 and ${t.minAge} <= 99)`),
+  check('workshop_requests_trial_days_valid', sql`${t.freeTrialDays} is null or (${t.freeTrialDays} >= 1 and ${t.freeTrialDays} <= 365)`),
+  check('workshop_requests_mode_valid', sql`${t.mode} in ('in_person', 'online')`),
+  check('workshop_requests_place_by_mode', sql`${t.mode} = 'online' or (${t.city} is not null and ${t.venue} is not null)`),
   check('workshop_requests_price_type_valid', sql`${t.priceType} in ('FREE', 'PAID')`),
   check('workshop_requests_dates_ordered', sql`${t.endDate} >= ${t.startDate}`),
   check('workshop_requests_seats_positive', sql`${t.seats} is null or ${t.seats} >= 1`),
   check('workshop_requests_price_nonneg', sql`${t.pricePaise} is null or ${t.pricePaise} >= 0`),
-  check('workshop_requests_status_valid', sql`${t.status} in ('unverified', 'received')`),
+  check('workshop_requests_status_valid', sql`${t.status} in ('unverified', 'received', 'listed', 'on_hold', 'archived')`),
   index('workshop_requests_status_idx').on(t.status),
   index('workshop_requests_created_idx').on(t.createdAt),
 ]);

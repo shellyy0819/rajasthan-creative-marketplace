@@ -1,5 +1,5 @@
 type SP = Record<string, string | string[] | undefined>;
-export type Filters = { city?: string; category?: string; source?: string; q?: string; type?: 'FREE' | 'PAID' };
+export type Filters = { city?: string; category?: string; source?: string; q?: string; type?: 'FREE' | 'PAID'; mode?: 'in_person' | 'online' };
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
@@ -16,6 +16,8 @@ export function parseFilters(sp: SP): Filters {
   if (source && source.trim() && source.length <= 40) out.source = source.trim();
   const type = first(sp.type);
   if (type === 'FREE' || type === 'PAID') out.type = type;
+  const mode = first(sp.mode);
+  if (mode === 'in_person' || mode === 'online') out.mode = mode;
   const q = (first(sp.q) ?? '').trim().slice(0, 100);
   if (q) out.q = q;
   return out;

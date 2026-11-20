@@ -1,12 +1,13 @@
 import crypto from 'node:crypto';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
-import { productsQuery, toBooking, toOrder } from '../db/mappers';
+import { istParts, productsQuery, toBooking, toOrder } from '../db/mappers';
 import { ensureUser } from '../db/people';
 import { bookings as bookingsT, orderItems as orderItemsT, orders as ordersT, products as productsT, users, workshops as workshopsT } from '../db/schema';
 import type { SessionUser } from './authz';
 import { ApiError } from './errors';
 import type { Booking, Order } from './types';
+import { isCurrent } from './workshop-listing';
 
 type Raw = Record<string, unknown>;
 const str = (v: unknown, fallback: string, max: number) => String(v ?? fallback).slice(0, max) || fallback;
@@ -67,6 +68,8 @@ export async function createBooking(input: unknown, userEmail: string): Promise<
     const [w] = await tx.select().from(workshopsT)
       .where(and(eq(workshopsT.id, workshopId), eq(workshopsT.status, 'APPROVED'))).for('update');
     if (!w) throw new ApiError(404, 'Workshop not found.');
+    if (w.kind === 'class' || w.seats === null) throw new ApiError(409, 'Bookings are not open for classes: contact the instructor.');
+    if (!isCurrent({ date: istParts(w.startsAt).date, endsOn: w.endsOn, kind: w.kind })) throw new ApiError(409, 'This event has ended.');
     if (!Number.isInteger(qty) || qty < 1 || qty > w.seats - w.booked) throw new ApiError(409, 'Not enough seats remaining.');
     const free = w.type === 'FREE';
     const [row] = await tx.insert(bookingsT).values({

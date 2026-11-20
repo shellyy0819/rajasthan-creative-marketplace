@@ -1,17 +1,18 @@
-import { and, asc, desc, eq, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, or, sql, type SQL } from 'drizzle-orm';
 import { getDb } from '../db/client';
-import { productsQuery, sellerNameSql, toProduct, toWorkshop, workshopsQuery } from '../db/mappers';
+import { productsQuery, sellerNameSql, toAdminWorkshop, toProduct, toWorkshop, withPrices, workshopsQuery } from '../db/mappers';
 import { cities, products as productsT, sellerProfiles, sourcingTypes, users, workshops as workshopsT } from '../db/schema';
 import { getCityByNameOrSlug } from './cities';
 import { normalizeQuery, textSearch } from './search';
 import { productSlug, workshopSlug } from './catalog-shared';
 import type { Product, Workshop } from './types';
+import { isCurrent } from './workshop-listing';
 
 export { DEFAULT_CATEGORIES, productSlug, workshopSlug } from './catalog-shared';
 
 /** `limit`/`offset` return one page of the same ordering the full list has. */
 export type ProductFilter = { city?: string; category?: string; source?: string; q?: string; limit?: number; offset?: number };
-export type WorkshopFilter = { city?: string; type?: string; q?: string };
+export type WorkshopFilter = { city?: string; type?: string; q?: string; mode?: string };
 
 const anyCity = (c?: string) => !c || c === 'All India';
 const idOrder = (t: { id: typeof productsT.id | typeof workshopsT.id }) => [sql`length(${t.id})`, asc(t.id)] as const;
@@ -80,6 +81,7 @@ export async function countProductsByCategory(): Promise<{ name: string; count: 
   return rows;
 }
 
+/** Published listings that have not ended (India time). Online classes have no city, so a city filter never matches them. */
 export async function listWorkshops(f: WorkshopFilter = {}): Promise<Workshop[]> {
   const where: (SQL | undefined)[] = [eq(workshopsT.status, 'APPROVED')];
   if (!anyCity(f.city)) {
@@ -88,10 +90,18 @@ export async function listWorkshops(f: WorkshopFilter = {}): Promise<Workshop[]>
     where.push(eq(workshopsT.cityId, city.id));
   }
   if (f.type && f.type !== 'ALL') where.push(eq(workshopsT.type, f.type));
+  if (f.mode === 'online') where.push(inArray(workshopsT.mode, ['online', 'hybrid']));
+  if (f.mode === 'in_person') where.push(inArray(workshopsT.mode, ['in_person', 'hybrid']));
   const search = textSearch(workshopDoc, f.q);
   where.push(search.where);
   const rows = await workshopsQuery(getDb()).where(and(...where)).orderBy(...(search.rank ? [desc(search.rank)] : []), ...idOrder(workshopsT));
-  return rows.map(toWorkshop);
+  return (await withPrices(getDb(), rows.map(toWorkshop))).filter(w => isCurrent(w));
+}
+
+/** Every listing in every status, newest first, with the admin-only fields. For the dashboard. */
+export async function listAdminWorkshops(): Promise<Workshop[]> {
+  const rows = await workshopsQuery(getDb()).orderBy(desc(sql`length(${workshopsT.id})`), desc(workshopsT.id));
+  return withPrices(getDb(), rows.map(toAdminWorkshop));
 }
 
 /** slug = "<name>-<id>": look the id up directly, then require the exact slug (wrong name part → undefined). */
@@ -103,10 +113,11 @@ export async function getProductBySlug(slug: string): Promise<Product | undefine
   return p && productSlug(p) === slug ? p : undefined;
 }
 
+/** A published listing by its slug, ended ones included (their page stays up with a notice; callers check isCurrent). Drafts and archived ones are not found. */
 export async function getWorkshopBySlug(slug: string): Promise<Workshop | undefined> {
   const id = slug.slice(slug.lastIndexOf('-') + 1);
   if (!/^w\d+$/.test(id)) return undefined;
   const [row] = await workshopsQuery(getDb()).where(and(eq(workshopsT.id, id), eq(workshopsT.status, 'APPROVED')));
-  const w = row && toWorkshop(row);
+  const w = row && (await withPrices(getDb(), [toWorkshop(row)]))[0];
   return w && workshopSlug(w) === slug ? w : undefined;
 }

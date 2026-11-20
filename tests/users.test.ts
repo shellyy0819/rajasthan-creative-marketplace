@@ -95,7 +95,7 @@ describe('deleteUser (admin only; blocked when the user owns anything)', () => {
     await createProduct(base, s.actor);
     await expect(deleteUser(s.id, admin.email)).rejects.toMatchObject({ status: 409, message: expect.stringContaining('Deactivate them instead') });
     const host = await createUser({ email: 'host@x.co', roles: ['seller'] }, admin.email);
-    const w = await createWorkshop({ title: 'T', type: 'FREE', pricePaise: 0, cityRef: cityRef('Jaipur'), venue: 'V', date: '2026-12-01', time: '10:00', seats: 5, host: 'H', hostId: host.id, description: 'D' });
+    const w = await createWorkshop({ title: 'T', type: 'FREE', pricePaise: 0, cityRef: cityRef('Jaipur'), venue: 'V', date: '2099-12-01', time: '10:00', seats: 5, host: 'H', hostId: host.id, description: 'D' });
     expect(w.hostId).toBe(host.id);
     await expect(deleteUser(host.id, admin.email)).rejects.toMatchObject({ status: 409 });
     const buyer = await createUser({ email: 'buyer@x.co' }, admin.email);

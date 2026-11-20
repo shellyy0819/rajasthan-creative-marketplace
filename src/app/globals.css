@@ -10,6 +10,7 @@
   --line: #e5ddd1;
   --white: #fffdf9;
   --control-border: #cfc5b7;
+  --backdrop: #0b0e0ae6; /* behind every modal: near black, so it dims the dark theme too */
   --muted-2: #6e7068;
   --bar-bg: #f8f4eef2;
   --veil: #f8f4eecc;
@@ -224,6 +225,9 @@ select,
 textarea {
   font-family: inherit;
 }
+/* iOS Safari paints buttons and dropdown values in its system blue unless the colour is set: use the page text colour, as on a laptop. */
+button, select { color: inherit; }
+select { -webkit-text-fill-color: currentColor; }
 a {
   color: inherit;
   text-decoration: none;
@@ -859,8 +863,8 @@ dialog {
   color: var(--ink);
 }
 dialog::backdrop {
-  background: #1f251dcc;
-  backdrop-filter: blur(3px);
+  background: var(--backdrop);
+  backdrop-filter: blur(4px);
 }
 .dialog-head {
   display: flex;
@@ -877,6 +881,7 @@ dialog::backdrop {
 .icon-btn {
   border: 0;
   background: transparent;
+  color: inherit;
   font-size: 20px;
   cursor: pointer;
 }
@@ -1813,7 +1818,8 @@ a.maker-head:hover .maker-name {
 .admin-modal {
   position: fixed;
   inset: 0;
-  background: #1f251dcc;
+  background: var(--backdrop);
+  backdrop-filter: blur(4px);
   display: grid;
   place-items: center;
   z-index: 40;
@@ -2950,6 +2956,7 @@ main {
   object-fit: cover;
   display: block;
 }
+.uploader-open { display: block; width: 100%; height: 100%; cursor: zoom-in; }
 .uploader-tile.uploading img {
   opacity: .5;
 }
@@ -3211,57 +3218,6 @@ main {
   }
 }
 
-/* phone splash: shown once per session, fades out by itself */
-.splash {
-  display: none;
-}
-@media (max-width: 600px) {
-  html:not([data-splash="seen"]) .splash {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    background: var(--paper);
-    animation: splash-out 0.45s ease 1.2s forwards;
-  }
-}
-.splash img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.splash-dark {
-  display: none;
-}
-:root[data-theme="dark"] .splash-light {
-  display: none;
-}
-:root[data-theme="dark"] .splash-dark {
-  display: block;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .splash-light {
-    display: none;
-  }
-  :root:not([data-theme="light"]) .splash-dark {
-    display: block;
-  }
-}
-@keyframes splash-out {
-  to {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  html:not([data-splash="seen"]) .splash {
-    animation-duration: 0.01s;
-  }
-}
-
 /* hero chalkboard as a link */
 .st-board-link { cursor: pointer; }
 .st-board-link:hover rect:first-of-type, .st-board-link:focus-visible rect:first-of-type { stroke: var(--orange); stroke-width: 2; }
@@ -3515,6 +3471,7 @@ button.onboard-stepper-btn {
   height: 100%;
   object-fit: cover;
 }
+.logo-preview .logo-open { display: block; width: 100%; height: 100%; cursor: zoom-in; }
 .logo-actions {
   display: flex;
   flex-direction: column;
@@ -5064,16 +5021,10 @@ button.fair-opt:hover { background: var(--cream); }
   cursor: not-allowed;
 }
 
-/* Desktop: the photo sits against the details column (not floating in the middle of a wide empty frame), thumbnails follow it */
+/* Desktop: the photo sits against the details column (not floating in the middle of a wide empty frame); the thumbnails stay centred under the gallery */
 @media (min-width: 901px) {
   .detail .gallery-slide {
     place-items: center end;
-  }
-  .detail .gallery-thumbs {
-    justify-content: flex-start;
-  }
-  .detail .gallery-thumbs .gallery-thumb:last-child {
-    margin-right: 0;
   }
 }
 /* The maker's own words, when they have shared a bio */

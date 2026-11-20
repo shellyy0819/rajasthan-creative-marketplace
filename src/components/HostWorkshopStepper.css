@@ -1,0 +1,158 @@
+/* The three steps of the "Host a workshop" form: progress list, step count, hidden steps. */
+.host-step[hidden] { display: none; }
+
+.host-progress { margin: 0 0 8px; }
+.host-steps {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: host-step;
+}
+.host-steps li {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-top: 10px;
+  border-top: 3px solid var(--line);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  counter-increment: host-step;
+}
+.host-steps li::before {
+  content: counter(host-step);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--control-border);
+  border-radius: 50%;
+  font-size: 10px;
+}
+.host-steps li.done { border-top-color: var(--green); color: var(--ink); }
+.host-steps li.done::before { content: '✓'; background: var(--green); border-color: var(--green); color: var(--white); }
+.host-steps li[aria-current='step'] { border-top-color: var(--orange); color: var(--ink); }
+.host-steps li[aria-current='step']::before { background: var(--orange); border-color: var(--orange); color: var(--white); }
+.host-step-label { overflow-wrap: anywhere; }
+.host-step-count { margin: 8px 0 0; font-size: 11px; color: var(--muted); }
+
+/* Phones: only the current step keeps its name, so three steps fit on one line. */
+@media (max-width: 600px) {
+  .host-steps li:not([aria-current='step']) .host-step-label { display: none; }
+  .host-steps li[aria-current='step'] { flex: 3; }
+}
+
+/* The host button under the workshops list when a shared ?host=1 link opens the form. */
+
+/* Phones and tablets (iOS and Android): the dialog follows the visible screen, typing is comfortable, Next stays above the keyboard. */
+.host-backdrop {
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+.host-dialog {
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+.host-form .admin-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin-top: 4px;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  gap: 8px;
+  background: var(--white);
+  border-top: 1px solid var(--line);
+}
+.host-form input, .host-form select, .host-form textarea { scroll-margin: 96px 0 140px; }
+.host-form input[type='date'], .host-form input[type='time'] { min-width: 0; min-height: 44px; }
+@media (max-width: 900px) {
+  /* 16px stops iOS Safari zooming the page in when a field is focused. */
+  .host-form input:not([type='checkbox']):not([type='radio']), .host-form textarea { font-size: 16px; min-height: 44px; }
+  /* Dropdowns show their chosen value smaller (Android and desktop); iOS keeps 16px below because Safari zooms into anything smaller. */
+  .host-form select { font-size: 14px; min-height: 44px; }
+  .host-form input[type='checkbox'], .host-form input[type='radio'] { width: 22px; height: 22px; }
+  .host-form .button, .host-form .icon-btn, .host-day, .host-path-card { min-height: 44px; }
+}
+@media (max-width: 600px) {
+  .host-backdrop { padding: 0; align-items: stretch; }
+  .host-dialog { width: 100%; height: 100vh; height: 100dvh; max-height: none; border-radius: 0; padding: 16px 16px 0; }
+  .host-form .admin-form-row { grid-template-columns: 1fr; }
+}
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 900px) { .host-form select { font-size: 16px; } }
+}
+
+/* Duration: a typed number and a small mins / hours dropdown on one line. */
+.host-duration { display: grid; grid-template-columns: minmax(0, 1fr) 92px; gap: 8px; align-items: end; margin: 12px 0; }
+.host-duration select { margin-top: 0; }
+.host-duration label { margin: 0; }
+
+/* "Open on Instagram" link under the Instagram field. */
+.host-instagram .host-open-link { display: inline-block; margin: -6px 0 8px; font-size: 12px; font-weight: 600; color: var(--green); text-decoration: underline; }
+@media (max-width: 900px) { .host-instagram .host-open-link { min-height: 44px; display: inline-flex; align-items: center; } }
+
+.host-all-weeks { font: inherit; font-weight: 600; color: var(--ink); cursor: pointer; }
+
+/* "We restored your saved draft" and Start over sit in the bottom action bar with Back and Next. */
+.host-form .admin-actions { flex-wrap: wrap; align-items: center; }
+.host-draft-note { flex: 1 1 100%; margin: 0; font-size: 12px; line-height: 1.2; color: var(--muted); }
+
+/* Tablets and desktop: leave a margin above and below the dialog so it is a little shorter than the window. */
+@media (min-width: 601px) {
+  .host-dialog { max-height: calc(100vh - 72px); max-height: calc(100dvh - 72px); }
+}
+.host-start-over { margin-right: auto; }
+
+/* The title and the three steps stay put at the top; only the form between them and the buttons scrolls. */
+.host-dialog-form { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
+.host-dialog-form .dialog-head, .host-dialog-form .host-progress { flex: none; }
+.host-dialog-form form.host-form { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+/* The scrolling form clips what sticks out of it, so give the focus ring room on every side (and pull the extra back out with a negative margin). */
+.host-dialog-form form.host-form { padding: 4px 4px 0; margin: 0 -4px; }
+
+/* The reminder above the button when an earlier draft was never sent. */
+
+/* The reminder about an unfinished listing: a small modal in the middle of the page. */
+.host-reminder { width: min(380px, 100%); display: grid; gap: 10px; }
+.host-reminder h2 { margin: 0; font: 500 22px/1.2 var(--font-display); }
+.host-reminder p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.host-reminder .admin-actions { flex-wrap: wrap; justify-content: flex-end; margin-top: 6px; }
+
+/* Languages: a multi-select dropdown with chips. */
+.host-lang { position: relative; margin: 12px 0; }
+.host-lang-label { display: block; font-size: 11px; font-weight: 700; }
+.host-lang-box { margin-top: 6px; display: grid; gap: 8px; }
+.host-lang-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.host-lang-chip { padding: 4px 10px; border: 1px solid var(--control-border); border-radius: 30px; background: var(--white); color: var(--ink); font: 600 12px var(--font-sans); cursor: pointer; }
+.host-lang-trigger { width: 100%; min-height: 36px; padding: 9px 13px; text-align: left; border: 1px solid var(--control-border); border-radius: 3px; background: var(--white); color: var(--ink); font: 600 12px var(--font-sans); cursor: pointer; }
+.host-lang-panel { position: absolute; z-index: 5; left: 0; right: 0; margin-top: 4px; padding: 8px; border: 1px solid var(--control-border); border-radius: 4px; background: var(--white); box-shadow: 0 8px 24px #0000002e; }
+.host-lang-panel input[type='search'] { margin: 0 0 6px; width: 100%; }
+.host-lang-note { margin: 0 0 6px; font-size: 11px; color: var(--muted); }
+.host-lang-panel ul { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow-y: auto; overscroll-behavior: contain; }
+.host-lang-panel li { padding: 9px 10px; border-radius: 3px; font-size: 13px; cursor: pointer; }
+.host-lang-panel li:hover { background: var(--cream); }
+.host-lang-panel li[aria-selected='true'] { background: var(--green); color: var(--on-green); font-weight: 600; }
+.host-lang-panel li[aria-disabled='true'] { opacity: .5; cursor: not-allowed; }
+@media (max-width: 900px) {
+  .host-lang-trigger { font-size: 14px; min-height: 44px; }
+  .host-lang-panel li { padding: 12px 10px; font-size: 16px; }
+  .host-lang-chip { min-height: 36px; font-size: 13px; }
+}
+
+/* "Show this number to the audience": a checkbox with a hint, under the phone number. */
+.host-check { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 8px; font-weight: 600; }
+.host-check input { width: 18px; height: 18px; margin: 0; }
+.host-check small { grid-column: 2; font-weight: 400; color: var(--muted); }
+.host-dialog:focus { outline: none; }
+
+/* Craft workshop questions on the last step: a titled group, with the three "what people make" rows side by side. */
+.host-craft { display: grid; gap: 12px; }
+.host-make-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 8px; margin-top: 6px; }
+@media (max-width: 600px) { .host-make-row { grid-template-columns: 1fr; } }

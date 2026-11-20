@@ -19,7 +19,7 @@ const renderCat = (ui: React.ReactElement) => {
 };
 
 const prod = (id: string, name: string, city = 'Jaipur') => ({ id, name, category: 'Pottery', city, cityId: 1, citySlug: city.toLowerCase(), pricePaise: 10000, seller: 'S', description: 'd', stock: 3, status: 'APPROVED' });
-const ws = (id: string, title: string) => ({ id, title, type: 'FREE', pricePaise: 0, city: 'Jodhpur', cityId: 1, citySlug: 'jodhpur', venue: 'V', date: '2026-11-22', time: '10:30', seats: 20, booked: 6, host: 'H', description: 'd', status: 'APPROVED' });
+const ws = (id: string, title: string) => ({ id, title, type: 'FREE', pricePaise: 0, city: 'Jodhpur', cityId: 1, citySlug: 'jodhpur', venue: 'V', date: '2026-11-22', time: '10:30', seats: 20, booked: 6, host: 'H', description: 'd', status: 'APPROVED', kind: 'workshop', mode: 'in_person', topicId: null, endsOn: null, platform: null, schedule: null, languages: [], level: null, experience: null, certifications: null, freeTrial: false, freeTrialDays: null, whatsapp: null, instagram: null, website: null, images: [], prices: [] });
 
 const CITIES = [{ name: 'Jaipur', slug: 'jaipur' }, { name: 'Jodhpur', slug: 'jodhpur' }, { name: 'Udaipur', slug: 'udaipur' }];
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -35,6 +35,17 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 const flush = async (ms = 0) => { await act(async () => { await vi.advanceTimersByTimeAsync(ms); }); };
+
+describe('LiveCatalog count line', () => {
+  it('the workshops list has no "N experiences" line, while the shop keeps its "finds to love" line', () => {
+    renderCat(<LiveCatalog cities={CITIES} kind="workshops" initialItems={[ws('w1', 'Old') as never]} initialValues={{}} />);
+    expect(screen.queryByText(/experience/i)).toBeNull();
+    expect(screen.queryByText(/around India/i)).toBeNull();
+    cleanup();
+    renderCat(<LiveCatalog cities={CITIES} kind="products" initialItems={[prod('p1', 'Pot') as never]} initialValues={{}} />);
+    expect(screen.getByText(/1 find to love/i)).toBeTruthy();
+  });
+});
 
 describe('LiveCatalog (products)', () => {
   const initial = [prod('p1', 'Initial Bowl'), prod('p2', 'Second Dish')];

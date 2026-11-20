@@ -1,0 +1,1 @@
+DROP INDEX "workshops_one_published_per_request";

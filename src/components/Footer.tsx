@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { connection } from 'next/server';
 import { Brand } from './Header';
+import { HostLink } from './HostLink';
 import { CookieSettings } from './CookieSettings';
 import { listActiveCities, type City } from '@/lib/cities';
 import { contactEmail, INSTAGRAM_HANDLE } from '@/lib/site';
@@ -59,6 +60,8 @@ export async function Footer() {
         </Column>
         <Column title="Let Us Help You">
           <li><Link href="/help">How it works</Link></li>
+          <li><HostLink href="/workshops?type=in-person" path="event">Want to host a workshop?</HostLink></li>
+          <li><HostLink href="/workshops?type=online" path="class">Teach an online class</HostLink></li>
           {/* <li><a href={makerMail}>For makers</a></li> */}
           <li><Link href="/sell" prefetch={false}>Seller login</Link></li>
           <li><Link href="/categories" prefetch={false}>Categories</Link></li>

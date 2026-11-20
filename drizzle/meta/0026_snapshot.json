@@ -1,5 +1,5 @@
 {
-  "id": "4945c469-90c0-424f-8795-9fbfbded3f6a",
+  "id": "d9fc15bd-b5d2-4c6f-8886-5880bab878e1",
   "prevId": "7c1455c5-2ca8-47c8-a7c8-852c8e11a74f",
   "version": "7",
   "dialect": "postgresql",
@@ -169,13 +169,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "slug": {
-          "name": "slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
         }
       },
       "indexes": {
@@ -190,22 +183,6 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "categories_slug_idx": {
-          "name": "categories_slug_idx",
-          "columns": [
-            {
-              "expression": "slug",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"categories\".\"slug\" <> ''",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -2248,6 +2225,91 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.workshop_prices": {
+      "name": "workshop_prices",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "workshop_id": {
+          "name": "workshop_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_paise": {
+          "name": "amount_paise",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sessions": {
+          "name": "sessions",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {
+        "workshop_prices_workshop_idx": {
+          "name": "workshop_prices_workshop_idx",
+          "columns": [
+            {
+              "expression": "workshop_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "workshop_prices_workshop_id_workshops_id_fk": {
+          "name": "workshop_prices_workshop_id_workshops_id_fk",
+          "tableFrom": "workshop_prices",
+          "tableTo": "workshops",
+          "columnsFrom": [
+            "workshop_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "workshop_prices_amount_nonneg": {
+          "name": "workshop_prices_amount_nonneg",
+          "value": "\"workshop_prices\".\"amount_paise\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.workshop_requests": {
       "name": "workshop_requests",
       "schema": "",
@@ -2287,13 +2349,13 @@
           "name": "city",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "venue": {
           "name": "venue",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "title": {
           "name": "title",
@@ -2306,6 +2368,19 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "mode": {
+          "name": "mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'in_person'"
+        },
+        "topic_id": {
+          "name": "topic_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         },
         "description": {
           "name": "description",
@@ -2379,6 +2454,75 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'[]'::jsonb"
+        },
+        "ends_on": {
+          "name": "ends_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "platform": {
+          "name": "platform",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "schedule": {
+          "name": "schedule",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "languages": {
+          "name": "languages",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "level": {
+          "name": "level",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "experience": {
+          "name": "experience",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "certifications": {
+          "name": "certifications",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "free_trial": {
+          "name": "free_trial",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "whatsapp": {
+          "name": "whatsapp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prices": {
+          "name": "prices",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "listed_workshop_id": {
+          "name": "listed_workshop_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "status": {
           "name": "status",
@@ -2465,14 +2609,49 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "workshop_requests_topic_id_workshop_topics_id_fk": {
+          "name": "workshop_requests_topic_id_workshop_topics_id_fk",
+          "tableFrom": "workshop_requests",
+          "tableTo": "workshop_topics",
+          "columnsFrom": [
+            "topic_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "workshop_requests_listed_workshop_id_workshops_id_fk": {
+          "name": "workshop_requests_listed_workshop_id_workshops_id_fk",
+          "tableFrom": "workshop_requests",
+          "tableTo": "workshops",
+          "columnsFrom": [
+            "listed_workshop_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
         "workshop_requests_kind_valid": {
           "name": "workshop_requests_kind_valid",
-          "value": "\"workshop_requests\".\"kind\" in ('workshop', 'meetup', 'popup', 'market')"
+          "value": "\"workshop_requests\".\"kind\" in ('workshop', 'meetup', 'popup', 'market', 'class')"
+        },
+        "workshop_requests_mode_valid": {
+          "name": "workshop_requests_mode_valid",
+          "value": "\"workshop_requests\".\"mode\" in ('in_person', 'online')"
+        },
+        "workshop_requests_place_by_mode": {
+          "name": "workshop_requests_place_by_mode",
+          "value": "\"workshop_requests\".\"mode\" = 'online' or (\"workshop_requests\".\"city\" is not null and \"workshop_requests\".\"venue\" is not null)"
         },
         "workshop_requests_price_type_valid": {
           "name": "workshop_requests_price_type_valid",
@@ -2492,9 +2671,98 @@
         },
         "workshop_requests_status_valid": {
           "name": "workshop_requests_status_valid",
-          "value": "\"workshop_requests\".\"status\" in ('unverified', 'received')"
+          "value": "\"workshop_requests\".\"status\" in ('unverified', 'received', 'listed')"
         }
       },
+      "isRLSEnabled": false
+    },
+    "public.workshop_topics": {
+      "name": "workshop_topics",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {
+        "workshop_topics_name_lower_idx": {
+          "name": "workshop_topics_name_lower_idx",
+          "columns": [
+            {
+              "expression": "lower(\"name\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "workshop_topics_parent_id_workshop_topics_id_fk": {
+          "name": "workshop_topics_parent_id_workshop_topics_id_fk",
+          "tableFrom": "workshop_topics",
+          "tableTo": "workshop_topics",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "workshop_topics_slug_unique": {
+          "name": "workshop_topics_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.workshops": {
@@ -2525,23 +2793,43 @@
           "primaryKey": false,
           "notNull": true
         },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'workshop'"
+        },
+        "mode": {
+          "name": "mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'in_person'"
+        },
+        "topic_id": {
+          "name": "topic_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "city_id": {
           "name": "city_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "venue": {
           "name": "venue",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "seats": {
           "name": "seats",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "booked": {
           "name": "booked",
@@ -2580,6 +2868,111 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
+        },
+        "ends_on": {
+          "name": "ends_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "platform": {
+          "name": "platform",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "schedule": {
+          "name": "schedule",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "languages": {
+          "name": "languages",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "level": {
+          "name": "level",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "experience": {
+          "name": "experience",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "certifications": {
+          "name": "certifications",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "free_trial": {
+          "name": "free_trial",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "whatsapp": {
+          "name": "whatsapp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "instagram": {
+          "name": "instagram",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "website": {
+          "name": "website",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "images": {
+          "name": "images",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "contact_name": {
+          "name": "contact_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contact_phone": {
+          "name": "contact_phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contact_email": {
+          "name": "contact_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_request_id": {
+          "name": "source_request_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -2656,9 +3049,37 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "workshops_topic_idx": {
+          "name": "workshops_topic_idx",
+          "columns": [
+            {
+              "expression": "topic_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
+        "workshops_topic_id_workshop_topics_id_fk": {
+          "name": "workshops_topic_id_workshop_topics_id_fk",
+          "tableFrom": "workshops",
+          "tableTo": "workshop_topics",
+          "columnsFrom": [
+            "topic_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "workshops_city_id_cities_id_fk": {
           "name": "workshops_city_id_cities_id_fk",
           "tableFrom": "workshops",
@@ -2684,6 +3105,19 @@
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
+        },
+        "workshops_created_by_users_id_fk": {
+          "name": "workshops_created_by_users_id_fk",
+          "tableFrom": "workshops",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2698,13 +3132,29 @@
           "name": "workshops_price_nonneg",
           "value": "\"workshops\".\"price_paise\" >= 0"
         },
+        "workshops_kind_valid": {
+          "name": "workshops_kind_valid",
+          "value": "\"workshops\".\"kind\" in ('workshop', 'meetup', 'popup', 'market', 'class')"
+        },
+        "workshops_mode_valid": {
+          "name": "workshops_mode_valid",
+          "value": "\"workshops\".\"mode\" in ('in_person', 'online', 'hybrid')"
+        },
+        "workshops_level_valid": {
+          "name": "workshops_level_valid",
+          "value": "\"workshops\".\"level\" is null or \"workshops\".\"level\" in ('beginner', 'intermediate', 'advanced', 'all')"
+        },
+        "workshops_place_by_mode": {
+          "name": "workshops_place_by_mode",
+          "value": "\"workshops\".\"mode\" = 'online' or (\"workshops\".\"city_id\" is not null and \"workshops\".\"venue\" is not null)"
+        },
         "workshops_seats_positive": {
           "name": "workshops_seats_positive",
-          "value": "\"workshops\".\"seats\" >= 1"
+          "value": "\"workshops\".\"seats\" is null or \"workshops\".\"seats\" >= 1"
         },
         "workshops_booked_range": {
           "name": "workshops_booked_range",
-          "value": "\"workshops\".\"booked\" >= 0 and \"workshops\".\"booked\" <= \"workshops\".\"seats\""
+          "value": "\"workshops\".\"booked\" >= 0 and (\"workshops\".\"seats\" is null or \"workshops\".\"booked\" <= \"workshops\".\"seats\")"
         },
         "workshops_status_valid": {
           "name": "workshops_status_valid",

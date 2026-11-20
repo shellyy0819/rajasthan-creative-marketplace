@@ -33,7 +33,7 @@ export const LOGO_AREA: UploadArea = {
   typeMessage: 'Your logo must be a JPG or PNG.', sizeMessage: 'Your logo must be between 1 byte and 5 MB.',
 };
 
-/** Photos sent with the public "host a workshop" form: their own folder, so they are never product photos or deleted with one. */
+/** Photos of workshops (sent with the public "host a workshop" form or added by an admin): their own folder, so they are never product photos or deleted with one. The bucket policy allows exactly this folder. */
 export const REQUEST_AREA: UploadArea = {
   folder: 'workshop-requests', types: Object.keys(IMAGE_TYPES),
   typeMessage: 'Photos must be JPEG, PNG or WebP.', sizeMessage: 'Each photo must be between 1 byte and 5 MB.',

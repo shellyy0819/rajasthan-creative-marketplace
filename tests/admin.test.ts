@@ -11,7 +11,7 @@ beforeEach(async () => {
 });
 
 const validProduct = { name: 'Lac Bangle', category: 'Accessories', cityRef: cityRef('Jodhpur'), pricePaise: 12000, description: 'Hand-set lac bangle.', stock: 3 };
-const validWorkshop = { title: 'Lac Craft', type: 'PAID', pricePaise: 30000, cityRef: cityRef('Jodhpur'), venue: 'Studio 9', date: '2026-12-01', time: '16:30', seats: 8, host: 'Marwar Lac', description: 'Learn lac craft.' };
+const validWorkshop = { title: 'Lac Craft', type: 'PAID', pricePaise: 30000, cityRef: cityRef('Jodhpur'), venue: 'Studio 9', date: '2099-12-01', time: '16:30', seats: 8, host: 'Marwar Lac', description: 'Learn lac craft.' };
 
 describe('write path accepts only validated cities', () => {
   const cityCount = async () => (await (await getTestDb()).select().from(cities)).length;
@@ -114,9 +114,10 @@ describe('products admin', () => {
 });
 
 describe('workshops admin', () => {
-  it('creates with fresh id, booked 0, APPROVED', async () => {
+  it('creates with fresh id, booked 0, as a Draft unless a status is given', async () => {
     const w = await createWorkshop(validWorkshop);
-    expect(w).toMatchObject({ id: 'w4', booked: 0, status: 'APPROVED' });
+    expect(w).toMatchObject({ id: 'w4', booked: 0, status: 'DRAFT' });
+    expect(await createWorkshop({ ...validWorkshop, status: 'APPROVED' })).toMatchObject({ status: 'APPROVED' });
   });
   it('ignores client-supplied booked on create', async () => {
     expect((await createWorkshop({ ...validWorkshop, booked: 7 })).booked).toBe(0);
