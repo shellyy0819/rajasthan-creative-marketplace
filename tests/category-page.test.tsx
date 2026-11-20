@@ -2,6 +2,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
+vi.mock('next/cache', async orig => ({ ...(await orig<typeof import('next/cache')>()), unstable_cache: (fn: unknown) => fn }));   // no Next cache outside a request: call straight through
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 vi.mock('next/navigation', () => ({ notFound: () => { throw new Error('NOT_FOUND'); } }));
 vi.mock('@/components/ProductGrid', () => ({ ProductGrid: ({ products }: any) => <ul className="grid">{products.map((p: any) => <li key={p.id}><a href={`/products/${p.id}`}>{p.name}</a></li>)}</ul> }));
@@ -88,6 +89,14 @@ describe('category page metadata', () => {
     expect(m.alternates?.canonical).toBe('/categories/brass-work?page=2');
     expect(String(m.title)).toContain('page 2');
     expect(m.robots).toBeUndefined();
+  });
+  it('tracking parameters (utm_*, fbclid, gclid...) do not make the page noindex: it stays indexable with the same canonical', async () => {
+    for (const sp of [{ utm_source: 'insta' }, { utm_medium: 'x', utm_campaign: 'y' }, { fbclid: 'abc' }, { gclid: '1' }, { page: '1', utm_source: 'x' }] as Record<string, string>[]) {
+      const m = await generateMetadata(props('brass-work', sp));
+      expect(m.robots).toBeUndefined();
+      expect(m.alternates?.canonical).toBe('/categories/brass-work');
+    }
+    expect((await generateMetadata(props('brass-work', { utm_source: 'x', city: 'jaipur' }))).robots).toEqual({ index: false, follow: true });   // a real filter next to a tracking one still counts
   });
   it('any other parameter (city, sort, q, source) gives noindex, follow and a canonical to the category page', async () => {
     for (const sp of [{ city: 'jaipur' }, { sort: 'new' }, { q: 'x' }, { source: 'Handmade' }, { page: '1', city: 'jaipur' }] as Record<string, string>[]) {

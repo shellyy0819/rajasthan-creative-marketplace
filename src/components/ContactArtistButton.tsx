@@ -53,7 +53,7 @@ export function ContactArtistButton({ product: p, artistLevel = false, iconOnly 
   const close = () => { setOpen(false); trigger.current?.focus(); };
   const trackMethod = (method: 'call' | 'email' | 'instagram' | 'youtube' | 'copy') => {
     sendEvent(`contact_${method}` as MethodEvent, p.id, artistLevel ? 'artist' : undefined);
-    if (p.sellerSlug) gaContactSeller({ sellerSlug: p.sellerSlug, method, ...(artistLevel ? {} : { productId: p.id }) });
+    if (p.sellerSlug) gaContactSeller({ sellerSlug: p.sellerSlug, method, ...(artistLevel ? {} : { productId: p.id, category: p.category }) });
   };
   const shared = [p.phone, p.email, p.instagram, p.youtube].some(Boolean);
 

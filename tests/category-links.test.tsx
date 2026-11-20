@@ -2,6 +2,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
+vi.mock('next/cache', async orig => ({ ...(await orig<typeof import('next/cache')>()), unstable_cache: (fn: unknown) => fn }));   // no Next cache outside a request: call straight through
 vi.mock('next/link', () => ({ default: ({ href, children, ...r }: any) => <a href={href} {...r}>{children}</a> }));
 vi.mock('@/lib/request-origin', () => ({ requestOrigin: async () => 'https://craftofy.online' }));
 
@@ -31,6 +32,13 @@ describe('sitemap', () => {
     expect(urls).toContain('https://craftofy.online/categories/brass-work');
     expect(urls).not.toContain('https://craftofy.online/categories/glass-art');     // only a draft: no page
     expect(urls.filter(u => u.includes('?'))).toEqual([]);
+  });
+  it('gives each category page a lastModified: its newest product edit', async () => {
+    await add('T-B1', 'Brass Work');
+    const entry = (await sitemap()).find(e => e.url.endsWith('/categories/brass-work'));
+    expect(entry?.lastModified).toBeInstanceOf(Date);
+    expect(Date.now() - (entry!.lastModified as Date).getTime()).toBeLessThan(60_000);
+    expect((await sitemap()).find(e => e.url.endsWith('/categories'))?.lastModified).toBeUndefined();
   });
 });
 
