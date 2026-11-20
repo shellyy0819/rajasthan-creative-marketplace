@@ -64,6 +64,7 @@ export async function Footer() {
           <li><HostLink href="/workshops?type=online" path="class">Teach an online class</HostLink></li>
           {/* <li><a href={makerMail}>For makers</a></li> */}
           <li><Link href="/sell" prefetch={false}>Seller login</Link></li>
+          <li><Link href="/categories" prefetch={false}>Categories</Link></li>
           <li><a href="/sitemap.xml">Sitemap</a></li>
           {/* <li><CookieSettings /></li> */}
         </Column>

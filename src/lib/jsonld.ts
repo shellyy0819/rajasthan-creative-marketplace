@@ -65,6 +65,15 @@ export const breadcrumbJsonLd = (items: { name: string; path: string }[]) => ({
   itemListElement: items.map((it, i) => ({ '@type': 'ListItem', position: i + 1, name: it.name, item: abs(it.path) })),
 });
 
+/** A category page: a list of the products on this page (name and address only; the products carry their own full markup). */
+export const categoryJsonLd = (name: string, path: string, products: Product[]) => ({
+  '@context': CTX, '@type': 'CollectionPage', name, url: abs(path),
+  mainEntity: {
+    '@type': 'ItemList',
+    itemListElement: products.map((p, i) => ({ '@type': 'ListItem', position: i + 1, name: p.name, url: abs(`/products/${productSlug(p)}`) })),
+  },
+});
+
 /** The exhibition page (/fair): a walk-around of makers' stalls. */
 export const fairJsonLd = (description: string, about: string = 'Products and creative workshops from independent makers in India') => ({
   '@context': CTX, '@type': 'WebPage',

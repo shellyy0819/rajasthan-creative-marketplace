@@ -8,6 +8,7 @@ import { DataVersionProvider } from '@/components/DataVersion';
 import { HomeWorkshops } from '@/components/HomeWorkshops';
 import { TrendingSection } from '@/components/TrendingSection';
 import { ScrollToTop } from '@/components/ScrollToTop';
+import { ShopByCategory } from '@/components/ShopByCategory';
 import { SignedOutToast } from '@/components/SignedOutToast';
 import { ValueProps } from '@/components/ValueProps';
 import { capitalize, getCatalogWording, siteCopy } from '@/lib/catalog-wording';
@@ -77,6 +78,7 @@ async function HomeSections() {
         </div>
         <Suspense fallback={null}><HomeShelf /></Suspense>
       </section>
+      <Suspense fallback={null}><ShopByCategory /></Suspense>
       <section className="workshop-band" id="workshops" aria-labelledby="ws-h">
         <div className="workshop-intro">
           <span className="eyebrow">OUT OF THE SCROLL, INTO THE STUDIO</span>
