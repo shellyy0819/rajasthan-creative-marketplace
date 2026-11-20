@@ -92,7 +92,7 @@ describe('signed in: Craftofy sends it and shows the mail that went out', () => 
     expect(url).toBe('/api/products/p1/enquiry');
     expect(JSON.parse((init as RequestInit).body as string)).toMatchObject({ name: 'Asha B', email: 'asha@buyer.co', message: MSG });
     expect(sendEvent).toHaveBeenCalledWith('contact_email', 'p1');
-    expect(gaContactSeller).toHaveBeenCalledWith({ sellerSlug: 'studio-a-1', method: 'email', productId: 'p1' });
+    expect(gaContactSeller).toHaveBeenCalledWith({ sellerSlug: 'studio-a-1', method: 'email', productId: 'p1', category: 'Pottery' });
   });
   it('shows the server’s error and records no contact when the send fails', async () => {
     signIn();

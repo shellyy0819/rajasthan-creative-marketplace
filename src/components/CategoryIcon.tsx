@@ -72,10 +72,10 @@ const ART: Record<Kind, React.ReactNode> = {
   </>,
 };
 
-/** A small flat illustration in front of a category name, in the stall's colours. Decorative (the name is always next to it). `large` for a page heading. */
-export function CategoryIcon({ name, large = false }: { name: string; large?: boolean }) {
+/** A small flat illustration in front of a category name, in the stall's colours. Decorative (the name is always next to it). Used on the category cards, not in the page heading. */
+export function CategoryIcon({ name }: { name: string }) {
   const kind = categoryIconKind(name);
   return (
-    <svg className={`cat-ic${large ? ' cat-ic-lg' : ''}`} data-kind={kind} viewBox="0 0 40 40" aria-hidden="true" focusable="false">{ART[kind]}</svg>
+    <svg className="cat-ic" data-kind={kind} viewBox="0 0 40 40" aria-hidden="true" focusable="false">{ART[kind]}</svg>
   );
 }

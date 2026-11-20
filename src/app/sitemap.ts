@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { requestOrigin } from '@/lib/request-origin';
 import { listProducts, listWorkshops, productSlug, workshopSlug } from '@/lib/catalog';
 import { listActiveCities } from '@/lib/cities';
-import { listCategoryIndex } from '@/lib/category-pages';
+import { listCategoryIndex, listCategoryLastModified } from '@/lib/category-pages';
 import { isFairOpen } from '@/lib/fair-settings';
 
 export const dynamic = 'force-dynamic';
@@ -10,14 +10,14 @@ export const dynamic = 'force-dynamic';
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const origin = await requestOrigin();
   const abs = (p: string) => origin + p;
-  const [products, workshops, cities, fairOpen, cats] = await Promise.all([listProducts(), listWorkshops(), listActiveCities(), isFairOpen(), listCategoryIndex()]);
+  const [products, workshops, cities, fairOpen, cats, catChanged] = await Promise.all([listProducts(), listWorkshops(), listActiveCities(), isFairOpen(), listCategoryIndex(), listCategoryLastModified()]);
   return [
     { url: abs('/'), changeFrequency: 'weekly', priority: 1 },
     // An empty list page is a soft 404 to search engines: list /shop and /workshops only while they have something.
     ...(products.length ? [{ url: abs('/shop'), changeFrequency: 'daily' as const, priority: 0.9 }] : []),
     ...(workshops.length ? [{ url: abs('/workshops'), changeFrequency: 'daily' as const, priority: 0.9 }] : []),
     ...(cats.length ? [{ url: abs('/categories'), changeFrequency: 'weekly' as const, priority: 0.8 }] : []),
-    ...cats.map(c => ({ url: abs(`/categories/${c.slug}`), changeFrequency: 'weekly' as const, priority: 0.7 })),
+    ...cats.map(c => ({ url: abs(`/categories/${c.slug}`), changeFrequency: 'weekly' as const, priority: 0.7, ...(catChanged[c.slug] ? { lastModified: catChanged[c.slug] } : {}) })),
     { url: abs('/trending'), changeFrequency: 'daily', priority: 0.6 },
     ...(fairOpen ? [{ url: abs('/fair'), changeFrequency: 'weekly' as const, priority: 0.5 }] : []),
     ...['/about', '/blogs', '/contact', '/help'].map(path => ({ url: abs(path), changeFrequency: 'monthly' as const, priority: 0.4 })),

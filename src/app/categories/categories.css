@@ -62,12 +62,6 @@
   width: 34px;
   height: 34px;
 }
-.cat-ic-lg {
-  width: 52px;
-  height: 52px;
-  margin-right: 14px;
-  vertical-align: -10px;
-}
 .cat-ic .c-clay { fill: var(--clay); }
 .cat-ic .c-orange { fill: var(--orange); }
 .cat-ic .c-sand { fill: var(--sand); }

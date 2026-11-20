@@ -33,7 +33,7 @@ export function InstagramMessageButton({ product: p, productUrl, className, icon
   const onOpen = () => {
     if (p.sellerSlug) gaContactStep({ sellerSlug: p.sellerSlug, method: 'instagram', step: 'button_click', productId: p.id });
     sendEvent('contact_instagram', p.id);
-    if (p.sellerSlug) gaContactSeller({ sellerSlug: p.sellerSlug, method: 'instagram', productId: p.id });
+    if (p.sellerSlug) gaContactSeller({ sellerSlug: p.sellerSlug, method: 'instagram', productId: p.id, category: p.category });
     const text = box.current?.value ?? initial;
     if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => setCopy('copied'), manual);
     else manual();
