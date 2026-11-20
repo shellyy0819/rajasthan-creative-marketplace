@@ -35,7 +35,7 @@ describe('category page', () => {
   it('shows the h1, the breadcrumb Home › Categories › Name, the intro and the products', async () => {
     const h = await html('brass-work');
     expect(h.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)![1].replace(/<[^>]+>/g, '')).toBe('Brass Work');
-    expect(h).toMatch(/<h1[^>]*><svg[^>]*class="cat-ic cat-ic-lg"[^>]*aria-hidden="true"/);    // the picture sits in front of the heading text
+    expect(h.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)![1]).not.toContain('<svg');    // no picture in the heading, only the name
     expect(h).toContain('T-B1'); expect(h).toContain('T-B2');
     expect(h).toMatch(/aria-label="Breadcrumb"[\s\S]*href="\/"[^>]*>Home[\s\S]*href="\/categories"[^>]*>Categories[\s\S]*aria-current="page">Brass Work/);
     expect(h).toMatch(/Browse 2 products in Brass Work/);

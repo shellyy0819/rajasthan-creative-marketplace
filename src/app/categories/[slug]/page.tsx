@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { CategoryIcon } from '@/components/CategoryIcon';
 import { CategoryListTracker } from '@/components/CategoryListTracker';
 import { CategoryPagination } from '@/components/CategoryPagination';
 import { JsonLd } from '@/components/JsonLd';
@@ -62,7 +61,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       <Breadcrumbs items={crumbs} />
       <div className="page-head">
         <span className="eyebrow">CATEGORY</span>
-        <h1><CategoryIcon name={entry.name} large />{entry.name}</h1>
+        <h1>{entry.name}</h1>
         <p>{categoryIntro(entry, w.products)}</p>
       </div>
       <section className="section" aria-label={`${entry.name} products`}>
