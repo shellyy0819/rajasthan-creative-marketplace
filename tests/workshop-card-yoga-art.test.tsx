@@ -101,6 +101,18 @@ describe('the yoga illustration colours (source contract)', () => {
   });
 });
 
+describe('the level and language tags on phones', () => {
+  it('use the small bold type of the free trial tag and corner, and keep their own outline and colours (source contract)', () => {
+    const css = fs.readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ');
+    const tag = css.match(/\.ws-badges span \{ padding: 2px 8px;([^}]*)\}/)?.[1] ?? '';
+    const trial = css.match(/@media \(max-width: 900px\) \{ \.tile-col \.tile-trial \{([^}]*)\}/)?.[1] ?? '';
+    for (const part of ['font-size: 9px;', 'text-align: center;']) expect(trial).toContain(part);
+    for (const part of ['font-size: 9px;', 'font-weight: 700;', 'border-radius: 12px;']) expect(tag).toContain(part);
+    for (const part of ['background', 'color:', 'border:']) expect(tag).not.toContain(part);
+    expect(css).toMatch(/\.tile-col \.tile-trial \{[^}]*border-radius: 12px;[^}]*background: var\(--orange\);[^}]*font: 700 11px/);
+  });
+});
+
 describe('the free trial on a card with a picture', () => {
   it('is a chip on the photo (like "Only 1 left" on a product card) and not repeated as a badge', () => {
     const h = renderToStaticMarkup(<WorkshopCard w={{ ...base, images: ['https://example.com/a.jpg'], freeTrial: true, freeTrialDays: 2 }} />);
