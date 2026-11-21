@@ -18,7 +18,7 @@ export default function WorkshopsLoading() {
         <p className="ws-supports">{supportLine()}</p>
         <div className="ws-head-cta"><span className="skeleton skeleton-button" aria-hidden="true" /></div>
       </div>
-      <section className="workshop-band" style={{ display: 'block', marginTop: 30 }} aria-busy="true">
+      <section className="workshop-band ws-list-band" aria-busy="true">
         <p className="sr-only" role="status">Loading workshops</p>
         <div className="skeleton skeleton-filters" aria-hidden="true" />
         <div className="workshop-list" aria-hidden="true">

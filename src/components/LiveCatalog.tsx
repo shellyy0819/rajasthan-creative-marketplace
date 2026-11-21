@@ -195,5 +195,5 @@ export function LiveCatalog(props: Props) {
   );
   return kind === 'products'
     ? <section className="section" style={{ paddingTop: 10 }}>{body}</section>
-    : <section className="workshop-band" style={{ display: 'block', marginTop: 30 }}>{body}</section>;
+    : <section className="workshop-band ws-list-band">{body}</section>;
 }

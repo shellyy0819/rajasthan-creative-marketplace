@@ -79,7 +79,7 @@ export function CraftDetail({ w, ended, now = new Date(), share }: { w: Workshop
               )}
               <div className="cr-price">{free ? <b>Free</b> : <><b>{money(w.pricePaise)}</b><span>per person</span></>}</div>
               {bookable ? <div className="cr-reserve"><ReserveButton workshop={w} /></div>
-                : ch.primary && <WorkshopTrackedLink workshopId={w.id} method={ch.primary.kind} placement="page" category={w.topic?.name} contentType={gaWorkshopType(w)} className="button cd-btn primary cr-reserve" href={ch.primary.href} target="_blank" rel="noopener noreferrer"><ChannelIcon kind={ch.primary.kind} />{ch.primary.label}</WorkshopTrackedLink>}
+                : ch.primary && <WorkshopTrackedLink workshopId={w.id} method={ch.primary.kind} placement="page" category={w.topic?.name} contentType={gaWorkshopType(w)} className="button cd-btn primary cr-reserve" href={ch.primary.href} target="_blank" rel="noopener noreferrer"><ChannelIcon kind={ch.primary.kind} onGreen />{ch.primary.label}</WorkshopTrackedLink>}
             </div>
           )}
           {!ended && <p className="cd-note cr-note">No payment is collected on Craftofy. You reserve here, and the host confirms and takes payment.</p>}

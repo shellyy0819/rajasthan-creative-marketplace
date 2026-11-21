@@ -64,8 +64,19 @@
 .workshop-card h3 a::after { content: ''; position: absolute; inset: 0; }
 .workshop-card .workshop-price a, .workshop-card .workshop-price button { position: relative; z-index: 1; }
 
-.ws-contact .ws-insta { display: inline-flex; align-items: center; gap: 7px; }
+/* WhatsApp and Instagram: round icon buttons, the same size as the icon row on the detail pages (44px on phones for a comfortable tap). */
+.ws-contact .ws-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 1px solid var(--control-border); border-radius: 50%; background: transparent; color: var(--ink); line-height: 0; }
+.ws-contact .ws-icon:hover { background: var(--cream); }
+@media (max-width: 900px) { .ws-contact .ws-icon { width: 44px; height: 44px; } }
 
 /* On a card the contact buttons line up with the price above them: flush right, no side padding of their own. */
 .workshop-card .ws-contact { display: flex; justify-content: flex-end; }
 .workshop-card .ws-contact .button { padding-left: 0; padding-right: 0; background: transparent; }
+.workshop-card .ws-contact .ws-icon:hover { background: var(--cream); }
+
+/* The list band of /workshops (filters and cards): one block under the page head. On phones it is tight: no big gap above the search box. */
+.workshop-band.ws-list-band { display: block; margin-top: 30px; }
+@media (max-width: 700px) {
+  .workshop-band.ws-list-band { margin-top: 16px; padding-top: 20px; padding-bottom: 28px; }
+  .ws-list-band .filters { margin-top: 0; margin-bottom: 20px; }
+}
