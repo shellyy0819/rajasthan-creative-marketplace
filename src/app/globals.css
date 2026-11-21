@@ -1168,7 +1168,9 @@ form label select {
   display: flex;
   gap: 9px;
   overflow-x: auto;
-  padding: 2px 1px 18px;
+  /* The row scrolls sideways, so it also clips up and down: leave room for the orange focus ring (2px line + 2px gap) on every side, and pull the box out by the same amount so the chips stay where they were. */
+  padding: 6px 5px 18px;
+  margin: -4px -4px 0;
   scrollbar-width: thin;
 }
 .craft-tabs button {
@@ -4560,7 +4562,7 @@ body.modal-open {
   text-decoration: underline;
 }
 .ah-photo .product-photo {
-  object-fit: cover;
+  object-fit: contain; /* the whole piece shows, whatever shape the photo is */
 }
 /* The single placeholder for a missing product photo (ProductPlaceholder.tsx) */
 .product-placeholder { display: grid; place-items: center; align-self: stretch; justify-self: stretch; width: 100%; height: 100%; background: var(--cream); color: var(--muted); }
@@ -4887,6 +4889,18 @@ button.fair-opt:hover { background: var(--cream); }
 .skeleton-line { height: 12px; width: 100%; max-width: 260px; margin-bottom: 12px; }
 .skeleton-line.short { max-width: 120px; height: 10px; }
 .skeleton-line.title { height: 34px; max-width: 360px; margin-bottom: 0; }
+/* A product card still loading (ProductCardSkeleton): same shape as the real card, no text, no dark overlay */
+.product-card-skeleton { background: var(--cream); pointer-events: none; }
+.product-card-skeleton::after { display: none; }
+.product-card-skeleton .product-visual.skeleton:not(:has(.product-photo)) { background: linear-gradient(90deg, var(--cream) 0%, var(--line) 50%, var(--cream) 100%); background-size: 200% 100%; }
+.product-card-skeleton .sk { display: block; width: fit-content; max-width: 100%; color: transparent; border-radius: 4px; background: var(--white); opacity: 0.7; animation: none; }
+.product-card-skeleton .pc-chip.skeleton { color: transparent; }
+.product-card-skeleton .pc-av { border-color: transparent; background: var(--white); animation: none; opacity: 0.7; }
+.product-card-skeleton .like-btn, .product-card-skeleton .contact-btn { border: 0; border-radius: 50%; background: var(--white); opacity: 0.7; animation: none; }
+@media (max-width: 600px) {
+  .product-card-skeleton { background: var(--white); }
+  .product-card-skeleton .sk, .product-card-skeleton .pc-av, .product-card-skeleton .like-btn, .product-card-skeleton .contact-btn { background: var(--line); opacity: 1; }
+}
 @keyframes skeleton-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
 

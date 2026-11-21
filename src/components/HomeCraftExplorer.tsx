@@ -5,8 +5,8 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import type { Product } from "@/lib/types";
 import { SHELF_PAGE_SIZE } from "@/lib/catalog-shared";
 import { dataKey, useDataVersion } from "./DataVersion";
-import { PageLoader } from "./PageLoader";
 import { ProductGrid } from "./ProductGrid";
+import { ProductGridSkeleton } from "./ProductCardSkeleton";
 
 /** Fetched pages never go stale on their own: they are replaced only when the data version changes (see DataVersion). */
 const SHELF_KEEP_MS = 60 * 60_000;
@@ -84,7 +84,8 @@ export function HomeCraftExplorer({ initialItems, categories, emptyMessage = "No
 
       <div className="craft-results" aria-live="polite">
         <div className="craft-results-heading">{category && <h3>{category}</h3>}</div>
-        <ProductGrid products={items} emptyMessage={isError ? "Could not load these finds. Please try again." : openingCategory ? "Loading finds…" : emptyMessage} />
+        {/* While a filter's first page loads: cards the size of the real ones, as many as the filter has (one page at most), and no spinner or text. */}
+        {openingCategory && !isError ? <ProductGridSkeleton count={Math.min(total, SHELF_PAGE_SIZE)} /> : <ProductGrid products={items} emptyMessage={isError ? "Could not load these finds. Please try again." : emptyMessage} />}
         {(hasNextPage || isError) && (
           <div ref={sentinel} className="craft-more">
             {isError && items.length > 0 && <p role="alert">Could not load more. Please try again.</p>}
@@ -93,7 +94,6 @@ export function HomeCraftExplorer({ initialItems, categories, emptyMessage = "No
             </button>
           </div>
         )}
-        <PageLoader show={openingCategory} blocking={false} label="Loading finds" />
       </div>
     </div>
   );
