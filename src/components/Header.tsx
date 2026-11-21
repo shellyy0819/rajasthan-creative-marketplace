@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { CartButton } from './CartButton';
 import { AuthButton } from './AuthButton';
+import { MobileNav } from './MobileNav';
 import { ThemeToggle } from './ThemeToggle';
 import { hostConfig } from '@/lib/hosts';
 
@@ -19,7 +20,10 @@ export function Brand() {
 export function Header({ fair = true }: { fair?: boolean }) {
   return (
     <header className="topbar">
-      <Brand />
+      <div className="topbar-start">
+        <MobileNav dashboardUrl={hostConfig().dashboardOrigin ?? ''} fair={fair} />
+        <Brand />
+      </div>
       <nav aria-label="Primary">
         <Link href="/shop">Shop products</Link>
         <Link href="/workshops">Workshops &amp; pop-ups</Link>

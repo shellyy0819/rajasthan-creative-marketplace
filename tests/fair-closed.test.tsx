@@ -10,6 +10,7 @@ vi.mock('@/lib/request-origin', () => ({ requestOrigin: async () => 'https://rr.
 vi.mock('@/lib/cities', () => ({ listActiveCities: async () => [] }));
 vi.mock('@/components/AuthButton', () => ({ AuthButton: () => null }));
 vi.mock('@/components/CartButton', () => ({ CartButton: () => null }));
+vi.mock('@/components/MobileNav', () => ({ MobileNav: () => null }));
 vi.mock('@/components/ThemeToggle', () => ({ ThemeToggle: () => null }));
 
 import { Header } from '@/components/Header';
