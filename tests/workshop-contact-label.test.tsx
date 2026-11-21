@@ -24,12 +24,15 @@ describe('instructor Instagram and WhatsApp buttons', () => {
     expect(html).toContain('ws-icon ws-whatsapp');
     expect(html).toContain('target="_blank"');
   });
-  it('a button only appears when the number or account exists, and Call and Website keep their word', () => {
+  it('a button only appears when the number or account exists; Call is the shared phone icon and Website keeps its word', () => {
     expect(renderToStaticMarkup(<WorkshopContact w={{ whatsapp: null, instagram: null, website: null }} workshopId="w1" contentType="class" placement="card" />)).toBe('');
     const html = renderToStaticMarkup(<WorkshopContact w={{ whatsapp: null, instagram: null, website: 'https://x.example', publicPhone: '+919989898999' }} workshopId="w1" contentType="class" placement="card" />);
-    expect(html).toContain('>Call<');
+    expect(html).not.toContain('>Call<');
+    expect(html).toContain('ws-icon ws-call');
+    expect(html).toContain('aria-label="Call +919989898999"');
+    expect(html).toContain('href="tel:+919989898999"');
+    expect(html).toContain('maker-icon'); // the same phone mark the product pages use (shared BrandIcon)
     expect(html).toContain('>Website<');
-    expect(html).not.toContain('ws-icon');
   });
   it('the icon buttons are the mark alone with no ring, still 40px (44px on tablets and phones) to tap (source contract)', () => {
     const css = fs.readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ');

@@ -122,6 +122,6 @@ describe('the free trial on a card with a picture', () => {
   });
   it('the chip is the site\'s orange chip with white text, at the top left of the tile (source contract)', () => {
     const css = fs.readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ');
-    expect(css).toMatch(/\.date-tile\.has-photo \.tile-trial \{ position: absolute; left: 8px; top: 8px;[^}]*background: var\(--orange\); color: #fffdf9;/);
+    expect(css).toMatch(/\.tile-col \.tile-trial \{ position: absolute; left: 8px; top: 8px;[^}]*background: var\(--orange\); color: #fffdf9;/);
   });
 });

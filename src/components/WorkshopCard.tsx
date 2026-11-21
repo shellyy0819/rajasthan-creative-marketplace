@@ -19,7 +19,7 @@ export function WorkshopCard({ w }: { w: Workshop }) {
   const left = (w.seats ?? 0) - w.booked;
   const cover = w.images[0]; // the first photo is the cover
   const yogaArt = !cover && isYogaListing(w); // no photo: a yoga listing shows the yoga illustration, other listings the plain tile
-  // With a picture (a photo or the yoga illustration) the free trial is a chip on it, like "Only 1 left" on a product card; on the plain tile it stays a badge under the title.
+  // With a picture (a photo or the yoga illustration) the free trial is a chip on it on laptops (like "Only 1 left" on a product card) and a label under it on phones; on the plain tile it stays a badge under the title.
   const trialChip = (cover || yogaArt) && w.freeTrial ? (w.freeTrialDays ? `${w.freeTrialDays}-day free trial` : 'Free trial') : null;
   const chip = isClass ? `Online${w.platform ? ` · ${w.platform}` : ''}` : `${day} ${month}`;
   const price = w.prices.length ? summarizePrices(w.prices).from : w.type === 'FREE' ? 'Free' : money(w.pricePaise);
@@ -27,19 +27,23 @@ export function WorkshopCard({ w }: { w: Workshop }) {
     <article className={`workshop-card${cover || yogaArt ? ' with-photo' : ''}`}>
       {cover
         ? (
-          <div className="date-tile has-photo">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={cover} alt="" loading="lazy" />
+          <div className="tile-col">
+            <div className="date-tile has-photo">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={cover} alt="" loading="lazy" />
+              <span className="tile-chip">{chip}</span>
+            </div>
             {trialChip && <span className="tile-trial">{trialChip}</span>}
-            <span className="tile-chip">{chip}</span>
           </div>
         )
         : yogaArt
           ? (
-            <div className="date-tile has-photo has-art">
-              <ClassArt title={w.title} yoga />
+            <div className="tile-col">
+              <div className="date-tile has-photo has-art">
+                <ClassArt title={w.title} yoga />
+                <span className="tile-chip">{chip}</span>
+              </div>
               {trialChip && <span className="tile-trial">{trialChip}</span>}
-              <span className="tile-chip">{chip}</span>
             </div>
           )
           : <div className="date-tile">{isClass ? <><b>Online</b><span>{w.platform}</span></> : <><b>{day}</b><span>{month} · {w.city ?? 'Online'}</span></>}</div>}
