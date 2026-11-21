@@ -92,3 +92,19 @@ describe('craft and art workshop page', () => {
     expect(h).not.toContain('Starts in');
   });
 });
+
+describe('the host name on the CraftDetail page', () => {
+  it('links to the host profile when the host has one, and is plain text when not', () => {
+    expect(html({ hostSlug: 'swati-12345678' })).toMatch(/<span class="cd-name"><a href="\/artists\/swati-12345678">[^<]+<\/a><\/span>/);
+    expect(html()).not.toContain('/artists/');
+  });
+  it('also shows a round avatar icon beside the contact icons that opens the profile', () => {
+    const h = html({ hostSlug: 'swati-12345678' });
+    const a = /<a class="cd-profile"[^>]*>/.exec(h)![0];
+    expect(a).toContain('href="/artists/swati-12345678"');
+    expect(a).toMatch(/aria-label="View [^"]+&#x27;s profile"/);
+    expect(a).toContain('title="View profile"');
+    expect(h.indexOf('cd-profile')).toBeGreaterThan(h.indexOf('cd-icons'));
+    expect(html()).not.toContain('cd-profile');
+  });
+});

@@ -9,6 +9,7 @@ import { ContactArtistButton } from './ContactArtistButton';
 import { ProductImage } from './ProductImage';
 import { StallAwning } from './StallAwning';
 import { ProductPlaceholder } from './ProductPlaceholder';
+import { isHostOnly, listingNoun, profileEyebrow, sharedTopic } from '@/lib/artist-profile';
 
 
 const Pin = () => <svg className="ah-ico" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /><circle cx="12" cy="9.5" r="2.4" fill="currentColor" /></svg>;
@@ -27,21 +28,26 @@ export function ArtistHero({ a, share }: { a: Artist; share?: React.ReactNode })
   const category = sharedCategory(a.products);
   const n = a.products.length;
   const first = a.products.slice(0, 3);
+  const hosted = a.workshops ?? [];
+  const hostOnly = isHostOnly(a); // teaches or hosts only: no pieces to show, so no product row and no product contact sheet
+  const topic = hostOnly ? sharedTopic(hosted) : undefined;
   return (
     <section className="artist-hero" aria-label={`About ${a.name}`}>
       <div className="ah-awning" aria-hidden="true"><StallAwning /></div>
       <div className="ah-center">
         <div className="ah-avatar" aria-hidden="true"><ArtistAvatar key={a.logoUrl ?? 'none'} src={a.logoUrl} initial={a.name.trim().charAt(0).toUpperCase()} /></div>
-        <span className="eyebrow">MEET THE MAKER</span>
+        <span className="eyebrow">{profileEyebrow(a)}</span>
         <h1>{a.name}</h1>
         <div className="ah-chips">
           {a.city && <span className="ah-chip"><Pin />{a.city}</span>}
           {category && <span className="ah-chip">{category}</span>}
-          <span className="ah-chip"><Tag />{n} {n === 1 ? 'piece' : 'pieces'}</span>
+          {topic && <span className="ah-chip">{topic}</span>}
+          {n > 0 && <span className="ah-chip"><Tag />{n} {n === 1 ? 'piece' : 'pieces'}</span>}
+          {hosted.length > 0 && <span className="ah-chip">{hosted.length} {listingNoun(hosted)}</span>}
         </div>
         {a.bio && <p className="ah-bio">{a.bio}</p>}
         <div className="ah-acts">
-          <ContactArtistButton product={a.products[0]} artistLevel />
+          {!hostOnly && <ContactArtistButton product={a.products[0]} artistLevel />}
           {a.instagram && <a className="button ah-ig" href={instagramUrl(a.instagram)} target="_blank" rel="noreferrer">Instagram ↗</a>}
           {share}
         </div>
@@ -53,7 +59,7 @@ export function ArtistHero({ a, share }: { a: Artist; share?: React.ReactNode })
           </ul>
         )}
       </div>
-      <div className="ah-row" data-count={first.length}>
+      {first.length > 0 && <div className="ah-row" data-count={first.length}>
         {first.map(p => (
           <Link key={p.id} className="ah-card" href={`/products/${productSlug(p)}`}>
             <span className="ah-photo"><ProductImage src={p.imageUrl} alt="" fallback={<ProductPlaceholder />} /></span>
@@ -61,7 +67,7 @@ export function ArtistHero({ a, share }: { a: Artist; share?: React.ReactNode })
             <span className="ah-ptag"><span className="ah-hole" aria-hidden="true" />{money(p.pricePaise)}</span>
           </Link>
         ))}
-      </div>
+      </div>}
     </section>
   );
 }

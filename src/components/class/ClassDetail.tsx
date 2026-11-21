@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { HostProfileLink } from './HostProfileLink';
 import { InstructorBio } from './InstructorBio';
 import { contactChannels, describeNext, artKind, nextSession, upcomingSessions, type Channel } from '@/lib/class-page';
 import { formatDay } from '@/lib/format';
@@ -58,10 +59,10 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
             <div className="cd-avatar" aria-hidden="true">{hostPhoto ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={hostPhoto} alt="" referrerPolicy="no-referrer" /> : initials(w.host)}</div>
             <div>
               <span className="cd-label">YOUR INSTRUCTOR</span>
-              <span className="cd-name">{w.host}</span>
+              <span className="cd-name">{w.hostSlug ? <Link href={`/artists/${w.hostSlug}`}>{w.host}</Link> : w.host}</span>
               <InstructorBio experience={w.experience} certifications={w.certifications} who="instructor" />
-              {icons.length > 0 && (
-                <span className="cd-icons">{icons.map(c => <WorkshopTrackedLink key={c.kind} workshopId={w.id} method={c.kind} placement="page" category={w.topic?.name} contentType={gaWorkshopType(w)} href={c.href} aria-label={c.short} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} /></WorkshopTrackedLink>)}</span>
+              {(icons.length > 0 || w.hostSlug) && (
+                <span className="cd-icons">{w.hostSlug && <HostProfileLink slug={w.hostSlug} host={w.host} />}{icons.map(c => <WorkshopTrackedLink key={c.kind} workshopId={w.id} method={c.kind} placement="page" category={w.topic?.name} contentType={gaWorkshopType(w)} href={c.href} aria-label={c.short} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} /></WorkshopTrackedLink>)}</span>
               )}
             </div>
           </div>

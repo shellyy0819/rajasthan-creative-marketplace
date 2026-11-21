@@ -21,7 +21,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...['/about', '/blogs', '/contact', '/help'].map(path => ({ url: abs(path), changeFrequency: 'monthly' as const, priority: 0.4 })),
     ...cities.map(c => ({ url: abs(`/cities/${c.slug}`), changeFrequency: 'weekly' as const, priority: 0.7 })),
     ...products.map(p => ({ url: abs(`/products/${productSlug(p)}`), changeFrequency: 'weekly' as const, priority: 0.8 })),
-    ...[...new Set(products.map(p => p.sellerSlug).filter((x): x is string => !!x))].map(slug => ({ url: abs(`/artists/${slug}`), changeFrequency: 'weekly' as const, priority: 0.6 })),
+    // One profile per person: makers with products and hosts with a published class or workshop.
+    ...[...new Set([...products.map(p => p.sellerSlug), ...workshops.map(w => w.hostSlug)].filter((x): x is string => !!x))].map(slug => ({ url: abs(`/artists/${slug}`), changeFrequency: 'weekly' as const, priority: 0.6 })),
     ...workshops.map(w => ({ url: abs(`/workshops/${workshopSlug(w)}`), changeFrequency: 'weekly' as const, priority: 0.8 })),
   ];
 }

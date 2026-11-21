@@ -20,6 +20,8 @@ export type Workshop = {
   city: string | null; cityId: number | null; citySlug: string | null; cityState?: string;
   venue: string | null; date: string; time: string; endsOn: string | null; seats: number | null; booked: number;
   host: string; description: string; status: string; hostId?: string;
+  /** The host's public profile page, /artists/<hostSlug>. Only for a published listing whose host has an account. */
+  hostSlug?: string;
   platform: string | null; schedule: Schedule | null; languages: string[]; level: Level | null;
   experience: string | null; certifications: string | null; freeTrial: boolean; freeTrialDays: number | null;
   makes: { title: string; text: string }[]; included: string[]; bring: string[]; minAge: number | null;

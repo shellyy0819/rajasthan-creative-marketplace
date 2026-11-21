@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { HostProfileLink } from './HostProfileLink';
 import { InstructorBio } from './InstructorBio';
 import { ReserveButton } from '@/components/ReserveButton';
 import { clock12, contactChannels, artKind, startsIn } from '@/lib/class-page';
@@ -51,9 +52,9 @@ export function CraftDetail({ w, ended, now = new Date(), share }: { w: Workshop
             <div className="cd-avatar" aria-hidden="true">{initials(w.host)}</div>
             <div>
               <span className="cd-label">YOUR HOST</span>
-              <span className="cd-name">{w.host}</span>
+              <span className="cd-name">{w.hostSlug ? <Link href={`/artists/${w.hostSlug}`}>{w.host}</Link> : w.host}</span>
               <InstructorBio experience={w.experience} certifications={w.certifications} who="host" />
-              {ch.icons.length > 0 && <span className="cd-icons cr-icons">{ch.icons.map(c => <WorkshopTrackedLink key={c.kind} workshopId={w.id} method={c.kind} placement="page" category={w.topic?.name} contentType={gaWorkshopType(w)} href={c.href} aria-label={c.short} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} /></WorkshopTrackedLink>)}</span>}
+              {(ch.icons.length > 0 || w.hostSlug) && <span className="cd-icons cr-icons">{w.hostSlug && <HostProfileLink slug={w.hostSlug} host={w.host} />}{ch.icons.map(c => <WorkshopTrackedLink key={c.kind} workshopId={w.id} method={c.kind} placement="page" category={w.topic?.name} contentType={gaWorkshopType(w)} href={c.href} aria-label={c.short} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} /></WorkshopTrackedLink>)}</span>}
             </div>
           </div>
 
