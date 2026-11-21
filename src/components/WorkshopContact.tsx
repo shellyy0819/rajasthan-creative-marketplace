@@ -15,8 +15,8 @@ export function WorkshopContact({ w, workshopId, category, contentType, placemen
   if (!w.whatsapp && !w.instagram && !site && !w.publicPhone) return null;
   return (
     <span className="ws-contact">
-      {w.publicPhone && <WorkshopTrackedLink {...t} method="call" className="button ws-icon ws-call" href={`tel:${w.publicPhone}`} aria-label={`Call ${w.publicPhone}`} title={`Call ${w.publicPhone}`}><ChannelIcon kind="call" size={26} /></WorkshopTrackedLink>}
-      {/* Call, WhatsApp and Instagram are icon buttons (the name is the label for screen readers and the tooltip); Website keeps its word. */}
+      {w.publicPhone && <WorkshopTrackedLink {...t} method="call" className="button ws-icon ws-call" href={`tel:${w.publicPhone}`} aria-label={`Call ${w.publicPhone}`} title={`Call ${w.publicPhone}`}><span className="ws-call-disc"><ChannelIcon kind="call" size={14} /></span></WorkshopTrackedLink>}
+      {/* Call, WhatsApp and Instagram are icon buttons (Call is the same round phone button as on the product cards) (the name is the label for screen readers and the tooltip); Website keeps its word. */}
       {w.whatsapp && <WorkshopTrackedLink {...t} method="whatsapp" className="button ws-icon ws-whatsapp" href={whatsappChat(w.whatsapp)} target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp" title="Chat on WhatsApp"><ChannelIcon kind="whatsapp" size={26} /></WorkshopTrackedLink>}
       {w.instagram && <WorkshopTrackedLink {...t} method="instagram" className="button ws-icon ws-insta" href={instagramUrl(w.instagram)} target="_blank" rel="noopener noreferrer" aria-label="Open the instructor's Instagram" title="Open the instructor's Instagram"><ChannelIcon kind="instagram" size={26} /></WorkshopTrackedLink>}
       {site && <WorkshopTrackedLink {...t} method="website" className="button" href={site} target="_blank" rel="noopener noreferrer">Website</WorkshopTrackedLink>}

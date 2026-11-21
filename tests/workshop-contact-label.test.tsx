@@ -31,6 +31,7 @@ describe('instructor Instagram and WhatsApp buttons', () => {
     expect(html).toContain('ws-icon ws-call');
     expect(html).toContain('aria-label="Call +919989898999"');
     expect(html).toContain('href="tel:+919989898999"');
+    expect(html).toContain('ws-call-disc'); // the product card's round phone button
     expect(html).toContain('stroke-width="1.8"'); // the same phone mark the product and class pages use (shared BrandIcon)
     expect(html).toContain('>Website<');
   });

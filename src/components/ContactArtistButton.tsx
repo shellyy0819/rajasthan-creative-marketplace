@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import { CallMark } from '@/components/BrandIcon';
 import { gaContactSeller } from '@/lib/ga-events';
 import { instagramHandle, instagramUrl, youtubeUrl } from '@/lib/social';
 import { sendEvent, type MethodEvent } from '@/lib/track';
@@ -9,7 +10,6 @@ import type { Product } from '@/lib/types';
 
 const ICONS = {
   phone: <path d="M7 3h10v18H7zM10 18h4" />,
-  handset: <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />,
   mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></>,
   ig: <><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="18" cy="6" r="1" /></>,
   yt: <><rect x="2" y="5" width="20" height="14" rx="4" /><path d="m10 9 5 3-5 3V9Z" /></>,
@@ -62,7 +62,7 @@ export function ContactArtistButton({ product: p, artistLevel = false, iconOnly 
       <button ref={trigger} type="button" className={`add-btn contact-btn${iconOnly ? ' contact-icon-btn' : ''}`} aria-haspopup="dialog" {...(iconOnly ? { 'aria-label': 'Contact artist', title: 'Contact artist' } : {})} onClick={() => {
         setOpen(true);
         if (artistLevel) sendEvent('contact', p.id, 'artist'); else sendEvent('contact', p.id); // opening the sheet is not yet a contact: GA hears only about the method clicked
-      }}>{iconOnly ? <svg className="contact-handset" viewBox="0 0 24 24" aria-hidden="true">{ICONS.handset}</svg> : 'Contact artist'}</button>
+      }}>{iconOnly ? <CallMark className="contact-handset" /> : 'Contact artist'}</button>
       {open && createPortal(
         <div className="contact-backdrop admin-modal" onClick={e => { if (e.target === e.currentTarget) close(); }}>
           <div role="dialog" aria-modal="true" aria-labelledby={`contact-title-${p.id}`} className="contact-card">
