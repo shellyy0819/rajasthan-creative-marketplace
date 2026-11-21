@@ -9,6 +9,8 @@ import { LEVEL_LABEL } from '@/lib/workshop-support';
 import { ChannelIcon } from './ChannelIcon';
 import { ClassIllustration } from './ClassIllustration';
 import { PhotoMosaic } from './PhotoMosaic';
+import { WorkshopTrackedLink } from '../WorkshopTrackedLink';
+import { gaWorkshopType } from '@/lib/ga-events';
 import '@/components/WorkshopListings.css';
 import './ClassDetail.css';
 import './CraftDetail.css';
@@ -51,7 +53,7 @@ export function CraftDetail({ w, ended, now = new Date(), share }: { w: Workshop
               <span className="cd-label">YOUR HOST</span>
               <span className="cd-name">{w.host}</span>
               <InstructorBio experience={w.experience} certifications={w.certifications} who="host" />
-              {ch.icons.length > 0 && <span className="cd-icons cr-icons">{ch.icons.map(c => <a key={c.kind} href={c.href} aria-label={c.short} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} /></a>)}</span>}
+              {ch.icons.length > 0 && <span className="cd-icons cr-icons">{ch.icons.map(c => <WorkshopTrackedLink key={c.kind} workshopId={w.id} method={c.kind} placement="page" category={w.topic?.name} contentType={gaWorkshopType(w)} href={c.href} aria-label={c.short} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} /></WorkshopTrackedLink>)}</span>}
             </div>
           </div>
 
@@ -77,7 +79,7 @@ export function CraftDetail({ w, ended, now = new Date(), share }: { w: Workshop
               )}
               <div className="cr-price">{free ? <b>Free</b> : <><b>{money(w.pricePaise)}</b><span>per person</span></>}</div>
               {bookable ? <div className="cr-reserve"><ReserveButton workshop={w} /></div>
-                : ch.primary && <a className="button cd-btn primary cr-reserve" href={ch.primary.href} target="_blank" rel="noopener noreferrer"><ChannelIcon kind={ch.primary.kind} />{ch.primary.label}</a>}
+                : ch.primary && <WorkshopTrackedLink workshopId={w.id} method={ch.primary.kind} placement="page" category={w.topic?.name} contentType={gaWorkshopType(w)} className="button cd-btn primary cr-reserve" href={ch.primary.href} target="_blank" rel="noopener noreferrer"><ChannelIcon kind={ch.primary.kind} />{ch.primary.label}</WorkshopTrackedLink>}
             </div>
           )}
           {!ended && <p className="cd-note cr-note">No payment is collected on Craftofy. You reserve here, and the host confirms and takes payment.</p>}

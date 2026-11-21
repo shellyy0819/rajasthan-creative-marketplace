@@ -4,6 +4,7 @@ import { keepPreviousData, useInfiniteQuery, type InfiniteData } from '@tanstack
 import type { Product, Workshop } from '@/lib/types';
 import { DEFAULT_CATEGORIES, SHOP_PAGE_SIZE } from '@/lib/catalog-shared';
 import { cityLabeller } from '@/lib/city-label';
+import { gaWorkshopList } from '@/lib/ga-events';
 import { dataKey, useDataVersion } from './DataVersion';
 import { ProductGrid } from './ProductGrid';
 import { PageLoader } from './PageLoader';
@@ -84,6 +85,20 @@ export function LiveCatalog(props: Props) {
   const total = pages[pages.length - 1].total;
   const loading = isFetching && !isFetchingNextPage;
   const error = queryError ? (queryError.message || 'Could not load results. Please try again.') : '';
+
+  // Workshops: report the list when it first shows and again when a filter or the search changes (once its results are in).
+  const reported = useRef<{ applied: string; filters: Record<string, string> } | null>(null);
+  useEffect(() => {
+    if (kind !== 'workshops' || loading || reported.current?.applied === applied) return;
+    const p = new URLSearchParams(applied);
+    const filters: Record<string, string> = {};
+    if (p.get('city')) filters.city = p.get('city')!;
+    if (p.get('type')) filters.price_type = p.get('type')!;
+    if (p.get('mode')) filters.format = p.get('mode')!;
+    if (p.get('q')) filters.q = p.get('q')!;
+    gaWorkshopList({ filters, previous: reported.current?.filters, count: items.length });
+    reported.current = { applied, filters };
+  }, [kind, loading, applied, items.length]);
 
   // Scrolling near the end of the grid loads the next page by itself; the "Show more" button does the same for keyboard users.
   const sentinel = useRef<HTMLDivElement>(null);

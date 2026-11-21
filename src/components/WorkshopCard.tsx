@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import type { Workshop } from '@/lib/types';
 import { money } from '@/lib/money';
 import { formatDay } from '@/lib/format';
@@ -10,6 +9,8 @@ import { isYogaListing } from '@/lib/class-page';
 import { ReserveButton } from './ReserveButton';
 import './WorkshopListings.css';
 import { WorkshopContact } from './WorkshopContact';
+import { WorkshopTitleLink } from './WorkshopTitleLink';
+import { gaWorkshopType } from '@/lib/ga-events';
 
 export function WorkshopCard({ w }: { w: Workshop }) {
   const { day, month } = formatDay(w.date);
@@ -43,7 +44,7 @@ export function WorkshopCard({ w }: { w: Workshop }) {
           )
           : <div className="date-tile">{isClass ? <><b>Online</b><span>{w.platform}</span></> : <><b>{day}</b><span>{month} · {w.city ?? 'Online'}</span></>}</div>}
       <div>
-        <h3><Link href={`/workshops/${workshopSlug(w)}`}>{w.title}</Link></h3>
+        <h3><WorkshopTitleLink href={`/workshops/${workshopSlug(w)}`} workshopId={w.id} category={w.topic?.name} contentType={gaWorkshopType(w)}>{w.title}</WorkshopTitleLink></h3>
         {isClass
           ? <p>{w.schedule ? describeSchedule(w.schedule) : 'Online class'}<br />{w.host}</p>
           : <p>{w.venue} · <time dateTime={`${w.date}T${w.time}+05:30`}>{w.time}</time><br />{w.host}{bookable ? ` · ${left} seats left` : ''}</p>}
@@ -55,7 +56,7 @@ export function WorkshopCard({ w }: { w: Workshop }) {
           </p>
         )}
       </div>
-      <div className="workshop-price"><b>{price}</b>{bookable ? <ReserveButton workshop={w} /> : <WorkshopContact w={w} />}</div>
+      <div className="workshop-price"><b>{price}</b>{bookable ? <ReserveButton workshop={w} /> : <WorkshopContact w={w} workshopId={w.id} category={w.topic?.name} contentType={gaWorkshopType(w)} placement="card" />}</div>
     </article>
   );
 }

@@ -10,6 +10,8 @@ import { pageMetadata } from '@/lib/meta';
 import { money } from '@/lib/money';
 import { isCurrent, summarizePrices } from '@/lib/workshop-listing';
 import { ClassDetail } from '@/components/class/ClassDetail';
+import { TrackWorkshopView } from '@/components/TrackWorkshopView';
+import { gaWorkshopType } from '@/lib/ga-events';
 import { CraftDetail } from '@/components/class/CraftDetail';
 
 export const dynamic = 'force-dynamic';
@@ -43,6 +45,7 @@ export default async function WorkshopPage({ params }: Props) {
     <>
       <JsonLd data={[workshopJsonLd(w), breadcrumbJsonLd(crumbs)]} />
       <Breadcrumbs items={crumbs} />
+      <TrackWorkshopView workshopId={w.id} category={w.topic?.name} contentType={gaWorkshopType(w)} />
       {isClass ? <ClassDetail w={w} ended={ended} hostPhoto={await getWorkshopHostPhoto(w.id)} share={share} /> : <CraftDetail w={w} ended={ended} share={share} />}
     </>
   );

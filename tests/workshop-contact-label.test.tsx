@@ -4,7 +4,7 @@ import { WorkshopContact } from '@/components/WorkshopContact';
 
 describe('instructor Instagram button', () => {
   it('shows the Instagram icon and "Open Insta", and opens in a new tab', () => {
-    const html = renderToStaticMarkup(<WorkshopContact w={{ whatsapp: null, instagram: 'swatiyoga', website: null }} />);
+    const html = renderToStaticMarkup(<WorkshopContact w={{ whatsapp: null, instagram: 'swatiyoga', website: null }} workshopId="w1" contentType="class" placement="card" />);
     expect(html).toContain('Open Insta');
     expect(html).toContain('instagram-icon');
     expect(html).toContain('aria-hidden="true"');

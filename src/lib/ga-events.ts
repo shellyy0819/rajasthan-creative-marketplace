@@ -1,8 +1,8 @@
 import { gaEvent } from './analytics';
 
-export type GaContactMethod = 'whatsapp' | 'call' | 'email' | 'instagram' | 'youtube' | 'copy';
+export type GaContactMethod = 'whatsapp' | 'call' | 'email' | 'instagram' | 'youtube' | 'website' | 'copy';
 const METHOD_EVENT: Partial<Record<GaContactMethod, string>> = {
-  whatsapp: 'contact_whatsapp', call: 'contact_call', email: 'contact_email', instagram: 'contact_instagram', youtube: 'contact_youtube',
+  whatsapp: 'contact_whatsapp', call: 'contact_call', email: 'contact_email', instagram: 'contact_instagram', youtube: 'contact_youtube', website: 'contact_website',
 };
 
 /** The public seller handle (artist slug) is the `seller_id`: internal user ids never leave the server.
@@ -57,4 +57,55 @@ export function gaViewCategoryList(categorySlug: string, page: number): void {
 /** GA4: a product was opened from a category page's list. */
 export function gaSelectItem(itemId: string, categorySlug: string): void {
   gaEvent('select_item', { item_id: itemId, item_list_id: categorySlug, item_list_name: categorySlug });
+}
+
+// ---- Workshops and online classes -------------------------------------------------------------------------------------------------------
+// Nothing private is ever sent (no host email, phone or meeting link). `workshop_id` is the listing's public id (w12).
+
+/** `class` for an online class, `workshop` for everything else (workshops, meetups, pop-ups, markets). */
+export const gaWorkshopType = (w: { kind: string; mode: string }): 'class' | 'workshop' => (w.kind === 'class' || w.mode === 'online' ? 'class' : 'workshop');
+
+/** Where on the page a workshop contact button sits: a list `card`, the detail `page`, or the phone's fixed bottom `bar`. */
+export type WorkshopPlacement = 'card' | 'page' | 'bar';
+
+/**
+ * GA4: the workshop list was shown (first load, and again after each filter or search). `filters` holds only the ones in use: city, price_type (FREE or PAID),
+ * format (in_person or online), q. `filter_change` follows when a filter other than the search text changed, and `search` when the search text did.
+ */
+export function gaWorkshopList(p: { filters: Record<string, string>; previous?: Record<string, string>; count: number }): void {
+  const { q, ...rest } = p.filters;
+  gaEvent('view_item_list', { item_list_id: 'workshops', item_list_name: 'workshops', item_count: p.count, ...rest });
+  if (!p.previous) { if (q) gaEvent('search', { search_term: q, item_list_id: 'workshops' }); return; }
+  const { q: before, ...restBefore } = p.previous;
+  const keys = new Set([...Object.keys(rest), ...Object.keys(restBefore)]);
+  if ([...keys].some(k => rest[k] !== restBefore[k])) gaEvent('filter_change', { item_list_id: 'workshops', ...rest });
+  if (q && q !== before) gaEvent('search', { search_term: q, item_list_id: 'workshops' });
+}
+
+/** GA4: a workshop was opened from the list. */
+export function gaSelectWorkshop(p: { workshopId: string; category?: string; contentType: 'class' | 'workshop' }): void {
+  gaEvent('select_item', { item_id: p.workshopId, item_list_id: 'workshops', item_list_name: 'workshops', content_type: p.contentType, ...(p.category ? { item_category: p.category } : {}) });
+}
+
+/** GA4: a workshop page was shown. */
+export function gaViewWorkshop(p: { workshopId: string; category?: string; contentType: 'class' | 'workshop' }): void {
+  gaEvent('view_item', { item_id: p.workshopId, content_type: p.contentType, ...(p.category ? { item_category: p.category } : {}) });
+}
+
+/** GA4: a real contact action on a workshop (WhatsApp, Call, Instagram, Website): `contact_seller` plus the method's own event, like products. */
+export function gaWorkshopContact(p: { workshopId: string; method: GaContactMethod; placement: WorkshopPlacement; category?: string; contentType: 'class' | 'workshop' }): void {
+  const params = { workshop_id: p.workshopId, contact_method: p.method, content_type: p.contentType, placement: p.placement, ...(p.category ? { item_category: p.category } : {}) };
+  gaEvent('contact_seller', params);
+  const specific = METHOD_EVENT[p.method];
+  if (specific) gaEvent(specific, params);
+}
+
+/** GA4: the booking funnel. `reserve_open` when Reserve spot is pressed, `reserve_complete` once the reservation is saved (seats, free or paid), `reserve_error` when it is refused. */
+export function gaReserve(step: 'open' | 'complete' | 'error', p: { workshopId: string; seats?: number; free?: boolean }): void {
+  gaEvent(`reserve_${step}`, { workshop_id: p.workshopId, ...(p.seats !== undefined ? { seats: p.seats } : {}), ...(p.free !== undefined ? { price_type: p.free ? 'free' : 'paid' } : {}) });
+}
+
+/** GA4: the host-a-workshop form: opened, moved on to a later step (`step` counts from 1), submitted (accepted by the server). `path` is class or event. */
+export function gaHostForm(step: 'open' | 'step' | 'submit', p: { path: string; step?: number }): void {
+  gaEvent(`host_form_${step}`, { form_path: p.path, ...(p.step !== undefined ? { step_number: p.step } : {}) });
 }

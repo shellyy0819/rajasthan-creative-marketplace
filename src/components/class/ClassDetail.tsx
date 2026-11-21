@@ -9,14 +9,18 @@ import { LEVEL_LABEL } from '@/lib/workshop-support';
 import { ChannelIcon } from './ChannelIcon';
 import { ClassIllustration } from './ClassIllustration';
 import { PhotoMosaic } from './PhotoMosaic';
+import { WorkshopTrackedLink } from '../WorkshopTrackedLink';
+import { gaWorkshopType, type WorkshopPlacement } from '@/lib/ga-events';
 import '@/components/WorkshopListings.css';
 import './ClassDetail.css';
 
 const date = (iso: string) => { const d = formatDay(iso); return `${d.day} ${d.month} ${d.year}`; };
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]!.toUpperCase()).join('') || '·';
 
-function Button({ c, outline }: { c: Channel; outline?: boolean }) {
-  return <a className={`button cd-btn${outline ? '' : ' primary'}`} href={c.href} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} />{c.label}</a>;
+function Button({ c, outline, w, placement }: { c: Channel; outline?: boolean; w: Workshop; placement: WorkshopPlacement }) {
+  return (
+    <WorkshopTrackedLink workshopId={w.id} method={c.kind} placement={placement} category={w.topic?.name} contentType={gaWorkshopType(w)} className={`button cd-btn${outline ? '' : ' primary'}`} href={c.href} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} />{c.label}</WorkshopTrackedLink>
+  );
 }
 
 /** The detail page of an online class: photos, who teaches it, when it meets, what it costs and how to reach the host. Public details only. */
@@ -57,7 +61,7 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
               <span className="cd-name">{w.host}</span>
               <InstructorBio experience={w.experience} certifications={w.certifications} who="instructor" />
               {icons.length > 0 && (
-                <span className="cd-icons">{icons.map(c => <a key={c.kind} href={c.href} aria-label={c.short} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} /></a>)}</span>
+                <span className="cd-icons">{icons.map(c => <WorkshopTrackedLink key={c.kind} workshopId={w.id} method={c.kind} placement="page" category={w.topic?.name} contentType={gaWorkshopType(w)} href={c.href} aria-label={c.short} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} /></WorkshopTrackedLink>)}</span>
               )}
             </div>
           </div>
@@ -84,7 +88,7 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
           </div>
           {((!ended && ch.primary) || share) && (
             <div className={`cd-actions${!ended && ch.primary ? ' cd-actions-has-bar' : ''}`}>
-              {!ended && ch.primary && <div className="cd-cta"><Button c={ch.primary} />{ch.secondary.map(c => <Button key={c.kind} c={c} outline />)}</div>}
+              {!ended && ch.primary && <div className="cd-cta"><Button c={ch.primary} w={w} placement="page" />{ch.secondary.map(c => <Button key={c.kind} c={c} outline w={w} placement="page" />)}</div>}
               {share && <div className="share-slot">{share}</div>}
             </div>
           )}
@@ -158,7 +162,7 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
               <p>{free ? 'This class is free.' : w.prices.length ? `Plans from ${money(Math.min(...w.prices.map(p => p.amountPaise)))}.` : `${money(w.pricePaise)} a class.`}{trial ? ' Ask the host about the free trial.' : ''}</p>
             </div>
             <div className="cd-aside-row">
-              <Button c={ch.primary} />
+              <Button c={ch.primary} w={w} placement="bar" />
               {share && <div className="share-slot">{share}</div>}
             </div>
           </aside>
