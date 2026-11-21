@@ -286,3 +286,14 @@ describe('the green tags line up on phones (source contract)', () => {
     expect(css).toMatch(/\.cd-steps \{ grid-template-columns: minmax\(0, 1fr\); gap: 12px; \}/); // one step per row, so the numbers share a column at every phone width
   });
 });
+
+describe('the Where and Next class icons on phones (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('sit at the card\'s left edge, 24px, with no circle, level with the text of the cards below, and only on rows that have an icon (the date tile row is untouched)', () => {
+    expect(css).toMatch(/@media \(max-width: 700px\) \{[^@]*\.cd-row:has\(> \.cd-ico\) \{ grid-template-columns: 24px minmax\(0, 1fr\); gap: 14px; padding: 14px 16px; \}/);
+    expect(css).toMatch(/\.cd-row:has\(> \.cd-ico\) > \.cd-ico \{ width: 24px; height: 24px; background: none; border-radius: 0; justify-self: start; \}/);
+  });
+  it('the instructor row keeps its own phone layout (logo centred above)', () => {
+    expect(css).toMatch(/\.cd-teacher \{ grid-template-columns: minmax\(0, 1fr\); gap: 12px; \}/);
+  });
+});

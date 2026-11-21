@@ -132,6 +132,10 @@
   .cd-steps li { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: start; gap: 14px; padding: 16px; }
   .cd-steps strong { line-height: 32px; margin-bottom: 0; }
   /* The instructor's logo sits centred above their name and details, so the text gets the whole card width instead of a narrow strip beside a lone circle. */
+  /* Rows with an icon (Where, Next class; the in-person page's date tile row is left alone): the icon sits at the left edge of the card (no circle around it), in line with the text of the cards below, and the text gets the room the circle used. */
+  .cd-row:has(> .cd-ico) { grid-template-columns: 24px minmax(0, 1fr); gap: 14px; padding: 14px 16px; }
+  .cd-row:has(> .cd-ico) > .cd-ico { width: 24px; height: 24px; background: none; border-radius: 0; justify-self: start; }
+  .cd-row:has(> .cd-ico) > .cd-ico svg { width: 24px; height: 24px; }
   .cd-teacher { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .cd-teacher > .cd-avatar { justify-self: center; width: 56px; height: 56px; }
 }
