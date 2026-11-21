@@ -5,7 +5,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 const nav = vi.hoisted(() => ({ path: '/workshops' }));
 vi.mock('next/navigation', () => ({ usePathname: () => nav.path }));
-import Loading from '@/app/loading';
+import WorkshopsLoading from '@/app/workshops/loading';
 import ShopLoading from '@/app/shop/loading';
 import { readCss } from './helpers/css';
 
@@ -13,17 +13,48 @@ afterEach(cleanup);
 const css = readCss();
 
 describe('route loading state', () => {
-  it('shows nothing on the shop, where the product grid fills in on its own', () => {
-    nav.path = '/shop';
-    const { container } = render(<Loading />);
-    expect(container.innerHTML).toBe('');
-    nav.path = '/workshops';
+  it('has no site-wide spinner: a page without its own loading state keeps the old page on screen until the new one is ready (source contract)', () => {
+    expect(fs.existsSync('src/app/loading.tsx')).toBe(false);
   });
-  it('shows a status spinner while a page streams in, without blocking clicks', () => {
-    render(<Loading />);
-    const s = screen.getByRole('status');
-    expect(s.textContent).toContain('Loading');
-    expect(s.className).not.toContain('blocking');
+  it('the shop and the workshops page each have their own loading state with the static top of the page', () => {
+    expect(fs.existsSync('src/app/shop/loading.tsx')).toBe(true);
+    expect(fs.existsSync('src/app/workshops/loading.tsx')).toBe(true);
+  });
+  it('the list of workshops shows no spinner while a search loads: the old results are only dimmed (source contract)', () => {
+    const src = fs.readFileSync('src/components/LiveCatalog.tsx', 'utf8');
+    expect(src).not.toContain('PageLoader');
+    expect(src).toContain("opacity: loading ? 0.6 : 1");
+  });
+});
+
+describe('the workshops loading state', () => {
+  it('shows the static top of the page at once: breadcrumbs, eyebrow, title, intro and the line about what can be listed', () => {
+    render(<WorkshopsLoading />);
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toContain('Workshops');
+    expect(screen.getByRole('heading', { level: 1, name: 'Creative workshops & pop-ups' })).toBeTruthy();
+    expect(screen.getByText('OUT OF THE SCROLL, INTO THE STUDIO')).toBeTruthy();
+    expect(screen.getByText(/Hands-on workshops, creative meetups and pop-ups hosted by local studios/)).toBeTruthy();
+    expect(screen.getByText(/^You can list /)).toBeTruthy();
+  });
+  it('holds the button, the filters and four list rows as placeholders, with no spinner', () => {
+    const { container } = render(<WorkshopsLoading />);
+    expect(container.querySelector('.ws-head-cta .skeleton-button')).toBeTruthy();
+    expect(container.querySelector('.skeleton-filters')).toBeTruthy();
+    expect(container.querySelectorAll('.workshop-list .skeleton-workshop')).toHaveLength(4);
+    expect(container.querySelector('.rr-page-loader')).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe('Loading workshops');
+  });
+  it('matches the real page: the same heading structure and copy as app/workshops/page.tsx (source contract)', () => {
+    const page = fs.readFileSync('src/app/workshops/page.tsx', 'utf8');
+    const loading = fs.readFileSync('src/app/workshops/loading.tsx', 'utf8');
+    for (const marker of ['<div className="page-head ws-head">', 'OUT OF THE SCROLL, INTO THE STUDIO', '<h1>Creative workshops &amp; pop-ups</h1>', 'Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.', '<p className="ws-supports">{supportLine()}</p>']) {
+      expect(page).toContain(marker);
+      expect(loading).toContain(marker);
+    }
+  });
+  it('the placeholders have sizes in the stylesheet', () => {
+    expect(css).toMatch(/\.skeleton-button\s*\{[^}]*height:\s*44px/);
+    expect(css).toMatch(/\.skeleton-workshop\s*\{[^}]*height:\s*120px/);
   });
 });
 
