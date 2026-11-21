@@ -104,6 +104,8 @@ describe('onboarding step 2 errors', () => {
     const f = new File(['x'], 'logo.png', { type: 'image/png' });
     fireEvent.change(screen.getByLabelText('Upload photo'), { target: { files: [f] } });
     expect(await screen.findByText('The photo could not be uploaded.')).toBeTruthy();
+    // the error shows one render before the form learns the upload ended, so wait until Finish is usable
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Finish and add my first product' }) as HTMLButtonElement).disabled).toBe(false));
     finish();
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('logoUrl');
