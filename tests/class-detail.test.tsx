@@ -297,3 +297,12 @@ describe('the Where and Next class icons on phones (source contract)', () => {
     expect(css).toMatch(/\.cd-teacher \{ grid-template-columns: minmax\(0, 1fr\); gap: 12px; \}/);
   });
 });
+
+describe('the green tags line up on laptops too (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('the upcoming cards, the Free card and the step cards have the same 16px side padding', () => {
+    expect(css).toMatch(/\.cd-up-item \{[^}]*padding: 16px;/);
+    expect(css).toMatch(/\.cd-free \{[^}]*padding: 16px;/);
+    expect(css).toMatch(/\.cd-steps li \{[^}]*padding: 22px 16px;/);
+  });
+});
