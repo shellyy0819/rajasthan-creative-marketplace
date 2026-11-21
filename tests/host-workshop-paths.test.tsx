@@ -13,6 +13,8 @@ import { hostPath, wantsHostForm } from '@/lib/host-link';
 const fetchMock = vi.fn();
 const topics = [{ id: 1, name: 'Yoga' }, { id: 2, name: 'Crochet' }];
 const val = (label: RegExp | string, v: string) => fireEvent.change(screen.getByLabelText(label), { target: { value: v } });
+/** Type into one of the formatting editors (Experience, Certifications): they are text boxes you type in, not inputs with a value. */
+const typeRich = (label: RegExp, text: string) => { const box = screen.getByRole('textbox', { name: label }); box.textContent = text; fireEvent.input(box); };
 const next = () => fireEvent.click(screen.getByRole('button', { name: /^next/i }));
 const stepText = () => screen.getByText(/^Step \d of 3$/).textContent;
 const openClass = () => { render(<HostWorkshopButton path="class" topics={topics} />); fireEvent.click(screen.getByRole('button', { name: /host a workshop/i })); };
@@ -106,7 +108,10 @@ describe('step 2 and 3 on the online class path', () => {
     openClass(); classStep1(); next(); classStep2(); next();
     expect(stepText()).toBe('Step 3 of 3');
     expect(screen.getByRole('combobox', { name: /languages/i })).toBeTruthy();
-    for (const l of [/^level/i, /experience/i, /certifications/i, /whatsapp/i]) expect(screen.getByLabelText(l)).toBeTruthy();
+    for (const l of [/^level/i, /whatsapp/i]) expect(screen.getByLabelText(l)).toBeTruthy();
+    // Experience and Certifications are text editors (a labelled text box with a formatting toolbar), not plain fields.
+    for (const l of [/experience/i, /certifications/i]) expect(screen.getByRole('textbox', { name: l })).toBeTruthy();
+    expect(screen.getAllByRole('toolbar')).toHaveLength(2);
   });
   it('sends the class payload: mode online, kind class, schedule, price plans in paise, languages, level, whatsapp, topic', async () => {
     fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'asha@example.com', status: 'pending' }) });
@@ -119,7 +124,7 @@ describe('step 2 and 3 on the online class path', () => {
     next();
     val(/host, studio/i, 'Asha Yoga'); val(/your name/i, 'Asha Rao'); val(/phone number/i, '9989898999'); val(/^email/i, 'asha@example.com');
     fireEvent.click(screen.getByRole('combobox', { name: /languages/i })); fireEvent.click(screen.getByRole('option', { name: 'Hindi' })); fireEvent.click(screen.getByRole('option', { name: 'English' }));
-    val(/^level/i, 'beginner'); val(/experience/i, '8 years'); val(/certifications/i, 'RYT 500'); val(/whatsapp/i, '9989898999');
+    val(/^level/i, 'beginner'); typeRich(/experience/i, '8 years'); typeRich(/certifications/i, 'RYT 500'); val(/whatsapp/i, '9989898999');
     fireEvent.click(screen.getByRole('button', { name: /send details/i }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);

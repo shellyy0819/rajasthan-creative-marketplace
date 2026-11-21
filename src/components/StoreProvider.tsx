@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useRouter } from 'next/navigation';
 import type { Product, Workshop } from '@/lib/types';
 import { money } from '@/lib/money';
+import { gaReserve } from '@/lib/ga-events';
 import { CartDialog } from './CartDialog';
 import { BookingDialog } from './BookingDialog';
 
@@ -93,8 +94,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     try {
       const b = await api<{ status: string; title: string }>('/api/bookings', f);
       setBooking(null);
+      gaReserve('complete', { workshopId: f.workshopId, seats: f.quantity, free: b.status.includes('FREE') });
       notify(`${b.status.includes('FREE') ? 'Free spot confirmed' : 'Booking created'} — ${b.title}. No payment collected.`);
-    } catch (e) { notify((e as Error).message); }
+    } catch (e) { gaReserve('error', { workshopId: f.workshopId, seats: f.quantity }); notify((e as Error).message); }
     router.refresh();
   }, [notify, router]);
 

@@ -226,7 +226,7 @@ describe('the phone bottom bar (source contract)', () => {
   });
   it('the page renders Share in the bar, and marks the in-page row so it can be hidden only when the bar exists', () => {
     const src = readFileSync('src/components/class/ClassDetail.tsx', 'utf8').replace(/\s+/g, ' ');
-    expect(src).toMatch(/<div className="cd-aside-row"> <Button c=\{ch\.primary\} \/> \{share && <div className="share-slot">\{share\}<\/div>\} <\/div>/);
+    expect(src).toMatch(/<div className="cd-aside-row"> <Button c=\{ch\.primary\} w=\{w\} placement="bar" \/> \{share && <div className="share-slot">\{share\}<\/div>\} <\/div>/);
     expect(src).toContain("cd-actions${!ended && ch.primary ? ' cd-actions-has-bar' : ''}");
   });
 });

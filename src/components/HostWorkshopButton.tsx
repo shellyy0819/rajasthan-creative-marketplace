@@ -8,6 +8,7 @@ import { DEFAULT_CONTACT_EMAIL } from '@/lib/site';
 import { MAX_REQUEST_IMAGES, submitErrorMessage } from '@/lib/workshop-requests-shared';
 import { HOST_PARAM, LEGACY_HOST_PARAM, HOST_OPEN_EVENT, hostParamFor, type HostOpenDetail, type HostPath } from '@/lib/host-link';
 import { supportLine } from '@/lib/workshop-support';
+import { gaHostForm } from '@/lib/ga-events';
 import { clearDraft, collectDraft, DRAFT_EVENT, hasContent, readDraft, writeDraft, type HostDraft } from '@/lib/host-draft';
 import { CONTINUE_EVENT } from './HostDraftReminder';
 import type { TopicOption } from '@/lib/topics';
@@ -110,7 +111,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     setDraftImages(d.images); setImagesKey(k => k + 1); setRestored(true); setRestoreTick(t => t + 1);
   }
   // A shared link opens the form on first render: restore there too (browser only).
-  useEffect(() => { if (defaultOpen) restoreDraft(initialPath === undefined ? preset : initialPath); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (defaultOpen) { restoreDraft(initialPath === undefined ? preset : initialPath); gaHostForm('open', { path: (initialPath === undefined ? preset : initialPath) ?? 'event' }); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Put the saved values into the fields once they exist (fields of the other path or step appear later).
   useEffect(() => {
     const form = formRef.current, d = restore.current;
@@ -139,6 +140,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
     // A link that asks for a path starts on it (a draft on the other path is not forced on it); the plain button continues any draft.
     restoreDraft(from ? from : existing || readDraft() ? null : preset);
     setOpen(true);
+    gaHostForm('open', { path: from ?? preset });
   }
   const beginRef = useRef(begin);
   beginRef.current = begin;
@@ -252,7 +254,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (sending || !stepValid(step)) return;
-    if (step < LAST) { setError(''); setStep(step + 1); return; }
+    if (step < LAST) { setError(''); gaHostForm('step', { path: path ?? 'event', step: step + 2 }); setStep(step + 1); return; }
     void sendDetails(new FormData(e.currentTarget));
   }
 
@@ -290,6 +292,7 @@ export function HostWorkshopButton({ className = 'button outline', contactEmail 
       }
       const summary = { name: body.contactName, email: data.email ?? body.email, from: fmtDate(body.startDate), to: fmtDate(lastDate || body.startDate) };
       clearDraft();
+      gaHostForm('submit', { path: path ?? 'event' });
       if (data.status === 'received') { setDone({ ...summary, confirmed: false, notified: false }); setSending(false); return; } // the code email could not be sent; we still have the details
       setPending({ id: data.id ?? '', ...summary });
       setWait(60); setSending(false);

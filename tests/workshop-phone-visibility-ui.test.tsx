@@ -52,9 +52,9 @@ describe('host form: show this number to the audience', () => {
 
 describe('the Call button on a listing', () => {
   it('shows Call with the number only when the host chose to show it', () => {
-    const { container, rerender } = render(<WorkshopContact w={{ whatsapp: null, instagram: null, website: null, publicPhone: '+919989898999' }} />);
+    const { container, rerender } = render(<WorkshopContact w={{ whatsapp: null, instagram: null, website: null, publicPhone: '+919989898999' }} workshopId="w1" contentType="class" placement="card" />);
     expect(screen.getByRole('link', { name: /call \+919989898999/i }).getAttribute('href')).toBe('tel:+919989898999');
-    rerender(<WorkshopContact w={{ whatsapp: null, instagram: null, website: null }} />);
+    rerender(<WorkshopContact w={{ whatsapp: null, instagram: null, website: null }} workshopId="w1" contentType="class" placement="card" />);
     expect(container.textContent).toBe('');
   });
 });
