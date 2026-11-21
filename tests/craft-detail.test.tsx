@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -15,6 +16,31 @@ const base = {
 } as unknown as Workshop;
 const now = new Date('2026-11-19T06:00:00Z');
 const html = (over: Partial<Workshop> = {}, ended = false) => renderToStaticMarkup(<CraftDetail w={{ ...base, ...over } as Workshop} ended={ended} now={now} />);
+
+describe('the picture on laptops (source contract)', () => {
+  const css = fs.readFileSync('src/components/class/CraftDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('runs from the top of the eyebrow to the bottom of the Share button: it stretches over row 1 and the payment note sits in row 2 of the text column', () => {
+    expect(css).toMatch(/@media \(min-width: 901px\) \{ \.cd-hero\.cr-hero \{[^}]*align-items: stretch;/);
+    expect(css).toMatch(/\.cr-hero \.cd-media \{ grid-column: 2; grid-row: 1;/);
+    expect(css).toMatch(/\.cr-hero \.cr-note \{ grid-column: 1; grid-row: 2;/);
+  });
+  it('the payment note is a sibling of the text column, not inside it', () => {
+    const h = html();
+    const afterText = h.slice(h.indexOf('class="cd-hero-text"'));
+    expect(afterText.indexOf('cr-note')).toBeGreaterThan(0);
+    // the slice starts inside the text column's opening tag, so by the note its tag has closed: one more </div> than <div>
+    const before = afterText.slice(0, afterText.indexOf('cr-note'));
+    expect((before.match(/<\/div>/g) ?? []).length).toBe((before.match(/<div/g) ?? []).length + 1);
+  });
+});
+
+describe('a short page has no empty block under it', () => {
+  it('without what-you-make, included or bring-along lists there is no empty body, and the body never keeps the full-screen minimum height (source contract)', () => {
+    expect(html({ makes: [], included: [], bring: [] } as never)).not.toContain('cd-body');
+    expect(html()).toContain('cd-body');
+    expect(fs.readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ')).toMatch(/\.cd-main \{[^}]*min-height: 0;/);
+  });
+});
 
 describe('craft and art workshop page', () => {
   it('opens with the date, the venue, the seats, the price and the Reserve button', () => {

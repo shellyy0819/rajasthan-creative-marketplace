@@ -83,7 +83,8 @@
 .cd-fact { display: block; margin-top: 4px; font: 600 14px var(--font-sans); }
 
 .cd-body { display: block; padding-top: 52px; }
-.cd-main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+/* min-height: 0 overrides the site-wide full-screen minimum of <main>, which would leave a screen-high gap under a short page. */
+.cd-main { display: flex; flex-direction: column; gap: 56px; min-width: 0; min-height: 0; }
 .cd-free { display: flex; align-items: center; gap: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 6px; background: var(--card-2); }
 .cd-free-badge { flex: none; padding: 6px 16px; border-radius: 30px; background: var(--green); color: #fffdf9; font: 700 12px var(--font-sans); }
 .cd-free p { margin: 0; font-size: 14px; color: var(--muted-2); }

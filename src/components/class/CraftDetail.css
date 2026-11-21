@@ -25,6 +25,14 @@
 .cr-list { border: 1px solid var(--line); border-radius: 6px; background: var(--card-2); padding: 22px; }
 .cr-list ul { margin: 10px 0 0; padding-left: 18px; font-size: 12px; line-height: 2; color: var(--muted-2); }
 .cr-note { margin: 14px 0 0; }
+/* Laptops: the picture (or photos) runs from the top of the eyebrow to the bottom of the Share button. The text column is row 1; the payment note sits under it in row 2 of the first column, so it is not part of the picture's height. */
+@media (min-width: 901px) {
+  .cd-hero.cr-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto; align-items: stretch; row-gap: 0; }
+  .cr-hero .cd-hero-text { grid-column: 1; grid-row: 1; }
+  .cr-hero .cd-media { grid-column: 2; grid-row: 1; display: flex; min-height: 360px; }
+  .cr-hero .cd-art, .cr-hero .cd-mosaic { flex: 1 1 auto; aspect-ratio: auto; height: auto; min-width: 0; }
+  .cr-hero .cr-note { grid-column: 1; grid-row: 2; margin: 14px 0 0; }
+}
 @media (max-width: 700px) {
   .cr-book { grid-template-columns: 1fr; }
   .cr-price { text-align: left; }

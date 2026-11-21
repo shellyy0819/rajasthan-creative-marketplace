@@ -39,7 +39,7 @@ export function CraftDetail({ w, ended, now = new Date(), share }: { w: Workshop
   ];
   return (
     <div className="cd cr">
-      <section className="cd-hero" aria-labelledby="cr-h1">
+      <section className="cd-hero cr-hero" aria-labelledby="cr-h1">
         <div className="cd-hero-text">
           <p className="cd-eyebrow">{KIND[w.kind] ?? 'WORKSHOP'}{topic ? ` · ${topic}` : ''}</p>
           <h1 id="cr-h1">{w.title}</h1>
@@ -87,34 +87,37 @@ export function CraftDetail({ w, ended, now = new Date(), share }: { w: Workshop
               )}
             </div>
           )}
-          {!ended && <p className="cd-note cr-note">No payment is collected on Craftofy. You reserve here, and the host confirms and takes payment.</p>}
           {/* With a main button, Share sits right behind it (above); otherwise it stands alone here. */}
           {share && !(!ended && (bookable || ch.primary)) && <div className="share-slot">{share}</div>}
         </div>
+        {/* Outside the text column so, on laptops, the picture ends level with the Share button and not with this line. */}
+        {!ended && <p className="cd-note cr-note">No payment is collected on Craftofy. You reserve here, and the host confirms and takes payment.</p>}
         {w.images.length ? <PhotoMosaic images={w.images} title={w.title} /> : <ClassIllustration title={w.title} kind={artKind(w)} />}
       </section>
 
       {facts.length > 0 && <section className="cd-facts" aria-label="Workshop at a glance">{facts.map(f => <div key={f.k}><span className="cd-label">{f.k}</span><span className="cd-fact">{f.v}</span></div>)}</section>}
 
-      <div className="cd-body">
-        <main className="cd-main">
-          {w.makes.length > 0 && (
-            <section aria-labelledby="cr-make-h">
-              <h2 id="cr-make-h">What you will make</h2>
-              <div className="cr-makes">{w.makes.map(m => <div key={m.title} className="cr-make"><strong>{m.title}</strong>{m.text && <span>{m.text}</span>}</div>)}</div>
-            </section>
-          )}
-          {(w.included.length > 0 || w.bring.length > 0) && (
-            <section aria-labelledby="cr-inc-h">
-              <h2 id="cr-inc-h">{w.included.length && w.bring.length ? 'Included, and what to bring' : w.included.length ? 'Included' : 'What to bring'}</h2>
-              <div className="cr-lists">
-                {w.included.length > 0 && <div className="cr-list"><span className="cd-label">Included</span><ul>{w.included.map(x => <li key={x}>{x}</li>)}</ul></div>}
-                {w.bring.length > 0 && <div className="cr-list"><span className="cd-label">Bring</span><ul>{w.bring.map(x => <li key={x}>{x}</li>)}</ul></div>}
-              </div>
-            </section>
-          )}
-        </main>
-      </div>
+      {(w.makes.length > 0 || w.included.length > 0 || w.bring.length > 0) && (
+        <div className="cd-body">
+          <main className="cd-main">
+            {w.makes.length > 0 && (
+              <section aria-labelledby="cr-make-h">
+                <h2 id="cr-make-h">What you will make</h2>
+                <div className="cr-makes">{w.makes.map(m => <div key={m.title} className="cr-make"><strong>{m.title}</strong>{m.text && <span>{m.text}</span>}</div>)}</div>
+              </section>
+            )}
+            {(w.included.length > 0 || w.bring.length > 0) && (
+              <section aria-labelledby="cr-inc-h">
+                <h2 id="cr-inc-h">{w.included.length && w.bring.length ? 'Included, and what to bring' : w.included.length ? 'Included' : 'What to bring'}</h2>
+                <div className="cr-lists">
+                  {w.included.length > 0 && <div className="cr-list"><span className="cd-label">Included</span><ul>{w.included.map(x => <li key={x}>{x}</li>)}</ul></div>}
+                  {w.bring.length > 0 && <div className="cr-list"><span className="cd-label">Bring</span><ul>{w.bring.map(x => <li key={x}>{x}</li>)}</ul></div>}
+                </div>
+              </section>
+            )}
+          </main>
+        </div>
+      )}
     </div>
   );
 }
