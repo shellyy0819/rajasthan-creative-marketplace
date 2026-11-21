@@ -136,4 +136,7 @@
   .cd-actions-has-bar { display: none; }
   .cd-aside-copy { display: none; }
   .cd-actions > .cd-cta { display: none; }
+  /* The instructor's logo sits centred above their name and details, so the text gets the whole card width instead of a narrow strip beside a lone circle. */
+  .cd-teacher { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .cd-teacher > .cd-avatar { justify-self: center; width: 56px; height: 56px; }
 }

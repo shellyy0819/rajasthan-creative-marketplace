@@ -212,3 +212,16 @@ describe('the phone bottom bar (source contract)', () => {
     expect(src).toContain("cd-actions${!ended && ch.primary ? ' cd-actions-has-bar' : ''}");
   });
 });
+
+describe('the instructor logo on phones (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('is centred above the name and details, which then use the full card width', () => {
+    expect(css).toMatch(/@media \(max-width: 700px\) \{[^@]*\.cd-teacher \{ grid-template-columns: minmax\(0, 1fr\);/);
+    expect(css).toMatch(/\.cd-teacher > \.cd-avatar \{ justify-self: center; width: 56px; height: 56px; \}/);
+  });
+  it('the logo comes first in the row, before the YOUR INSTRUCTOR label (so it is above it when the row stacks)', () => {
+    const h = renderToStaticMarkup(<ClassDetail w={{ ...base } as Workshop} ended={false} now={now} />);
+    expect(h.indexOf('class="cd-avatar"')).toBeGreaterThan(-1);
+    expect(h.indexOf('class="cd-avatar"')).toBeLessThan(h.indexOf('YOUR INSTRUCTOR'));
+  });
+});
