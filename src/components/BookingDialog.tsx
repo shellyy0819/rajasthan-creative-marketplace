@@ -21,7 +21,7 @@ export function BookingDialog() {
         <button className="icon-btn" onClick={closeBooking} aria-label="Close booking">✕</button>
       </div>
       {booking && (
-        <form onSubmit={async e => {
+        <form key={`${session?.user?.name ?? ''}|${session?.user?.email ?? ''}`} onSubmit={async e => { // keyed so the fields fill in if the session arrives after the dialog opens
           e.preventDefault();
           if (reserving) return;
           const form = e.currentTarget;
@@ -32,7 +32,7 @@ export function BookingDialog() {
             form.reset();
           } catch { /* the store reports the error; keep the form as typed */ } finally { setReserving(false); }
         }}>
-          <label><span className="lbl">Your name</span><input name="attendeeName" required placeholder="Name" /></label>
+          <label><span className="lbl">Your name</span><input name="attendeeName" required placeholder="Name" autoComplete="name" defaultValue={session?.user?.name ?? ''} /></label>
           <label><span className="lbl">Email</span><input name="email" type="email" required placeholder="you@example.com" defaultValue={session?.user?.email ?? ''} /></label>
           <label>Number of seats
             <select name="quantity">
