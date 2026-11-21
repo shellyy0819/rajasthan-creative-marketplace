@@ -207,7 +207,7 @@ export function LiveCatalog(props: Props) {
       {chips.length > 0 && (
         <div className="filter-chips" role="group" aria-label="Filters in use">
           {chips.map(c => <RemovableChip key={c.key} label={c.label} onRemove={() => removeFilter(c.key)} />)}
-          <button type="button" className="text-link" onClick={() => { setDelay(0); setValues({}); }}>Clear all</button>
+          <button type="button" className="button" onClick={() => { setDelay(0); setValues({}); }}>Clear all</button>
         </div>
       )}
       {results}

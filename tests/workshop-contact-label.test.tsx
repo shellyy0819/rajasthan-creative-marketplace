@@ -31,9 +31,9 @@ describe('instructor Instagram and WhatsApp buttons', () => {
     expect(html).toContain('>Website<');
     expect(html).not.toContain('ws-icon');
   });
-  it('the icon buttons are round 40px controls (44px on tablets and phones) (source contract)', () => {
+  it('the icon buttons are the mark alone with no ring, still 40px (44px on tablets and phones) to tap (source contract)', () => {
     const css = fs.readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ');
-    expect(css).toMatch(/\.ws-contact \.ws-icon \{[^}]*width: 40px; height: 40px;[^}]*border-radius: 50%;/);
+    expect(css).toMatch(/\.ws-contact \.ws-icon \{[^}]*width: 40px; height: 40px;[^}]*border: 0;/);
     expect(css).toMatch(/@media \(max-width: 900px\) \{ \.ws-contact \.ws-icon \{ width: 44px; height: 44px; \} \}/);
   });
 });
