@@ -263,3 +263,16 @@ describe('the free trial chip on the picture', () => {
     expect(css).toMatch(/\.cd-trial-chip \{ position: absolute; left: 12px; top: 12px;[^}]*background: var\(--orange\); color: #fffdf9;/);
   });
 });
+
+describe('How to join on phones (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('puts each step on one line with its number: number left, title level with it, sentence under the title', () => {
+    expect(css).toMatch(/@media \(max-width: 700px\) \{[^@]*\.cd-steps li \{ display: grid; grid-template-columns: 32px minmax\(0, 1fr\); align-items: start; gap: 14px; padding: 16px; \}/);
+    expect(css).toMatch(/\.cd-steps strong \{ line-height: 32px; margin-bottom: 0; \}/);
+  });
+  it('uses the site\'s sizes: 12px bold number, 18px step title, 12px sentence', () => {
+    expect(css).toMatch(/\.cd-steps b \{[^}]*font: 700 12px var\(--font-sans\);/);
+    expect(css).toMatch(/\.cd-steps strong \{ display: block; font: 500 18px var\(--font-display\);/);
+    expect(css).toMatch(/\.cd-steps span \{ font-size: 12px; line-height: 1\.6;/);
+  });
+});
