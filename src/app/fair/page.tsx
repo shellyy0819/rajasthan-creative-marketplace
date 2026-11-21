@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 
 const describe = (products: string) => `Walk through a virtual exhibition of makers' stalls with ${products} to discover. Meet the makers at their counters, watch a craft being made, try on earrings at the mirror and see who else is visiting.`;
 export async function generateMetadata(): Promise<Metadata> {
-  return pageMetadata({ title: 'Craftofy Fair: a walk-around exhibition', description: describe((await getCatalogWording()).products), path: '/fair' });
+  return pageMetadata({ title: 'Craftofy Fair: a walk-around exhibition', description: describe((await getCatalogWording()).products), path: '/fair', noindex: true }); // an interactive walk-through with no text of its own worth ranking: search engines skip it, always
 }
 
 export default async function FairPage() {
@@ -23,10 +23,9 @@ export default async function FairPage() {
   const DESCRIPTION = describe(wording.products);
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Fair', path: '/fair' }];
   if (!(await isFairOpen())) {
-    // An admin has closed the exhibition: say so plainly and keep the page out of search results until it opens again.
+    // An admin has closed the exhibition: say so plainly. (The page is never indexed: see generateMetadata.)
     return (
       <>
-        <meta name="robots" content="noindex" />
         <Breadcrumbs items={crumbs} />
         <div className="page-head">
           <span className="eyebrow">WALK THE EXHIBITION</span>

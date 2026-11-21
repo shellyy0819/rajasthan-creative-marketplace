@@ -26,7 +26,14 @@ describe('/fair metadata', () => {
     expect(metadata.alternates?.canonical).toBe('/fair');
     expect(metadata.openGraph).toMatchObject({ url: '/fair', type: 'website' });
     expect(metadata.twitter).toMatchObject({ card: 'summary_large_image' });
-    expect(metadata.robots).toBeUndefined(); // the page is meant to be found
+    expect(metadata.robots).toEqual({ index: false, follow: true }); // never indexed: the walk-through has no text of its own to rank
+  });
+});
+
+describe('/fair and the sitemap', () => {
+  it('is not listed in the sitemap, since search engines are told to skip it (source contract)', async () => {
+    const { readFileSync } = await import('node:fs');
+    expect(readFileSync('src/app/sitemap.ts', 'utf8')).not.toContain('/fair');
   });
 });
 
@@ -65,14 +72,14 @@ describe('/fair page', () => {
 });
 
 describe('/fair while an admin has closed it', () => {
-  it('shows a closed notice, no game, no data fetch, and asks search engines to skip it', async () => {
+  it('shows a closed notice, no game and no data fetch', async () => {
     isFairOpen.mockResolvedValue(false);
     getFairData.mockClear();
     render(await FairPage());
     expect(screen.getByRole('heading', { level: 1, name: /closed for now/i })).toBeTruthy();
     expect(screen.queryByTestId('game')).toBeNull();
     expect(getFairData).not.toHaveBeenCalled();
-    expect(document.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex');
+    expect((await generateMetadata()).robots).toEqual({ index: false, follow: true }); // closed or open, never indexed
     expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toBeTruthy();
     const back = screen.getByRole('link', { name: 'Browse the shop' });
     expect(back.getAttribute('href')).toBe('/shop');
