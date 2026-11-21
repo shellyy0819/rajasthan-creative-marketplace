@@ -131,3 +131,20 @@ describe('online class page', () => {
     expect(ended).not.toContain('NEXT CLASS');
   });
 });
+
+describe('this week on the online class page', () => {
+  it('a day with no class says nothing on screen (screen readers hear "No class"), and the word Rest is gone', () => {
+    const h = html({ date: '2026-11-18', endsOn: '2026-11-18' } as Partial<Workshop>);
+    expect(h).toContain('This week');
+    expect(h).not.toContain('>Rest<');
+    expect(h).toContain('<span class="sr-only">No class</span>');
+  });
+  it('a class that has not started yet shows its schedule line, not seven empty boxes', () => {
+    const h = html({ date: '2026-12-07', endsOn: '2027-02-28' } as Partial<Workshop>);
+    expect(h).not.toContain('This week');
+    expect(h).toContain('>Schedule<');
+    expect(h).toContain('Times are India time (IST).');
+    expect(h).not.toContain('class="cd-week"');
+    expect(h).toContain('Sunrise Vinyasa');
+  });
+});
