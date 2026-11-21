@@ -1,7 +1,8 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useCallback, useState } from 'react';
 import { ListingForm } from './ListingForm';
-import { WorkshopDetail } from './WorkshopDetail';
 import './AdminTableControls.css';
 import { PageLoader } from './PageLoader';
 import { Toast, type ToastState } from './Toast';
@@ -24,18 +25,19 @@ function tagsOf(w: Workshop): { label: string; cls: string }[] {
   return tags;
 }
 
-/** Every listing, in every status. An admin adds, edits, publishes and archives listings on behalf of hosts. */
-export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus }: { initial: Workshop[]; topics: TopicOption[]; fromRequest?: WorkshopRequest; presetStatus?: string }) {
+/** The preview page of a listing: the real workshop page, for a listing in any status. */
+const previewHref = (w: Workshop) => `/dashboard/workshops/${w.id}`;
+
+/**
+ * Every listing, in every status. An admin adds, edits, publishes and archives listings on behalf of hosts. A click on a row opens its preview.
+ * `editId` opens that listing's edit form at once (the preview page's Edit button links here).
+ */
+export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus, editId }: { initial: Workshop[]; topics: TopicOption[]; fromRequest?: WorkshopRequest; presetStatus?: string; editId?: string }) {
+  const router = useRouter();
   const [list, setList] = useState(initial);
-  const [form, setForm] = useState<{ workshop?: Workshop; request?: WorkshopRequest } | null>(fromRequest ? { request: fromRequest } : null);
+  const editing = editId ? initial.find(x => x.id === editId) : undefined;
+  const [form, setForm] = useState<{ workshop?: Workshop; request?: WorkshopRequest } | null>(fromRequest ? { request: fromRequest } : editing ? { workshop: editing } : null);
   const [busy, setBusy] = useState('');
-  const [detail, setDetail] = useState<Workshop | null>(null);
-  const closeDetail = useCallback(() => setDetail(null), []);
-  const lastDetail = useRef('');
-  useEffect(() => {
-    if (detail) { lastDetail.current = detail.id; return; }
-    if (lastDetail.current) document.querySelector<HTMLElement>(`[data-open-detail="${lastDetail.current}"]`)?.focus();
-  }, [detail]);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const notify = (kind: 'success' | 'error', text: string) => setToast({ id: Date.now() + Math.random(), kind, text });
@@ -82,8 +84,8 @@ export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus }: {
             <thead><tr><th>Title</th><th>Host</th><th>Format</th><th>When</th><th>Starts</th><th>Created</th><th>Tags</th><th>Status and actions</th></tr></thead>
             <tbody>
               {list.map(w => (
-                <tr key={w.id} className="admin-click-row" onClick={e => { if (!(e.target as HTMLElement).closest('button, a, select, input, label')) setDetail(w); }}>
-                  <td><button type="button" className="row-title" data-open-detail={w.id} aria-label={`Details of ${w.title}`} onClick={() => setDetail(w)}><b>{w.title}</b></button></td>
+                <tr key={w.id} className="admin-click-row" onClick={e => { if (!(e.target as HTMLElement).closest('button, a, select, input, label')) router.push(previewHref(w)); }}>
+                  <td><Link className="row-title" href={previewHref(w)} aria-label={`Preview ${w.title}`}><b>{w.title}</b></Link></td>
                   <td>{w.host}</td>
                   <td>{w.mode === 'online' ? 'Online' : 'In person'}{w.topic ? ` · ${w.topic.name}` : ''}{w.mode !== 'online' && w.city ? <><br /><small className="muted">{w.city}</small></> : null}</td>
                   <td>{w.kind === 'class' && w.schedule ? describeSchedule(w.schedule) : <>{day(w.date)}{w.endsOn ? ` to ${day(w.endsOn)}` : ''}</>}</td>
@@ -107,7 +109,6 @@ export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus }: {
           </table>
         </div>
       )}
-      {detail && <WorkshopDetail workshopId={detail.id} title={detail.title} onClose={closeDetail} />}
       {form && <ListingForm key={form.workshop?.id ?? form.request?.id ?? 'new'} topics={topics} workshop={form.workshop} fromRequest={form.request} presetStatus={presetStatus} onSaved={saved} onClose={closeForm} />}
       <PageLoader show={!!busy} label="Saving…" />
       <Toast toast={toast} onClose={closeToast} />

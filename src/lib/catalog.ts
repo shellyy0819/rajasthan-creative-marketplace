@@ -104,6 +104,16 @@ export async function listAdminWorkshops(): Promise<Workshop[]> {
   return withPrices(getDb(), rows.map(toAdminWorkshop));
 }
 
+/**
+ * A listing as visitors would see it, whatever its status (Draft and Archived included), found by id. For the dashboard's preview only:
+ * the public mapper is used on purpose, so the preview never shows the host's private contact details or anything else the real page would not.
+ */
+export async function getWorkshopPreview(id: string): Promise<Workshop | undefined> {
+  if (!/^w\d+$/.test(id)) return undefined;
+  const [row] = await workshopsQuery(getDb()).where(eq(workshopsT.id, id));
+  return row ? (await withPrices(getDb(), [toWorkshop(row)]))[0] : undefined;
+}
+
 /** slug = "<name>-<id>": look the id up directly, then require the exact slug (wrong name part → undefined). */
 export async function getProductBySlug(slug: string): Promise<Product | undefined> {
   const id = slug.slice(slug.lastIndexOf('-') + 1);

@@ -14,6 +14,7 @@ export default async function WorkshopsDashboardPage({ searchParams }: { searchP
   await requireAdminPage(); // admin only; sellers get a 404 here
   const sp = await searchParams;
   const from = typeof sp.from === 'string' ? sp.from : undefined;
+  const editId = typeof sp.edit === 'string' ? sp.edit : undefined; // the preview page's Edit button
   const [workshops, topics, requests, signText] = await Promise.all([listAdminWorkshops(), listActiveTopics(), from ? listWorkshopRequests() : Promise.resolve([]), getSignText()]);
   // A request can be turned into a listing again while its listing is a Draft or has ended (a new run); a live published one cannot be duplicated.
   const fromRequest = requests.find(r => r.id === from && (r.status !== 'listed' || r.listedStatus === 'DRAFT' || r.listedEnded));
@@ -29,7 +30,7 @@ export default async function WorkshopsDashboardPage({ searchParams }: { searchP
         </div>
         <div className="admin-grid admin-grid-solo">
           <SignTextAdmin initial={signText} />
-          <WorkshopsAdmin initial={workshops} topics={topics} fromRequest={fromRequest} presetStatus={presetStatus} />
+          <WorkshopsAdmin initial={workshops} topics={topics} fromRequest={fromRequest} presetStatus={presetStatus} editId={editId} />
         </div>
       </section>
     </>

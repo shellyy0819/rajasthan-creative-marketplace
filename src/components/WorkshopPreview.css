@@ -1,0 +1,29 @@
+/* The dashboard's preview of a workshop page: a bar with the admin's actions, a note, then the real page content. Tokens and sizes from the site's scale. */
+.ws-preview-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 18px 8.5% 0;
+}
+.ws-preview-back { font: 700 12px var(--font-sans); color: var(--green-d); text-decoration: none; }
+.ws-preview-back:hover { text-decoration: underline; }
+.ws-preview-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-right: auto; }
+.ws-preview-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ws-preview-actions .button { min-height: var(--control-h); padding: 0 14px; border: 1px solid var(--control-border); background: transparent; color: var(--ink); text-decoration: none; }
+.ws-preview-note {
+  margin: 14px 8.5% 0;
+  padding: 10px 14px;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted-2);
+}
+/* The page itself is switched off (inert): it is for looking at, not for booking or contacting anyone */
+.ws-preview-page { margin-top: 8px; }
+@media (max-width: 600px) {
+  .ws-preview-bar { padding-left: 5%; padding-right: 5%; }
+  .ws-preview-note { margin-left: 5%; margin-right: 5%; }
+}
