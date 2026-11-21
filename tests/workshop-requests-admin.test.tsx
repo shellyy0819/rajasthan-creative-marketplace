@@ -17,6 +17,14 @@ describe('requests table', () => {
     for (const s of ['Online class', 'Yoga', 'Online · Zoom', 'Mon, Wed, Fri at 7:00 am, 60 min', 'Per session: ₹500 (1 session)', 'Monthly: ₹1,500 (12 sessions)', 'Hindi, English', 'beginner', '8 years', 'RYT 500', 'Free trial', 'wa.me/919989898999']) expect(h).toContain(s);
     expect(h).not.toContain('>, <');
   });
+  it('shows experience and certifications with their formatting (bold, italic, underline, bullets, numbers), never as raw marks', () => {
+    const r = { ...base, experience: '**8 years**, *all levels*\n- yoga\n- __breathwork__', certifications: '1. RYT 500\n2. AYUSH' } as unknown as WorkshopRequest;
+    const h = renderToStaticMarkup(<WorkshopRequestsAdmin requests={[r]} />);
+    expect(h).toContain('<strong>8 years</strong>, <em>all levels</em>');
+    expect(h).toContain('<ul><li>yoga</li><li><u>breathwork</u></li></ul>');
+    expect(h).toContain('<ol><li>RYT 500</li><li>AYUSH</li></ol>');
+    expect(h).not.toContain('**');
+  });
   it('still shows an in-person event as before', () => {
     const r = { ...base, kind: 'workshop', mode: 'in_person', city: 'Jaipur, Rajasthan', venue: 'Studio', seats: 10, schedule: undefined, platform: undefined, prices: [], languages: [], freeTrial: false } as unknown as WorkshopRequest;
     const h = renderToStaticMarkup(<WorkshopRequestsAdmin requests={[r]} />);

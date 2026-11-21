@@ -1,0 +1,31 @@
+/* The Experience and Certifications editor. It looks like the form's textareas (same border, surface, 12px text) with a small toolbar on top. */
+.rich-field { margin: 12px 0; }
+.rich-label { display: block; font-size: 11px; font-weight: 700; }
+.rich-box { margin-top: 6px; border: 1px solid var(--line); background: var(--white); }
+.rich-box[data-invalid='true'] { border-color: var(--danger); }
+.rich-toolbar { display: flex; gap: 2px; padding: 4px; border-bottom: 1px solid var(--line); }
+.rich-btn { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid transparent; border-radius: 3px; background: transparent; color: var(--ink); cursor: pointer; }
+.rich-btn:hover { background: var(--cream); color: var(--orange); }
+.rich-btn[aria-pressed='true'] { background: var(--chip-green); border-color: var(--control-border); color: var(--green-d); }
+.rich-editor { min-height: 64px; max-height: 220px; overflow-y: auto; padding: 11px; font: 12px/1.6 var(--font-sans), sans-serif; color: var(--ink); outline-offset: -2px; }
+.rich-editor p { margin: 0; }
+.rich-editor p + p, .rich-editor ul, .rich-editor ol { margin-top: 4px; }
+.rich-editor ul, .rich-editor ol { margin-bottom: 0; padding-left: 20px; }
+.rich-count { display: block; margin-top: 5px; font-size: 11px; font-weight: 500; color: var(--muted); text-align: right; }
+.rich-count.over { color: var(--danger); }
+
+/* Phones: the same larger touch sizes the form's other fields get, and 16px text so the page does not zoom when the box is tapped. */
+@media (max-width: 700px) {
+  .rich-btn { width: 40px; height: 40px; }
+  .rich-editor { font-size: 16px; min-height: 88px; }
+}
+
+/* Where the text is shown (class and workshop pages, the admin details): paragraphs, bullets and numbers inside the instructor card. */
+.rich-text p { margin: 0; }
+.rich-text p + p, .rich-text ul, .rich-text ol { margin-top: 4px; }
+.rich-text ul, .rich-text ol { margin-bottom: 0; padding-left: 18px; }
+.rich-text + .rich-text { margin-top: 6px; }
+
+/* In the admin requests table: a small label above the formatted text. */
+.request-rich { margin-top: 6px; font-size: 11px; }
+.request-rich small { display: block; font-weight: 700; }

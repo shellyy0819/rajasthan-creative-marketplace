@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { RichText } from '../RichText';
 import { contactChannels, describeNext, isYogaListing, nextSession, weekStrip, type Channel } from '@/lib/class-page';
 import { formatDay } from '@/lib/format';
 import { describeSchedule } from '@/lib/workshop-listing';
@@ -53,7 +54,7 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
             <div>
               <span className="cd-label">YOUR INSTRUCTOR</span>
               <span className="cd-name">{w.host}</span>
-              {(w.experience || w.certifications) && <span className="cd-sub">{[w.experience, w.certifications].filter(Boolean).join(' · ')}</span>}
+              {(w.experience || w.certifications) && <div className="cd-sub"><RichText value={w.experience} />{w.certifications && <><span className="cd-label cd-sub-label">Certifications</span><RichText value={w.certifications} /></>}</div>}
               {icons.length > 0 && (
                 <span className="cd-icons">{icons.map(c => <a key={c.kind} href={c.href} aria-label={c.short} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} /></a>)}</span>
               )}

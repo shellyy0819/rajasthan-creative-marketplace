@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { RichTextField } from './RichTextField';
 import { LanguageSelect } from './LanguageSelect';
 import { CityInput } from './CityInput';
 import { instagramUrl } from '@/lib/social';
@@ -209,8 +210,8 @@ export function ClassAbout({ errors }: { errors?: Record<string, string> }) {
         </select>
         <FieldError errors={errors} name="level" />
       </label>
-      <label>Experience<textarea name="experience" maxLength={500} rows={2} /><FieldError errors={errors} name="experience" /></label>
-      <label>Certifications<textarea name="certifications" maxLength={500} rows={2} /><FieldError errors={errors} name="certifications" /></label>
+      <RichTextField name="experience" label="Experience" error={errors?.experience} /><FieldError errors={errors} name="experience" />
+      <RichTextField name="certifications" label="Certifications" error={errors?.certifications} /><FieldError errors={errors} name="certifications" />
       <label>WhatsApp number<input name="whatsapp" type="tel" inputMode="tel" maxLength={40} pattern={PHONE_PATTERN} title={PHONE_HINT} placeholder="Example: 9999999999" autoComplete="tel" enterKeyHint="next" /><FieldError errors={errors} name="whatsapp" /></label>
     </>
   );

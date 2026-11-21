@@ -1,7 +1,7 @@
 import { istParts } from './ist';
 import { money } from './money';
 import { validJoinLink } from './join-link';
-import { bad, oneOf, optionalInt, optionalPhone, optionalText, validDate, type Raw } from './validate';
+import { bad, oneOf, optionalInt, optionalPhone, optionalRich, optionalText, validDate, type Raw } from './validate';
 
 export const KINDS = ['workshop', 'meetup', 'popup', 'market', 'class'] as const;
 export const MODES = ['in_person', 'online', 'hybrid'] as const;
@@ -137,8 +137,8 @@ export function parseListingFields(raw: Raw): ListingFields {
     topicId: optionalInt(raw.topicId, 'topicId', 1, 1_000_000),
     endsOn: raw.endsOn === undefined || raw.endsOn === null || raw.endsOn === '' ? null : validDate(raw.endsOn),
     languages: parseLanguages(raw.languages),
-    experience: optionalText(raw.experience, 'experience', 500) ?? null,
-    certifications: optionalText(raw.certifications, 'certifications', 500) ?? null,
+    experience: optionalRich(raw.experience, 'experience') ?? null,
+    certifications: optionalRich(raw.certifications, 'certifications') ?? null,
     // The trial length in days is the free trial: giving it switches the trial on (an older client may still send freeTrial alone).
     freeTrial: raw.freeTrial === true || trialDays !== null,
     freeTrialDays: trialDays,

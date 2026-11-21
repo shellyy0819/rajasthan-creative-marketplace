@@ -40,7 +40,9 @@ describe('online class page', () => {
     expect(h).toContain('ONLINE CLASS · YOGA');
     expect(h).toContain('<h1 id="cd-h1">Sunrise Vinyasa</h1>');
     expect(h).toContain('Anaya Sharma');
-    expect(h).toContain('8 years teaching · RYT 500');
+    expect(h).toContain('<div class="cd-sub"><div class="rich-text"><p>8 years teaching</p></div><span class="cd-label cd-sub-label">Certifications</span><div class="rich-text"><p>RYT 500</p></div></div>'); // experience, then a Certifications heading and the certifications
+    expect(html({ certifications: null } as Partial<Workshop>)).not.toContain('Certifications</span>'); // no data, no heading
+    expect(html({ experience: null, certifications: '1. RYT' } as Partial<Workshop>)).toContain('cd-sub-label">Certifications</span><div class="rich-text"><ol>');
     expect(h).toContain('2-day free trial');
     expect(h).toContain('Today, 6:30 am IST · starts in 30 min');
     expect(h).toContain('href="https://wa.me/919989898999"');

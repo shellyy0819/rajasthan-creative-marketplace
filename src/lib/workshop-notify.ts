@@ -6,6 +6,7 @@ import { mailConfigured, sendMail } from './mailer';
 import { contactEmail } from './site';
 import { withTopicName, type WorkshopRequest } from './workshop-requests';
 import { describeSchedule, summarizePrices } from './workshop-listing';
+import { richToPlain } from './rich-text';
 
 /** Who hears about a new request: Craftofy's contact address plus every admin (ADMIN_EMAILS and active admins in the database), once each. */
 export async function teamRecipients(): Promise<string[]> {
@@ -36,7 +37,7 @@ export function notificationMail(r: WorkshopRequest, kindLabel: string): { subje
     line('Event', `${r.title} (${kindLabel})`), line('Format', online ? `Online${r.platform ? ` on ${r.platform}` : ''}` : 'In person'), line('Meeting link', online ? r.joinLink : ''), line('Topic', r.topic),
     line('What happens', r.description), line('When', when), line('Where', online ? '' : `${r.venue}, ${r.city}`),
     line('Seats', online ? '' : r.seats ?? 'Open'), line('Price', price), line('Free trial', online ? (r.freeTrial ? (r.freeTrialDays ? `yes (${r.freeTrialDays} days)` : 'yes') : 'no') : ''),
-    line('Languages', r.languages.join(', ')), line('Level', r.level), line('Experience', r.experience), line('Certifications', r.certifications),
+    line('Languages', r.languages.join(', ')), line('Level', r.level), line('Experience', richToPlain(r.experience)), line('Certifications', richToPlain(r.certifications)),
     '\n', line('Host / studio', r.hostName), line('Contact person', r.contactName), line('Phone', r.phone), line('WhatsApp', r.whatsapp), line('Email', r.email),
     line('Instagram', r.instagram), line('Website', r.website), line('Notes', r.notes),
     r.images.length ? `Photos:\n${r.images.map(u => `  ${u}`).join('\n')}\n` : '',

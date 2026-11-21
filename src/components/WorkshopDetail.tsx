@@ -1,4 +1,5 @@
 'use client';
+import { RichText } from './RichText';
 import { useEffect, useRef, useState } from 'react';
 import { describeSchedule, summarizePrices } from '@/lib/workshop-listing';
 import type { WorkshopSellerDetail } from '@/lib/workshop-detail';
@@ -65,8 +66,8 @@ export function WorkshopDetail({ workshopId, title, onClose }: { workshopId: str
                 <Row label="Languages">{w.languages.length ? w.languages.join(', ') : undefined}</Row>
                 <Row label="Level">{w.level ?? undefined}</Row>
                 <Row label="Free trial">{w.freeTrial ? (w.freeTrialDays ? `${w.freeTrialDays} days` : 'Yes') : undefined}</Row>
-                <Row label="Experience">{w.experience ?? undefined}</Row>
-                <Row label="Certifications">{w.certifications ?? undefined}</Row>
+                <Row label="Experience">{w.experience ? <RichText value={w.experience} /> : undefined}</Row>
+                <Row label="Certifications">{w.certifications ? <RichText value={w.certifications} /> : undefined}</Row>
                 <Row label="Private contact">{[w.contactName, w.contactPhone, w.contactEmail].filter(Boolean).join(' · ') || undefined}</Row>
               </dl>
             </section>
