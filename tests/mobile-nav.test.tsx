@@ -103,6 +103,74 @@ describe('the phone menu', () => {
   });
 });
 
+describe('the logo at the top of the phone menu', () => {
+  it('shows the Craftofy logo (light and dark versions) as a link home, in place of a text title', () => {
+    render(<MobileNav />);
+    openIt();
+    const head = document.querySelector('.mobile-drawer-head')!;
+    const home = head.querySelector('a[aria-label="Craftofy home"]')!;
+    expect(home.getAttribute('href')).toBe('/');
+    expect(home.querySelector('img.logo-light')?.getAttribute('src')).toBe('/logos/horizontal-color.png');
+    expect(home.querySelector('img.logo-dark')?.getAttribute('src')).toBe('/logos/horizontal-dark.png');
+    expect(head.textContent).not.toMatch(/menu/i);
+  });
+  it('tapping it closes the menu, including when the visitor is already on the home page', () => {
+    path.value = '/';
+    render(<MobileNav />);
+    openIt();
+    fireEvent.click(document.querySelector('.mobile-drawer-head a[aria-label="Craftofy home"]')!);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+  it('the dialog is still named Menu for screen readers', () => {
+    render(<MobileNav />);
+    openIt();
+    expect(screen.getByRole('dialog', { name: 'Menu' })).toBeTruthy();
+  });
+});
+
+describe('the active page in the phone menu', () => {
+  const current = () => [...document.querySelectorAll('.mobile-drawer-nav a[aria-current="page"]')].map(a => a.textContent);
+  it('marks no link on a page that is not in the menu (the home page)', () => {
+    path.value = '/';
+    render(<MobileNav />);
+    openIt();
+    expect(current()).toEqual([]);
+  });
+  it('marks Shop products on /shop and Workshops on /workshops and the pages under it, never both', () => {
+    path.value = '/shop';
+    render(<MobileNav />); openIt();
+    expect(current()).toEqual(['Shop products']);
+    cleanup();
+    path.value = '/workshops/yoga-w4';
+    render(<MobileNav />); openIt();
+    expect(current()).toEqual(['Workshops & pop-ups']);
+    cleanup();
+    path.value = '/workshopsX';
+    render(<MobileNav />); openIt();
+    expect(current()).toEqual([]); // a path that only starts with the same letters is not that page
+  });
+  it('marks Admin or My products on every dashboard page, and Fair on /fair', () => {
+    session.value = { data: { user: { role: 'admin' } }, status: 'authenticated' };
+    path.value = '/dashboard/trending';
+    render(<MobileNav fair />); openIt();
+    expect(current()).toEqual(['Admin']);
+    cleanup();
+    session.value = { data: { user: { role: 'seller' } }, status: 'authenticated' };
+    path.value = '/dashboard/workshops/w3/bookings';
+    render(<MobileNav />); openIt();
+    expect(current()).toEqual(['My products']);
+    cleanup();
+    session.value = { data: null, status: 'unauthenticated' };
+    path.value = '/fair';
+    render(<MobileNav fair />); openIt();
+    expect(current()).toEqual(['Fair']);
+  });
+  it('the highlight is the site\'s selected-chip tint with dark green text, from tokens only (source contract)', () => {
+    const css = fs.readFileSync('src/components/MobileNav.css', 'utf8').replace(/\s+/g, ' ');
+    expect(css).toMatch(/\.mobile-drawer-nav a\[aria-current='page'\] \{ background: var\(--chip-green\); color: var\(--green-d\); font-weight: 700; \}/);
+  });
+});
+
 describe('the phone menu styling (source contract)', () => {
   const css = fs.readFileSync('src/components/MobileNav.css', 'utf8').replace(/\s+/g, ' ');
   it('the hamburger only exists on phones, as the same 36px round control as the theme button', () => {
