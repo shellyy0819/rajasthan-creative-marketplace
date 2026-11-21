@@ -41,13 +41,16 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
   const perClass = (amount: number, sessions: number | null) => (sessions && sessions > 1 && amount > 0 ? `${sessions} sessions · about ${money(Math.round(amount / sessions))} a class` : sessions ? `${sessions} ${sessions === 1 ? 'session' : 'sessions'}` : '');
   return (
     <div className="cd">
-      <section className="cd-hero" aria-labelledby="cd-h1">
+      <section className="cd-hero cd-hero-aligned" aria-labelledby="cd-h1">
         <div className="cd-hero-text">
           <p className="cd-eyebrow">ONLINE CLASS{topic ? ` · ${topic}` : ''}</p>
           <h1 id="cd-h1">{w.title}</h1>
           {ended && <p className="ws-ended" role="status">This class has ended. <Link href="/workshops">See upcoming workshops</Link></p>}
           <p className="cd-lead">{w.description}</p>
           {trial && <p className="cd-badges"><span className="cd-badge">{trial}</span></p>}
+        </div>
+        {/* The panel and the buttons are one block: the photo beside them starts at the panel's top and ends at the buttons' bottom. */}
+        <div className="cd-hero-body">
           <div className="cd-panel">
           <div className="cd-row cd-teacher">
             <div className="cd-avatar" aria-hidden="true">{hostPhoto ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={hostPhoto} alt="" referrerPolicy="no-referrer" /> : initials(w.host)}</div>

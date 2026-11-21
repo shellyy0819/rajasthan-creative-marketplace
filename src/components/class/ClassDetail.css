@@ -6,6 +6,16 @@
 .cd-note { margin: 0 0 20px; color: var(--muted-2); font-size: 12px; line-height: 1.6; }
 .cd-hero { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 5fr); gap: 48px; align-items: center; padding: 32px 0 36px; }
 .cd-hero-text { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+/* The class page's hero: the title block, then the panel and buttons (the body). Wide screens put the photo beside the body, so it starts level with the panel's top and ends level with the buttons' bottom. */
+.cd-hero-body { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+@media (min-width: 901px) {
+  .cd-hero-aligned { grid-template-rows: auto auto; align-items: stretch; column-gap: 48px; row-gap: 18px; }
+  .cd-hero-aligned .cd-hero-text { grid-column: 1; grid-row: 1; }
+  .cd-hero-aligned .cd-hero-body { grid-column: 1; grid-row: 2; }
+  /* The photos fill the box and add nothing to the row's height (a tall photo would otherwise push the row taller than the panel and buttons). The no-photo illustration keeps its own proportions, level with the panel's top, so it is never cropped. */
+  .cd-hero-aligned .cd-media { grid-column: 2; grid-row: 2; position: relative; min-height: 240px; }
+  .cd-hero-aligned .cd-mosaic { position: absolute; inset: 0; aspect-ratio: auto; }
+}
 .cd-eyebrow { margin: 0; font-size: 9px; letter-spacing: 2px; font-weight: 700; color: var(--orange); }
 .cd-lead { margin: 0; font-size: 14px; line-height: 1.8; color: var(--muted-2); max-width: 560px; }
 .cd-badges { margin: 0; }

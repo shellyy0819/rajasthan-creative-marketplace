@@ -179,3 +179,18 @@ describe('the contact button and Share share one row (source contract)', () => {
     expect(src).toMatch(/<div className="cd-actions"> \{!ended && ch\.primary && <div className="cd-cta">[\s\S]*?<\/div>\} \{share && <div className="share-slot">/);
   });
 });
+
+describe('the photo is level with the panel and the buttons (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('on wide screens the photo sits in the row of the panel and buttons, filling that row without making it taller', () => {
+    expect(css).toMatch(/@media \(min-width: 901px\) \{ \.cd-hero-aligned \{ grid-template-rows: auto auto; align-items: stretch;/);
+    expect(css).toMatch(/\.cd-hero-aligned \.cd-hero-body \{ grid-column: 1; grid-row: 2; \}/);
+    expect(css).toMatch(/\.cd-hero-aligned \.cd-media \{ grid-column: 2; grid-row: 2; position: relative;/);
+    expect(css).toMatch(/\.cd-hero-aligned \.cd-mosaic \{ position: absolute; inset: 0; aspect-ratio: auto; \}/);
+  });
+  it('the page puts the panel and the buttons in one body block beside the photo', () => {
+    const src = readFileSync('src/components/class/ClassDetail.tsx', 'utf8').replace(/\s+/g, ' ');
+    expect(src).toContain('<section className="cd-hero cd-hero-aligned"');
+    expect(src).toMatch(/<div className="cd-hero-body"> <div className="cd-panel">/);
+  });
+});
