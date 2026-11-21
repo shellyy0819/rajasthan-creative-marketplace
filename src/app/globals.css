@@ -544,6 +544,9 @@ h2 em {
 /* The filters in use, as removable chips under the filter row. */
 .filter-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 24px; }
 .filters:has(+ .filter-chips) { margin-bottom: 14px; }
+/* Clear all: plain underlined text, no background (a bare button would be painted grey by the browser). */
+.filter-chips .text-link { padding: 6px 4px; border: 0; background: none; color: var(--ink); font: 600 12px var(--font-sans); text-decoration: underline; cursor: pointer; }
+.filter-chips .text-link:hover { color: var(--orange); }
 .filters input,
 .filters select,
 .workshop-controls input,

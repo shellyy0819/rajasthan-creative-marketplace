@@ -371,7 +371,8 @@ describe('LiveCatalog filter chips', () => {
     expect(fs.readFileSync('src/components/LiveCatalog.tsx', 'utf8')).toContain("RemovableChip");
     expect(fs.readFileSync('src/components/LanguageSelect.tsx', 'utf8')).toContain("RemovableChip");
     expect(fs.readFileSync('src/components/RemovableChip.css', 'utf8')).toMatch(/\.chip-x \{[^}]*border-radius: 30px;/);
-    expect(fs.readFileSync('src/components/LiveCatalog.tsx', 'utf8')).toContain('className="button" onClick={() => { setDelay(0); setValues({}); }}>Clear all'); // Clear all is the design system's outline button, like the other controls
+    expect(fs.readFileSync('src/components/LiveCatalog.tsx', 'utf8')).toContain('className="text-link" onClick={() => { setDelay(0); setValues({}); }}>Clear all');
+    expect(fs.readFileSync('src/app/globals.css', 'utf8').replace(/\s+/g, ' ')).toMatch(/\.filter-chips \.text-link \{[^}]*background: none;[^}]*text-decoration: underline;/); // Clear all is plain underlined text with no background
   });
 });
 
