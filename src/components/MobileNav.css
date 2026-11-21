@@ -6,10 +6,11 @@
 .mobile-drawer-backdrop { position: fixed; inset: 0; z-index: 70; background: var(--backdrop); backdrop-filter: blur(4px); }
 .mobile-drawer { position: fixed; top: 0; bottom: 0; left: 0; z-index: 71; width: min(82vw, 300px); display: flex; flex-direction: column; background: var(--paper); border-right: 1px solid var(--line); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35); animation: mobile-drawer-in 0.2s ease-out; }
 .mobile-drawer-head { height: 67px; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
-.mobile-drawer-title { font: 700 10px var(--font-sans); letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
 nav.mobile-drawer-nav { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 8px 0; font-size: 12px; font-weight: 600; overflow-y: auto; }
 .mobile-drawer-nav a { display: flex; align-items: center; min-height: 48px; padding: 0 20px; border-bottom: 1px solid var(--line); color: var(--ink); }
 .mobile-drawer-nav a:hover, .mobile-drawer-nav a:focus-visible { color: var(--orange); }
+/* The page you are on: the green tint and dark green text the site uses for a selected chip. */
+.mobile-drawer-nav a[aria-current='page'] { background: var(--chip-green); color: var(--green-d); font-weight: 700; }
 @keyframes mobile-drawer-in { from { transform: translateX(-100%); } to { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .mobile-drawer { animation: none; } }
 .topbar-start { display: flex; align-items: center; min-width: 0; }

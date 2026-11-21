@@ -8,10 +8,11 @@ import { usePathname } from 'next/navigation';
  * button), it is an ordinary link to the home page. On the home page with a query or hash (?day=…, #workshops) it still goes to the
  * plain home page, which clears them.
  */
-export function BrandLink({ children }: { children: React.ReactNode }) {
+export function BrandLink({ children, onClick }: { children: React.ReactNode; /** Called on any click (the phone menu uses it to close itself). */ onClick?: () => void }) {
   const pathname = usePathname();
   return (
     <Link className="brand" href="/" aria-label="Craftofy home" onClick={e => {
+      onClick?.();
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       if (pathname !== '/' || window.location.search || window.location.hash) return;
       e.preventDefault();

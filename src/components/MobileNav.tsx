@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
+import { BrandLink } from './BrandLink';
 import './MobileNav.css';
 
 const FOCUSABLE = 'a[href], button:not([disabled])';
@@ -22,6 +23,9 @@ export function MobileNav({ dashboardUrl = '', fair = false }: { dashboardUrl?: 
   const panel = useRef<HTMLDivElement>(null);
   const role = session?.user?.role;
   const posts = `${dashboardUrl}/dashboard/posts`;
+  // The link for the page being viewed is marked (aria-current) and highlighted: /shop and /workshops cover the pages under them, the dashboard link every dashboard page.
+  const under = (base: string) => pathname === base || !!pathname?.startsWith(`${base}/`);
+  const here = (href: string) => ({ 'aria-current': (href === posts ? under('/dashboard') : under(href)) ? ('page' as const) : undefined });
 
   const close = () => { setOpen(false); button.current?.focus(); };
   useEffect(() => { setOpen(false); }, [pathname]); // the new page has arrived
@@ -56,17 +60,22 @@ export function MobileNav({ dashboardUrl = '', fair = false }: { dashboardUrl?: 
           <div className="mobile-drawer-backdrop" onClick={close} aria-hidden="true" />
           <div ref={panel} id="mobile-drawer" className="mobile-drawer" role="dialog" aria-modal="true" aria-label="Menu">
             <div className="mobile-drawer-head">
-              <span className="mobile-drawer-title">Menu</span>
+              <BrandLink onClick={() => setOpen(false)}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="brand-logo logo-light" src="/logos/horizontal-color.png" alt="Craftofy" width={1600} height={482} />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="brand-logo logo-dark" src="/logos/horizontal-dark.png" alt="" width={1600} height={482} />
+              </BrandLink>
               <button type="button" className="theme-toggle" aria-label="Close menu" onClick={close}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
               </button>
             </div>
             <nav className="mobile-drawer-nav" aria-label="Menu">
-              <Link href="/shop" onClick={() => setOpen(false)}>Shop products</Link>
-              <Link href="/workshops" onClick={() => setOpen(false)}>Workshops &amp; pop-ups</Link>
-              {fair && <Link href="/fair" className="mobile-drawer-fair" onClick={() => setOpen(false)}>Fair<span className="nav-fair-spark" aria-hidden="true" /></Link>}
-              {role === 'admin' && <Link href={posts} onClick={() => setOpen(false)}>Admin</Link>}
-              {role === 'seller' && <Link href={posts} onClick={() => setOpen(false)}>My products</Link>}
+              <Link href="/shop" {...here('/shop')} onClick={() => setOpen(false)}>Shop products</Link>
+              <Link href="/workshops" {...here('/workshops')} onClick={() => setOpen(false)}>Workshops &amp; pop-ups</Link>
+              {fair && <Link href="/fair" className="mobile-drawer-fair" {...here('/fair')} onClick={() => setOpen(false)}>Fair<span className="nav-fair-spark" aria-hidden="true" /></Link>}
+              {role === 'admin' && <Link href={posts} {...here(posts)} onClick={() => setOpen(false)}>Admin</Link>}
+              {role === 'seller' && <Link href={posts} {...here(posts)} onClick={() => setOpen(false)}>My products</Link>}
             </nav>
           </div>
         </>,
