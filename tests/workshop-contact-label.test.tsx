@@ -31,7 +31,7 @@ describe('instructor Instagram and WhatsApp buttons', () => {
     expect(html).toContain('ws-icon ws-call');
     expect(html).toContain('aria-label="Call +919989898999"');
     expect(html).toContain('href="tel:+919989898999"');
-    expect(html).toContain('maker-icon'); // the same phone mark the product pages use (shared BrandIcon)
+    expect(html).toContain('stroke-width="1.8"'); // the same phone mark the product and class pages use (shared BrandIcon)
     expect(html).toContain('>Website<');
   });
   it('the icon buttons are the mark alone with no ring, still 40px (44px on tablets and phones) to tap (source contract)', () => {
@@ -46,6 +46,7 @@ describe('the contact marks are shared with the product pages (source contract)'
     for (const f of ['src/components/MakerCard.tsx', 'src/components/class/ChannelIcon.tsx']) expect(fs.readFileSync(f, 'utf8')).toContain("BrandIcon'");
     const icon = fs.readFileSync('src/components/class/ChannelIcon.tsx', 'utf8');
     expect(icon).toContain("<BrandMark name={kind}");
+    expect(icon).toContain('<CallMark size={size}');
     expect(fs.readFileSync('src/components/WorkshopContact.tsx', 'utf8')).toContain('ChannelIcon');
   });
   it('MakerCard no longer keeps its own copy of the marks', () => {

@@ -36,7 +36,7 @@ export function BrandMark({ name, onGreen = false, size, className }: { name: Br
   return <svg className={className} {...(size ? { width: size, height: size } : {})} viewBox="0 0 24 24" aria-hidden="true">{marks[onGreen && name === 'whatsapp' ? 'whatsappOnGreen' : name]}</svg>;
 }
 
-/** The phone mark of the contact channels (a plain stroke icon in the text colour). */
+/** The phone mark of the contact channels (a plain stroke icon in the text colour). The stroke is set here, so it looks the same wherever it is used: product page, class page and workshop card. */
 export function CallMark({ size, className }: { size?: number; className?: string }) {
-  return <svg className={className} {...(size ? { width: size, height: size } : {})} viewBox="0 0 24 24" aria-hidden="true">{CALL_ICON}</svg>;
+  return <svg className={className} {...(size ? { width: size, height: size } : {})} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{CALL_ICON}</svg>;
 }

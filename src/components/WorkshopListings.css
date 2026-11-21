@@ -69,7 +69,6 @@
 /* Call, WhatsApp and Instagram: the mark alone, no ring around it; the button is still 40px (44px on tablets and phones) so it is easy to tap. */
 .ws-contact .ws-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--ink); line-height: 0; }
 .ws-contact .ws-icon:hover { opacity: .8; }
-.ws-contact .ws-call-mark { width: 24px; height: 24px; }
 /* The mark is 26px inside a 40px tap area (44px on tablets and phones): the last one is pushed out by the difference so it lines up with the price above it. */
 .workshop-card .ws-contact .ws-icon:last-child { margin-right: -7px; }
 @media (max-width: 900px) { .workshop-card .ws-contact .ws-icon:last-child { margin-right: -9px; } }
