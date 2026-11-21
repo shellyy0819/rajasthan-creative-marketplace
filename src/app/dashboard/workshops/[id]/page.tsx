@@ -34,7 +34,7 @@ export default async function WorkshopPreviewPage({ params }: Props) {
   return (
     <>
       <Breadcrumbs items={crumbs} />
-      <WorkshopPreviewBar id={w.id} title={w.title} status={w.status} ended={ended} publicUrl={w.status === 'APPROVED' ? `${origin}/workshops/${workshopSlug(w)}` : undefined} />
+      <WorkshopPreviewBar id={w.id} title={w.title} status={w.status} ended={ended} publicUrl={w.status === 'APPROVED' ? `${origin}/workshops/${workshopSlug(w)}` : undefined} bookings={w.seats != null && w.kind !== 'class' ? w.booked : undefined} />
       <p className="ws-preview-note" role="status">{NOTE[w.status] ?? 'Preview.'} The buttons on the page are switched off here.</p>
       <div className="ws-preview-page" inert>
         {isClass ? <ClassDetail w={w} ended={ended} hostPhoto={await getWorkshopHostPhoto(w.id)} /> : <CraftDetail w={w} ended={ended} />}
