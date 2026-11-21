@@ -23,10 +23,10 @@ describe('online class page on tablets and phones (source contract)', () => {
     expect(css).toMatch(/\.cd-tile img \{ width: 100%; height: 100%; object-fit: cover/);
   });
   it('the instructor, Where and next class rows live in one panel, and the booking row has the same width', () => {
-    const width = (sel: string) => new RegExp(`\\${sel} \\{[^}]*max-width: 560px`).test(css);
+    const width = (sel: string) => new RegExp(`\\${sel} \\{[^}]*max-width: 760px`).test(css);
     expect(width('.cd-panel')).toBe(true);
-    expect(width('.cd-cta')).toBe(true); // the contact button under the panel is as wide as the panel, not as wide as the column // one panel holds the instructor, Where and next class rows, so they cannot differ in width
-    expect(readFileSync('src/components/class/CraftDetail.css', 'utf8')).toMatch(/\.cr-book \{[^}]*max-width: 560px/);
+    expect(width('.cd-actions')).toBe(true); // the contact button (and Share beside it) under the panel is as wide as the panel, not as wide as the column // one panel holds the instructor, Where and next class rows, so they cannot differ in width
+    expect(readFileSync('src/components/class/CraftDetail.css', 'utf8')).toMatch(/\.cr-book \{[^}]*max-width: 760px/);
   });
   it('the photos are capped in height so the title, instructor and next class show below them', () => {
     expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-mosaic \{[^}]*height: clamp\(220px, 42vw, 340px\)/);
@@ -162,5 +162,20 @@ describe('the instructor card styling (source contract)', () => {
   it('the in-person page uses the same card parts, headed "About the host"', () => {
     const src = readFileSync('src/components/class/CraftDetail.tsx', 'utf8');
     expect(src).toContain('<InstructorBio experience={w.experience} certifications={w.certifications} who="host" />');
+  });
+});
+
+describe('the contact button and Share share one row (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('Share sits beside the contact button, as tall as it, and the left column is the wider one', () => {
+    expect(css).toMatch(/\.cd-hero \{[^}]*grid-template-columns: minmax\(0, 8fr\) minmax\(0, 5fr\)/);
+    expect(css).toMatch(/\.cd-actions \{ display: flex; align-items: flex-start;/);
+    expect(css).toMatch(/\.cd-actions \.share-slot \{ flex: none; margin-top: 0; \}/);
+    expect(css).toMatch(/\.cd-actions \.share-btn \{ min-height: 48px; \}/);
+    expect(css).toMatch(/\.cd-actions > \.cd-cta \{ display: none; \}/); // phones keep the fixed bottom bar for the contact button
+  });
+  it('the page puts the contact button and Share in the same row', () => {
+    const src = readFileSync('src/components/class/ClassDetail.tsx', 'utf8').replace(/\s+/g, ' ');
+    expect(src).toMatch(/<div className="cd-actions"> \{!ended && ch\.primary && <div className="cd-cta">[\s\S]*?<\/div>\} \{share && <div className="share-slot">/);
   });
 });

@@ -81,8 +81,12 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
             </div>
           )}
           </div>
-          {!ended && ch.primary && <div className="cd-cta"><Button c={ch.primary} />{ch.secondary.map(c => <Button key={c.kind} c={c} outline />)}</div>}
-          {share && <div className="share-slot">{share}</div>}
+          {((!ended && ch.primary) || share) && (
+            <div className="cd-actions">
+              {!ended && ch.primary && <div className="cd-cta"><Button c={ch.primary} />{ch.secondary.map(c => <Button key={c.kind} c={c} outline />)}</div>}
+              {share && <div className="share-slot">{share}</div>}
+            </div>
+          )}
         </div>
         {w.images.length ? <PhotoMosaic images={w.images} title={w.title} /> : <ClassIllustration title={w.title} yoga={isYogaListing(w)} />}
       </section>

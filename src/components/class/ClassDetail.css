@@ -4,14 +4,14 @@
 .cd h2 { font: 500 clamp(22px, 2.4vw, 26px) / 1.2 var(--font-display); letter-spacing: -0.5px; margin: 0 0 6px; }
 .cd-label { display: block; font: 700 10px var(--font-sans); letter-spacing: 1px; text-transform: uppercase; color: var(--muted-2); }
 .cd-note { margin: 0 0 20px; color: var(--muted-2); font-size: 12px; line-height: 1.6; }
-.cd-hero { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 56px; align-items: center; padding: 32px 0 36px; }
+.cd-hero { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 5fr); gap: 48px; align-items: center; padding: 32px 0 36px; }
 .cd-hero-text { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .cd-eyebrow { margin: 0; font-size: 9px; letter-spacing: 2px; font-weight: 700; color: var(--orange); }
 .cd-lead { margin: 0; font-size: 14px; line-height: 1.8; color: var(--muted-2); max-width: 560px; }
 .cd-badges { margin: 0; }
 .cd-badge { display: inline-block; padding: 4px 12px; border-radius: 30px; font: 700 11px var(--font-sans); background: var(--orange); color: #fffdf9; }
 /* One panel for who, where and when: rows share a 48px leading slot so the text lines up. */
-.cd-panel { border: 1px solid var(--line); border-radius: 6px; background: var(--card-2); max-width: 560px; }
+.cd-panel { border: 1px solid var(--line); border-radius: 6px; background: var(--card-2); max-width: 760px; }
 .cd-row { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 16px; align-items: center; padding: 16px 18px; }
 .cd-row + .cd-row { border-top: 1px solid var(--line); }
 .cd-ico { width: 48px; height: 48px; border-radius: 50%; background: var(--cream); display: grid; place-items: center; }
@@ -29,7 +29,12 @@
 .cd-icons a { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--control-border); display: grid; place-items: center; color: var(--ink); }
 .cd-icons a:hover { background: var(--cream); }
 .cd-next-text { display: block; font: 600 14px var(--font-sans); margin-top: 2px; }
-.cd-cta { display: flex; flex-direction: column; gap: 10px; max-width: 560px; }
+/* The contact button and, beside it, Share (only shown to those allowed to see it). */
+.cd-actions { display: flex; align-items: flex-start; gap: 10px; max-width: 760px; }
+.cd-actions .cd-cta { flex: 1 1 auto; min-width: 0; }
+.cd-actions .share-slot { flex: none; margin-top: 0; }
+.cd-actions .share-btn { min-height: 48px; }
+.cd-cta { display: flex; flex-direction: column; gap: 10px; }
 .cd-btn { min-height: 48px; gap: 10px; text-decoration: none; }
 .cd-btn:hover { text-decoration: none; }
 .button.cd-btn:not(.primary) { border: 1px solid var(--control-border); background: transparent; color: var(--ink); }
@@ -115,5 +120,5 @@
   /* The contact button stays at the bottom of the screen. */
   .cd-aside { display: flex; flex-direction: column; gap: 16px; position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 20; border-radius: 0; border-width: 1px 0 0; padding: 12px 16px 16px; }
   .cd-aside-copy { display: none; }
-  .cd-hero-text > .cd-cta { display: none; }
+  .cd-actions > .cd-cta { display: none; }
 }
