@@ -88,6 +88,7 @@ describe('online class page', () => {
     expect(hybrid).toContain('Rang Studio, Bani Park, Jaipur');
     expect(hybrid).toContain('https://www.google.com/maps/search/?api=1&amp;query=Rang%20Studio%2C%20Bani%20Park%2C%20Jaipur');
     expect(hybrid).toContain('Also live on Zoom');
+    expect(html({ mode: 'hybrid', venue: 'Rang Studio, Bani Park', city: 'Jaipur', citySlug: 'jaipur' } as never)).toContain('Rang Studio, Bani Park, <a href="/cities/jaipur">Jaipur</a>'); // a hybrid class links its city; a fully online one has no place
   });
   it('shows the illustration when there are no photos: yoga figures for yoga, the crochet cafe for crochet, the craft studio for other topics', () => {
     expect(html()).toContain('six people practising yoga');

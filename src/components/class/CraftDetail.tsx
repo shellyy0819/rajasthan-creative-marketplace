@@ -64,7 +64,7 @@ export function CraftDetail({ w, ended, now = new Date(), share }: { w: Workshop
           {where && (
             <div className="cd-row">
               <div className="cd-ico" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z" /><circle cx="12" cy="10" r="2.5" /></svg></div>
-              <div><span className="cd-label">WHERE</span><span className="cr-line">{where}</span><a className="cr-maps" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(where)}`} target="_blank" rel="noopener noreferrer">Open in Maps</a></div>
+              <div><span className="cd-label">WHERE</span><span className="cr-line">{w.venue}{w.venue && w.city ? ', ' : ''}{w.city && w.citySlug ? <Link href={`/cities/${w.citySlug}`}>{w.city}</Link> : w.city}</span><a className="cr-maps" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(where)}`} target="_blank" rel="noopener noreferrer">Open in Maps</a></div>
             </div>
           )}
           </div>

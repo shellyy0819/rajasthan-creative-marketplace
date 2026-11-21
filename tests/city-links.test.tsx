@@ -34,6 +34,7 @@ describe('city links on detail pages use the stored city slug', () => {
     const wh = renderToStaticMarkup(await WorkshopPage({ params: Promise.resolve({ slug: workshopSlug(w) }) }));
     expect(ph).toContain('href="/cities/udaipur-tripura"');
     expect(ph).not.toContain('href="/cities/udaipur"');
+    expect(wh).toContain('href="/cities/udaipur-tripura"'); // the city in the Where line of an in-person workshop
     expect(wh).not.toContain('href="/cities/udaipur"');
   });
 });

@@ -73,7 +73,7 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
             </div>
             <div>
               <span className="cd-label">WHERE</span>
-              <span className="cr-line">{where || live}</span>
+              <span className="cr-line">{where ? <>{w.venue}{w.venue && w.city ? ', ' : ''}{w.city && w.citySlug ? <Link href={`/cities/${w.citySlug}`}>{w.city}</Link> : w.city}</> : live}</span>
               {where
                 ? <><a className="cr-maps" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(where)}`} target="_blank" rel="noopener noreferrer">Open in Maps</a>{w.mode === 'hybrid' && <span className="cr-sub">Also live on {w.platform ?? 'video call'}</span>}</>
                 : <span className="cr-sub">The meeting link is sent to you privately.</span>}

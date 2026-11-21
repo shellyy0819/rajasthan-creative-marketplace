@@ -24,7 +24,7 @@ describe('craft and art workshop page', () => {
     expect(h).toContain('>SUN<'); // 22 Nov 2026 is a Sunday
     expect(h).toContain('22 Nov 2026, 4:00 pm');
     expect(h).toContain('Starts in 3 days');
-    expect(h).toContain('Rang Studio, Bani Park, Jaipur');
+    expect(h).toContain('Rang Studio, Bani Park, <a href="/cities/jaipur">Jaipur</a>'); // the city links to its page
     expect(h).toContain('https://www.google.com/maps/search/?api=1&amp;query=Rang%20Studio%2C%20Bani%20Park%2C%20Jaipur');
     expect(h).toContain('8 of 12 seats left');
     expect(h).toContain('₹1,200');
