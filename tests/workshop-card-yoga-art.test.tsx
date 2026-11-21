@@ -101,6 +101,15 @@ describe('the yoga illustration colours (source contract)', () => {
   });
 });
 
+describe('the date or Online chip on a card with a picture', () => {
+  it('sits beside the picture, not inside it, so a phone can show it under the picture (source contract)', () => {
+    const h = renderToStaticMarkup(<WorkshopCard w={{ ...base, images: ['https://example.com/a.jpg'] }} />);
+    expect(h).toMatch(/<div class="tile-col"><div class="date-tile has-photo">.*<\/div><span class="tile-chip">/);
+    const css = fs.readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ');
+    expect(css).toMatch(/@media \(max-width: 900px\) \{ \.tile-col \.tile-chip \{ position: static;/);
+  });
+});
+
 describe('the level and language tags on phones', () => {
   it('use the small bold type of the free trial tag and corner, and keep their own outline and colours (source contract)', () => {
     const css = fs.readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ');
