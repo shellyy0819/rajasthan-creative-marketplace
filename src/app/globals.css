@@ -4872,6 +4872,7 @@ button.fair-opt:hover { background: var(--cream); }
 .skeleton { display: block; background: linear-gradient(90deg, var(--cream) 0%, var(--line) 50%, var(--cream) 100%); background-size: 200% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite; border-radius: 6px; }
 .skeleton-card { aspect-ratio: 3 / 4; border-radius: 6px; }
 .skeleton-row { height: 84px; }
+.skeleton-filters { height: 44px; margin-bottom: 24px; }
 .skeleton-line { height: 12px; width: 100%; max-width: 260px; margin-bottom: 12px; }
 .skeleton-line.short { max-width: 120px; height: 10px; }
 .skeleton-line.title { height: 34px; max-width: 360px; margin-bottom: 0; }
