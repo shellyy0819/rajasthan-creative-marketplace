@@ -7,6 +7,7 @@ import { cityLabeller } from '@/lib/city-label';
 import { gaWorkshopList } from '@/lib/ga-events';
 import { dataKey, useDataVersion } from './DataVersion';
 import { ProductGrid } from './ProductGrid';
+import { RemovableChip } from './RemovableChip';
 import { WorkshopList } from './WorkshopList';
 
 type Values = { city?: string; category?: string; source?: string; type?: string; q?: string; mode?: string };
@@ -121,11 +122,25 @@ export function LiveCatalog(props: Props) {
   const cityMatch = props.cities.find(c => c.slug === cityValue.toLowerCase()) ?? props.cities.find(c => c.name.toLowerCase() === cityValue.trim().toLowerCase());
   const labelOf = cityLabeller(props.cities);
   const cityLabel = cityMatch ? labelOf(cityMatch) : cityValue;
-  const dirty = Object.values(values).some(Boolean);
   const n = total;
   // The workshops page shows no count line; only the shop does.
   const summary = kind === 'products' ? `${n} ${n === 1 ? 'find' : 'finds'} to love${cityLabel ? ` in ${cityLabel}` : ''}.` : '';
   const set = (patch: Values, wait: number) => { setDelay(wait); setValues(v => ({ ...v, ...patch })); };
+
+  // The filters in use (as applied to the results), each a removable chip, with one Clear all.
+  const inUse = new URLSearchParams(applied);
+  const FORMAT: Record<string, string> = { FREE: 'Free', PAID: 'Paid', in_person: 'In person', online: 'Online' };
+  const appliedCity = inUse.get('city') ?? '';
+  const appliedCityMatch = props.cities.find(c => c.slug === appliedCity.toLowerCase()) ?? props.cities.find(c => c.name.toLowerCase() === appliedCity.trim().toLowerCase());
+  const chips: { key: keyof Values; label: string }[] = [
+    ...(inUse.get('q') ? [{ key: 'q' as const, label: `Search: ${inUse.get('q')}` }] : []),
+    ...(appliedCity ? [{ key: 'city' as const, label: appliedCityMatch ? labelOf(appliedCityMatch) : appliedCity }] : []),
+    ...(inUse.get('category') ? [{ key: 'category' as const, label: inUse.get('category')! }] : []),
+    ...(inUse.get('source') ? [{ key: 'source' as const, label: inUse.get('source')! }] : []),
+    ...(inUse.get('type') ? [{ key: 'type' as const, label: FORMAT[inUse.get('type')!] ?? inUse.get('type')! }] : []),
+    ...(inUse.get('mode') ? [{ key: 'mode' as const, label: FORMAT[inUse.get('mode')!] ?? inUse.get('mode')! }] : []),
+  ];
+  const removeFilter = (key: keyof Values) => { setDelay(0); setValues(v => ({ ...v, [key]: '' })); };
 
   const form = (
     <form className="filters" action={path} method="get" role="search" onSubmit={e => { e.preventDefault(); setDelay(0); setValues(v => ({ ...v })); }}>
@@ -167,7 +182,6 @@ export function LiveCatalog(props: Props) {
         </select>
       )}
       <button type="submit">Search</button>
-      {dirty && <button type="button" className="text-link" onClick={() => { setDelay(0); setValues({}); }}>Clear</button>}
     </form>
   );
 
@@ -190,10 +204,16 @@ export function LiveCatalog(props: Props) {
     <>
       {summary && <p className="muted" role="status" style={{ margin: '0 0 12px' }}>{summary}</p>}
       {form}
+      {chips.length > 0 && (
+        <div className="filter-chips" role="group" aria-label="Filters in use">
+          {chips.map(c => <RemovableChip key={c.key} label={c.label} onRemove={() => removeFilter(c.key)} />)}
+          <button type="button" className="text-link" onClick={() => { setDelay(0); setValues({}); }}>Clear all</button>
+        </div>
+      )}
       {results}
     </>
   );
   return kind === 'products'
     ? <section className="section" style={{ paddingTop: 10 }}>{body}</section>
-    : <section className="workshop-band" style={{ display: 'block', marginTop: 30 }}>{body}</section>;
+    : <section className="workshop-band ws-list-band">{body}</section>;
 }

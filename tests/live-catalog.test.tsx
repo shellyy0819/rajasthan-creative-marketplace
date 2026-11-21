@@ -172,7 +172,7 @@ describe('LiveCatalog (products)', () => {
   it('Clear resets all filters and refetches', async () => {
     fetchMock.mockReturnValue(reply(initial));
     renderCat(<LiveCatalog cities={CITIES} kind="products" initialItems={initial as any} initialValues={{ city: 'Jaipur', q: 'x' }} />);
-    fireEvent.click(screen.getByText('Clear'));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
     await flush(0);
     expect(fetchMock.mock.calls[0][0]).toBe('/api/products?limit=12&offset=0');
   });
@@ -324,5 +324,53 @@ describe('loader', () => {
     expect(document.querySelector('.rr-page-loader')).toBeNull();
     expect(document.querySelector('[aria-busy="true"]')).toBeNull();
     expect(document.body.textContent).toContain('Other');
+  });
+});
+
+describe('LiveCatalog filter chips', () => {
+  const chipNames = () => [...document.querySelectorAll('.filter-chips .chip-x')].map(b => b.getAttribute('aria-label'));
+  it('shows no chips and no Clear all while no filter is in use', () => {
+    renderCat(<LiveCatalog cities={CITIES} kind="workshops" initialItems={[ws('w1', 'Old') as never]} initialValues={{}} />);
+    expect(document.querySelector('.filter-chips')).toBeNull();
+    expect(screen.queryByText('Clear all')).toBeNull();
+  });
+  it('shows each workshop filter in use as a chip: search text, city, price and format', () => {
+    renderCat(<LiveCatalog cities={CITIES} kind="workshops" initialItems={[ws('w1', 'Old') as never]} initialValues={{ q: 'udaipur', city: 'jaipur', type: 'FREE', mode: 'in_person' }} />);
+    expect(chipNames()).toEqual(['Remove Search: udaipur', 'Remove Jaipur', 'Remove Free', 'Remove In person']);
+    expect(screen.getByRole('group', { name: 'Filters in use' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Clear all' })).toBeTruthy();
+  });
+  it('shows the shop filters as chips too: city, category and type', () => {
+    renderCat(<LiveCatalog cities={CITIES} kind="products" initialItems={[prod('p1', 'Pot') as never]} initialValues={{ city: 'jodhpur', category: 'Pottery', source: 'Handmade' }} sourcingTypes={['Handmade']} />);
+    expect(chipNames()).toEqual(['Remove Jodhpur', 'Remove Pottery', 'Remove Handmade']);
+  });
+  it('a chip that says Paid or Online uses plain words, not the codes', () => {
+    renderCat(<LiveCatalog cities={CITIES} kind="workshops" initialItems={[ws('w1', 'Old') as never]} initialValues={{ type: 'PAID', mode: 'online' }} />);
+    expect(chipNames()).toEqual(['Remove Paid', 'Remove Online']);
+  });
+  it('removing a chip drops just that filter, clears its menu and refetches without it', async () => {
+    fetchMock.mockReturnValue(reply([ws('w2', 'Other')]));
+    renderCat(<LiveCatalog cities={CITIES} kind="workshops" initialItems={[ws('w1', 'Old') as never]} initialValues={{ city: 'jaipur', type: 'FREE' }} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Jaipur' }));
+    await flush(0);
+    expect(fetchMock.mock.calls.at(-1)![0]).toBe('/api/workshops?type=FREE');
+    expect((screen.getByLabelText('Filter by city') as HTMLSelectElement).value).toBe('');
+    expect(chipNames()).toEqual(['Remove Free']);
+  });
+  it('Clear all removes every chip and refetches the full list, and the old Clear button is gone from the filter row', async () => {
+    fetchMock.mockReturnValue(reply([ws('w2', 'Other')]));
+    renderCat(<LiveCatalog cities={CITIES} kind="workshops" initialItems={[ws('w1', 'Old') as never]} initialValues={{ city: 'jaipur', q: 'x' }} />);
+    expect(document.querySelector('form.filters')!.textContent).not.toContain('Clear');
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+    await flush(0);
+    expect(fetchMock.mock.calls.at(-1)![0]).toBe('/api/workshops');
+    expect(document.querySelector('.filter-chips')).toBeNull();
+  });
+  it('the chips are the shared removable chip, which the language picker uses too (source contract)', async () => {
+    const fs = await import('node:fs');
+    expect(fs.readFileSync('src/components/LiveCatalog.tsx', 'utf8')).toContain("RemovableChip");
+    expect(fs.readFileSync('src/components/LanguageSelect.tsx', 'utf8')).toContain("RemovableChip");
+    expect(fs.readFileSync('src/components/RemovableChip.css', 'utf8')).toMatch(/\.chip-x \{[^}]*border-radius: 30px;/);
+    expect(fs.readFileSync('src/app/globals.css', 'utf8').replace(/\s+/g, ' ')).toMatch(/\.filter-chips \.text-link \{[^}]*background: none;[^}]*text-decoration: underline;/); // Clear all reads as a link, not a filled button
   });
 });

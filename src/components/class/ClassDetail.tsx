@@ -19,7 +19,7 @@ const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2)
 
 function Button({ c, outline, w, placement }: { c: Channel; outline?: boolean; w: Workshop; placement: WorkshopPlacement }) {
   return (
-    <WorkshopTrackedLink workshopId={w.id} method={c.kind} placement={placement} category={w.topic?.name} contentType={gaWorkshopType(w)} className={`button cd-btn${outline ? '' : ' primary'}`} href={c.href} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} />{c.label}</WorkshopTrackedLink>
+    <WorkshopTrackedLink workshopId={w.id} method={c.kind} placement={placement} category={w.topic?.name} contentType={gaWorkshopType(w)} className={`button cd-btn${outline ? '' : ' primary'}`} href={c.href} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} onGreen={!outline} />{c.label}</WorkshopTrackedLink>
   );
 }
 

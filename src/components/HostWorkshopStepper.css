@@ -130,7 +130,6 @@
 .host-lang-label { display: block; font-size: 11px; font-weight: 700; }
 .host-lang-box { margin-top: 6px; display: grid; gap: 8px; }
 .host-lang-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.host-lang-chip { padding: 4px 10px; border: 1px solid var(--control-border); border-radius: 30px; background: var(--white); color: var(--ink); font: 600 12px var(--font-sans); cursor: pointer; }
 .host-lang-trigger { width: 100%; min-height: 36px; padding: 9px 13px; text-align: left; border: 1px solid var(--control-border); border-radius: 3px; background: var(--white); color: var(--ink); font: 600 12px var(--font-sans); cursor: pointer; }
 .host-lang-panel { position: absolute; z-index: 5; left: 0; right: 0; margin-top: 4px; padding: 8px; border: 1px solid var(--control-border); border-radius: 4px; background: var(--white); box-shadow: 0 8px 24px #0000002e; }
 .host-lang-panel input[type='search'] { margin: 0 0 6px; width: 100%; }
@@ -143,7 +142,6 @@
 @media (max-width: 900px) {
   .host-lang-trigger { font-size: 14px; min-height: 44px; }
   .host-lang-panel li { padding: 12px 10px; font-size: 16px; }
-  .host-lang-chip { min-height: 36px; font-size: 13px; }
 }
 
 /* "Show this number to the audience": a checkbox with a hint, under the phone number. */

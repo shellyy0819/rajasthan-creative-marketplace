@@ -143,20 +143,20 @@ describe('the cards', () => {
     expect(names()).toEqual(['select_item']);
     expect(last('select_item')).toMatchObject({ item_id: 'w4', item_list_id: 'workshops', content_type: 'class', item_category: 'Yoga' });
     events.length = 0;
-    fireEvent.click(screen.getByRole('link', { name: 'WhatsApp' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Chat on WhatsApp' }));
     expect(last('contact_whatsapp')).toMatchObject({ workshop_id: 'w4', placement: 'card' });
     fireEvent.click(screen.getByRole('link', { name: 'Website' }));
     expect(last('contact_website')).toMatchObject({ workshop_id: 'w4', placement: 'card', contact_method: 'website' });
   });
   it('WorkshopContact reports Call, WhatsApp, Instagram and Website, each once per click', () => {
     render(<WorkshopContact w={cls} workshopId="w4" contentType="class" placement="card" />);
-    for (const label of [/^Call/, 'WhatsApp', /Instagram/, 'Website']) fireEvent.click(screen.getByRole('link', { name: label }));
+    for (const label of [/^Call/, 'Chat on WhatsApp', /Instagram/, 'Website']) fireEvent.click(screen.getByRole('link', { name: label }));
     expect(names().filter(n => n === 'contact_seller')).toHaveLength(4);
     expect(names().filter(n => n.startsWith('contact_') && n !== 'contact_seller')).toEqual(['contact_call', 'contact_whatsapp', 'contact_instagram', 'contact_website']);
   });
   it('no event carries a phone number, an email or a link', () => {
     render(<WorkshopContact w={cls} workshopId="w4" contentType="class" placement="card" />);
-    for (const label of [/^Call/, 'WhatsApp', /Instagram/, 'Website']) fireEvent.click(screen.getByRole('link', { name: label }));
+    for (const label of [/^Call/, 'Chat on WhatsApp', /Instagram/, 'Website']) fireEvent.click(screen.getByRole('link', { name: label }));
     expect(JSON.stringify(events)).not.toMatch(/9989898999|@|https?:|anaya/);
   });
 });
@@ -279,7 +279,7 @@ describe('the first-party counts behind Trending workshops', () => {
   });
   it('each contact click counts as a contact and as the way used (WhatsApp, Call, Instagram, Website)', () => {
     render(<WorkshopContact w={cls} workshopId="w4" contentType="class" placement="card" />);
-    fireEvent.click(screen.getByRole('link', { name: 'WhatsApp' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Chat on WhatsApp' }));
     expect(sent).toEqual(['contact:w4', 'contact_whatsapp:w4']);
     sent.length = 0;
     fireEvent.click(screen.getByRole('link', { name: 'Website' }));
@@ -291,8 +291,8 @@ describe('the first-party counts behind Trending workshops', () => {
   });
   it('a hover, a right click or opening the card sends no contact', () => {
     const { container } = render(<StoreProvider><WorkshopCard w={cls} /></StoreProvider>);
-    fireEvent.mouseOver(screen.getByRole('link', { name: 'WhatsApp' }));
-    fireEvent(screen.getByRole('link', { name: 'WhatsApp' }), new MouseEvent('auxclick', { bubbles: true, button: 2 }));
+    fireEvent.mouseOver(screen.getByRole('link', { name: 'Chat on WhatsApp' }));
+    fireEvent(screen.getByRole('link', { name: 'Chat on WhatsApp' }), new MouseEvent('auxclick', { bubbles: true, button: 2 }));
     fireEvent.click(container.querySelector('h3 a')!);
     expect(sent).toEqual([]);
   });

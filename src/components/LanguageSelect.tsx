@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { LANGUAGES } from '@/lib/languages';
+import { RemovableChip } from './RemovableChip';
 
 const MAX = 5;
 
@@ -55,7 +56,7 @@ export function LanguageSelect({ name = 'languages', error }: { name?: string; e
       <span className="host-lang-label" id={labelId}>Languages</span>
       <div className="host-lang-box">
         <div className="host-lang-chips" data-testid="language-chips">
-          {selected.map(l => <button key={l} type="button" className="host-lang-chip" aria-label={`Remove ${l}`} onClick={() => toggle(l)}>{l} <span aria-hidden="true">✕</span></button>)}
+          {selected.map(l => <RemovableChip key={l} className="host-lang-chip" label={l} onRemove={() => toggle(l)} />)}
         </div>
         <button type="button" role="combobox" className="host-lang-trigger" aria-labelledby={labelId} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(o => !o)}>
           {selected.length ? `${selected.length} selected` : 'Select languages'}

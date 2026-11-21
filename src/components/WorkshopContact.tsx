@@ -2,6 +2,7 @@ import type { Workshop } from '@/lib/types';
 import { instagramUrl } from '@/lib/social';
 import type { WorkshopPlacement } from '@/lib/ga-events';
 import { WorkshopTrackedLink } from './WorkshopTrackedLink';
+import { ChannelIcon } from './class/ChannelIcon';
 
 /** wa.me chat link with no prefilled text: the visitor writes to the instructor on their own WhatsApp. */
 const whatsappChat = (number: string) => `https://wa.me/${number.replace(/\D/g, '')}`;
@@ -15,11 +16,9 @@ export function WorkshopContact({ w, workshopId, category, contentType, placemen
   return (
     <span className="ws-contact">
       {w.publicPhone && <WorkshopTrackedLink {...t} method="call" className="button" href={`tel:${w.publicPhone}`} aria-label={`Call ${w.publicPhone}`}>Call</WorkshopTrackedLink>}
-      {w.whatsapp && <WorkshopTrackedLink {...t} method="whatsapp" className="button" href={whatsappChat(w.whatsapp)} target="_blank" rel="noopener noreferrer">WhatsApp</WorkshopTrackedLink>}
-      {w.instagram && <WorkshopTrackedLink {...t} method="instagram" className="button ws-insta" href={instagramUrl(w.instagram)} target="_blank" rel="noopener noreferrer" aria-label="Open the instructor's Instagram">
-        <svg className="social-icon instagram-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg>
-        Open Insta
-      </WorkshopTrackedLink>}
+      {/* WhatsApp and Instagram are icon buttons (the name is the label for screen readers and the tooltip); Call and Website keep their word. */}
+      {w.whatsapp && <WorkshopTrackedLink {...t} method="whatsapp" className="button ws-icon ws-whatsapp" href={whatsappChat(w.whatsapp)} target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp" title="Chat on WhatsApp"><ChannelIcon kind="whatsapp" size={26} /></WorkshopTrackedLink>}
+      {w.instagram && <WorkshopTrackedLink {...t} method="instagram" className="button ws-icon ws-insta" href={instagramUrl(w.instagram)} target="_blank" rel="noopener noreferrer" aria-label="Open the instructor's Instagram" title="Open the instructor's Instagram"><ChannelIcon kind="instagram" size={26} /></WorkshopTrackedLink>}
       {site && <WorkshopTrackedLink {...t} method="website" className="button" href={site} target="_blank" rel="noopener noreferrer">Website</WorkshopTrackedLink>}
     </span>
   );
