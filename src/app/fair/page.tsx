@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { FairGame } from '@/components/fair/FairGame';
+import { TrackFairView } from '@/components/fair/TrackFairView';
 import { JsonLd } from '@/components/JsonLd';
 import { diwaliOver } from '@/lib/fair-festival';
 import { getFairSettings, isFairOpen } from '@/lib/fair-settings';
@@ -26,6 +27,7 @@ export default async function FairPage() {
     // An admin has closed the exhibition: say so plainly. (The page is never indexed: see generateMetadata.)
     return (
       <>
+        <TrackFairView status="closed" />
         <Breadcrumbs items={crumbs} />
         <div className="page-head">
           <span className="eyebrow">WALK THE EXHIBITION</span>
@@ -39,6 +41,7 @@ export default async function FairPage() {
   const [data, { mela }] = await Promise.all([getFairData(), getFairSettings()]);
   return (
     <>
+      <TrackFairView status="open" />
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
       <JsonLd data={fairJsonLd(DESCRIPTION, `${capitalize(wording.products)} and creative workshops from independent makers in India`)} />
       <Breadcrumbs items={crumbs} />

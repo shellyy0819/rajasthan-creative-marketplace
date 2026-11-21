@@ -87,6 +87,11 @@ export function gaSelectWorkshop(p: { workshopId: string; category?: string; con
   gaEvent('select_item', { item_id: p.workshopId, item_list_id: 'workshops', item_list_name: 'workshops', content_type: p.contentType, ...(p.category ? { item_category: p.category } : {}) });
 }
 
+/** GA4: the Craftofy Fair page (/fair) was opened. `fair_status` says whether the exhibition was open or closed at that moment, so visits to a closed fair can be told apart. */
+export function gaViewFair(status: 'open' | 'closed'): void {
+  gaEvent('view_fair', { fair_status: status });
+}
+
 /** GA4: a workshop page was shown. */
 export function gaViewWorkshop(p: { workshopId: string; category?: string; contentType: 'class' | 'workshop' }): void {
   gaEvent('view_item', { item_id: p.workshopId, content_type: p.contentType, ...(p.category ? { item_category: p.category } : {}) });
