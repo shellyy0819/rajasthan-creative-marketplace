@@ -197,8 +197,8 @@ describe('the photo is level with the panel and the buttons (source contract)', 
 
 describe('the phone bottom bar (source contract)', () => {
   const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
-  it('is a solid bar fixed at the bottom of the screen, above the home indicator, so the page does not show through it', () => {
-    expect(css).toMatch(/@media \(max-width: 700px\) \{[^@]*\.cd-aside \{[^}]*position: fixed; left: 0; right: 0; bottom: 0;[^}]*border-style: solid; border-color: var\(--line\); border-width: 1px 0 0; background: var\(--paper\); padding: 12px 16px calc\(16px \+ env\(safe-area-inset-bottom\)\);/);
+  it('is a solid bar fixed at the bottom of the screen, above the home indicator, so the page does not show through it, with the same space (12px) above and below the buttons', () => {
+    expect(css).toMatch(/@media \(max-width: 700px\) \{[^@]*\.cd-aside \{[^}]*position: fixed; left: 0; right: 0; bottom: 0;[^}]*border-style: solid; border-color: var\(--line\); border-width: 1px 0 0; background: var\(--paper\); padding: 12px 16px calc\(12px \+ env\(safe-area-inset-bottom\)\);/);
   });
   it('holds Share beside the contact button, as tall as it, and hides the other Share while the bar is showing', () => {
     expect(css).toMatch(/\.cd-aside-row \{ display: flex; align-items: flex-start; gap: 10px; \}/);
