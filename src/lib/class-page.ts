@@ -54,6 +54,34 @@ export function nextSession(w: Runs, now: Date = new Date()): NextSession | null
   return null;
 }
 
+export type UpcomingSession = { date: string; dow: string; dayName: string; dom: number; month: string; time: string; tag: string; live: boolean; first: boolean };
+
+/**
+ * The next few classes (the one on now counts), nearest first, each with what the page prints: "FRI", "Friday", 20, "Nov", "7:00 am", and a tag
+ * ("Live now", "Today", "Tomorrow", "In 4 days"). Looks up to 62 days ahead; empty when there is no schedule or the class has ended.
+ */
+export function upcomingSessions(w: Runs, now: Date = new Date(), count = 4): UpcomingSession[] {
+  const s = w.schedule;
+  if (!s) return [];
+  const today = istParts(now).date;
+  const out: UpcomingSession[] = [];
+  for (let i = 0; i < 62 && out.length < count; i++) {
+    const date = addDays(today, i);
+    if (w.endsOn && date > w.endsOn) break;
+    if (!meetsOn(w, date)) continue;
+    const startsAt = istToDate(date, s.time);
+    if (now >= new Date(startsAt.getTime() + s.durationMin * 60_000)) continue;
+    const live = now >= startsAt;
+    const d = utc(date);
+    const days = Math.round((d.getTime() - utc(today).getTime()) / 86_400_000);
+    out.push({
+      date, dow: DAY_SHORT[(d.getUTCDay() + 6) % 7].toUpperCase(), dayName: DAY_NAME[d.getUTCDay()], dom: d.getUTCDate(), month: MONTH[d.getUTCMonth()], time: clock12(s.time), live, first: out.length === 0,
+      tag: live ? 'Live now' : days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days} days`,
+    });
+  }
+  return out;
+}
+
 /** "Today, 6:30 am IST · starts in 30 min", "Tomorrow, 6:30 am IST", "Monday 23 Nov, 6:30 am IST". */
 export function describeNext(n: NextSession, now: Date = new Date()): string {
   const today = istParts(now).date;

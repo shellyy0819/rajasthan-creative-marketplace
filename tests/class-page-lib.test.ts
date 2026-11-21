@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contactChannels, describeNext, nextSession, startsIn, weekStrip } from '@/lib/class-page';
+import { contactChannels, describeNext, nextSession, startsIn, upcomingSessions, weekStrip } from '@/lib/class-page';
 
 const cls = (over: Record<string, unknown> = {}) => ({
   kind: 'class', date: '2026-11-02', endsOn: '2027-02-28', schedule: { repeat: 'weekly', days: ['mon', 'tue', 'wed', 'thu', 'fri'], time: '06:30', durationMin: 60 },
@@ -83,5 +83,31 @@ describe('contactChannels', () => {
   it('ignores a website that is not https, and has no main button when nothing is public', () => {
     expect(contactChannels(cls({ website: 'javascript:alert(1)' })).primary).toBeNull();
     expect(contactChannels(cls()).icons).toEqual([]);
+  });
+});
+
+describe('upcomingSessions', () => {
+  it('lists the next four classes, nearest first, with the pieces the page prints and a tag for how far away each is', () => {
+    const w = cls({ schedule: { repeat: 'weekly', days: ['mon', 'wed', 'fri'], time: '07:00', durationMin: 60 } });
+    const list = upcomingSessions(w, new Date('2026-11-19T00:00:00Z')); // Thursday 05:30 in India
+    expect(list.map(s => s.date)).toEqual(['2026-11-20', '2026-11-23', '2026-11-25', '2026-11-27']);
+    expect(list[0]).toMatchObject({ dow: 'FRI', dayName: 'Friday', dom: 20, month: 'Nov', time: '7:00 am', tag: 'Tomorrow', first: true, live: false });
+    expect(list.map(s => s.tag)).toEqual(['Tomorrow', 'In 4 days', 'In 6 days', 'In 8 days']);
+    expect(list.slice(1).every(s => !s.first)).toBe(true);
+  });
+  it('counts the class that is on now, and says Today for one later today', () => {
+    const w = cls({ schedule: { repeat: 'weekly', days: ['wed'], time: '06:30', durationMin: 60 } });
+    expect(upcomingSessions(w, new Date('2026-11-18T01:10:00Z'))[0]).toMatchObject({ tag: 'Live now', live: true, date: '2026-11-18' }); // 06:40 IST
+    expect(upcomingSessions(w, wed6am)[0]).toMatchObject({ tag: 'Today', live: false });
+  });
+  it('stops at the end date, skips dates before the start, and is empty without a schedule or after the end', () => {
+    const w = cls({ date: '2026-11-23', endsOn: '2026-11-25', schedule: { repeat: 'weekly', days: ['mon', 'wed', 'fri'], time: '07:00', durationMin: 60 } });
+    expect(upcomingSessions(w, wed6am).map(s => s.date)).toEqual(['2026-11-23', '2026-11-25']);
+    expect(upcomingSessions(cls({ schedule: null }), wed6am)).toEqual([]);
+    expect(upcomingSessions(cls({ endsOn: '2026-11-10' }), wed6am)).toEqual([]);
+  });
+  it('follows a monthly schedule (the 1st and 3rd Saturday)', () => {
+    const w = cls({ schedule: { repeat: 'monthly', days: ['sat'], weeks: [1, 3], time: '10:00', durationMin: 90 } });
+    expect(upcomingSessions(w, wed6am, 3).map(s => s.date)).toEqual(['2026-11-21', '2026-12-05', '2026-12-19']);
   });
 });

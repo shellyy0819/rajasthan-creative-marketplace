@@ -79,16 +79,6 @@
 
 .cd-body { display: block; padding-top: 52px; }
 .cd-main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
-.cd-week { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
-.cd-day { border: 1px solid var(--line); border-radius: 6px; padding: 14px 6px; text-align: center; background: var(--card-2); display: flex; flex-direction: column; gap: 4px; }
-.cd-day b { font: 700 10px var(--font-sans); color: var(--muted-2); }
-.cd-dom { font: 600 18px var(--font-sans); }
-.cd-day small { font-size: 11px; color: var(--muted-2); }
-.cd-done { opacity: 0.6; }
-.cd-rest { border-style: dashed; background: transparent; }
-.cd-rest .cd-dom { color: var(--muted-2); }
-.cd-today { background: var(--green); border-color: var(--green); color: #fffdf9; }
-.cd-today b, .cd-today small { color: #fffdf9; }
 .cd-free { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border: 1px solid var(--line); border-radius: 6px; background: var(--card-2); }
 .cd-free-badge { flex: none; padding: 6px 16px; border-radius: 30px; background: var(--green); color: #fffdf9; font: 700 12px var(--font-sans); }
 .cd-free p { margin: 0; font-size: 14px; color: var(--muted-2); }
@@ -100,7 +90,7 @@
 .cd-plan-sub { font-size: 12px; color: var(--muted-2); }
 .cd-steps { margin: 16px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 .cd-steps li { border: 1px solid var(--line); border-radius: 6px; padding: 22px; background: var(--card-2); display: flex; flex-direction: column; gap: 12px; }
-.cd-steps b { width: 32px; height: 32px; border-radius: 50%; background: var(--green); color: #fffdf9; display: grid; place-items: center; font-weight: 700; }
+.cd-steps b { width: 32px; height: 32px; border-radius: 50%; background: var(--green); color: #fffdf9; display: grid; place-items: center; font: 700 12px var(--font-sans); }
 .cd-steps strong { display: block; font: 500 18px var(--font-display); margin-bottom: 4px; }
 .cd-steps span { font-size: 12px; line-height: 1.6; color: var(--muted-2); }
 
@@ -126,9 +116,6 @@
   .cd-dots { display: flex; }
   .cd-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cd-facts > div { padding: 16px; border-bottom: 1px solid var(--line); }
-  .cd-week { gap: 6px; }
-  .cd-day { padding: 10px 0; }
-  .cd-day small { display: none; }
   /* The contact button stays at the bottom of the screen. */
   /* The contact button (with Share beside it) stays at the bottom of the screen, on a solid bar so the page does not show through it. */
   .cd-aside { display: flex; flex-direction: column; gap: 16px; position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 20; border-radius: 0; border-style: solid; border-color: var(--line); border-width: 1px 0 0; background: var(--paper); padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
@@ -138,7 +125,46 @@
   .cd-actions-has-bar { display: none; }
   .cd-aside-copy { display: none; }
   .cd-actions > .cd-cta { display: none; }
+  /* How to join: the number and the step start on the same line (the number on the left, the title level with it, the sentence under the title). */
+  /* Every card in the column has the same 16px side padding, so the green date tiles, the Free pill and the step numbers all start on one vertical line. */
+  .cd-free { padding: 16px; }
+  .cd-steps { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .cd-steps li { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: start; gap: 14px; padding: 16px; }
+  .cd-steps strong { line-height: 32px; margin-bottom: 0; }
   /* The instructor's logo sits centred above their name and details, so the text gets the whole card width instead of a narrow strip beside a lone circle. */
+  /* Rows with an icon (Where, Next class; the in-person page's date tile row is left alone): the icon sits at the left edge of the card (no circle around it), in line with the text of the cards below, and the text gets the room the circle used. */
+  .cd-row:has(> .cd-ico) { grid-template-columns: 24px minmax(0, 1fr); gap: 14px; padding: 14px 16px; }
+  .cd-row:has(> .cd-ico) > .cd-ico { width: 24px; height: 24px; background: none; border-radius: 0; justify-self: start; }
+  .cd-row:has(> .cd-ico) > .cd-ico svg { width: 24px; height: 24px; }
   .cd-teacher { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .cd-teacher > .cd-avatar { justify-self: center; width: 56px; height: 56px; }
+}
+
+/* Upcoming classes: four cards side by side on a laptop, a list of rows on a phone. The first (next) one is picked out in green with an orange tag. */
+.cd-up { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.cd-up-item { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 6px; background: var(--card-2); }
+.cd-up-first { border-color: var(--green); background: var(--chip-green); }
+.cd-up-tag { align-self: flex-start; padding: 3px 0; font: 700 11px var(--font-sans); color: var(--muted-2); }
+.cd-up-first .cd-up-tag { padding: 3px 10px; border-radius: 30px; background: var(--orange); color: #fffdf9; }
+.cd-up-date { display: flex; align-items: baseline; gap: 6px; }
+.cd-up-date b { font: 500 26px/1 var(--font-sans); letter-spacing: -0.5px; }
+.cd-up-dow { display: none; }
+.cd-up-mon { font: 700 9px var(--font-sans); letter-spacing: 1px; color: var(--muted-2); }
+.cd-up-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cd-up-day { font: 600 14px var(--font-sans); }
+.cd-up-rest { display: none; } /* a laptop card already shows the date large; the phone row, with its small weekday tile, spells it out */
+.cd-up-time { font-size: 12px; color: var(--muted-2); }
+@media (max-width: 700px) {
+  .cd-up { grid-template-columns: minmax(0, 1fr); gap: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .cd-up-item { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; grid-template-areas: "date text tag"; align-items: center; gap: 14px; padding: 14px 16px; border: 0; border-radius: 0; }
+  .cd-up-item + .cd-up-item { border-top: 1px solid var(--line); }
+  .cd-up-date { grid-area: date; flex-direction: column; align-items: center; justify-content: center; gap: 3px; height: 48px; border-radius: 6px; background: var(--cream); color: var(--green-d); }
+  .cd-up-first .cd-up-date { background: var(--green); color: #fffdf9; }
+  .cd-up-dow { display: block; font: 700 9px var(--font-sans); letter-spacing: 1px; }
+  .cd-up-date b { font: 500 18px/1 var(--font-sans); letter-spacing: 0; }
+  .cd-up-mon { display: none; }
+  .cd-up-text { grid-area: text; }
+  .cd-up-rest { display: inline; }
+  .cd-up-tag { grid-area: tag; align-self: center; padding: 0; }
+  .cd-up-first .cd-up-tag { padding: 4px 10px; }
 }
