@@ -315,3 +315,27 @@ describe('the contact icons of the instructor and host (source contract)', () =>
     expect(css).toMatch(/\.cd-icons a:hover \{ opacity: \.8; \}/);
   });
 });
+
+describe('the contact icons line up with the text beside them (source contract)', () => {
+  it('the host icon row is pulled left by the difference between its 44px target and 20px mark, so the first mark lines up with the name', () => {
+    const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+    expect(css).toMatch(/\.cd-icons \{ display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0 -12px; \}/);
+  });
+  it('the last icon on a workshop card is pushed out so it lines up with the price above it (7px on laptops, 9px on tablets and phones)', () => {
+    const css = readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ');
+    expect(css).toMatch(/\.workshop-card \.ws-contact \.ws-icon:last-child \{ margin-right: -7px; \}/);
+    expect(css).toMatch(/@media \(max-width: 900px\) \{ \.workshop-card \.ws-contact \.ws-icon:last-child \{ margin-right: -9px; \} \}/);
+  });
+});
+
+describe('Share on the in-person workshop page (source contract)', () => {
+  it('sits right behind the main button, in the same row and as tall, and stands alone only when there is no main button', () => {
+    const css = readFileSync('src/components/class/CraftDetail.css', 'utf8').replace(/\s+/g, ' ');
+    expect(css).toMatch(/\.cr-actions \{ grid-column: 1 \/ 3; display: flex; align-items: flex-start; gap: 10px; \}/);
+    expect(css).toMatch(/\.cr-actions \.share-slot \{ flex: none; margin-top: 0; \}/);
+    expect(css).toMatch(/\.cr-actions \.share-btn \{ min-height: 48px; \}/);
+    const src = readFileSync('src/components/class/CraftDetail.tsx', 'utf8').replace(/\s+/g, ' ');
+    expect(src).toMatch(/<div className="cr-actions"> \{bookable \? <div className="cr-reserve">[\s\S]*?\{share && <div className="share-slot">\{share\}<\/div>\} <\/div>/);
+    expect(src).toContain('{share && !(!ended && (bookable || ch.primary)) && <div className="share-slot">');
+  });
+});

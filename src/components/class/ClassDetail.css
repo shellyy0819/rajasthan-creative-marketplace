@@ -35,7 +35,7 @@
 .cd-certs .rich-text ul li { position: relative; }
 .cd-certs .rich-text ul li::before { content: '\2713'; content: '\2713' / ''; position: absolute; left: -20px; font-weight: 700; color: var(--green-d); }
 .cd-sub { display: block; font-size: 12px; line-height: 1.6; color: var(--muted-2); margin-top: 2px; }
-.cd-icons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.cd-icons { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0 -12px; } /* the 44px tap area is wider than the 20px mark: pulled left by the difference (12px) so the first mark lines up with the name above it */
 /* The contact marks of the instructor or host: the mark alone, no ring around it; the link is still a 44px target to tap. */
 .cd-icons a { width: 44px; height: 44px; border-radius: 50%; border: 0; display: grid; place-items: center; color: var(--ink); }
 .cd-icons a:hover { opacity: .8; }
