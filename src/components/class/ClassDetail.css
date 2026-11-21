@@ -126,7 +126,9 @@
   .cd-aside-copy { display: none; }
   .cd-actions > .cd-cta { display: none; }
   /* How to join: the number and the step start on the same line (the number on the left, the title level with it, the sentence under the title). */
-  .cd-steps { gap: 12px; }
+  /* Every card in the column has the same 16px side padding, so the green date tiles, the Free pill and the step numbers all start on one vertical line. */
+  .cd-free { padding: 16px; }
+  .cd-steps { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .cd-steps li { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: start; gap: 14px; padding: 16px; }
   .cd-steps strong { line-height: 32px; margin-bottom: 0; }
   /* The instructor's logo sits centred above their name and details, so the text gets the whole card width instead of a narrow strip beside a lone circle. */

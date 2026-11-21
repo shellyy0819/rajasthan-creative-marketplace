@@ -276,3 +276,13 @@ describe('How to join on phones (source contract)', () => {
     expect(css).toMatch(/\.cd-steps span \{ font-size: 12px; line-height: 1\.6;/);
   });
 });
+
+describe('the green tags line up on phones (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('the upcoming rows, the Free card and the step cards share one 16px side padding', () => {
+    expect(css).toMatch(/@media \(max-width: 700px\) \{[^@]*\.cd-free \{ padding: 16px; \}/);
+    expect(css).toMatch(/\.cd-up-item \{[^}]*padding: 14px 16px;/);
+    expect(css).toMatch(/\.cd-steps li \{[^}]*padding: 16px; \}/);
+    expect(css).toMatch(/\.cd-steps \{ grid-template-columns: minmax\(0, 1fr\); gap: 12px; \}/); // one step per row, so the numbers share a column at every phone width
+  });
+});
