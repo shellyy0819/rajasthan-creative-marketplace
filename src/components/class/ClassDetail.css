@@ -36,8 +36,9 @@
 .cd-certs .rich-text ul li::before { content: '\2713'; content: '\2713' / ''; position: absolute; left: -20px; font-weight: 700; color: var(--green-d); }
 .cd-sub { display: block; font-size: 12px; line-height: 1.6; color: var(--muted-2); margin-top: 2px; }
 .cd-icons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-.cd-icons a { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--control-border); display: grid; place-items: center; color: var(--ink); }
-.cd-icons a:hover { background: var(--cream); }
+/* The contact marks of the instructor or host: the mark alone, no ring around it; the link is still a 44px target to tap. */
+.cd-icons a { width: 44px; height: 44px; border-radius: 50%; border: 0; display: grid; place-items: center; color: var(--ink); }
+.cd-icons a:hover { opacity: .8; }
 .cd-next-text { display: block; font: 600 14px var(--font-sans); margin-top: 2px; }
 /* The contact button and, beside it, Share (only shown to those allowed to see it). */
 .cd-actions { display: flex; align-items: flex-start; gap: 10px; max-width: 760px; }
