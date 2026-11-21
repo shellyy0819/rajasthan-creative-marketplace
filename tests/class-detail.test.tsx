@@ -339,3 +339,23 @@ describe('Share on the in-person workshop page (source contract)', () => {
     expect(src).toContain('{share && !(!ended && (bookable || ch.primary)) && <div className="share-slot">');
   });
 });
+
+describe('the in-person workshop page on phones (source contract)', () => {
+  it('keeps the main button and Share on a solid bar fixed at the bottom of the screen, above the home indicator', () => {
+    const css = readFileSync('src/components/class/CraftDetail.css', 'utf8').replace(/\s+/g, ' ');
+    expect(css).toMatch(/@media \(max-width: 700px\) \{[^@]*\.cr-actions \{ grid-column: auto; position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 12px 16px calc\(12px \+ env\(safe-area-inset-bottom\)\); border-top: 1px solid var\(--line\); background: var\(--paper\); \}/);
+  });
+  it('the page leaves room under its content for the bar (the shared 110px bottom padding on tablets and phones)', () => {
+    expect(readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ')).toMatch(/\.cd \{ padding: 4px 5% 110px; \}/);
+    expect(readFileSync('src/components/class/CraftDetail.tsx', 'utf8')).toContain('<div className="cd cr">');
+  });
+});
+
+describe('the footer stays readable under the bottom bar on phones (source contract)', () => {
+  it('a page with the fixed bar gets the bar\'s height as bottom padding on the body, on the class page and the workshop page', () => {
+    const cls = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+    const craft = readFileSync('src/components/class/CraftDetail.css', 'utf8').replace(/\s+/g, ' ');
+    expect(cls).toMatch(/body:has\(\.cd-aside\) \{ padding-bottom: calc\(73px \+ env\(safe-area-inset-bottom\)\); \}/);
+    expect(craft).toMatch(/body:has\(\.cr-actions\) \{ padding-bottom: calc\(73px \+ env\(safe-area-inset-bottom\)\); \}/);
+  });
+});
