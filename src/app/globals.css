@@ -3993,7 +3993,10 @@ body.modal-open {
   }
   .product-card .like-btn {
     font-size: 12px; /* count hidden on phones, so the heart can be a little larger */
-    padding: 4px 8px;
+    width: 30px; /* the heart and the call button are the same 30px circle */
+    height: 30px;
+    padding: 0;
+    justify-content: center;
     gap: 0;
   }
   .product-card .like-btn .like-count {
@@ -4020,14 +4023,14 @@ body.modal-open {
     margin-top: 10px;
   }
   .product-card .contact-btn.contact-icon-btn {
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     background: var(--green);
     color: var(--on-green);
   }
   .product-card .contact-handset {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
 }
 @media (max-width: 600px) {

@@ -14,9 +14,10 @@ describe('product cards on phones', () => {
     expect(phone).toMatch(/\.product-card \.product-info h3 \{[^}]*min-height: 2\.4em;[^}]*max-height: 2\.4em;/);
     expect(phone).toMatch(/\.product-card \.product-info p\.pc-who \{[^}]*min-height: 2\.6em;[^}]*max-height: 2\.6em;[^}]*overflow: hidden;/);
   });
-  it('the phone button is a 36px circle with a 16px handset', () => {
-    const block = global.match(/@media \(max-width: 600px\) \{ \/\* ?Phones: photo on top.*?\.product-card \.contact-handset \{[^}]*\}/) ?? global.match(/\.product-card \.contact-btn\.contact-icon-btn \{ width: 36px;[^}]*\} \.product-card \.contact-handset \{[^}]*\}/);
-    expect(block![0]).toMatch(/\.product-card \.contact-btn\.contact-icon-btn \{[^}]*width: 36px;[^}]*height: 36px;/);
-    expect(block![0]).toMatch(/\.product-card \.contact-handset \{[^}]*width: 16px;[^}]*height: 16px;/);
+  it('the phone button is a 30px circle with a 14px handset, the same size as the heart', () => {
+    const block = global.match(/@media \(max-width: 600px\) \{ \/\* ?Phones: photo on top.*?\.product-card \.contact-handset \{[^}]*\}/) ?? global.match(/\.product-card \.contact-btn\.contact-icon-btn \{ width: 30px;[^}]*\} \.product-card \.contact-handset \{[^}]*\}/);
+    expect(block![0]).toMatch(/\.product-card \.contact-btn\.contact-icon-btn \{[^}]*width: 30px;[^}]*height: 30px;/);
+    expect(block![0]).toMatch(/\.product-card \.contact-handset \{[^}]*width: 14px;[^}]*height: 14px;/);
+    expect(global).toMatch(/\.product-card \.like-btn \{[^}]*width: 30px;[^}]*height: 30px;[^}]*padding: 0;/);
   });
 });
