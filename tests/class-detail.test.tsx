@@ -23,10 +23,10 @@ describe('online class page on tablets and phones (source contract)', () => {
     expect(css).toMatch(/\.cd-tile img \{ width: 100%; height: 100%; object-fit: cover/);
   });
   it('the instructor, Where and next class rows live in one panel, and the booking row has the same width', () => {
-    const width = (sel: string) => new RegExp(`\\${sel} \\{[^}]*max-width: 560px`).test(css);
+    const width = (sel: string) => new RegExp(`\\${sel} \\{[^}]*max-width: 760px`).test(css);
     expect(width('.cd-panel')).toBe(true);
-    expect(width('.cd-cta')).toBe(true); // the contact button under the panel is as wide as the panel, not as wide as the column // one panel holds the instructor, Where and next class rows, so they cannot differ in width
-    expect(readFileSync('src/components/class/CraftDetail.css', 'utf8')).toMatch(/\.cr-book \{[^}]*max-width: 560px/);
+    expect(width('.cd-actions')).toBe(true); // the contact button (and Share beside it) under the panel is as wide as the panel, not as wide as the column // one panel holds the instructor, Where and next class rows, so they cannot differ in width
+    expect(readFileSync('src/components/class/CraftDetail.css', 'utf8')).toMatch(/\.cr-book \{[^}]*max-width: 760px/);
   });
   it('the photos are capped in height so the title, instructor and next class show below them', () => {
     expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-mosaic \{[^}]*height: clamp\(220px, 42vw, 340px\)/);
@@ -40,7 +40,10 @@ describe('online class page', () => {
     expect(h).toContain('ONLINE CLASS · YOGA');
     expect(h).toContain('<h1 id="cd-h1">Sunrise Vinyasa</h1>');
     expect(h).toContain('Anaya Sharma');
-    expect(h).toContain('8 years teaching · RYT 500');
+    expect(h).toContain('<div class="cd-sub"><section class="cd-about" aria-label="About the instructor"><span class="cd-label cd-sub-label">About the instructor</span><div class="rich-text"><p>8 years teaching</p></div></section><section class="cd-certs" aria-label="Certifications"><span class="cd-label cd-sub-label">Certifications</span><div class="rich-text"><p>RYT 500</p></div></section></div>'); // About the instructor, then Certifications set apart
+    expect(html({ certifications: null } as Partial<Workshop>)).not.toContain('Certifications</span>'); // no certifications, no heading
+    expect(html({ experience: null } as Partial<Workshop>)).not.toContain('About the instructor'); // no about text, no heading
+    expect(html({ experience: null, certifications: '1. RYT' } as Partial<Workshop>)).toContain('cd-sub-label">Certifications</span><div class="rich-text"><ol>');
     expect(h).toContain('2-day free trial');
     expect(h).toContain('Today, 6:30 am IST · starts in 30 min');
     expect(h).toContain('href="https://wa.me/919989898999"');
@@ -146,5 +149,79 @@ describe('this week on the online class page', () => {
     expect(h).toContain('Times are India time (IST).');
     expect(h).not.toContain('class="cd-week"');
     expect(h).toContain('Sunrise Vinyasa');
+  });
+});
+
+describe('the instructor card styling (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('sets the certifications apart under a rule, with a check on each bullet, from tokens only', () => {
+    expect(css).toMatch(/\.cd-certs \{ margin-top: 12px; border-top: 1px solid var\(--line\); \}/);
+    expect(css).toMatch(/\.cd-certs \.rich-text ul \{ list-style: none;/);
+    expect(css).toMatch(/\.cd-certs \.rich-text ul li::before \{[^}]*content: '\\2713'[^}]*color: var\(--green-d\)/);
+  });
+  it('the in-person page uses the same card parts, headed "About the host"', () => {
+    const src = readFileSync('src/components/class/CraftDetail.tsx', 'utf8');
+    expect(src).toContain('<InstructorBio experience={w.experience} certifications={w.certifications} who="host" />');
+  });
+});
+
+describe('the contact button and Share share one row (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('Share sits beside the contact button, as tall as it, and the left column is the wider one', () => {
+    expect(css).toMatch(/\.cd-hero \{[^}]*grid-template-columns: minmax\(0, 8fr\) minmax\(0, 5fr\)/);
+    expect(css).toMatch(/\.cd-actions \{ display: flex; align-items: flex-start;/);
+    expect(css).toMatch(/\.cd-actions \.share-slot \{ flex: none; margin-top: 0; \}/);
+    expect(css).toMatch(/\.cd-actions \.share-btn, \.cd-aside \.share-btn \{ min-height: 48px; \}/);
+    expect(css).toMatch(/\.cd-actions > \.cd-cta \{ display: none; \}/); // phones keep the fixed bottom bar for the contact button
+  });
+  it('the page puts the contact button and Share in the same row', () => {
+    const src = readFileSync('src/components/class/ClassDetail.tsx', 'utf8').replace(/\s+/g, ' ');
+    expect(src).toMatch(/<div className=\{`cd-actions[^`]*`\}> \{!ended && ch\.primary && <div className="cd-cta">[\s\S]*?<\/div>\} \{share && <div className="share-slot">/);
+  });
+});
+
+describe('the photo is level with the panel and the buttons (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('on wide screens the photo sits in the row of the panel and buttons, filling that row without making it taller', () => {
+    expect(css).toMatch(/@media \(min-width: 901px\) \{ \.cd-hero-aligned \{ grid-template-rows: auto auto; align-items: stretch;/);
+    expect(css).toMatch(/\.cd-hero-aligned \.cd-hero-body \{ grid-column: 1; grid-row: 2; \}/);
+    expect(css).toMatch(/\.cd-hero-aligned \.cd-media \{ grid-column: 2; grid-row: 2; position: relative;/);
+    expect(css).toMatch(/\.cd-hero-aligned \.cd-mosaic \{ position: absolute; inset: 0; aspect-ratio: auto; \}/);
+  });
+  it('the page puts the panel and the buttons in one body block beside the photo', () => {
+    const src = readFileSync('src/components/class/ClassDetail.tsx', 'utf8').replace(/\s+/g, ' ');
+    expect(src).toContain('<section className="cd-hero cd-hero-aligned"');
+    expect(src).toMatch(/<div className="cd-hero-body"> <div className="cd-panel">/);
+  });
+});
+
+describe('the phone bottom bar (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('is a solid bar fixed at the bottom of the screen, above the home indicator, so the page does not show through it', () => {
+    expect(css).toMatch(/@media \(max-width: 700px\) \{[^@]*\.cd-aside \{[^}]*position: fixed; left: 0; right: 0; bottom: 0;[^}]*border-style: solid; border-color: var\(--line\); border-width: 1px 0 0; background: var\(--paper\); padding: 12px 16px calc\(16px \+ env\(safe-area-inset-bottom\)\);/);
+  });
+  it('holds Share beside the contact button, as tall as it, and hides the other Share while the bar is showing', () => {
+    expect(css).toMatch(/\.cd-aside-row \{ display: flex; align-items: flex-start; gap: 10px; \}/);
+    expect(css).toMatch(/\.cd-aside-row \.cd-btn \{ flex: 1 1 auto; min-width: 0; \}/);
+    expect(css).toMatch(/\.cd-actions \.share-btn, \.cd-aside \.share-btn \{ min-height: 48px; \}/);
+    expect(css).toMatch(/\.cd-actions-has-bar \{ display: none; \}/);
+  });
+  it('the page renders Share in the bar, and marks the in-page row so it can be hidden only when the bar exists', () => {
+    const src = readFileSync('src/components/class/ClassDetail.tsx', 'utf8').replace(/\s+/g, ' ');
+    expect(src).toMatch(/<div className="cd-aside-row"> <Button c=\{ch\.primary\} \/> \{share && <div className="share-slot">\{share\}<\/div>\} <\/div>/);
+    expect(src).toContain("cd-actions${!ended && ch.primary ? ' cd-actions-has-bar' : ''}");
+  });
+});
+
+describe('the instructor logo on phones (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('is centred above the name and details, which then use the full card width', () => {
+    expect(css).toMatch(/@media \(max-width: 700px\) \{[^@]*\.cd-teacher \{ grid-template-columns: minmax\(0, 1fr\);/);
+    expect(css).toMatch(/\.cd-teacher > \.cd-avatar \{ justify-self: center; width: 56px; height: 56px; \}/);
+  });
+  it('the logo comes first in the row, before the YOUR INSTRUCTOR label (so it is above it when the row stacks)', () => {
+    const h = renderToStaticMarkup(<ClassDetail w={{ ...base } as Workshop} ended={false} now={now} />);
+    expect(h.indexOf('class="cd-avatar"')).toBeGreaterThan(-1);
+    expect(h.indexOf('class="cd-avatar"')).toBeLessThan(h.indexOf('YOUR INSTRUCTOR'));
   });
 });

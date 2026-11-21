@@ -100,3 +100,28 @@ describe('the yoga illustration colours (source contract)', () => {
     expect(src).toContain("fig('--art-arms')");
   });
 });
+
+describe('the free trial on a card with a picture', () => {
+  it('is a chip on the photo (like "Only 1 left" on a product card) and not repeated as a badge', () => {
+    const h = renderToStaticMarkup(<WorkshopCard w={{ ...base, images: ['https://example.com/a.jpg'], freeTrial: true, freeTrialDays: 2 }} />);
+    expect(h).toContain('<span class="tile-trial">2-day free trial</span>');
+    expect(h).not.toContain('Free trial ·');
+    expect(h).not.toContain('ws-badges');
+  });
+  it('is a chip on the yoga illustration too, and says "Free trial" when no length is given', () => {
+    const h = renderToStaticMarkup(<WorkshopCard w={{ ...base, freeTrial: true, freeTrialDays: null }} />);
+    expect(h).toContain('has-art');
+    expect(h).toContain('<span class="tile-trial">Free trial</span>');
+  });
+  it('stays a badge under the title on the plain date tile, and a card without a trial has neither', () => {
+    const plain = renderToStaticMarkup(<WorkshopCard w={{ ...base, title: 'Morning flow', topic: undefined, topicId: null, freeTrial: true, freeTrialDays: 2 }} />);
+    expect(plain).not.toContain('tile-trial');
+    expect(plain).toContain('Free trial · 2 days');
+    const none = renderToStaticMarkup(<WorkshopCard w={{ ...base, images: ['https://example.com/a.jpg'] }} />);
+    expect(none).not.toContain('tile-trial');
+  });
+  it('the chip is the site\'s orange chip with white text, at the top left of the tile (source contract)', () => {
+    const css = fs.readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ');
+    expect(css).toMatch(/\.date-tile\.has-photo \.tile-trial \{ position: absolute; left: 8px; top: 8px;[^}]*background: var\(--orange\); color: #fffdf9;/);
+  });
+});

@@ -2,6 +2,7 @@ import { instagramUrl } from '@/lib/social';
 import { KIND_LABEL, type WorkshopRequest } from '@/lib/workshop-requests';
 import { describeSchedule, summarizePrices } from '@/lib/workshop-listing';
 import { RequestStatusSelect } from './RequestStatusSelect';
+import { RichText } from './RichText';
 import './AdminTableControls.css';
 
 const when = (iso: string) => new Date(iso).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
@@ -29,7 +30,9 @@ export function WorkshopRequestsAdmin({ requests }: { requests: WorkshopRequest[
               <tr key={r.id}>
                 <td>{when(r.createdAt)}</td>
                 <td><b>{r.title}</b> <small className="muted">({KIND_LABEL[r.kind]}{r.topic ? ` · ${r.topic}` : ''})</small><br />{r.description}
-                  {r.mode === 'online' && <><br /><small className="muted">{[r.level && `Level: ${r.level}`, r.languages.length > 0 && `Languages: ${r.languages.join(', ')}`, r.experience && `Experience: ${r.experience}`, r.certifications && `Certifications: ${r.certifications}`, r.freeTrial && 'Free trial'].filter(Boolean).join(' · ')}</small></>}
+                  {r.mode === 'online' && <><br /><small className="muted">{[r.level && `Level: ${r.level}`, r.languages.length > 0 && `Languages: ${r.languages.join(', ')}`, r.freeTrial && 'Free trial'].filter(Boolean).join(' · ')}</small></>}
+                  {r.mode === 'online' && r.experience && <div className="muted request-rich"><small>Experience</small><RichText value={r.experience} /></div>}
+                  {r.mode === 'online' && r.certifications && <div className="muted request-rich"><small>Certifications</small><RichText value={r.certifications} /></div>}
                   {r.notes && <><br /><small className="muted">Note: {r.notes}</small></>}</td>
                 <td>{dates(r)}</td>
                 <td>{r.mode === 'online' ? <>{`Online${r.platform ? ` · ${r.platform}` : ''}`}{r.joinLink && <><br /><a href={r.joinLink} target="_blank" rel="noreferrer">Meeting link</a></>}</> : `${r.venue}, ${r.city}`}</td>

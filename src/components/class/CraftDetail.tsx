@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { InstructorBio } from './InstructorBio';
 import { ReserveButton } from '@/components/ReserveButton';
 import { clock12, contactChannels, isYogaListing, startsIn } from '@/lib/class-page';
 import { formatDay } from '@/lib/format';
@@ -49,7 +50,7 @@ export function CraftDetail({ w, ended, now = new Date(), share }: { w: Workshop
             <div>
               <span className="cd-label">YOUR HOST</span>
               <span className="cd-name">{w.host}</span>
-              {(w.experience || w.certifications) && <span className="cd-sub">{[w.experience, w.certifications].filter(Boolean).join(' · ')}</span>}
+              <InstructorBio experience={w.experience} certifications={w.certifications} who="host" />
               {ch.icons.length > 0 && <span className="cd-icons cr-icons">{ch.icons.map(c => <a key={c.kind} href={c.href} aria-label={c.short} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} /></a>)}</span>}
             </div>
           </div>

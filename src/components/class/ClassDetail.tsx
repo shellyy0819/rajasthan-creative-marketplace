@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { InstructorBio } from './InstructorBio';
 import { contactChannels, describeNext, isYogaListing, nextSession, weekStrip, type Channel } from '@/lib/class-page';
 import { formatDay } from '@/lib/format';
 import { describeSchedule } from '@/lib/workshop-listing';
@@ -40,20 +41,23 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
   const perClass = (amount: number, sessions: number | null) => (sessions && sessions > 1 && amount > 0 ? `${sessions} sessions · about ${money(Math.round(amount / sessions))} a class` : sessions ? `${sessions} ${sessions === 1 ? 'session' : 'sessions'}` : '');
   return (
     <div className="cd">
-      <section className="cd-hero" aria-labelledby="cd-h1">
+      <section className="cd-hero cd-hero-aligned" aria-labelledby="cd-h1">
         <div className="cd-hero-text">
           <p className="cd-eyebrow">ONLINE CLASS{topic ? ` · ${topic}` : ''}</p>
           <h1 id="cd-h1">{w.title}</h1>
           {ended && <p className="ws-ended" role="status">This class has ended. <Link href="/workshops">See upcoming workshops</Link></p>}
           <p className="cd-lead">{w.description}</p>
           {trial && <p className="cd-badges"><span className="cd-badge">{trial}</span></p>}
+        </div>
+        {/* The panel and the buttons are one block: the photo beside them starts at the panel's top and ends at the buttons' bottom. */}
+        <div className="cd-hero-body">
           <div className="cd-panel">
           <div className="cd-row cd-teacher">
             <div className="cd-avatar" aria-hidden="true">{hostPhoto ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={hostPhoto} alt="" referrerPolicy="no-referrer" /> : initials(w.host)}</div>
             <div>
               <span className="cd-label">YOUR INSTRUCTOR</span>
               <span className="cd-name">{w.host}</span>
-              {(w.experience || w.certifications) && <span className="cd-sub">{[w.experience, w.certifications].filter(Boolean).join(' · ')}</span>}
+              <InstructorBio experience={w.experience} certifications={w.certifications} who="instructor" />
               {icons.length > 0 && (
                 <span className="cd-icons">{icons.map(c => <a key={c.kind} href={c.href} aria-label={c.short} {...(c.kind === 'call' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><ChannelIcon kind={c.kind} /></a>)}</span>
               )}
@@ -80,8 +84,12 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
             </div>
           )}
           </div>
-          {!ended && ch.primary && <div className="cd-cta"><Button c={ch.primary} />{ch.secondary.map(c => <Button key={c.kind} c={c} outline />)}</div>}
-          {share && <div className="share-slot">{share}</div>}
+          {((!ended && ch.primary) || share) && (
+            <div className={`cd-actions${!ended && ch.primary ? ' cd-actions-has-bar' : ''}`}>
+              {!ended && ch.primary && <div className="cd-cta"><Button c={ch.primary} />{ch.secondary.map(c => <Button key={c.kind} c={c} outline />)}</div>}
+              {share && <div className="share-slot">{share}</div>}
+            </div>
+          )}
         </div>
         {w.images.length ? <PhotoMosaic images={w.images} title={w.title} /> : <ClassIllustration title={w.title} yoga={isYogaListing(w)} />}
       </section>
@@ -152,7 +160,10 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
               <strong>Join {w.title}</strong>
               <p>{free ? 'This class is free.' : w.prices.length ? `Plans from ${money(Math.min(...w.prices.map(p => p.amountPaise)))}.` : `${money(w.pricePaise)} a class.`}{trial ? ' Ask the host about the free trial.' : ''}</p>
             </div>
-            <Button c={ch.primary} />
+            <div className="cd-aside-row">
+              <Button c={ch.primary} />
+              {share && <div className="share-slot">{share}</div>}
+            </div>
           </aside>
         )}
       </div>

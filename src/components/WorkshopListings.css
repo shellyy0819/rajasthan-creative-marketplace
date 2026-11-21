@@ -41,6 +41,8 @@
 .date-tile.has-photo { position: relative; overflow: hidden; padding: 0; background: var(--cream); }
 .date-tile.has-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 .date-tile.has-art svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.date-tile.has-photo .tile-trial { position: absolute; left: 8px; top: 8px; max-width: calc(100% - 16px); padding: 4px 9px; border-radius: 12px; background: var(--orange); color: #fffdf9; font: 700 11px/1.25 var(--font-sans); letter-spacing: 0; text-transform: none; }
+@media (max-width: 900px) { .date-tile.has-photo .tile-trial { left: 6px; top: 6px; max-width: calc(100% - 12px); padding: 3px 7px; font-size: 10px; } }
 .date-tile.has-photo .tile-chip { position: absolute; left: 8px; bottom: 8px; max-width: calc(100% - 16px); padding: 3px 9px; border-radius: 30px; background: #0b0e0acc; color: #fff; font: 600 11px var(--font-sans); letter-spacing: 0; text-transform: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* With a photo the picture column is wider and the photo is square. */

@@ -1,5 +1,6 @@
 import { ApiError } from './errors';
 import { normalizePhone, PHONE_HINT } from './phone';
+import { richFits } from './rich-text';
 
 export type Raw = Record<string, unknown>;
 export const bad = (msg: string) => new ApiError(400, msg);
@@ -26,6 +27,12 @@ export function optionalInt(v: unknown, field: string, min: number, max: number)
 export function optionalText(v: unknown, field: string, max: number): string | undefined {
   if (v === undefined || v === null || v === '') return undefined;
   if (typeof v !== 'string' || v.trim().length > max) throw bad(`${field} must be text up to ${max} characters.`);
+  return v.trim() || undefined;
+}
+/** Text written in the formatting editor (see rich-text): up to `max` characters as a person sees them, whatever marks it carries. */
+export function optionalRich(v: unknown, field: string, max = 500): string | undefined {
+  if (v === undefined || v === null || v === '') return undefined;
+  if (typeof v !== 'string' || !richFits(v.trim(), max)) throw bad(`${field} must be text up to ${max} characters.`);
   return v.trim() || undefined;
 }
 export function optionalPhone(v: unknown, field = 'phone'): string | undefined {
