@@ -32,7 +32,7 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
   const topic = w.topic?.name.toUpperCase();
   const facts: { k: string; v: string }[] = [
     ...(w.schedule ? [{ k: 'EACH CLASS', v: `${w.schedule.durationMin} minutes` }] : []),
-    { k: 'RUNS', v: w.endsOn && w.endsOn !== w.date ? `${date(w.date)} to ${date(w.endsOn)}` : w.endsOn ? date(w.date) : `From ${date(w.date)}` },
+    { k: 'STARTS', v: w.endsOn && w.endsOn !== w.date ? `${date(w.date)} to ${date(w.endsOn)}` : w.endsOn ? date(w.date) : `From ${date(w.date)}` },
     ...(w.level || w.languages.length ? [{ k: 'FOR', v: [w.level ? (w.level === 'beginner' ? 'Beginners' : LEVEL_LABEL[w.level]) : '', w.languages.join(', ')].filter(Boolean).join(' · ') }] : []),
   ];
   const live = `Live on ${w.platform ?? 'video call'}`;
