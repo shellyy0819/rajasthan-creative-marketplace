@@ -171,12 +171,12 @@ describe('the contact button and Share share one row (source contract)', () => {
     expect(css).toMatch(/\.cd-hero \{[^}]*grid-template-columns: minmax\(0, 8fr\) minmax\(0, 5fr\)/);
     expect(css).toMatch(/\.cd-actions \{ display: flex; align-items: flex-start;/);
     expect(css).toMatch(/\.cd-actions \.share-slot \{ flex: none; margin-top: 0; \}/);
-    expect(css).toMatch(/\.cd-actions \.share-btn \{ min-height: 48px; \}/);
+    expect(css).toMatch(/\.cd-actions \.share-btn, \.cd-aside \.share-btn \{ min-height: 48px; \}/);
     expect(css).toMatch(/\.cd-actions > \.cd-cta \{ display: none; \}/); // phones keep the fixed bottom bar for the contact button
   });
   it('the page puts the contact button and Share in the same row', () => {
     const src = readFileSync('src/components/class/ClassDetail.tsx', 'utf8').replace(/\s+/g, ' ');
-    expect(src).toMatch(/<div className="cd-actions"> \{!ended && ch\.primary && <div className="cd-cta">[\s\S]*?<\/div>\} \{share && <div className="share-slot">/);
+    expect(src).toMatch(/<div className=\{`cd-actions[^`]*`\}> \{!ended && ch\.primary && <div className="cd-cta">[\s\S]*?<\/div>\} \{share && <div className="share-slot">/);
   });
 });
 
@@ -192,5 +192,23 @@ describe('the photo is level with the panel and the buttons (source contract)', 
     const src = readFileSync('src/components/class/ClassDetail.tsx', 'utf8').replace(/\s+/g, ' ');
     expect(src).toContain('<section className="cd-hero cd-hero-aligned"');
     expect(src).toMatch(/<div className="cd-hero-body"> <div className="cd-panel">/);
+  });
+});
+
+describe('the phone bottom bar (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('is a solid bar fixed at the bottom of the screen, above the home indicator, so the page does not show through it', () => {
+    expect(css).toMatch(/@media \(max-width: 700px\) \{[^@]*\.cd-aside \{[^}]*position: fixed; left: 0; right: 0; bottom: 0;[^}]*border-style: solid; border-color: var\(--line\); border-width: 1px 0 0; background: var\(--paper\); padding: 12px 16px calc\(16px \+ env\(safe-area-inset-bottom\)\);/);
+  });
+  it('holds Share beside the contact button, as tall as it, and hides the other Share while the bar is showing', () => {
+    expect(css).toMatch(/\.cd-aside-row \{ display: flex; align-items: flex-start; gap: 10px; \}/);
+    expect(css).toMatch(/\.cd-aside-row \.cd-btn \{ flex: 1 1 auto; min-width: 0; \}/);
+    expect(css).toMatch(/\.cd-actions \.share-btn, \.cd-aside \.share-btn \{ min-height: 48px; \}/);
+    expect(css).toMatch(/\.cd-actions-has-bar \{ display: none; \}/);
+  });
+  it('the page renders Share in the bar, and marks the in-page row so it can be hidden only when the bar exists', () => {
+    const src = readFileSync('src/components/class/ClassDetail.tsx', 'utf8').replace(/\s+/g, ' ');
+    expect(src).toMatch(/<div className="cd-aside-row"> <Button c=\{ch\.primary\} \/> \{share && <div className="share-slot">\{share\}<\/div>\} <\/div>/);
+    expect(src).toContain("cd-actions${!ended && ch.primary ? ' cd-actions-has-bar' : ''}");
   });
 });

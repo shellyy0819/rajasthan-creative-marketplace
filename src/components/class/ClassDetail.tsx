@@ -85,7 +85,7 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
           )}
           </div>
           {((!ended && ch.primary) || share) && (
-            <div className="cd-actions">
+            <div className={`cd-actions${!ended && ch.primary ? ' cd-actions-has-bar' : ''}`}>
               {!ended && ch.primary && <div className="cd-cta"><Button c={ch.primary} />{ch.secondary.map(c => <Button key={c.kind} c={c} outline />)}</div>}
               {share && <div className="share-slot">{share}</div>}
             </div>
@@ -160,7 +160,10 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
               <strong>Join {w.title}</strong>
               <p>{free ? 'This class is free.' : w.prices.length ? `Plans from ${money(Math.min(...w.prices.map(p => p.amountPaise)))}.` : `${money(w.pricePaise)} a class.`}{trial ? ' Ask the host about the free trial.' : ''}</p>
             </div>
-            <Button c={ch.primary} />
+            <div className="cd-aside-row">
+              <Button c={ch.primary} />
+              {share && <div className="share-slot">{share}</div>}
+            </div>
           </aside>
         )}
       </div>

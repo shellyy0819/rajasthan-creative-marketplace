@@ -43,7 +43,7 @@
 .cd-actions { display: flex; align-items: flex-start; gap: 10px; max-width: 760px; }
 .cd-actions .cd-cta { flex: 1 1 auto; min-width: 0; }
 .cd-actions .share-slot { flex: none; margin-top: 0; }
-.cd-actions .share-btn { min-height: 48px; }
+.cd-actions .share-btn, .cd-aside .share-btn { min-height: 48px; }
 .cd-cta { display: flex; flex-direction: column; gap: 10px; }
 .cd-btn { min-height: 48px; gap: 10px; text-decoration: none; }
 .cd-btn:hover { text-decoration: none; }
@@ -128,7 +128,12 @@
   .cd-day { padding: 10px 0; }
   .cd-day small { display: none; }
   /* The contact button stays at the bottom of the screen. */
-  .cd-aside { display: flex; flex-direction: column; gap: 16px; position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 20; border-radius: 0; border-width: 1px 0 0; padding: 12px 16px 16px; }
+  /* The contact button (with Share beside it) stays at the bottom of the screen, on a solid bar so the page does not show through it. */
+  .cd-aside { display: flex; flex-direction: column; gap: 16px; position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 20; border-radius: 0; border-style: solid; border-color: var(--line); border-width: 1px 0 0; background: var(--paper); padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .cd-aside-row { display: flex; align-items: flex-start; gap: 10px; }
+  .cd-aside-row .cd-btn { flex: 1 1 auto; min-width: 0; }
+  .cd-aside-row .share-slot { flex: none; margin-top: 0; }
+  .cd-actions-has-bar { display: none; }
   .cd-aside-copy { display: none; }
   .cd-actions > .cd-cta { display: none; }
 }
