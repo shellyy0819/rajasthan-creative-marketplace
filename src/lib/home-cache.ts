@@ -2,6 +2,7 @@ import { unstable_cache } from 'next/cache';
 import { countProductsByCategory, listProducts } from './catalog';
 import { SHELF_PAGE_SIZE } from './catalog-shared';
 import { trending } from './trending';
+import { HOME_WORKSHOPS, trendingWorkshops } from './trending-workshops';
 
 /**
  * Home-page data, shared across visitors instead of queried on every request. Nothing here reads the visitor's cookies or session.
@@ -17,3 +18,4 @@ export const getHomeShelf = unstable_cache(
   ['home-shelf'], { revalidate: HOME_PRODUCTS_TTL, tags: ['home-products'] },
 );
 export const getHomeTrending = unstable_cache(() => trending({ limit: 6 }), ['home-trending'], { revalidate: HOME_TRENDING_TTL, tags: ['home-trending'] });
+export const getHomeTrendingWorkshops = unstable_cache(() => trendingWorkshops({ limit: HOME_WORKSHOPS }), ['home-trending-workshops'], { revalidate: HOME_TRENDING_TTL, tags: ['home-trending'] });

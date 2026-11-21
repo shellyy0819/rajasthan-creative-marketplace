@@ -5,6 +5,8 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 const events = vi.hoisted(() => [] as { name: string; params: Record<string, unknown> }[]);
 vi.mock('@/lib/analytics', () => ({ gaEvent: (name: string, params: Record<string, unknown> = {}) => { events.push({ name, params }); } }));
+const sent = vi.hoisted(() => [] as string[]);
+vi.mock('@/lib/track', async orig => ({ ...(await orig<typeof import('@/lib/track')>()), sendWorkshopEvent: (type: string, id: string) => { sent.push(`${type}:${id}`); } }));
 vi.mock('next/link', () => ({ default: ({ href, children, onClick, ...r }: any) => <a href={href} onClick={e => { e.preventDefault(); onClick?.(e); }} {...r}>{children}</a> }));
 const nav = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: nav.refresh, push: vi.fn() }), usePathname: () => '/' }));
@@ -26,7 +28,7 @@ import type { Workshop } from '@/lib/types';
 const names = () => events.map(e => e.name);
 const last = (name: string) => [...events].reverse().find(e => e.name === name)?.params;
 beforeEach(() => {
-  events.length = 0; nav.refresh.mockReset();
+  events.length = 0; sent.length = 0; nav.refresh.mockReset();
   // jsdom has no <dialog> methods (the booking dialog is mounted by the store provider)
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); };
@@ -266,5 +268,32 @@ describe('the host form', () => {
     fireEvent.click(screen.getByRole('combobox', { name: /languages/i })); fireEvent.click(screen.getByRole('option', { name: 'Hindi' }));
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: /send details/i })); });
     expect(names()).not.toContain('host_form_submit');
+  });
+});
+
+describe('the first-party counts behind Trending workshops', () => {
+  it('a workshop page view is counted once', () => {
+    const { rerender } = render(<TrackWorkshopView workshopId="w4" category="Yoga" contentType="class" />);
+    rerender(<TrackWorkshopView workshopId="w4" category="Yoga" contentType="class" />);
+    expect(sent).toEqual(['view:w4']);
+  });
+  it('each contact click counts as a contact and as the way used (WhatsApp, Call, Instagram, Website)', () => {
+    render(<WorkshopContact w={cls} workshopId="w4" contentType="class" placement="card" />);
+    fireEvent.click(screen.getByRole('link', { name: 'WhatsApp' }));
+    expect(sent).toEqual(['contact:w4', 'contact_whatsapp:w4']);
+    sent.length = 0;
+    fireEvent.click(screen.getByRole('link', { name: 'Website' }));
+    expect(sent).toEqual(['contact:w4', 'contact_website:w4']);
+    sent.length = 0;
+    fireEvent.click(screen.getByRole('link', { name: /Instagram/ }));
+    fireEvent.click(screen.getByRole('link', { name: /^Call/ }));
+    expect(sent).toEqual(['contact:w4', 'contact_instagram:w4', 'contact:w4', 'contact_call:w4']);
+  });
+  it('a hover, a right click or opening the card sends no contact', () => {
+    const { container } = render(<StoreProvider><WorkshopCard w={cls} /></StoreProvider>);
+    fireEvent.mouseOver(screen.getByRole('link', { name: 'WhatsApp' }));
+    fireEvent(screen.getByRole('link', { name: 'WhatsApp' }), new MouseEvent('auxclick', { bubbles: true, button: 2 }));
+    fireEvent.click(container.querySelector('h3 a')!);
+    expect(sent).toEqual([]);
   });
 });

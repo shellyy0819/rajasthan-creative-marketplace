@@ -253,6 +253,13 @@
       "when": 1795161241305,
       "tag": "0035_category_description",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795255572742,
+      "tag": "0036_workshop_events",
+      "breakpoints": true
     }
   ]
 }
