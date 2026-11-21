@@ -47,7 +47,6 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
           <h1 id="cd-h1">{w.title}</h1>
           {ended && <p className="ws-ended" role="status">This class has ended. <Link href="/workshops">See upcoming workshops</Link></p>}
           <p className="cd-lead">{w.description}</p>
-          {trial && <p className="cd-badges"><span className="cd-badge">{trial}</span></p>}
         </div>
         {/* The panel and the buttons are one block: the photo beside them starts at the panel's top and ends at the buttons' bottom. */}
         <div className="cd-hero-body">
@@ -91,7 +90,7 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
             </div>
           )}
         </div>
-        {w.images.length ? <PhotoMosaic images={w.images} title={w.title} /> : <ClassIllustration title={w.title} yoga={isYogaListing(w)} />}
+        {w.images.length ? <PhotoMosaic images={w.images} title={w.title} chip={trial} /> : <ClassIllustration title={w.title} yoga={isYogaListing(w)} chip={trial} />}
       </section>
 
       <section className="cd-facts" aria-label="Class at a glance">

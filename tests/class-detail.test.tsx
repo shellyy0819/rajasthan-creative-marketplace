@@ -225,3 +225,23 @@ describe('the instructor logo on phones (source contract)', () => {
     expect(h.indexOf('class="cd-avatar"')).toBeLessThan(h.indexOf('YOUR INSTRUCTOR'));
   });
 });
+
+describe('the free trial chip on the picture', () => {
+  it('sits inside the picture box, once, and the old badge under the title is gone', () => {
+    const photo = html({ images: ['https://example.com/a.jpg'] } as Partial<Workshop>);
+    expect(photo).toMatch(/<div class="cd-media"><span class="cd-trial-chip">2-day free trial<\/span><div class="cd-mosaic/);
+    expect((photo.match(/2-day free trial/g) ?? []).length).toBe(1);
+    expect(photo).not.toContain('cd-badges');
+    const art = html({ images: [] } as Partial<Workshop>);
+    expect(art).toMatch(/<div class="cd-media"><span class="cd-trial-chip">2-day free trial<\/span><div class="cd-art">/);
+  });
+  it('says Free trial when no length is given, and a class without a trial has no chip', () => {
+    expect(html({ freeTrialDays: null } as Partial<Workshop>)).toContain('cd-trial-chip">Free trial<');
+    expect(html({ freeTrial: false, freeTrialDays: null } as Partial<Workshop>)).not.toContain('cd-trial-chip');
+  });
+  it('is the site\'s orange chip with white text, at the top left of the picture (source contract)', () => {
+    const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+    expect(css).toMatch(/\.cd-media \{ min-width: 0; position: relative; \}/);
+    expect(css).toMatch(/\.cd-trial-chip \{ position: absolute; left: 12px; top: 12px;[^}]*background: var\(--orange\); color: #fffdf9;/);
+  });
+});

@@ -28,6 +28,6 @@ export function ClassArt({ title, yoga }: { title: string; yoga: boolean }) {
 }
 
 /** The class page's picture column: the art in its framed box. */
-export function ClassIllustration({ title, yoga }: { title: string; yoga: boolean }) {
-  return <div className="cd-media"><div className="cd-art"><ClassArt title={title} yoga={yoga} /></div></div>;
+export function ClassIllustration({ title, yoga, chip }: { title: string; yoga: boolean; chip?: string | null }) {
+  return <div className="cd-media">{chip && <span className="cd-trial-chip">{chip}</span>}<div className="cd-art"><ClassArt title={title} yoga={yoga} /></div></div>;
 }

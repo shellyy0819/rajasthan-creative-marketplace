@@ -6,7 +6,7 @@ import { PhotoViewer } from '../PhotoButton';
  * The seller's photos at the top of a class page: the cover large, the other two smaller (one or two photos degrade gracefully).
  * On phones it is a swipeable strip with dots. Every photo opens the full-size viewer.
  */
-export function PhotoMosaic({ images, title }: { images: string[]; title: string }) {
+export function PhotoMosaic({ images, title, chip }: { images: string[]; title: string; chip?: string | null }) {
   const shown = images.slice(0, 3);
   const n = shown.length;
   const [open, setOpen] = useState<number | null>(null);
@@ -20,6 +20,7 @@ export function PhotoMosaic({ images, title }: { images: string[]; title: string
   };
   return (
     <div className="cd-media">
+      {chip && <span className="cd-trial-chip">{chip}</span>}
       <div ref={strip} className={`cd-mosaic cd-mosaic-${n}`} onScroll={onScroll}>
         {shown.map((src, i) => (
           <button key={src + i} type="button" className={`cd-tile${i === 0 ? ' cd-cover' : ''}`} aria-label={i === 0 ? `Open photo 1 of ${n}, the cover` : `Open photo ${i + 1} of ${n}`} onClick={() => setOpen(i)}>
