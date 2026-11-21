@@ -7,6 +7,7 @@ const nav = vi.hoisted(() => ({ path: '/workshops' }));
 vi.mock('next/navigation', () => ({ usePathname: () => nav.path }));
 import WorkshopsLoading from '@/app/workshops/loading';
 import ShopLoading from '@/app/shop/loading';
+import WorkshopPageLoading from '@/app/workshops/[slug]/loading';
 import { readCss } from './helpers/css';
 
 afterEach(cleanup);
@@ -24,6 +25,25 @@ describe('route loading state', () => {
     const src = fs.readFileSync('src/components/LiveCatalog.tsx', 'utf8');
     expect(src).not.toContain('PageLoader');
     expect(src).toContain("opacity: loading ? 0.6 : 1");
+  });
+});
+
+describe('the workshop page loading state', () => {
+  it('has its own loading state, so the list skeleton never shows while one workshop loads (source contract)', () => {
+    expect(fs.existsSync('src/app/workshops/[slug]/loading.tsx')).toBe(true);
+  });
+  it('holds the breadcrumbs, the title lines, a picture box and the facts row as placeholders, with no spinner', () => {
+    const { container } = render(<WorkshopPageLoading />);
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toContain('Workshops');
+    expect(container.querySelector('.cd-hero .cd-hero-text .skeleton-line.title')).toBeTruthy();
+    expect(container.querySelector('.cd-hero .cd-media .cd-media-skeleton')).toBeTruthy();
+    expect(container.querySelectorAll('.cd-facts-skeleton > div')).toHaveLength(4);
+    expect(container.querySelector('.rr-page-loader')).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe('Loading workshop');
+  });
+  it('a page change starts at the top of the new page, not partway down: the layout hands scroll-behavior back to Next during navigation (source contract)', () => {
+    expect(fs.readFileSync('src/app/layout.tsx', 'utf8')).toContain('data-scroll-behavior="smooth"');
+    expect(fs.readFileSync('src/app/globals.css', 'utf8')).toMatch(/html \{\s*scroll-behavior: smooth;/);
   });
 });
 

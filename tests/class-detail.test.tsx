@@ -30,7 +30,11 @@ describe('online class page on tablets and phones (source contract)', () => {
   });
   it('the photos are capped in height so the title, instructor and next class show below them', () => {
     expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-mosaic \{[^}]*height: clamp\(220px, 42vw, 340px\)/);
-    expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-art \{[^}]*width: min\(100%, 360px\)/);
+    expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-art \{[^}]*width: 100%; height: clamp\(220px, 42vw, 340px\)/);
+  });
+  it('the illustration, the loading box and the photos are one height on phones, so the page does not jump between them', () => {
+    expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-media-skeleton \{[^}]*height: clamp\(220px, 42vw, 340px\)/);
+    expect(css).toMatch(/\.cd-media-skeleton \{ width: 100%; aspect-ratio: 4 \/ 4\.2;/); // on laptops the same ratio as the picture and the photos
   });
 });
 

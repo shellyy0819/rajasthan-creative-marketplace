@@ -58,6 +58,10 @@
 /* The free trial, on the picture (top left), like the chips on the cards. */
 .cd-trial-chip { position: absolute; left: 12px; top: 12px; z-index: 2; max-width: calc(100% - 24px); padding: 5px 12px; border-radius: 30px; background: var(--orange); color: #fffdf9; font: 700 11px/1.25 var(--font-sans); pointer-events: none; }
 .cd-art { border-radius: 6px; overflow: hidden; aspect-ratio: 4 / 4.2; border: 1px solid var(--line); }
+/* The loading box for the picture or photo: the same size, so the page does not jump when it arrives. */
+.cd-media-skeleton { width: 100%; aspect-ratio: 4 / 4.2; border-radius: 6px; }
+.cd-facts-skeleton > div { display: flex; flex-direction: column; gap: 8px; min-height: 76px; }
+.cd-facts-skeleton .skeleton-line { margin-bottom: 0; }
 .cd-art svg { display: block; }
 .cd-mosaic { display: grid; gap: 8px; aspect-ratio: 4 / 4.2; border-radius: 6px; overflow: hidden; }
 .cd-mosaic-1 { grid-template-columns: 1fr; }
@@ -105,7 +109,9 @@
   .cd-media { order: -1; }
   /* Photos stay short so the title, instructor and next class are visible below them. */
   .cd-mosaic { aspect-ratio: auto; height: clamp(220px, 42vw, 340px); }
-  .cd-art { width: min(100%, 360px); margin: 0 auto; }
+  /* The illustration, the loading box and the photos are one height on tablets and phones (the art is cropped a little top and bottom to fit), so the page never jumps between them. */
+  .cd-art { width: 100%; height: clamp(220px, 42vw, 340px); aspect-ratio: auto; }
+  .cd-media-skeleton { aspect-ratio: auto; height: clamp(220px, 42vw, 340px); }
   /* On tablets and phones a photo is shown whole, never cropped: the seller's own framing is kept, with the tile colour around it. */
   .cd-tile img { object-fit: contain; object-position: center; }
 }

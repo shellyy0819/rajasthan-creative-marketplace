@@ -47,7 +47,7 @@ export const viewport: Viewport = { themeColor: '#c8553d', colorScheme: 'light d
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const [theme, fairOpen, wording] = await Promise.all([getRenderTheme(), isFairOpen(), getCatalogWording()]);
   return (
-    <html lang="en-IN" className={sans.variable} data-festival={theme.preset} suppressHydrationWarning>
+    <html lang="en-IN" data-scroll-behavior="smooth" className={sans.variable} data-festival={theme.preset} suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: themeInitScript }} /><ThemeHead preset={theme.preset} css={theme.css} /></head>
       <body>
         <a className="skip-link" href="#main">Skip to content</a>
