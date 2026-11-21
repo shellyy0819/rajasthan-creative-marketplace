@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { InstructorBio } from './InstructorBio';
-import { contactChannels, describeNext, isYogaListing, nextSession, weekStrip, type Channel } from '@/lib/class-page';
+import { contactChannels, describeNext, isYogaListing, nextSession, upcomingSessions, type Channel } from '@/lib/class-page';
 import { formatDay } from '@/lib/format';
 import { describeSchedule } from '@/lib/workshop-listing';
 import { money } from '@/lib/money';
@@ -26,8 +26,7 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
   // The main button (and any outline buttons) already carry their channel; the icon row lists only the others, so nothing shows twice.
   const shown = new Set([ch.primary?.kind, ...ch.secondary.map(c => c.kind)].filter(Boolean));
   const icons = ended ? ch.icons : ch.icons.filter(c => !shown.has(c.kind));
-  const week = !ended && w.schedule ? weekStrip(w, now) : [];
-  const meetsThisWeek = week.some(d => d.state !== 'rest');
+  const upcoming = !ended && w.schedule ? upcomingSessions(w, now) : [];
   const trial = w.freeTrial ? (w.freeTrialDays ? `${w.freeTrialDays}-day free trial` : 'Free trial') : null;
   const free = !w.prices.length && w.type === 'FREE';
   const topic = w.topic?.name.toUpperCase();
@@ -99,20 +98,19 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
 
       <div className="cd-body">
         <main className="cd-main">
-          {/* A week with no class in it (not started yet): keep the schedule line, drop the seven empty boxes. */}
-          {week.length > 0 && (
-            <section aria-labelledby="cd-week-h">
-              <h2 id="cd-week-h">{meetsThisWeek ? 'This week' : 'Schedule'}</h2>
+          {upcoming.length > 0 && (
+            <section aria-labelledby="cd-up-h">
+              <h2 id="cd-up-h">Upcoming classes</h2>
               <p className="cd-note">{w.schedule ? `${describeSchedule(w.schedule)}. ` : ''}Times are India time (IST).</p>
-              {meetsThisWeek && <ol className="cd-week">
-                {week.map(d => (
-                  <li key={d.date} className={`cd-day cd-${d.state}`}>
-                    <b>{d.state === 'today' ? 'TODAY' : d.label.toUpperCase()}</b>
-                    <span className="cd-dom">{d.dom}</span>
-                    {d.state === 'rest' ? <span className="sr-only">No class</span> : <small>{d.state === 'done' ? 'Done' : d.time}</small>}
+              <ol className="cd-up">
+                {upcoming.map(u => (
+                  <li key={u.date} className={`cd-up-item${u.first ? ' cd-up-first' : ''}`}>
+                    <span className="cd-up-tag">{u.tag}</span>
+                    <span className="cd-up-date" aria-hidden="true"><span className="cd-up-dow">{u.dow}</span><b>{u.dom}</b><span className="cd-up-mon">{u.month.toUpperCase()}</span></span>
+                    <span className="cd-up-text"><span className="cd-up-day">{u.dayName}<span className="cd-up-rest"> {u.dom} {u.month}</span></span><span className="cd-up-time">{u.time} IST</span></span>
                   </li>
                 ))}
-              </ol>}
+              </ol>
             </section>
           )}
 

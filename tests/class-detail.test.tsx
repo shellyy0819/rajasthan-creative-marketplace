@@ -67,7 +67,7 @@ describe('online class page', () => {
     expect(h).toContain('2 Nov 2026 to 28 Feb 2027');
     expect(h).toContain('Live on Zoom');
     expect(h).toContain('Beginners · Hindi, English');
-    expect(h).toMatch(/TODAY<\/b>/);
+    expect(h).toContain('Upcoming classes');
     expect(h).toContain('₹3,500');
     expect(h).toContain('24 sessions · about ₹146 a class');
     expect(h).toContain('Try the free class');
@@ -135,20 +135,38 @@ describe('online class page', () => {
   });
 });
 
-describe('this week on the online class page', () => {
-  it('a day with no class says nothing on screen (screen readers hear "No class"), and the word Rest is gone', () => {
-    const h = html({ date: '2026-11-18', endsOn: '2026-11-18' } as Partial<Workshop>);
-    expect(h).toContain('This week');
-    expect(h).not.toContain('>Rest<');
-    expect(h).toContain('<span class="sr-only">No class</span>');
-  });
-  it('a class that has not started yet shows its schedule line, not seven empty boxes', () => {
-    const h = html({ date: '2026-12-07', endsOn: '2027-02-28' } as Partial<Workshop>);
+describe('upcoming classes on the online class page', () => {
+  it('lists the next four classes with their weekday, date, time and a tag, the first picked out', () => {
+    const h = html();
+    expect(h).toContain('Upcoming classes');
     expect(h).not.toContain('This week');
-    expect(h).toContain('>Schedule<');
+    expect((h.match(/class="cd-up-item/g) ?? []).length).toBe(4);
+    expect(h).toContain('cd-up-item cd-up-first');
+    expect(h).toContain('<span class="cd-up-tag">Today</span>');
+    expect(h).toContain('Wednesday<span class="cd-up-rest"> 18 Nov</span>');
+    expect(h).toContain('6:30 am IST');
     expect(h).toContain('Times are India time (IST).');
-    expect(h).not.toContain('class="cd-week"');
-    expect(h).toContain('Sunrise Vinyasa');
+    expect(h).not.toContain('Rest'); // no box for a day without a class
+  });
+  it('a class that has not started yet lists its first dates, tagged by how far away they are', () => {
+    const h = html({ date: '2026-12-07', endsOn: '2027-02-28' } as Partial<Workshop>);
+    expect(h).toContain('Monday<span class="cd-up-rest"> 7 Dec</span>');
+    expect(h).toContain('In 19 days');
+  });
+  it('a class with one date left lists just that one, and an ended class has no list', () => {
+    expect((html({ endsOn: '2026-11-18' } as Partial<Workshop>).match(/class="cd-up-item/g) ?? []).length).toBe(1);
+    expect(html({}, true)).not.toContain('Upcoming classes');
+  });
+});
+
+describe('the upcoming list styling (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('is four cards across on a laptop and rows on a phone, with the next class in green and an orange tag', () => {
+    expect(css).toMatch(/\.cd-up \{[^}]*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/);
+    expect(css).toMatch(/\.cd-up-first \{ border-color: var\(--green\); background: var\(--chip-green\); \}/);
+    expect(css).toMatch(/\.cd-up-first \.cd-up-tag \{[^}]*background: var\(--orange\); color: #fffdf9;/);
+    expect(css).toMatch(/@media \(max-width: 700px\) \{ \.cd-up \{ grid-template-columns: minmax\(0, 1fr\);/);
+    expect(css).not.toContain('.cd-week');
   });
 });
 
