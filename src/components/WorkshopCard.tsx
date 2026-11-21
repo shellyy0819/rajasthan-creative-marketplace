@@ -5,6 +5,7 @@ import { formatDay } from '@/lib/format';
 import { workshopSlug } from '@/lib/catalog-shared';
 import { describeSchedule, summarizePrices } from '@/lib/workshop-listing';
 import { LEVEL_LABEL } from '@/lib/workshop-support';
+import { ClassArt } from './class/ClassIllustration';
 import { ReserveButton } from './ReserveButton';
 import './WorkshopListings.css';
 import { WorkshopContact } from './WorkshopContact';
@@ -15,18 +16,27 @@ export function WorkshopCard({ w }: { w: Workshop }) {
   const bookable = !isClass && w.seats !== null;
   const left = (w.seats ?? 0) - w.booked;
   const cover = w.images[0]; // the first photo is the cover
+  const yogaArt = !cover && w.topic?.slug === 'yoga'; // no photo: a yoga listing shows the yoga illustration, other listings the plain tile
+  const chip = isClass ? `Online${w.platform ? ` · ${w.platform}` : ''}` : `${day} ${month}`;
   const price = w.prices.length ? summarizePrices(w.prices).from : w.type === 'FREE' ? 'Free' : money(w.pricePaise);
   return (
-    <article className={`workshop-card${cover ? ' with-photo' : ''}`}>
+    <article className={`workshop-card${cover || yogaArt ? ' with-photo' : ''}`}>
       {cover
         ? (
           <div className="date-tile has-photo">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={cover} alt="" loading="lazy" />
-            <span className="tile-chip">{isClass ? `Online${w.platform ? ` · ${w.platform}` : ''}` : `${day} ${month}`}</span>
+            <span className="tile-chip">{chip}</span>
           </div>
         )
-        : <div className="date-tile">{isClass ? <><b>Online</b><span>{w.platform}</span></> : <><b>{day}</b><span>{month} · {w.city ?? 'Online'}</span></>}</div>}
+        : yogaArt
+          ? (
+            <div className="date-tile has-photo has-art">
+              <ClassArt title={w.title} yoga />
+              <span className="tile-chip">{chip}</span>
+            </div>
+          )
+          : <div className="date-tile">{isClass ? <><b>Online</b><span>{w.platform}</span></> : <><b>{day}</b><span>{month} · {w.city ?? 'Online'}</span></>}</div>}
       <div>
         <h3><Link href={`/workshops/${workshopSlug(w)}`}>{w.title}</Link></h3>
         {isClass

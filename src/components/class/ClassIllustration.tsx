@@ -1,10 +1,8 @@
 /** Shown when a class has no photos: a rising sun behind a Rajasthani arch. For yoga, six people practise on mats in front of it. */
-export function ClassIllustration({ title, yoga }: { title: string; yoga: boolean }) {
+export function ClassArt({ title, yoga }: { title: string; yoga: boolean }) {
   const fig = (c: string) => ({ stroke: `var(${c})`, fill: 'none', strokeWidth: 9, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const });
   const head = (c: string, cx: number, cy: number, r: number) => <circle cx={cx} cy={cy} r={r} fill={`var(${c})`} stroke="none" />;
   return (
-    <div className="cd-media">
-      <div className="cd-art">
         <svg viewBox="0 0 400 420" width="100%" height="100%" role="img" aria-label={yoga ? `Illustration of six people practising yoga together on mats, in front of a rising sun and a Rajasthani arch (${title})` : `Illustration of a rising sun behind a Rajasthani arch (${title})`} preserveAspectRatio="xMidYMid slice">
           <rect width="400" height="420" fill="var(--cream)" />
           <circle cx="200" cy="196" r="128" fill="var(--orange)" opacity="0.25" />
@@ -26,7 +24,10 @@ export function ClassIllustration({ title, yoga }: { title: string; yoga: boolea
             </>
           )}
         </svg>
-      </div>
-    </div>
   );
+}
+
+/** The class page's picture column: the art in its framed box. */
+export function ClassIllustration({ title, yoga }: { title: string; yoga: boolean }) {
+  return <div className="cd-media"><div className="cd-art"><ClassArt title={title} yoga={yoga} /></div></div>;
 }

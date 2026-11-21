@@ -26,6 +26,7 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
   const shown = new Set([ch.primary?.kind, ...ch.secondary.map(c => c.kind)].filter(Boolean));
   const icons = ended ? ch.icons : ch.icons.filter(c => !shown.has(c.kind));
   const week = !ended && w.schedule ? weekStrip(w, now) : [];
+  const meetsThisWeek = week.some(d => d.state !== 'rest');
   const trial = w.freeTrial ? (w.freeTrialDays ? `${w.freeTrialDays}-day free trial` : 'Free trial') : null;
   const free = !w.prices.length && w.type === 'FREE';
   const topic = w.topic?.name.toUpperCase();
@@ -91,19 +92,20 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
 
       <div className="cd-body">
         <main className="cd-main">
+          {/* A week with no class in it (not started yet): keep the schedule line, drop the seven empty boxes. */}
           {week.length > 0 && (
             <section aria-labelledby="cd-week-h">
-              <h2 id="cd-week-h">This week</h2>
+              <h2 id="cd-week-h">{meetsThisWeek ? 'This week' : 'Schedule'}</h2>
               <p className="cd-note">{w.schedule ? `${describeSchedule(w.schedule)}. ` : ''}Times are India time (IST).</p>
-              <ol className="cd-week">
+              {meetsThisWeek && <ol className="cd-week">
                 {week.map(d => (
                   <li key={d.date} className={`cd-day cd-${d.state}`}>
                     <b>{d.state === 'today' ? 'TODAY' : d.label.toUpperCase()}</b>
                     <span className="cd-dom">{d.dom}</span>
-                    <small>{d.state === 'done' ? 'Done' : d.state === 'rest' ? 'Rest' : d.time}</small>
+                    {d.state === 'rest' ? <span className="sr-only">No class</span> : <small>{d.state === 'done' ? 'Done' : d.time}</small>}
                   </li>
                 ))}
-              </ol>
+              </ol>}
             </section>
           )}
 
