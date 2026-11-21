@@ -313,12 +313,16 @@ describe('loader', () => {
     await act(async () => { release({ ok: true, json: () => Promise.resolve([prod('p2', 'Beta')]) } as Response); await vi.advanceTimersByTimeAsync(10); });
     expect(document.querySelector('[aria-busy="true"]')).toBeNull();
   });
-  it('workshops keep their non-blocking centred loader while results are fetched, and remove it afterwards', async () => {
+  it('workshops show no spinner while results are fetched: the old list stays and is dimmed, then the new one replaces it', async () => {
     const release = await pending('workshops');
-    const l = document.querySelector('.rr-page-loader')!;
-    expect(l).toBeTruthy();
-    expect(l.className).not.toContain('blocking');
+    expect(document.querySelector('.rr-page-loader')).toBeNull();
+    const busy = document.querySelector('[aria-busy="true"]') as HTMLElement;
+    expect(busy).toBeTruthy();
+    expect(busy.style.opacity).toBe('0.6');
+    expect(document.body.textContent).toContain('Sunday Meetup'); // the previous results are still on screen
     await act(async () => { release({ ok: true, json: () => Promise.resolve([ws('w2', 'Other')]) } as Response); await vi.advanceTimersByTimeAsync(10); });
     expect(document.querySelector('.rr-page-loader')).toBeNull();
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+    expect(document.body.textContent).toContain('Other');
   });
 });

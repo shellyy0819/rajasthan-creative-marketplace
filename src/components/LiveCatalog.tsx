@@ -7,7 +7,6 @@ import { cityLabeller } from '@/lib/city-label';
 import { gaWorkshopList } from '@/lib/ga-events';
 import { dataKey, useDataVersion } from './DataVersion';
 import { ProductGrid } from './ProductGrid';
-import { PageLoader } from './PageLoader';
 import { WorkshopList } from './WorkshopList';
 
 type Values = { city?: string; category?: string; source?: string; type?: string; q?: string; mode?: string };
@@ -174,8 +173,7 @@ export function LiveCatalog(props: Props) {
 
   const results = (
     <div aria-busy={loading} style={{ opacity: loading ? 0.6 : 1, transition: 'opacity .15s' }}>
-      {/* The shop only dims the old results while the new ones load; workshops keep the centred spinner. */}
-      {kind !== 'products' && <PageLoader show={loading} blocking={false} label="" />}
+      {/* No spinner over the page: the old results are only dimmed while the new ones load. */}
       {error && <p role="alert" className="fine-print" style={{ color: '#a74d35', textAlign: 'left' }}>Couldn’t update results: {error}</p>}
       {kind === 'products' ? <ProductGrid products={items as Product[]} loading={loading} /> : <WorkshopList workshops={items as Workshop[]} loading={loading} />}
       {paged && (hasNextPage || (queryError && items.length > 0)) && (
