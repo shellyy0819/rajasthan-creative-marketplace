@@ -1,0 +1,21 @@
+/* The gentle movement in the group pictures (steam, pouring, brushes, bunting, lamps); each picture stays still for people who ask for less motion. The delay of each person comes from --d on their group. */
+@keyframes rr-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.5px); } }
+@keyframes rr-steam { 0% { opacity: 0; transform: translateY(6px); } 40% { opacity: 0.5; } 100% { opacity: 0; transform: translateY(-14px); } }
+@keyframes rr-glow { 0%, 100% { opacity: 0.16; } 50% { opacity: 0.3; } }
+@keyframes rr-flow { to { stroke-dashoffset: -16; } }
+@keyframes rr-stir { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+@keyframes rr-spark { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+@keyframes rr-stamp { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(6px); } }
+@keyframes rr-sway { 0%, 100% { transform: rotate(-1.4deg); } 50% { transform: rotate(1.4deg); } }
+.rr-bob { animation: rr-bob 2.6s ease-in-out infinite; animation-delay: calc(var(--d, 0) * 1s); }
+.rr-steam { animation: rr-steam 3s ease-in infinite; animation-delay: calc(var(--d, 0) * 1s); }
+.rr-glow { animation: rr-glow 3.4s ease-in-out infinite; animation-delay: calc(var(--d, 0) * 1s); }
+.rr-flow { stroke-dasharray: 5 4; animation: rr-flow 0.8s linear infinite; }
+.rr-stir { transform-box: fill-box; transform-origin: 50% 100%; animation: rr-stir 1s ease-in-out infinite; }
+.rr-spark { animation: rr-spark 2s ease-in-out infinite; animation-delay: calc(var(--d, 0) * 1s); }
+.rr-stamp { animation: rr-stamp 2s ease-in-out infinite; }
+.rr-sway { transform-box: fill-box; transform-origin: 50% 0%; animation: rr-sway 4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .rr-bob, .rr-steam, .rr-glow, .rr-flow, .rr-stir, .rr-spark, .rr-stamp, .rr-sway { animation: none; }
+  .rr-steam { opacity: 0.35; }
+}

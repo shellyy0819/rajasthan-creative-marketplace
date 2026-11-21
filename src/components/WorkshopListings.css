@@ -25,6 +25,7 @@
 .ws-badges span { padding: 3px 9px; border: 1px solid var(--line); border-radius: 30px; font-size: 11px; font-weight: 600; color: var(--muted); }
 /* Tablets and phones: the level and language tags keep their outline and colours but use the free trial tag's small bold type and corner. */
 @media (max-width: 900px) { .ws-badges span { padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; line-height: 1.25; } }
+.ws-duration { white-space: nowrap; }
 .ws-contact { display: inline-flex; flex-wrap: wrap; gap: 8px; }
 .ws-ended { margin: 10px 0; padding: 10px 14px; border: 1px solid var(--control-border); border-radius: 4px; background: var(--cream); font-size: 13px; }
 .ws-supports { margin-top: 6px; font-size: 13px; color: var(--muted); }
@@ -45,22 +46,35 @@
 .date-tile.has-art svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .tile-col { position: relative; }
 .tile-col .tile-trial { position: absolute; left: 8px; top: 8px; max-width: calc(100% - 16px); padding: 4px 9px; border-radius: 12px; background: var(--orange); color: #fffdf9; font: 700 11px/1.25 var(--font-sans); letter-spacing: 0; text-transform: none; }
-/* Tablets and phones: the picture is only 88px, so the date or "Online · Zoom" chip and the free trial sit under it instead of covering it. */
-@media (max-width: 900px) { .tile-col .tile-trial { position: static; display: block; box-sizing: border-box; width: 88px; max-width: none; margin-top: 6px; padding: 2px 4px; font-size: 9px; text-align: center; } }
-.tile-col .tile-chip { position: absolute; left: 8px; bottom: 8px; max-width: calc(100% - 16px); padding: 3px 9px; border-radius: 30px; background: #0b0e0acc; color: #fff; font: 600 11px var(--font-sans); letter-spacing: 0; text-transform: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@media (max-width: 900px) { .tile-col .tile-chip { position: static; display: block; box-sizing: border-box; width: 88px; max-width: none; margin-top: 6px; padding: 2px 4px; font-size: 9px; line-height: 1.25; text-align: center; white-space: normal; } .tile-col .tile-chip + .tile-trial { margin-top: 4px; } }
+.tile-col .tile-chip { position: absolute; left: 8px; top: 8px; max-width: calc(100% - 16px); padding: 3px 9px; border-radius: 30px; background: #0b0e0acc; color: #fff; font: 600 11px var(--font-sans); letter-spacing: 0; text-transform: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* On laptops both labels sit at the top of the picture, the chip first and the free trial tag under it, so the craft at the bottom stays clear. */
+.tile-col .tile-chip + .tile-trial { top: 38px; }
 
 /* With a photo the picture column is wider and the photo is square. */
 .workshop-card.with-photo { grid-template-columns: 120px 1fr auto; }
 .date-tile.has-photo { aspect-ratio: 1; width: 100%; border-radius: 6px; }
-/* Tablets and phones: every card has the same frame, whether or not it has a photo: one 88px square picture or date tile at the top left, the text beside it, the price row under the text. Nothing moves between cards. */
+/* Phone-only parts of the card sit hidden on laptops (the photo chip and trial tag, the inline seats are laptop-only; the label above the title, the tag by the price and the seats under it are phone-only), so each fact shows once on every screen. */
+.ws-eyebrow, .ws-price-trial, .ws-seats { display: none; }
+.ws-price-main { display: contents; }
+/* Tablets and phones: every card has the same frame, whether or not it has a photo. A 96px square picture or date tile at the top left with the label, title, schedule and host beside it; the level and language tags in a full-width row; and a footer bar with the price (and the free trial tag or seats left) on the left and the contact icons or Reserve button on the right. */
 @media (max-width: 900px) {
-  article.workshop-card, article.workshop-card.with-photo { grid-template-columns: 88px minmax(0, 1fr); align-items: start; }
-  article.workshop-card .date-tile { box-sizing: border-box; width: 88px; height: 88px; aspect-ratio: auto; padding: 0 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 6px; }
+  article.workshop-card, article.workshop-card.with-photo { grid-template-columns: 96px minmax(0, 1fr); column-gap: 14px; row-gap: 0; align-items: start; padding: 16px 16px 0; overflow: hidden; }
+  article.workshop-card .date-tile { box-sizing: border-box; width: 96px; height: 96px; aspect-ratio: auto; padding: 0 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 6px; }
   article.workshop-card .date-tile.has-photo { padding: 0; }
   article.workshop-card .date-tile span { line-height: 1.4; }
-  article.workshop-card .workshop-price { grid-column: 2; display: flex; align-items: center; justify-content: space-between; text-align: left; }
-  article.workshop-card .workshop-price b { margin: 0; }
+  article.workshop-card .tile-chip, article.workshop-card .tile-trial, article.workshop-card .ws-seats-inline { display: none; }
+  article.workshop-card .ws-text { display: contents; }
+  article.workshop-card .ws-head { grid-column: 2; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  article.workshop-card .ws-head h3 { margin: 0; }
+  article.workshop-card .ws-eyebrow { display: block; font: 700 9px/1.2 var(--font-sans); letter-spacing: 1px; text-transform: uppercase; color: var(--green-d); }
+  article.workshop-card .ws-badges { grid-column: 1 / -1; margin-top: 12px !important; }
+  article.workshop-card .workshop-price { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; min-height: 56px; margin: 14px -16px 0; padding: 0 16px; border-top: 1px solid var(--line); background: var(--paper); text-align: left; }
+  article.workshop-card .ws-price-main { display: grid; grid-template-columns: auto auto; justify-content: start; align-items: center; column-gap: 10px; row-gap: 1px; }
+  article.workshop-card .workshop-price b { margin: 0; font-size: 16px; }
+  article.workshop-card .ws-price-trial { display: inline-flex; padding: 2px 8px; border-radius: 12px; background: var(--orange); color: #fffdf9; font: 700 9px/1.25 var(--font-sans); }
+  article.workshop-card .ws-seats { display: block; grid-column: 1 / -1; font-size: 11px; line-height: 1.4; color: var(--muted-2); }
+  article.workshop-card .workshop-price button { height: var(--control-h); padding: 0 14px; border-radius: 3px; background: var(--green); color: var(--on-green); font: 600 12px var(--font-sans); }
+  article.workshop-card .workshop-price button:disabled { opacity: .6; cursor: not-allowed; }
 }
 
 /* The whole card opens the workshop page: the title link stretches over the card; the contact and reserve controls sit above it and keep their own clicks. */

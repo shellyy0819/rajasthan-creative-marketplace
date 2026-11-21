@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { InstructorBio } from './InstructorBio';
-import { contactChannels, describeNext, isYogaListing, nextSession, upcomingSessions, type Channel } from '@/lib/class-page';
+import { contactChannels, describeNext, artKind, nextSession, upcomingSessions, type Channel } from '@/lib/class-page';
 import { formatDay } from '@/lib/format';
 import { describeSchedule } from '@/lib/workshop-listing';
 import { money } from '@/lib/money';
@@ -93,7 +93,7 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
             </div>
           )}
         </div>
-        {w.images.length ? <PhotoMosaic images={w.images} title={w.title} chip={trial} /> : <ClassIllustration title={w.title} yoga={isYogaListing(w)} chip={trial} />}
+        {w.images.length ? <PhotoMosaic images={w.images} title={w.title} chip={trial} /> : <ClassIllustration title={w.title} kind={artKind(w)} chip={trial} />}
       </section>
 
       <section className="cd-facts" aria-label="Class at a glance">

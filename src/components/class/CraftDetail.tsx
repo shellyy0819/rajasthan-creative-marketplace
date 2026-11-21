@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { InstructorBio } from './InstructorBio';
 import { ReserveButton } from '@/components/ReserveButton';
-import { clock12, contactChannels, isYogaListing, startsIn } from '@/lib/class-page';
+import { clock12, contactChannels, artKind, startsIn } from '@/lib/class-page';
 import { formatDay } from '@/lib/format';
 import { money } from '@/lib/money';
 import type { Workshop } from '@/lib/types';
@@ -91,7 +91,7 @@ export function CraftDetail({ w, ended, now = new Date(), share }: { w: Workshop
           {/* With a main button, Share sits right behind it (above); otherwise it stands alone here. */}
           {share && !(!ended && (bookable || ch.primary)) && <div className="share-slot">{share}</div>}
         </div>
-        {w.images.length ? <PhotoMosaic images={w.images} title={w.title} /> : <ClassIllustration title={w.title} yoga={isYogaListing(w)} />}
+        {w.images.length ? <PhotoMosaic images={w.images} title={w.title} /> : <ClassIllustration title={w.title} kind={artKind(w)} />}
       </section>
 
       {facts.length > 0 && <section className="cd-facts" aria-label="Workshop at a glance">{facts.map(f => <div key={f.k}><span className="cd-label">{f.k}</span><span className="cd-fact">{f.v}</span></div>)}</section>}

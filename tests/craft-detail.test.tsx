@@ -56,7 +56,7 @@ describe('craft and art workshop page', () => {
     expect(html({ whatsapp: null, instagram: null, website: null })).not.toContain('cr-icons');
   });
   it('with no photos it shows the illustration; with photos, the mosaic', () => {
-    expect(html()).toContain('rising sun behind a Rajasthani arch');
+    expect(html()).toContain('Illustration of four people making crafts together');
     expect(html({ images: ['https://img.test/a.jpg', 'https://img.test/b.jpg', 'https://img.test/c.jpg'] })).toContain('cd-mosaic-3');
   });
   it('an ended workshop says so and has no Reserve button, countdown or contact button', () => {

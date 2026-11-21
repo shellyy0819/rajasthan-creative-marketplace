@@ -3,10 +3,24 @@ import { istParts, istToDate } from './ist';
 import { DAYS, type Schedule } from './workshop-listing';
 import type { Workshop } from './types';
 
-/** Whether a listing is yoga: its category says so (Yoga, Yoga & Wellness), or, when it has no category, its title does. Decides the illustration shown in place of a missing photo. */
-export function isYogaListing(w: Pick<Workshop, 'title' | 'topic'>): boolean {
-  return w.topic ? /yoga/i.test(w.topic.slug) : /\byoga\b/i.test(w.title);
+/** The picture drawn in place of a missing photo. */
+export type ArtKind = 'yoga' | 'crochet' | 'painting' | 'food' | 'resin' | 'generic';
+const ART_WORDS: [Exclude<ArtKind, 'generic'>, RegExp][] = [
+  ['yoga', /\byoga\b/i],
+  ['crochet', /\bcrochet\b/i],
+  ['painting', /\bpaint(?:ing|ings|er)?\b/i],
+  ['food', /\b(?:food|cooking|cookery|baking|cuisine|culinary)\b/i],
+  ['resin', /\b(?:resin|jesmonite)\b/i],
+];
+
+/** Which illustration a listing without photos gets: its category says (Yoga, Crochet, Painting, Food, Resin & Jesmonite), or, when it has no category, its title does; anything else gets the generic one. */
+export function artKind(w: Pick<Workshop, 'title' | 'topic'>): ArtKind {
+  const text = w.topic ? w.topic.slug : w.title;
+  return ART_WORDS.find(([, re]) => re.test(text))?.[0] ?? 'generic';
 }
+
+/** Whether a listing is yoga: its category says so (Yoga, Yoga & Wellness), or, when it has no category, its title does. */
+export const isYogaListing = (w: Pick<Workshop, 'title' | 'topic'>): boolean => artKind(w) === 'yoga';
 
 type Runs = { date: string; endsOn?: string | null; schedule?: Schedule | null };
 const DAY_NAME = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

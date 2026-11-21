@@ -40,7 +40,7 @@ describe('cards', () => {
   it('an online class shows Online, platform, level, trial, a from-price and contact buttons, and no Reserve', async () => {
     const w = await createWorkshop(yoga);
     const h = renderToStaticMarkup(<WorkshopCard w={w} />);
-    for (const s of ['Online', 'Zoom', 'Beginner', 'Free trial', 'From ₹500', 'href="https://wa.me/919989898999"', 'instagram.com/asha.yoga', 'Mon, Wed, Fri at 7:00 am, 60 min']) expect(h, s).toContain(s);
+    for (const s of ['Online', 'Zoom', 'Beginner', 'Free trial', 'From ₹500', 'href="https://wa.me/919989898999"', 'instagram.com/asha.yoga', 'Mon, Wed, Fri at 7:00 am, <span class="ws-duration">60 min</span>']) expect(h, s).toContain(s);
     expect(h).not.toContain('data-reserve');
     expect(h).not.toContain('seats left');
     expect(h).not.toContain('private@example.com');
@@ -72,7 +72,7 @@ describe('detail page', () => {
     const w = await createWorkshop({ ...yoga, schedule: { repeat: 'monthly', days: ['sat'], weeks: [1, 3], time: '07:00', durationMin: 60 } });
     const j = workshopJsonLd(w) as { eventSchedule: Record<string, unknown> };
     expect(j.eventSchedule).toMatchObject({ repeatFrequency: 'P1M', byMonthWeek: [1, 3], byDay: ['https://schema.org/Saturday'] });
-    expect(renderToStaticMarkup(<WorkshopCard w={w} />)).toContain('1st and 3rd Sat of every month at 7:00 am, 60 min');
+    expect(renderToStaticMarkup(<WorkshopCard w={w} />)).toContain('1st and 3rd Sat of every month at 7:00 am, <span class="ws-duration">60 min</span>');
   });
   it('JSON-LD for an in-person event is as before', async () => {
     const j = JSON.stringify(workshopJsonLd(await createWorkshop(event)));
@@ -140,10 +140,11 @@ describe('cover photo', () => {
     expect(h).toContain(`<img src="${photo}"`);
     expect(h).toMatch(/tile-chip[^>]*>1 Dec/);
   });
-  it('with no photo the card keeps the plain tile', async () => {
+  it('with no photo the card shows the illustration for its category, with the same label', async () => {
     const h = renderToStaticMarkup(<WorkshopCard w={await createWorkshop(yoga)} />);
-    expect(h).not.toContain('has-photo');
-    expect(h).toContain('<b>Online</b>');
+    expect(h).not.toContain('<img');
+    expect(h).toContain('has-art');
+    expect(h).toMatch(/tile-chip[^>]*>Online/);
   });
   it('the listing page shows the cover photo, and the structured data lists it first', async () => {
     const w = await createWorkshop({ ...yoga, images: [photo] });
@@ -155,7 +156,7 @@ describe('cover photo', () => {
 describe('free trial length', () => {
   it('the card and the page say how many days the trial lasts', async () => {
     const w = await createWorkshop({ ...yoga, freeTrialDays: 7 });
-    expect(renderToStaticMarkup(<WorkshopCard w={w} />)).toContain('Free trial · 7 days');
+    expect(renderToStaticMarkup(<WorkshopCard w={w} />)).toContain('7-day free trial');
     expect(await page(w)).toContain('7-day free trial');
     const plain = await createWorkshop({ ...yoga });
     expect(renderToStaticMarkup(<WorkshopCard w={plain} />)).toContain('>Free trial<');

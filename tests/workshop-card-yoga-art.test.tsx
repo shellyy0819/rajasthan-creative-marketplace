@@ -34,15 +34,22 @@ describe('yoga listing without a photo', () => {
     expect(h).toContain('src="https://example.com/a.jpg"');
     expect(h).not.toContain('has-art');
   });
-  it('another category without a photo keeps the plain tile', () => {
-    const h = renderToStaticMarkup(<WorkshopCard w={{ ...base, topic: { id: 2, name: 'Pottery', slug: 'pottery' } }} />);
-    expect(h).toContain('<b>Online</b>');
-    expect(h).not.toContain('has-art');
-    expect(h).not.toContain('workshop-card with-photo');
+  it('another category gets its own illustration, and a category with none of its own gets the generic one', () => {
+    const cases: [string, string, string][] = [['crochet', 'Crochet', 'crocheting together'], ['painting', 'Painting', 'at their own easels'], ['food', 'Food', 'chef hats'], ['resin-jesmonite', 'Resin & Jesmonite', 'pouring blue resin'], ['pottery', 'Pottery', 'craft studio']];
+    for (const [slug, name, alt] of cases) {
+      const h = renderToStaticMarkup(<WorkshopCard w={{ ...base, topic: { id: 2, name, slug } }} />);
+      expect(h, name).toContain('date-tile has-photo has-art');
+      expect(h, name).toContain(alt);
+      expect(h, name).not.toContain('six people');
+    }
   });
-  it('a listing with no category and no yoga in its title keeps the plain tile', () => {
-    const h = renderToStaticMarkup(<WorkshopCard w={{ ...base, title: 'Morning flow', topic: undefined, topicId: null }} />);
-    expect(h).toContain('<b>Online</b>');
+  it('a listing with no category gets the picture its title says, else the generic one', () => {
+    const t = (title: string) => renderToStaticMarkup(<WorkshopCard w={{ ...base, title, topic: undefined, topicId: null }} />);
+    expect(t('Crochet a bag')).toContain('crocheting together');
+    expect(t('Watercolour painting')).toContain('at their own easels');
+    expect(t('Rajasthani cooking class')).toContain('chef hats');
+    expect(t('Resin coasters')).toContain('pouring blue resin');
+    expect(t('Morning flow')).toContain('craft studio');
   });
   it('an in-person yoga listing shows the date in the chip', () => {
     const h = renderToStaticMarkup(<WorkshopCard w={{ ...base, kind: 'workshop', mode: 'in_person', platform: null, city: 'Jaipur', venue: 'Studio', seats: 10 } as unknown as Workshop} />);
@@ -70,19 +77,47 @@ describe('what counts as a yoga listing', () => {
 });
 
 describe('the class page picture', () => {
-  it('draws the yoga scene for yoga and the plain sun and arch otherwise', () => {
-    expect(renderToStaticMarkup(<ClassIllustration title="T" yoga />)).toContain('six people practising yoga');
-    const plain = renderToStaticMarkup(<ClassIllustration title="T" yoga={false} />);
-    expect(plain).toContain('rising sun behind a Rajasthani arch');
+  it('draws the yoga scene for yoga, the craft scene for crochet, painting, food and resin, and the sun and arch with flowers otherwise', () => {
+    expect(renderToStaticMarkup(<ClassIllustration title="T" kind="yoga" />)).toContain('six people practising yoga');
+    for (const [kind, alt] of [['crochet', 'crocheting together'], ['painting', 'at their own easels'], ['food', 'chef hats'], ['resin', 'pouring blue resin']] as const) expect(renderToStaticMarkup(<ClassIllustration title="T" kind={kind} />), kind).toContain(alt);
+    const plain = renderToStaticMarkup(<ClassIllustration title="T" kind="generic" />);
+    expect(plain).toContain('craft studio');
     expect(plain).not.toContain('yoga');
   });
   it('the in-person page (CraftDetail) passes the category too (source contract)', () => {
     const src = fs.readFileSync('src/components/class/CraftDetail.tsx', 'utf8');
-    expect(src).toContain('<ClassIllustration title={w.title} yoga={isYogaListing(w)} />');
+    expect(src).toContain('<ClassIllustration title={w.title} kind={artKind(w)} />');
   });
   it('the card tile stretches the art over the whole tile (source contract)', () => {
     const css = fs.readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ');
     expect(css).toMatch(/\.date-tile\.has-art svg \{[^}]*position: absolute; inset: 0;[^}]*width: 100%; height: 100%/);
+  });
+});
+
+describe('the group pictures', () => {
+  const kinds = ['crochet', 'painting', 'food', 'resin', 'generic'] as const;
+  it('show four people each, drawn once and reused', () => {
+    for (const kind of kinds) {
+      const h = renderToStaticMarkup(<ClassIllustration title="T" kind={kind} />);
+      const uses = h.match(/<use /g) ?? [];
+      expect(uses.length, kind).toBeGreaterThanOrEqual(4);
+      expect(h, kind).toContain('<defs>');
+    }
+  });
+  it('give each picture ids of its own, so two on one page never share a person', () => {
+    const h = renderToStaticMarkup(<><ClassIllustration title="A" kind="food" /><ClassIllustration title="B" kind="food" /></>);
+    const ids = [...h.matchAll(/ id="([^"]+)"/g)].map(m => m[1]);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const ref of h.matchAll(/href="#([^"]+)"/g)) expect(ids, ref[1]).toContain(ref[1]);
+  });
+  it('move gently, and stand still for people who ask for less motion (source contract)', () => {
+    const css = fs.readFileSync('src/components/class/ClassArt.css', 'utf8').replace(/\s+/g, ' ');
+    for (const k of ['rr-bob', 'rr-steam', 'rr-glow', 'rr-flow', 'rr-stir', 'rr-spark', 'rr-stamp', 'rr-sway']) expect(css, k).toContain(`@keyframes ${k}`);
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{[^@]*animation: none;/);
+    expect(fs.readFileSync('src/components/class/ClassIllustration.tsx', 'utf8')).toContain("import './ClassArt.css'");
+  });
+  it('use only the site colours (no hex values in the scenes)', () => {
+    expect(fs.readFileSync('src/components/class/MakerScenes.tsx', 'utf8')).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
   });
 });
 
@@ -102,23 +137,38 @@ describe('the yoga illustration colours (source contract)', () => {
 });
 
 describe('the date or Online chip on a card with a picture', () => {
-  it('sits beside the picture, not inside it, so a phone can show it under the picture (source contract)', () => {
-    const h = renderToStaticMarkup(<WorkshopCard w={{ ...base, images: ['https://example.com/a.jpg'] }} />);
-    expect(h).toMatch(/<div class="tile-col"><div class="date-tile has-photo">.*<\/div><span class="tile-chip">/);
-    const css = fs.readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ');
-    expect(css).toMatch(/@media \(max-width: 900px\) \{ \.tile-col \.tile-chip \{ position: static;/);
+  it('sits beside the picture on laptops and as a label above the title on phones, on every card', () => {
+    const photo = renderToStaticMarkup(<WorkshopCard w={{ ...base, images: ['https://example.com/a.jpg'] }} />);
+    expect(photo).toMatch(/<div class="tile-col"><div class="date-tile has-photo">.*<\/div><span class="tile-chip">/);
+    expect(photo).toContain('<span class="ws-eyebrow">Online · Zoom</span>');
+    const other = renderToStaticMarkup(<WorkshopCard w={{ ...base, title: 'Morning flow', topic: undefined, topicId: null }} />);
+    expect(other).toContain('<span class="ws-eyebrow">Online · Zoom</span>'); // every card has a picture, so every card has the label
   });
 });
 
 describe('the level and language tags on phones', () => {
-  it('use the small bold type of the free trial tag and corner, and keep their own outline and colours (source contract)', () => {
+  it('use the small bold type and corner of the free trial tag, and keep their own outline and colours (source contract)', () => {
     const css = fs.readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ');
     const tag = css.match(/\.ws-badges span \{ padding: 2px 8px;([^}]*)\}/)?.[1] ?? '';
-    const trial = css.match(/@media \(max-width: 900px\) \{ \.tile-col \.tile-trial \{([^}]*)\}/)?.[1] ?? '';
-    for (const part of ['font-size: 9px;', 'text-align: center;']) expect(trial).toContain(part);
+    const trial = css.match(/article\.workshop-card \.ws-price-trial \{([^}]*)\}/)?.[1] ?? '';
+    for (const part of ['font: 700 9px/1.25', 'border-radius: 12px;', 'background: var(--orange);']) expect(trial).toContain(part);
     for (const part of ['font-size: 9px;', 'font-weight: 700;', 'border-radius: 12px;']) expect(tag).toContain(part);
     for (const part of ['background', 'color:', 'border:']) expect(tag).not.toContain(part);
-    expect(css).toMatch(/\.tile-col \.tile-trial \{[^}]*border-radius: 12px;[^}]*background: var\(--orange\);[^}]*font: 700 11px/);
+  });
+});
+
+describe('who runs it, the free trial tag and the seats by the price on phones', () => {
+  it('names the role: Instructor for an online class, Host for an in-person workshop', () => {
+    expect(renderToStaticMarkup(<WorkshopCard w={base} />)).toContain('Instructor: ');
+    const inPerson = renderToStaticMarkup(<WorkshopCard w={{ ...base, kind: 'workshop', mode: 'in_person', type: 'FREE', seats: 12, booked: 4, venue: 'Studio 9', time: '16:30', date: '2099-12-01', topic: undefined, topicId: null } as never} />);
+    expect(inPerson).toContain('Host: ');
+    expect(inPerson).toContain('8 seats left');
+  });
+  it('the free trial tag by the price repeats the one on the photo, for phones only', () => {
+    const h = renderToStaticMarkup(<WorkshopCard w={{ ...base, images: ['https://example.com/a.jpg'], freeTrial: true, freeTrialDays: 2 }} />);
+    expect(h).toContain('<span class="ws-price-trial">2-day free trial</span>');
+    expect(renderToStaticMarkup(<WorkshopCard w={{ ...base, title: 'Morning flow', topic: undefined, topicId: null, freeTrial: true, freeTrialDays: 2 }} />)).toContain('ws-price-trial'); // a card with the generic picture too
+    expect(renderToStaticMarkup(<WorkshopCard w={base} />)).not.toContain('ws-price-trial');
   });
 });
 
@@ -134,12 +184,9 @@ describe('the free trial on a card with a picture', () => {
     expect(h).toContain('has-art');
     expect(h).toContain('<span class="tile-trial">Free trial</span>');
   });
-  it('stays a badge under the title on the plain date tile, and a card without a trial has neither', () => {
-    const plain = renderToStaticMarkup(<WorkshopCard w={{ ...base, title: 'Morning flow', topic: undefined, topicId: null, freeTrial: true, freeTrialDays: 2 }} />);
-    expect(plain).not.toContain('tile-trial');
-    expect(plain).toContain('Free trial · 2 days');
-    const none = renderToStaticMarkup(<WorkshopCard w={{ ...base, images: ['https://example.com/a.jpg'] }} />);
-    expect(none).not.toContain('tile-trial');
+  it('a card without a trial has neither tag', () => {
+    expect(renderToStaticMarkup(<WorkshopCard w={{ ...base, images: ['https://example.com/a.jpg'] }} />)).not.toContain('tile-trial');
+    expect(renderToStaticMarkup(<WorkshopCard w={base} />)).not.toContain('tile-trial');
   });
   it('the chip is the site\'s orange chip with white text, at the top left of the tile (source contract)', () => {
     const css = fs.readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ');

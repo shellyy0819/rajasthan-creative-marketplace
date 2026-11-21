@@ -85,10 +85,13 @@ describe('online class page', () => {
     expect(hybrid).toContain('https://www.google.com/maps/search/?api=1&amp;query=Rang%20Studio%2C%20Bani%20Park%2C%20Jaipur');
     expect(hybrid).toContain('Also live on Zoom');
   });
-  it('shows the illustration when there are no photos (yoga figures for yoga, a plain arch for other topics)', () => {
+  it('shows the illustration when there are no photos: yoga figures for yoga, the crochet cafe for crochet, the craft studio for other topics', () => {
     expect(html()).toContain('six people practising yoga');
-    const other = html({ topic: { id: 2, name: 'Crochet', slug: 'crochet' } as never });
-    expect(other).toContain('rising sun behind a Rajasthani arch');
+    const crochet = html({ topic: { id: 2, name: 'Crochet', slug: 'crochet' } as never });
+    expect(crochet).toContain('crocheting together');
+    expect(crochet).not.toContain('six people');
+    const other = html({ topic: { id: 3, name: 'Pottery', slug: 'pottery' } as never });
+    expect(other).toContain('craft studio');
     expect(other).not.toContain('six people');
   });
   it('one, two and three photos make a mosaic of that size, cover first, each openable', () => {

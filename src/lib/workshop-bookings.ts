@@ -5,7 +5,7 @@ import { bookings as bookingsT, users, workshops as workshopsT } from '../db/sch
 import { ownsWorkshop } from './seller-workshops';
 import type { Booking, Workshop } from './types';
 
-/** What a booking's status code means to the host and the team (the codes say "demo" because no payment is collected on Craftofy). */
+/** What a booking's status code means to the host and the team (the code names are historical; no payment is collected on Craftofy). */
 export const BOOKING_STATUS_LABEL: Record<string, string> = {
   CONFIRMED_FREE_DEMO: 'Confirmed (free)',
   DEMO_BOOKING_CREATED: 'Reserved: pays the host directly',
