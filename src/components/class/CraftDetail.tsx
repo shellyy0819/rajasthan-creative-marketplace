@@ -78,12 +78,18 @@ export function CraftDetail({ w, ended, now = new Date(), share }: { w: Workshop
                 </div>
               )}
               <div className="cr-price">{free ? <b>Free</b> : <><b>{money(w.pricePaise)}</b><span>per person</span></>}</div>
-              {bookable ? <div className="cr-reserve"><ReserveButton workshop={w} /></div>
+              {(bookable || ch.primary) && (
+                <div className="cr-actions">
+                  {bookable ? <div className="cr-reserve"><ReserveButton workshop={w} /></div>
                 : ch.primary && <WorkshopTrackedLink workshopId={w.id} method={ch.primary.kind} placement="page" category={w.topic?.name} contentType={gaWorkshopType(w)} className="button cd-btn primary cr-reserve" href={ch.primary.href} target="_blank" rel="noopener noreferrer"><ChannelIcon kind={ch.primary.kind} onGreen />{ch.primary.label}</WorkshopTrackedLink>}
+                  {share && <div className="share-slot">{share}</div>}
+                </div>
+              )}
             </div>
           )}
           {!ended && <p className="cd-note cr-note">No payment is collected on Craftofy. You reserve here, and the host confirms and takes payment.</p>}
-          {share && <div className="share-slot">{share}</div>}
+          {/* With a main button, Share sits right behind it (above); otherwise it stands alone here. */}
+          {share && !(!ended && (bookable || ch.primary)) && <div className="share-slot">{share}</div>}
         </div>
         {w.images.length ? <PhotoMosaic images={w.images} title={w.title} /> : <ClassIllustration title={w.title} yoga={isYogaListing(w)} />}
       </section>
