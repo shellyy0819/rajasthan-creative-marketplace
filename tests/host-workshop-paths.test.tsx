@@ -215,7 +215,7 @@ describe('errors appear under the field they are about', () => {
     const label = screen.getByLabelText(/meeting link/i).closest('label')!;
     expect(label.querySelector('[role="alert"]')?.textContent).toBe('Meeting link must be a full https link, for example https://zoom.us/j/123.');
     expect(document.querySelector('.admin-error')).toBeNull();
-    expect(document.activeElement).toBe(screen.getByLabelText(/meeting link/i));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText(/meeting link/i)));
   });
   it('a server message about the phone number shows under the phone field on step 3', async () => {
     refuse('phone must be a valid Indian mobile number, e.g. 9989898999.');
