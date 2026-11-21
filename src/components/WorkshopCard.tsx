@@ -18,6 +18,8 @@ export function WorkshopCard({ w }: { w: Workshop }) {
   const left = (w.seats ?? 0) - w.booked;
   const cover = w.images[0]; // the first photo is the cover
   const yogaArt = !cover && isYogaListing(w); // no photo: a yoga listing shows the yoga illustration, other listings the plain tile
+  // With a picture (a photo or the yoga illustration) the free trial is a chip on it, like "Only 1 left" on a product card; on the plain tile it stays a badge under the title.
+  const trialChip = (cover || yogaArt) && w.freeTrial ? (w.freeTrialDays ? `${w.freeTrialDays}-day free trial` : 'Free trial') : null;
   const chip = isClass ? `Online${w.platform ? ` · ${w.platform}` : ''}` : `${day} ${month}`;
   const price = w.prices.length ? summarizePrices(w.prices).from : w.type === 'FREE' ? 'Free' : money(w.pricePaise);
   return (
@@ -27,6 +29,7 @@ export function WorkshopCard({ w }: { w: Workshop }) {
           <div className="date-tile has-photo">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={cover} alt="" loading="lazy" />
+            {trialChip && <span className="tile-trial">{trialChip}</span>}
             <span className="tile-chip">{chip}</span>
           </div>
         )
@@ -34,6 +37,7 @@ export function WorkshopCard({ w }: { w: Workshop }) {
           ? (
             <div className="date-tile has-photo has-art">
               <ClassArt title={w.title} yoga />
+              {trialChip && <span className="tile-trial">{trialChip}</span>}
               <span className="tile-chip">{chip}</span>
             </div>
           )
@@ -43,11 +47,11 @@ export function WorkshopCard({ w }: { w: Workshop }) {
         {isClass
           ? <p>{w.schedule ? describeSchedule(w.schedule) : 'Online class'}<br />{w.host}</p>
           : <p>{w.venue} · <time dateTime={`${w.date}T${w.time}+05:30`}>{w.time}</time><br />{w.host}{bookable ? ` · ${left} seats left` : ''}</p>}
-        {(w.level || w.freeTrial || w.languages.length > 0) && (
+        {(w.level || (w.freeTrial && !trialChip) || w.languages.length > 0) && (
           <p className="ws-badges">
             {w.level && <span>{LEVEL_LABEL[w.level]}</span>}
             {w.languages.length > 0 && <span>{w.languages.join(', ')}</span>}
-            {w.freeTrial && <span>{w.freeTrialDays ? `Free trial · ${w.freeTrialDays} days` : 'Free trial'}</span>}
+            {w.freeTrial && !trialChip && <span>{w.freeTrialDays ? `Free trial · ${w.freeTrialDays} days` : 'Free trial'}</span>}
           </p>
         )}
       </div>
