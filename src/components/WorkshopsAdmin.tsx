@@ -98,6 +98,7 @@ export function WorkshopsAdmin({ initial, topics, fromRequest, presetStatus, edi
                       {Object.entries(STATUS_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
                     <button type="button" className="button" aria-label={`Edit ${w.title}`} onClick={() => setForm({ workshop: w })}>Edit</button>
+                    {w.seats != null && w.kind !== 'class' && <Link className="button" href={`/dashboard/workshops/${w.id}/bookings`} aria-label={`Bookings for ${w.title}`}>Bookings ({w.booked})</Link>}
                     {confirming === w.id
                       ? <><button type="button" className="button danger" disabled={busy === w.id} onClick={() => void remove(w)}>Confirm delete</button><button type="button" className="button" onClick={() => setConfirming(null)}>Keep</button></>
                       : <button type="button" className="button danger-outline" aria-label={`Delete ${w.title}`} onClick={() => setConfirming(w.id)}>Delete</button>}

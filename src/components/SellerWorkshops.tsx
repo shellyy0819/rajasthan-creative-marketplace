@@ -61,6 +61,7 @@ export function SellerWorkshops({ initial, topics, contactEmail }: { initial: Wo
                 <td>
                   <div className="admin-row-actions">
                     <button type="button" className="button" aria-label={`Edit ${w.title}`} onClick={() => setEditing(w)}>Edit</button>
+                    {w.seats != null && w.kind !== 'class' && <Link className="button" href={`/dashboard/workshops/${w.id}/bookings`} aria-label={`Bookings for ${w.title}`}>Bookings ({w.booked})</Link>}
                     {w.status === 'APPROVED' && <Link className="button" href={`/workshops/${workshopSlug(w)}`} target="_blank" rel="noopener noreferrer" aria-label={`View ${w.title} on the site`}>View</Link>}
                   </div>
                 </td>

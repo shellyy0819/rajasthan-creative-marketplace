@@ -14,6 +14,11 @@ async function userIdOf(email: string): Promise<string | undefined> {
   return u?.id;
 }
 
+/** Whether this seller owns the workshop (admin-view row, with hostId and contactEmail). */
+export async function ownsWorkshop(w: Workshop, email: string): Promise<boolean> {
+  return mine(w, await userIdOf(email), email);
+}
+
 /** The workshops a seller can see and edit on their dashboard, newest first. */
 export async function listSellerWorkshops(email: string): Promise<Workshop[]> {
   const userId = await userIdOf(email);
