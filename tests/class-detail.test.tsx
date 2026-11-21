@@ -40,8 +40,9 @@ describe('online class page', () => {
     expect(h).toContain('ONLINE CLASS · YOGA');
     expect(h).toContain('<h1 id="cd-h1">Sunrise Vinyasa</h1>');
     expect(h).toContain('Anaya Sharma');
-    expect(h).toContain('<div class="cd-sub"><div class="rich-text"><p>8 years teaching</p></div><span class="cd-label cd-sub-label">Certifications</span><div class="rich-text"><p>RYT 500</p></div></div>'); // experience, then a Certifications heading and the certifications
-    expect(html({ certifications: null } as Partial<Workshop>)).not.toContain('Certifications</span>'); // no data, no heading
+    expect(h).toContain('<div class="cd-sub"><section class="cd-about" aria-label="About the instructor"><span class="cd-label cd-sub-label">About the instructor</span><div class="rich-text"><p>8 years teaching</p></div></section><section class="cd-certs" aria-label="Certifications"><span class="cd-label cd-sub-label">Certifications</span><div class="rich-text"><p>RYT 500</p></div></section></div>'); // About the instructor, then Certifications set apart
+    expect(html({ certifications: null } as Partial<Workshop>)).not.toContain('Certifications</span>'); // no certifications, no heading
+    expect(html({ experience: null } as Partial<Workshop>)).not.toContain('About the instructor'); // no about text, no heading
     expect(html({ experience: null, certifications: '1. RYT' } as Partial<Workshop>)).toContain('cd-sub-label">Certifications</span><div class="rich-text"><ol>');
     expect(h).toContain('2-day free trial');
     expect(h).toContain('Today, 6:30 am IST · starts in 30 min');
@@ -148,5 +149,18 @@ describe('this week on the online class page', () => {
     expect(h).toContain('Times are India time (IST).');
     expect(h).not.toContain('class="cd-week"');
     expect(h).toContain('Sunrise Vinyasa');
+  });
+});
+
+describe('the instructor card styling (source contract)', () => {
+  const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+  it('sets the certifications apart under a rule, with a check on each bullet, from tokens only', () => {
+    expect(css).toMatch(/\.cd-certs \{ margin-top: 12px; border-top: 1px solid var\(--line\); \}/);
+    expect(css).toMatch(/\.cd-certs \.rich-text ul \{ list-style: none;/);
+    expect(css).toMatch(/\.cd-certs \.rich-text ul li::before \{[^}]*content: '\\2713'[^}]*color: var\(--green-d\)/);
+  });
+  it('the in-person page uses the same card parts, headed "About the host"', () => {
+    const src = readFileSync('src/components/class/CraftDetail.tsx', 'utf8');
+    expect(src).toContain('<InstructorBio experience={w.experience} certifications={w.certifications} who="host" />');
   });
 });

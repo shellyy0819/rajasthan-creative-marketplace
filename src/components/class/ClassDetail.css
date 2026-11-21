@@ -18,7 +18,12 @@
 .cd-avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--cream); display: grid; place-items: center; font: 600 16px var(--font-sans); color: var(--green-d); overflow: hidden; }
 .cd-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .cd-name { display: block; font: 500 18px var(--font-display); margin-top: 2px; }
-.cd-sub .cd-sub-label { margin-top: 12px; margin-bottom: 4px; }
+/* Instructor card: "About" (bulleted as written) and, under a rule, "Certifications" (each item checked). */
+.cd-sub .cd-sub-label { margin: 10px 0 4px; }
+.cd-certs { margin-top: 12px; border-top: 1px solid var(--line); }
+.cd-certs .rich-text ul { list-style: none; padding-left: 20px; }
+.cd-certs .rich-text ul li { position: relative; }
+.cd-certs .rich-text ul li::before { content: '\2713'; content: '\2713' / ''; position: absolute; left: -20px; font-weight: 700; color: var(--green-d); }
 .cd-sub { display: block; font-size: 12px; line-height: 1.6; color: var(--muted-2); margin-top: 2px; }
 .cd-icons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .cd-icons a { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--control-border); display: grid; place-items: center; color: var(--ink); }
