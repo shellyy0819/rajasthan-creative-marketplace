@@ -7,6 +7,7 @@ import { HomeShelf } from '@/components/HomeShelf';
 import { DataVersionProvider } from '@/components/DataVersion';
 import { HomeWorkshops } from '@/components/HomeWorkshops';
 import { TrendingSection } from '@/components/TrendingSection';
+import { TrendingWorkshopsSection } from '@/components/TrendingWorkshopsSection';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { ShopByCategory } from '@/components/ShopByCategory';
 import { SignedOutToast } from '@/components/SignedOutToast';
@@ -88,6 +89,7 @@ async function HomeSections() {
         </div>
         <Suspense fallback={null}><HomeWorkshops /></Suspense>
       </section>
+      <Suspense fallback={null}><TrendingWorkshopsSection /></Suspense>
       <section className="maker-cta" id="makers">
         <div className="cta-flower" aria-hidden="true">✿</div>
         <div>

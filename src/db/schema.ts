@@ -293,6 +293,20 @@ export const productEvents = pgTable('product_events', {
   index('product_events_day_idx').on(t.day),
 ]);
 
+/** What visitors do on a workshop page, one row per visitor, type and day (the same shape as product_events). Feeds the Trending workshops row. */
+export const workshopEvents = pgTable('workshop_events', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  workshopId: text('workshop_id').notNull().references(() => workshops.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(),
+  actor: text('actor').notNull(),
+  day: date('day', { mode: 'string' }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [
+  check('workshop_events_type_valid', sql`${t.type} in ('view', 'contact', 'contact_whatsapp', 'contact_call', 'contact_instagram', 'contact_website')`),
+  uniqueIndex('workshop_events_unique_idx').on(t.workshopId, t.type, t.actor, t.day),
+  index('workshop_events_day_idx').on(t.day),
+]);
+
 /** People who want to sell on the marketplace (public form). Phone is format-checked, not verified: an admin calls, then confirms. */
 export const listingRequests = pgTable('listing_requests', {
   id: uuid('id').primaryKey().defaultRandom(),

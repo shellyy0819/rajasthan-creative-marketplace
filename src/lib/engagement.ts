@@ -1,9 +1,9 @@
 import { and, count, eq, inArray, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
-import { productEvents, productLikes, products } from '../db/schema';
+import { productEvents, productLikes, products, workshopEvents, workshops } from '../db/schema';
 import { ApiError } from './errors';
 
-import type { TrackType } from './track';
+import type { TrackType, WorkshopTrackType } from './track';
 
 export type EventType = TrackType;
 const NOT_FOUND = () => new ApiError(404, 'Product not found.');
@@ -49,4 +49,15 @@ export async function recordEvent(e: { productId: string; type: EventType; actor
     const rows = await getDb().insert(productEvents).values({ productId: e.productId, type: e.type, actor: e.actor, day }).onConflictDoNothing().returning({ id: productEvents.id });
     return rows.length ? 'recorded' : 'duplicate';
   } catch (err) { if (isFkViolation(err)) return 'ignored'; throw err; } // product deleted after the check
+}
+
+/** A visitor looked at, or contacted the host of, a published workshop. Counted once per visitor, type and day; unknown or unpublished workshops are ignored. */
+export async function recordWorkshopEvent(e: { workshopId: string; type: WorkshopTrackType; actor: string }, now = new Date()): Promise<'recorded' | 'duplicate' | 'ignored'> {
+  const [row] = await getDb().select({ status: workshops.status }).from(workshops).where(eq(workshops.id, e.workshopId));
+  if (row?.status !== 'APPROVED') return 'ignored';
+  const day = now.toISOString().slice(0, 10);
+  try {
+    const rows = await getDb().insert(workshopEvents).values({ workshopId: e.workshopId, type: e.type, actor: e.actor, day }).onConflictDoNothing().returning({ id: workshopEvents.id });
+    return rows.length ? 'recorded' : 'duplicate';
+  } catch (err) { if (isFkViolation(err)) return 'ignored'; throw err; } // workshop deleted after the check
 }
