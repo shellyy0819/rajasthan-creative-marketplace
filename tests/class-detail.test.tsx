@@ -306,3 +306,12 @@ describe('the green tags line up on laptops too (source contract)', () => {
     expect(css).toMatch(/\.cd-steps li \{[^}]*padding: 22px 16px;/);
   });
 });
+
+describe('the contact icons of the instructor and host (source contract)', () => {
+  it('are the mark alone with no ring, and still a 44px target', () => {
+    const css = readFileSync('src/components/class/ClassDetail.css', 'utf8').replace(/\s+/g, ' ');
+    expect(css).toMatch(/\.cd-icons a \{ width: 44px; height: 44px; border-radius: 50%; border: 0;/);
+    expect(css).not.toMatch(/\.cd-icons a \{[^}]*border: 1px solid/);
+    expect(css).toMatch(/\.cd-icons a:hover \{ opacity: \.8; \}/);
+  });
+});
