@@ -9,6 +9,7 @@ vi.mock('@/components/WorkshopContact', () => ({ WorkshopContact: () => <span da
 
 import { WorkshopCard } from '@/components/WorkshopCard';
 import { ClassIllustration } from '@/components/class/ClassIllustration';
+import { isYogaListing } from '@/lib/class-page';
 import type { Workshop } from '@/lib/types';
 
 /** A listing with the fields a card reads; invented data. */
@@ -39,14 +40,32 @@ describe('yoga listing without a photo', () => {
     expect(h).not.toContain('has-art');
     expect(h).not.toContain('workshop-card with-photo');
   });
-  it('a listing with no category keeps the plain tile', () => {
-    const h = renderToStaticMarkup(<WorkshopCard w={{ ...base, topic: undefined, topicId: null }} />);
+  it('a listing with no category and no yoga in its title keeps the plain tile', () => {
+    const h = renderToStaticMarkup(<WorkshopCard w={{ ...base, title: 'Morning flow', topic: undefined, topicId: null }} />);
     expect(h).toContain('<b>Online</b>');
   });
   it('an in-person yoga listing shows the date in the chip', () => {
     const h = renderToStaticMarkup(<WorkshopCard w={{ ...base, kind: 'workshop', mode: 'in_person', platform: null, city: 'Jaipur', venue: 'Studio', seats: 10 } as unknown as Workshop} />);
     expect(h).toContain('has-art');
     expect(h).toContain('class="tile-chip">1 Dec<');
+  });
+});
+
+describe('what counts as a yoga listing', () => {
+  it('the category decides when there is one', () => {
+    expect(isYogaListing({ title: 'Morning flow', topic: { id: 1, name: 'Yoga', slug: 'yoga' } })).toBe(true);
+    expect(isYogaListing({ title: 'Morning flow', topic: { id: 1, name: 'Yoga & Wellness', slug: 'yoga-and-wellness' } })).toBe(true);
+    expect(isYogaListing({ title: 'Yoga on clay', topic: { id: 2, name: 'Pottery', slug: 'pottery' } })).toBe(false);
+  });
+  it('with no category the title decides, as a whole word', () => {
+    expect(isYogaListing({ title: 'Yoga', topic: undefined })).toBe(true);
+    expect(isYogaListing({ title: 'Sunrise yoga flow', topic: undefined })).toBe(true);
+    expect(isYogaListing({ title: 'Pottery basics', topic: undefined })).toBe(false);
+    expect(isYogaListing({ title: 'Yogaville tour', topic: undefined })).toBe(false);
+  });
+  it('a card with no category but a yoga title shows the illustration', () => {
+    const h = renderToStaticMarkup(<WorkshopCard w={{ ...base, title: 'Yoga', topic: undefined, topicId: null }} />);
+    expect(h).toContain('has-art');
   });
 });
 
@@ -59,10 +78,25 @@ describe('the class page picture', () => {
   });
   it('the in-person page (CraftDetail) passes the category too (source contract)', () => {
     const src = fs.readFileSync('src/components/class/CraftDetail.tsx', 'utf8');
-    expect(src).toMatch(/<ClassIllustration title=\{w\.title\} yoga=\{w\.topic\?\.slug === 'yoga'\} \/>/);
+    expect(src).toContain('<ClassIllustration title={w.title} yoga={isYogaListing(w)} />');
   });
   it('the card tile stretches the art over the whole tile (source contract)', () => {
     const css = fs.readFileSync('src/components/WorkshopListings.css', 'utf8').replace(/\s+/g, ' ');
     expect(css).toMatch(/\.date-tile\.has-art svg \{[^}]*position: absolute; inset: 0;[^}]*width: 100%; height: 100%/);
+  });
+});
+
+describe('the yoga illustration colours (source contract)', () => {
+  const css = fs.readFileSync('src/app/globals.css', 'utf8').replace(/\s+/g, ' ');
+  it('the warrior and arms-up figures use deep tones on light and bright mustard and orange on dark, in both dark blocks', () => {
+    expect(css).toMatch(/--art-warrior: var\(--stall-terra-d\);/);
+    expect(css).toMatch(/--art-arms: var\(--stall-wood-d\);/);
+    expect((css.match(/--art-warrior: var\(--stall-mustard\);/g) ?? []).length).toBe(2);
+    expect((css.match(/--art-arms: var\(--orange\);/g) ?? []).length).toBe(2);
+  });
+  it('the illustration reads those tokens', () => {
+    const src = fs.readFileSync('src/components/class/ClassIllustration.tsx', 'utf8');
+    expect(src).toContain("fig('--art-warrior')");
+    expect(src).toContain("fig('--art-arms')");
   });
 });

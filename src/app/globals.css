@@ -56,6 +56,8 @@
   --stall-wood: #b98458;
   --stall-wood-d: #8a5f3c;
   --stall-terra-d: #9e4e2a;
+  --art-warrior: var(--stall-terra-d); /* the yoga illustration's warrior and arms-up figures: deep tones on light, bright mustard and orange on dark */
+  --art-arms: var(--stall-wood-d);
   --stall-chalk: #fbf7ef;
   --stall-board: #2b3a31;
   --stall-ground: #d8c6a8;
@@ -124,6 +126,8 @@
     --stall-wood: #9a6d47;
     --stall-wood-d: #7a5436;
     --stall-terra-d: #b5623a;
+    --art-warrior: var(--stall-mustard);
+    --art-arms: var(--orange);
     --stall-chalk: #efe7d6;
     --stall-board: #11160f;
     --stall-ground: #263029;
@@ -189,6 +193,8 @@
   --stall-wood: #9a6d47;
   --stall-wood-d: #7a5436;
   --stall-terra-d: #b5623a;
+  --art-warrior: var(--stall-mustard);
+  --art-arms: var(--orange);
   --stall-chalk: #efe7d6;
   --stall-board: #11160f;
   --stall-ground: #263029;

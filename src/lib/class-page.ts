@@ -3,6 +3,11 @@ import { istParts, istToDate } from './ist';
 import { DAYS, type Schedule } from './workshop-listing';
 import type { Workshop } from './types';
 
+/** Whether a listing is yoga: its category says so (Yoga, Yoga & Wellness), or, when it has no category, its title does. Decides the illustration shown in place of a missing photo. */
+export function isYogaListing(w: Pick<Workshop, 'title' | 'topic'>): boolean {
+  return w.topic ? /yoga/i.test(w.topic.slug) : /\byoga\b/i.test(w.title);
+}
+
 type Runs = { date: string; endsOn?: string | null; schedule?: Schedule | null };
 const DAY_NAME = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];

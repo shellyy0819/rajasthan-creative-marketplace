@@ -6,6 +6,7 @@ import { workshopSlug } from '@/lib/catalog-shared';
 import { describeSchedule, summarizePrices } from '@/lib/workshop-listing';
 import { LEVEL_LABEL } from '@/lib/workshop-support';
 import { ClassArt } from './class/ClassIllustration';
+import { isYogaListing } from '@/lib/class-page';
 import { ReserveButton } from './ReserveButton';
 import './WorkshopListings.css';
 import { WorkshopContact } from './WorkshopContact';
@@ -16,7 +17,7 @@ export function WorkshopCard({ w }: { w: Workshop }) {
   const bookable = !isClass && w.seats !== null;
   const left = (w.seats ?? 0) - w.booked;
   const cover = w.images[0]; // the first photo is the cover
-  const yogaArt = !cover && w.topic?.slug === 'yoga'; // no photo: a yoga listing shows the yoga illustration, other listings the plain tile
+  const yogaArt = !cover && isYogaListing(w); // no photo: a yoga listing shows the yoga illustration, other listings the plain tile
   const chip = isClass ? `Online${w.platform ? ` · ${w.platform}` : ''}` : `${day} ${month}`;
   const price = w.prices.length ? summarizePrices(w.prices).from : w.type === 'FREE' ? 'Free' : money(w.pricePaise);
   return (

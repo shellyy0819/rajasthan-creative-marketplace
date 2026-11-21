@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { contactChannels, describeNext, nextSession, weekStrip, type Channel } from '@/lib/class-page';
+import { contactChannels, describeNext, isYogaListing, nextSession, weekStrip, type Channel } from '@/lib/class-page';
 import { formatDay } from '@/lib/format';
 import { describeSchedule } from '@/lib/workshop-listing';
 import { money } from '@/lib/money';
@@ -83,7 +83,7 @@ export function ClassDetail({ w, ended, now = new Date(), hostPhoto, share }: { 
           {!ended && ch.primary && <div className="cd-cta"><Button c={ch.primary} />{ch.secondary.map(c => <Button key={c.kind} c={c} outline />)}</div>}
           {share && <div className="share-slot">{share}</div>}
         </div>
-        {w.images.length ? <PhotoMosaic images={w.images} title={w.title} /> : <ClassIllustration title={w.title} yoga={w.topic?.slug === 'yoga'} />}
+        {w.images.length ? <PhotoMosaic images={w.images} title={w.title} /> : <ClassIllustration title={w.title} yoga={isYogaListing(w)} />}
       </section>
 
       <section className="cd-facts" aria-label="Class at a glance">

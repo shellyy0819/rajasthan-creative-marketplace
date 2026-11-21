@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ReserveButton } from '@/components/ReserveButton';
-import { clock12, contactChannels, startsIn } from '@/lib/class-page';
+import { clock12, contactChannels, isYogaListing, startsIn } from '@/lib/class-page';
 import { formatDay } from '@/lib/format';
 import { money } from '@/lib/money';
 import type { Workshop } from '@/lib/types';
@@ -82,7 +82,7 @@ export function CraftDetail({ w, ended, now = new Date(), share }: { w: Workshop
           {!ended && <p className="cd-note cr-note">No payment is collected on Craftofy. You reserve here, and the host confirms and takes payment.</p>}
           {share && <div className="share-slot">{share}</div>}
         </div>
-        {w.images.length ? <PhotoMosaic images={w.images} title={w.title} /> : <ClassIllustration title={w.title} yoga={w.topic?.slug === 'yoga'} />}
+        {w.images.length ? <PhotoMosaic images={w.images} title={w.title} /> : <ClassIllustration title={w.title} yoga={isYogaListing(w)} />}
       </section>
 
       {facts.length > 0 && <section className="cd-facts" aria-label="Workshop at a glance">{facts.map(f => <div key={f.k}><span className="cd-label">{f.k}</span><span className="cd-fact">{f.v}</span></div>)}</section>}
