@@ -65,7 +65,11 @@ export function WorkshopCard({ w }: { w: Workshop }) {
           {trialChip && <span className="ws-price-trial">{trialChip}</span>}
           {bookable && <span className="ws-seats">{left} seats left</span>}
         </span>
-        {bookable ? <ReserveButton workshop={w} /> : <WorkshopContact w={w} workshopId={w.id} category={w.topic?.name} contentType={gaWorkshopType(w)} placement="card" />}
+        {/* Every card shows the host's public contact icons; a workshop with seats adds Reserve spot beside them, so a class and a workshop read the same. */}
+        <div className="ws-actions">
+          <WorkshopContact w={w} workshopId={w.id} category={w.topic?.name} contentType={gaWorkshopType(w)} placement="card" />
+          {bookable && <ReserveButton workshop={w} />}
+        </div>
       </div>
     </article>
   );
