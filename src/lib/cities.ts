@@ -106,6 +106,19 @@ export async function getCityByNameOrSlug(v: string): Promise<City | undefined> 
   return r ? toCity(r) : undefined;
 }
 
+/**
+ * Every city row that is the same place as `city`: same name (any case) and the same state. The city field can leave two rows for one place
+ * (a legacy row with no OSM id, or two OSM entries for it), and a listing on either must show on the city's page. A row with no state matches
+ * its namesakes only when they all agree on one state; two namesakes in different states (Udaipur, Rajasthan and Tripura) stay apart.
+ */
+export async function sameCityIds(city: City): Promise<number[]> {
+  const rows = await getDb().select({ id: cities.id, state: cities.state }).from(cities).where(sql`lower(${cities.name}) = lower(${city.name})`);
+  const states = new Set(rows.filter(r => r.state).map(r => r.state!.toLowerCase()));
+  const mine = city.state?.toLowerCase();
+  const ids = rows.filter(r => (mine ? !r.state || r.state.toLowerCase() === mine : r.state ? states.size <= 1 : true)).map(r => r.id);
+  return ids.includes(city.id) ? ids : [city.id, ...ids];
+}
+
 /** Cities with at least one APPROVED product or workshop, sorted by name. */
 export async function listActiveCities(): Promise<City[]> {
   const db = getDb();

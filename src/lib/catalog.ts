@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray, or, sql, type SQL } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { productsQuery, sellerNameSql, toAdminWorkshop, toProduct, toWorkshop, withPrices, workshopsQuery } from '../db/mappers';
 import { cities, products as productsT, sellerProfiles, sourcingTypes, users, workshops as workshopsT } from '../db/schema';
-import { getCityByNameOrSlug } from './cities';
+import { getCityByNameOrSlug, sameCityIds } from './cities';
 import { normalizeQuery, textSearch } from './search';
 import { productSlug, workshopSlug } from './catalog-shared';
 import type { Product, Workshop } from './types';
@@ -40,7 +40,7 @@ async function productScope(f: ProductFilter) {
   if (!anyCity(f.city)) {
     const city = await getCityByNameOrSlug(f.city!);
     if (!city) return null;
-    where.push(eq(productsT.cityId, city.id));
+    where.push(inArray(productsT.cityId, await sameCityIds(city)));
   }
   if (f.category && f.category !== 'All categories') where.push(eq(productsT.category, f.category));
   const scope = await sourcingScope(f);
@@ -87,7 +87,7 @@ export async function listWorkshops(f: WorkshopFilter = {}): Promise<Workshop[]>
   if (!anyCity(f.city)) {
     const city = await getCityByNameOrSlug(f.city!);
     if (!city) return [];
-    where.push(eq(workshopsT.cityId, city.id));
+    where.push(inArray(workshopsT.cityId, await sameCityIds(city)));
   }
   if (f.type && f.type !== 'ALL') where.push(eq(workshopsT.type, f.type));
   if (f.mode === 'online') where.push(inArray(workshopsT.mode, ['online', 'hybrid']));
