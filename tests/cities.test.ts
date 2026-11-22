@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { getDb } from '../src/db/client';
 import { cities, products, workshops } from '../src/db/schema';
-import { ensureCityByName, getCityByNameOrSlug, getCityBySlug, haversineKm, listActiveCities, nearestActiveCities, upsertCity } from '../src/lib/cities';
+import { ensureCityByName, getCityByNameOrSlug, getCityBySlug, haversineKm, listActiveCities, nearestActiveCities, sameCityIds, upsertCity } from '../src/lib/cities';
+import { listProducts, listWorkshops } from '../src/lib/catalog';
 import { resetTestDb } from './helpers/testdb';
 
 const UDAIPUR = { lat: 24.5854, lng: 73.7125 };
@@ -81,6 +82,28 @@ describe('cities library', () => {
     expect(r.map(c => c.name).sort()).toEqual(['Chennai', 'NoCoords']);
     expect(r.find(c => c.name === 'Chennai')!.km).toBeGreaterThan(1000);
     expect(r.find(c => c.name === 'NoCoords')!.km).toBe(-1);
+  });
+
+  it('a city page also lists what was added under a second row of the same place, but not a namesake in another state', async () => {
+    const a = await mk('Mumbai', 50, 19.07, 72.87, 'Maharashtra');
+    const b = await mk('Mumbai', 51, 19.08, 72.88, 'Maharashtra');
+    const other = await mk('Mumbai', 52, 10, 70, 'Elsewhere');
+    expect(b.id).not.toBe(a.id);
+    expect((await sameCityIds(a)).sort()).toEqual([a.id, b.id].sort());
+    await addProduct(a.id, 'APPROVED', 'm1');
+    await addProduct(other.id, 'APPROVED', 'm2');
+    await getDb().insert(workshops).values({ id: 'w9', title: 't', type: 'PAID', pricePaise: 1, cityId: b.id, venue: 'linking house , Santacruz', startsAt: new Date(Date.now() + 864e5), seats: 1, booked: 0, hostName: 'h', description: 'd', status: 'APPROVED' } as never);
+    expect((await listWorkshops({ city: a.slug })).map(w => w.id)).toEqual(['w9']);
+    expect((await listWorkshops({ city: other.slug })).map(w => w.id)).toEqual([]);
+    expect((await listProducts({ city: a.slug })).map(x => x.id)).toEqual(['m1']);
+  });
+
+  it('a row with no state joins its namesakes only when they agree on one state', async () => {
+    const real = await mk('Pune', 60, 18.5, 73.8, 'Maharashtra');
+    const [legacy] = await getDb().insert(cities).values({ name: 'Pune', slug: 'pune-legacy' }).returning();
+    expect((await sameCityIds({ id: legacy.id, name: legacy.name, slug: legacy.slug })).sort()).toEqual([legacy.id, real.id].sort());
+    await mk('Pune', 61, 1, 1, 'Elsewhere');
+    expect(await sameCityIds({ id: legacy.id, name: legacy.name, slug: legacy.slug })).toEqual([legacy.id]);
   });
 
   it('haversineKm(Udaipur, Jaipur) is about 330', () => {
