@@ -571,9 +571,11 @@ h2 em {
 }
 @keyframes st-sway { from { transform: rotate(-1.6deg); } to { transform: rotate(1.6deg); } }
 @keyframes st-spin { to { transform: rotate(360deg); } }
+.st-still { display: none; } /* the four standing shoppers: only for visitors who asked for less motion; the crowd walks instead */
 @media (prefers-reduced-motion: reduce) {
   .st-sway, .st-spin, .st-bob, .st-wave, .st-nod, .st-inspect, .st-blink, .st-twinkle { animation: none; }
   .st-crowd { display: none; }
+  .st-still { display: inline; }
 }
 .intro {
   text-align: center;

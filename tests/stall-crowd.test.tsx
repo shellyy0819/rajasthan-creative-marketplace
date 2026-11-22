@@ -12,21 +12,45 @@ describe('the people at the home stall', () => {
   it('are in the stall picture itself, so they are in the first HTML', () => {
     expect(renderToStaticMarkup(<HeroStall />)).toContain('class="st-crowd"');
   });
-  it('are two purchases and five people strolling across the section (one of them stops for selfies), drawn with the stall colour classes and no hex values', () => {
+  it('are two purchases and nine people strolling across the section (two of them stop for selfies), drawn with the stall colour classes and no hex values', () => {
     expect(crowd.match(/class="st-deal"/g)).toHaveLength(2);
-    expect(crowd.match(/class="st-pass (r|l)"/g)).toHaveLength(4);
-    expect(crowd.match(/class="st-pass sf"/g)).toHaveLength(1);
+    expect(crowd.match(/class="st-pass (r|l)"/g)).toHaveLength(7);
+    expect(crowd.match(/class="st-pass sf"/g)).toHaveLength(2);
     expect(crowd).not.toMatch(/#[0-9a-f]{3,6}\b/i);
     expect(crowd).not.toMatch(/<script|onClick|style="[^"]*(fill|stroke)/);
   });
   it('have loops of different lengths that start at different points, so the scene never repeats in step', () => {
     const times = [...crowd.matchAll(/--T:(\d+)s;--D:(-\d+)s/g)].map(m => `${m[1]}/${m[2]}`);
-    expect(times).toHaveLength(7);
-    expect(new Set(times).size).toBe(7);
-    expect(new Set(times.map(t => t.split('/')[0])).size).toBe(7); // and no two loops are the same length
+    expect(times).toHaveLength(11);
+    expect(new Set(times).size).toBe(11);
+    expect(new Set(times.map(t => t.split('/')[0])).size).toBe(11); // and no two loops are the same length
   });
   it('each purchase has a buyer who walks in and stops, a parcel, money for the maker on the right and a wrapping hand for the maker on the left', () => {
     for (const part of ['st-cy buyer', 'st-cy show-walk', 'st-cy show-stand', 'st-cy parcel', 'st-cy note', 'st-cy show-wrap', 'st-cy show-take', 'st-cy coin']) expect(crowd.split(`class="${part}"`).length - 1, part).toBe(2);
+  });
+});
+
+describe('nobody stands still', () => {
+  const seconds = (t: string) => +t.replace('s', '');
+  it('the four shoppers who used to stand by the stall are only drawn for reduced motion; everyone else sees them walk', () => {
+    const stall = renderToStaticMarkup(<HeroStall />);
+    expect(stall).toContain('class="st-still"');
+    expect(stall.slice(stall.indexOf('class="st-still"'), stall.indexOf('class="st-crowd"'))).toContain('st-bob b1');
+    expect(css).toMatch(/\.st-still \{ display: none; \}/);
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{[^@]*\.st-still \{ display: inline; \}/);
+    // the walkers that replace them: a plait, a pot being looked at, a parcel, a second selfie taker
+    expect(crowd).toContain('M-1 563Q-6 588 0 608');
+    expect(crowd).toContain('M23 556Q21 546 25 542H31Q35 546 33 556Z');
+    expect(crowd).toContain('M13 603H29');
+  });
+  it('the longest anyone stops is under 20 seconds: a buyer at the counter (16% to 62% of the loop) or a selfie taker (36% to 58%)', () => {
+    const buyers = [...crowd.matchAll(/class="st-deal" style="--sx:\d+;--T:(\d+s)/g)].map(m => seconds(m[1]));
+    const selfies = [...crowd.matchAll(/class="st-pass sf" style="--T:(\d+s)/g)].map(m => seconds(m[1]));
+    expect(buyers).toHaveLength(2); expect(selfies).toHaveLength(2);
+    const buyerStop = css.match(/@keyframes st-show-stand \{ 0%, (\d+)% \{ opacity: 0; \} [\d.]+%, (\d+)% \{ opacity: 1; \}/)!;
+    const selfieStop = css.match(/@keyframes st-sf-stand \{ 0%, (\d+)% \{ opacity: 0; \} [\d.]+%, (\d+)% \{ opacity: 1; \}/)!;
+    for (const t of buyers) expect(t * (+buyerStop[2] - +buyerStop[1]) / 100).toBeLessThan(20);
+    for (const t of selfies) expect(t * (+selfieStop[2] - +selfieStop[1]) / 100).toBeLessThan(20);
   });
 });
 

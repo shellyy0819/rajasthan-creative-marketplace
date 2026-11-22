@@ -7,12 +7,14 @@ import { StallRange } from './StallRange';
  *
  * - Two buyers each walk up, stop at the counter and hold up a piece; the maker on the left wraps it, the maker on the right takes their money
  *   (a note travels across and a coin pops up), the parcel slides over, and the buyer walks off with it.
- * - Visitors stroll along the front, never stopping, except the selfie taker: a shopper with an armful of bags, a rich tourist with a camera and
- *   hat, a woman in a saree and a man in a kurta and turban. They come from either side of the section.
+ * - Visitors stroll along the front, never stopping, except the two selfie takers (about ten seconds each, once a loop): a shopper with an armful
+ *   of bags, a rich tourist with a camera and hat, a woman in a saree, a man in a kurta and turban, a woman with a long plait, a man looking at a
+ *   pot and a woman with a parcel. They come from either side of the section. Nobody stands still for long: the longest stop is a buyer at the
+ *   counter (about fifteen seconds), and the makers behind the counter keep wrapping, waving and nodding.
  * - Loops have different lengths and start at different points, so the scene never repeats in step.
  *
  * Everything is drawn from the stall's own colour classes (.st-f-*), so it follows light and dark. With reduced motion the whole layer is hidden
- * and the stall keeps its still shoppers.
+ * and the stall shows its four still shoppers instead (HeroStall, .st-still).
  */
 type Outfit = 'plain' | 'tourist' | 'saree' | 'kurta';
 type Look = {
@@ -23,6 +25,10 @@ type Look = {
   bags?: string[];
   /** Holding a phone up at arm's length. */
   phone?: boolean; camera?: boolean; shades?: boolean; moustache?: boolean; flowers?: boolean;
+  /** A long plait down the back. */
+  braid?: boolean;
+  /** Holding a piece up to look at it, or carrying a wrapped parcel in front. */
+  piece?: boolean; parcel?: boolean;
 };
 const skinF = (l: Look) => (l.skin === 's' ? 'st-f-skin' : l.skin === 's2' ? 'st-f-skin2' : 'st-f-chalk');
 const skinS = (l: Look) => (l.skin === 's' ? 'st-s-skin' : l.skin === 's2' ? 'st-s-skin2' : 'st-s-chalk');
@@ -111,6 +117,7 @@ function Figure({ l, walk, frontArm, flash }: { l: Look; walk: boolean; frontArm
       <Legs l={l} walk={walk} />
       <Outfit l={l} />
       <Head l={l} />
+      {l.braid && <path d="M-1 563Q-6 588 0 608" fill="none" strokeWidth="4" strokeLinecap="round" className="st-s-hair" />}
       {l.camera && <><path d="M-4 572Q-9 590 -1 593" fill="none" strokeWidth="1.5" className="st-s-ink" /><rect x="-3" y="589" width="15" height="10" rx="2" className="st-f-board" /><circle cx="5" cy="594" r="3.4" className="st-f-chalk" /><circle cx="5" cy="594" r="1.6" className="st-f-board" /></>}
       <Arm l={l} d="M-8 578L-11 604" {...(walk ? { cls: 'st-arm a' } : {})} />
       {frontArm ?? (l.phone
@@ -119,6 +126,16 @@ function Figure({ l, walk, frontArm, flash }: { l: Look; walk: boolean; frontArm
             <rect x="30" y="531" width="9" height="16" rx="1.6" className="st-f-board" /><rect x="31.4" y="533" width="6.2" height="11" rx="1" className="st-f-chalk" opacity=".85" />
             {flash && <circle className="st-cy sf-flash st-f-mustard" cx="38" cy="531" r="5.5" />}
           </>
+        : l.piece
+          ? <>
+              <Arm l={l} d="M8 578L26 570L28 554" />
+              <path d="M23 556Q21 546 25 542H31Q35 546 33 556Z" className="st-f-terra" /><rect x="24" y="540" width="8" height="3" rx="1" className="st-f-mustard" />
+            </>
+        : l.parcel
+          ? <>
+              <Arm l={l} d="M8 578L16 598" />
+              <rect x="13" y="596" width="16" height="14" className="st-f-mustard" /><path d="M21 596V610M13 603H29" strokeWidth="2" fill="none" className="st-s-terrad" />
+            </>
         : holding
           ? <><Arm l={l} d="M8 578L12 604" /><Bags colours={l.bags!} /></>
           : <Arm l={l} d="M8 578L12 604" {...(walk ? { cls: 'st-arm b' } : {})} />)}
@@ -204,6 +221,11 @@ const SHOPPER: Look = { shirt: 'st-f-indigo', pants: 'st-f-chalk', skin: 's', ha
 /** The rich tourist: straw hat, sunglasses, camera, linen shirt and shorts, a bag from each hand's worth of shops. */
 const TOURIST: Look = { shirt: 'st-f-chalk', pants: 'st-f-wood', skin: 'pale', hair: 'hat', outfit: 'tourist', camera: true, shades: true, bags: ['st-f-board', 'st-f-mustard', 'st-f-terra'] };
 const SAREE: Look = { shirt: 'st-f-indigo', pants: 'st-f-skin', skin: 's', hair: 'bun', outfit: 'saree', flowers: true };
+/** The four who used to stand by the stall, now strolling: a woman with a long plait, a man looking at a pot, a woman carrying a parcel, and a second selfie taker. */
+const PLAIT: Look = { shirt: 'st-f-mustard', pants: 'st-f-terra', skin: 's', hair: 'bun', braid: true };
+const POT_MAN: Look = { shirt: 'st-f-indigo', pants: 'st-f-chalk', skin: 's2', hair: 'short', piece: true };
+const PARCEL_WOMAN: Look = { shirt: 'st-f-chalk', pants: 'st-f-indigo', skin: 's2', hair: 'bun', parcel: true };
+const SELFIE_2: Look = { shirt: 'st-f-sage', pants: 'st-f-woodd', skin: 's2', hair: 'bun', phone: true };
 const KURTA: Look = { shirt: 'st-f-chalk', pants: 'st-f-chalk', skin: 's2', hair: 'turban', outfit: 'kurta', moustache: true };
 
 export function StallCrowd() {
@@ -217,6 +239,10 @@ export function StallCrowd() {
       <Passer l={TOURIST} dir="r" t="52s" d="-34s" />
       <Passer l={SAREE} dir="l" t="44s" d="-3s" lane="back" />
       <SelfieTaker l={SELFIE} t="48s" d="-17s" />
+      <Passer l={PLAIT} dir="r" t="42s" d="-29s" lane="back" />
+      <Passer l={POT_MAN} dir="l" t="50s" d="-8s" />
+      <Passer l={PARCEL_WOMAN} dir="r" t="38s" d="-15s" />
+      <SelfieTaker l={SELFIE_2} t="56s" d="-40s" />
     </g>
   );
 }
