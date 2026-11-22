@@ -49,9 +49,15 @@ describe('who is walking by', () => {
     expect(css).toMatch(/@keyframes st-pass-r \{ from \{ transform: translateX\(calc\(var\(--L\) \* -1px - 60px\)\); \} to \{ transform: translateX\(calc\(660px \+ var\(--R\) \* 1px\)\)/);
     expect(fs.readFileSync('src/components/StallRange.tsx', 'utf8')).toContain("setProperty('--L'");
   });
-  it('the hero lets them walk across all of it (cut off at its edges, behind the words)', () => {
+  it('the hero lets them walk across all of it (cut off at its edges), in front of the words and buttons', () => {
     expect(css).toMatch(/\.hero \{ position: relative; overflow-x: clip;/);
     expect(css).toMatch(/\.hero-copy \{ position: relative; z-index: 1; \}/);
+    expect(css).toMatch(/\.hero-art \{ position: relative; z-index: 2; \}/);
+  });
+  it('the crowd is the last thing drawn in the stall, so no sign, board or sticker covers it', () => {
+    const src = fs.readFileSync('src/components/HeroStall.tsx', 'utf8');
+    expect(src.indexOf('<StallCrowd />')).toBeGreaterThan(src.indexOf('<StickerLayer'));
+    expect(src.match(/<StallCrowd \/>/g)).toHaveLength(1);
   });
 });
 

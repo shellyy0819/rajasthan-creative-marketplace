@@ -299,8 +299,6 @@ export function HeroStall({ sign = D.sign, chalkLabel = D.chalkLabel, chalkTitle
       <circle cx="0" cy="553" r="11" className="st-f-hair"/><circle cx="-11" cy="555" r="2" className="st-f-skin"/><circle cx="11" cy="555" r="2" className="st-f-skin"/>
       <path d="M-11 578L-16 606" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" className="st-s-skin"/><path d="M11 578L22 566L24 552" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" className="st-s-skin"/><rect x="21" y="540" width="7" height="12" rx="1.5" className="st-f-board"/><path d="M32 546q5 6 0 12M36 543q8 9 0 18" fill="none" strokeWidth="1.3" className="st-s-mustard st-blink"/>
       </g></g>
-      {/* people walking past, and buyers being served (CSS only; hidden with reduced motion) */}
-      <StallCrowd />
       {/* easel sign: drawn only when it has words, and a link when the admin gave it somewhere to go */}
       {hasChalkboard({ chalkLabel, chalkTitle, chalkSub }) && (() => {
         const board = (
@@ -339,6 +337,9 @@ export function HeroStall({ sign = D.sign, chalkLabel = D.chalkLabel, chalkTitle
       <text x="300" y="706" textAnchor="middle" className="st-t-ink" fontSize="17" fontStyle="italic">A little more handmade goes a long way.</text>
 
       <StickerLayer placements={stickers} />
+
+      {/* people walking past, and buyers being served: drawn last so nothing in the picture covers them (CSS only; hidden with reduced motion) */}
+      <StallCrowd />
     </svg>
   );
 }
