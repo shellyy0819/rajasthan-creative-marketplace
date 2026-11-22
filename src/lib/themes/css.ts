@@ -5,6 +5,9 @@ import type { ThemeConfig } from './types';
 const darken = (hex: string, pct = 20) =>
   '#' + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - pct / 100)).toString(16).padStart(2, '0')).join('').toUpperCase();
 
+/** The primary green and the text on it. Every look keeps them (the site's own light and dark values), unless an admin picks a colour on purpose. */
+export const GREEN_TOKENS: readonly string[] = ['--green', '--green-d', '--on-green'];
+
 const decls = (entries: [string, string][]) =>
   entries.filter(([, v]) => isHex(v)).map(([k, v]) => `${k}:${v}`).join(';');
 
@@ -15,7 +18,8 @@ export function themeCss(preset: PresetKey, config: ThemeConfig): string {
   if (preset === 'everyday' && !override) return '';
   const sel = `html:root[data-festival="${preset}"]`;
 
-  const brand: [string, string][] = preset === 'everyday' ? [] : Object.entries(p.brand);
+  // The green is left out so it keeps its own light and dark values on every page; only an admin's chosen colour changes it.
+  const brand: [string, string][] = preset === 'everyday' ? [] : Object.entries(p.brand).filter(([k]) => !GREEN_TOKENS.includes(k));
   const map = new Map(brand);
   if (override) {
     map.set('--green', override);

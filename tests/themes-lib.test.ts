@@ -94,7 +94,7 @@ describe('themeCss', () => {
   it('emits palette rules for a festival', () => {
     const css = themeCss('dhanteras', PRESETS.dhanteras.config);
     expect(css).toContain('html:root[data-festival="dhanteras"]');
-    expect(css).toContain('--green:#6E1A2A');
+    expect(css).not.toContain('--green'); // the primary green is never themed
     expect(css).toContain('html:root[data-festival="dhanteras"][data-theme="light"]');
     expect(css).toContain('@media (prefers-color-scheme: light){html:root[data-festival="dhanteras"]:not([data-theme="dark"])');
     expect(css).toContain('--stall-board:');
@@ -120,7 +120,18 @@ describe('themeCss', () => {
   it('never emits injected primary', () => {
     const css = themeCss('diwali', { ...PRESETS.diwali.config, primary: '#fff;}body{display:none' });
     expect(css).not.toContain('body{display:none');
-    expect(css).toContain('--green:#7A1F5C');
+    expect(css).not.toContain('--green'); // an invalid colour is dropped, and the festival does not change the green either
+  });
+  it('no festival look changes the primary green, the dark green, the text on it or the banner: they keep the site\'s own light and dark values', () => {
+    for (const k of Object.keys(PRESETS) as (keyof typeof PRESETS)[]) {
+      const css = themeCss(k, PRESETS[k].config);
+      for (const token of ['--green', '--green-d', '--on-green', '--banner-bg']) expect(css, `${k} ${token}`).not.toContain(token + ':');
+      expect(PRESETS[k].primary, k).toBe('#405746');
+      expect(PRESETS[k].brand['--green'], k).toBe('#405746');
+    }
+  });
+  it('the accent colour still changes with a festival', () => {
+    expect(themeCss('diwali', PRESETS.diwali.config)).toContain('--orange:');
   });
 });
 

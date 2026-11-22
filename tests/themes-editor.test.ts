@@ -48,4 +48,11 @@ describe('sticker picker', () => {
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids.sort()).toEqual(Object.keys(STICKERS).sort());
   });
+  it('the preview never recolours the primary green for a festival, but an admin-chosen colour still shows', () => {
+    for (const k of Object.keys(PRESETS) as (keyof typeof PRESETS)[]) {
+      const vars = previewVars(k, PRESETS[k].config);
+      for (const t of ['--green', '--green-d', '--on-green']) expect(vars, `${k} ${t}`).not.toHaveProperty(t);
+    }
+    expect(previewVars('diwali', { ...PRESETS.diwali.config, primary: '#123456' })['--green']).toBe('#123456');
+  });
 });

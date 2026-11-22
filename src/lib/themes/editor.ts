@@ -1,4 +1,5 @@
 import { onColor, passesContrast, contrastRatio, isHex } from './contrast';
+import { GREEN_TOKENS } from './css';
 import { PRESETS, type PresetKey } from './presets';
 import { STICKERS, type StickerId } from './stickers';
 import type { Placement, ThemeConfig } from './types';
@@ -34,7 +35,8 @@ export function primaryContrast(hex: string): { ratio: number; ok: boolean; text
 /** CSS variables for the editor's preview box (the public site scopes the same values to html[data-festival]). */
 export function previewVars(preset: PresetKey, config: ThemeConfig): Record<string, string> {
   const p = PRESETS[preset];
-  const vars: Record<string, string> = { ...(preset === 'everyday' ? {} : p.brand), ...(p.stall as Record<string, string>) };
+  const brand = Object.entries(p.brand).filter(([k]) => !GREEN_TOKENS.includes(k)); // the green is the same in every look
+  const vars: Record<string, string> = { ...(preset === 'everyday' ? {} : Object.fromEntries(brand)), ...(p.stall as Record<string, string>) };
   if (isHex(config.primary)) {
     vars['--green'] = config.primary;
     vars['--on-green'] = onColor(config.primary);
