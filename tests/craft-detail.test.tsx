@@ -24,6 +24,10 @@ describe('the picture on laptops (source contract)', () => {
     expect(css).toMatch(/\.cr-hero \.cd-media \{ grid-column: 2; grid-row: 1;/);
     expect(css).toMatch(/\.cr-hero \.cr-note \{ grid-column: 1; grid-row: 2;/);
   });
+  it('one, two or three photos fill the box and add nothing to its height, so they never run past the Share button', () => {
+    expect(css).toMatch(/\.cr-hero \.cd-media \{[^}]*position: relative;/);
+    expect(css).toMatch(/\.cr-hero \.cd-mosaic \{ position: absolute; inset: 0; aspect-ratio: auto; height: auto; \}/);
+  });
   it('the payment note is a sibling of the text column, not inside it', () => {
     const h = html();
     const afterText = h.slice(h.indexOf('class="cd-hero-text"'));

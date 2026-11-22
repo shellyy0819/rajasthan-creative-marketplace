@@ -29,8 +29,10 @@
 @media (min-width: 901px) {
   .cd-hero.cr-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto; align-items: stretch; row-gap: 0; }
   .cr-hero .cd-hero-text { grid-column: 1; grid-row: 1; }
-  .cr-hero .cd-media { grid-column: 2; grid-row: 1; display: flex; min-height: 360px; }
-  .cr-hero .cd-art, .cr-hero .cd-mosaic { flex: 1 1 auto; aspect-ratio: auto; height: auto; min-width: 0; }
+  .cr-hero .cd-media { grid-column: 2; grid-row: 1; display: flex; position: relative; min-height: 360px; }
+  /* Photos fill the box and add nothing to the row's height, so one, two or three photos never run past the Share button; the no-photo illustration keeps its own proportions. */
+  .cr-hero .cd-mosaic { position: absolute; inset: 0; aspect-ratio: auto; height: auto; }
+  .cr-hero .cd-art { flex: 1 1 auto; aspect-ratio: auto; height: auto; min-width: 0; }
   .cr-hero .cr-note { grid-column: 1; grid-row: 2; margin: 14px 0 0; }
 }
 @media (max-width: 700px) {

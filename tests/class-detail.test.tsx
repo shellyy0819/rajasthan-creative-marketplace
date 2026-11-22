@@ -28,6 +28,10 @@ describe('online class page on tablets and phones (source contract)', () => {
     expect(width('.cd-actions')).toBe(true); // the contact button (and Share beside it) under the panel is as wide as the panel, not as wide as the column // one panel holds the instructor, Where and next class rows, so they cannot differ in width
     expect(readFileSync('src/components/class/CraftDetail.css', 'utf8')).toMatch(/\.cr-book \{[^}]*max-width: 760px/);
   });
+  it('on tablets and phones every photo is centred in its slide: the left and right favouring of the small tiles is for wide screens only', () => {
+    expect(css).toMatch(/@media \(min-width: 901px\) \{ \.cd-mosaic-3 \.cd-tile:nth-child\(2\) img \{ object-position: 20% 50%; \} \.cd-mosaic-3 \.cd-tile:nth-child\(3\) img \{ object-position: 80% 50%; \} \}/);
+    expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-tile img \{ object-fit: contain; object-position: center; \}/);
+  });
   it('the photos are capped in height so the title, instructor and next class show below them', () => {
     expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-mosaic \{[^}]*height: clamp\(220px, 42vw, 340px\)/);
     expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.cd-art \{[^}]*width: 100%; height: clamp\(220px, 42vw, 340px\)/);
