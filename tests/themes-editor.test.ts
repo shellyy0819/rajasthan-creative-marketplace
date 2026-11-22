@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addSticker, clampPlacement, effectivePrimary, haloOf, nudge, previewVars, primaryContrast, removeSticker, resize, stickerGroups } from '@/lib/themes/editor';
+import { addSticker, clampPlacement, haloOf, nudge, previewVars, removeSticker, resize, stickerGroups } from '@/lib/themes/editor';
 import { PRESETS } from '@/lib/themes/presets';
 import { STICKERS } from '@/lib/themes/stickers';
 import { validateConfig } from '@/lib/themes/validate';
@@ -28,31 +28,16 @@ describe('placement helpers', () => {
   });
 });
 
-describe('colour helpers', () => {
-  it('reports contrast and rejects a low-contrast primary', () => {
-    expect(primaryContrast('#6E1A2A').ok).toBe(true);
-    expect(primaryContrast('#777777').ok).toBe(false);
-    expect(primaryContrast('nope')).toEqual({ ratio: 0, ok: false, text: '' });
-  });
-  it('override wins over the preset primary and drives the preview vars', () => {
-    expect(effectivePrimary('diwali', { ...PRESETS.diwali.config })).toBe(PRESETS.diwali.primary);
-    const cfg = { ...PRESETS.diwali.config, primary: '#123456' };
-    expect(effectivePrimary('diwali', cfg)).toBe('#123456');
-    expect(previewVars('diwali', cfg)['--green']).toBe('#123456');
-  });
-});
-
 describe('sticker picker', () => {
   it('groups every catalogue sticker exactly once', () => {
     const ids = stickerGroups().flatMap((g) => g.ids);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids.sort()).toEqual(Object.keys(STICKERS).sort());
   });
-  it('the preview never recolours the primary green for a festival, but an admin-chosen colour still shows', () => {
+  it('the preview never recolours the primary green for a festival', () => {
     for (const k of Object.keys(PRESETS) as (keyof typeof PRESETS)[]) {
-      const vars = previewVars(k, PRESETS[k].config);
+      const vars = previewVars(k);
       for (const t of ['--green', '--green-d', '--on-green']) expect(vars, `${k} ${t}`).not.toHaveProperty(t);
     }
-    expect(previewVars('diwali', { ...PRESETS.diwali.config, primary: '#123456' })['--green']).toBe('#123456');
   });
 });

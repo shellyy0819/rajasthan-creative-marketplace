@@ -26,7 +26,7 @@ export function renderTop(preset: PresetKey, css: string): string {
       </main>
     </SessionProvider>,
   );
-  const head = renderToStaticMarkup(<ThemeHead preset={preset} css={themeCss(preset, config)} />);
+  const head = renderToStaticMarkup(<ThemeHead preset={preset} css={themeCss(preset)} />);
   // --font-sans is normally set by next/font; every theme gets the same fallback so fonts cannot differ.
   return `<!doctype html><html lang="en-IN" data-festival="${preset}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>:root{--font-sans:Arial,Helvetica,sans-serif}</style><style>${css}</style>${head}</head><body>${body}</body></html>`;
 }

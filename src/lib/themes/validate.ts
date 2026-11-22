@@ -1,5 +1,4 @@
 import { bad, obj, optionalText, text, type Raw } from '../validate';
-import { isHex, passesContrast } from './contrast';
 import { istToDate } from './ist';
 import { isStickerId } from './stickers';
 import { LIMITS, type Placement, type ThemeConfig } from './types';
@@ -20,12 +19,6 @@ function placement(raw: unknown, i: number): Placement {
 
 export function validateConfig(raw: unknown): ThemeConfig {
   const r = obj(raw);
-  let primary: string | undefined;
-  if (r.primary !== undefined && r.primary !== null && r.primary !== '') {
-    if (!isHex(r.primary)) throw bad('primary must be a colour like #6E1A2A.');
-    if (!passesContrast(r.primary)) throw bad('primary does not have enough contrast with its text colour (needs at least 4.5:1). Pick a darker or lighter colour.');
-    primary = r.primary.toUpperCase();
-  }
   if (!Array.isArray(r.stickers) || r.stickers.length > MAX_STICKERS) throw bad(`stickers must be a list of up to ${MAX_STICKERS} items.`);
   if (typeof r.bunting !== 'boolean') throw bad('bunting must be true or false.');
   const out: ThemeConfig = {
@@ -43,7 +36,6 @@ export function validateConfig(raw: unknown): ThemeConfig {
     if (!/^\/(?!\/)\S*$/.test(href) && !/^https:\/\/[^\s/]+\S*$/.test(href)) throw bad('chalkHref must be a path on this site like /shop, or an https address.');
     out.chalkHref = href;
   }
-  if (primary) out.primary = primary;
   return out;
 }
 

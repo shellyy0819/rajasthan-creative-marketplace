@@ -6,7 +6,7 @@ import type { ThemeConfig, ThemeRow, ThemeState } from './types';
 export type ThemeDto = {
   id: number; preset: PresetKey; label: string; state: ThemeState;
   startsAtIst: string | null; endsAtIst: string | null;
-  config: ThemeConfig; effectivePrimary: string; updatedAt: string; updatedBy?: string;
+  config: ThemeConfig; updatedAt: string; updatedBy?: string;
 };
 
 export function toDto(row: ThemeRow, now: Date = new Date()): ThemeDto {
@@ -15,7 +15,7 @@ export function toDto(row: ThemeRow, now: Date = new Date()): ThemeDto {
     id: row.id, preset: row.preset, label: p.label, state: stateOf(row, now),
     startsAtIst: row.startsAt ? dateToIst(row.startsAt) : null,
     endsAtIst: row.endsAt ? dateToIst(row.endsAt) : null,
-    config: row.config, effectivePrimary: row.config.primary ?? p.primary,
+    config: row.config,
     updatedAt: row.updatedAt.toISOString(), ...(row.updatedBy ? { updatedBy: row.updatedBy } : {}),
   };
 }

@@ -175,13 +175,9 @@ describe('theme css wiring', () => {
     expect(contrastRatio('#405746', '#ffffff')).toBeGreaterThanOrEqual(4.5);
     expect(raw).toMatch(/background: var\(--banner-bg, var\(--green\)\)/);
   });
-  it('a custom primary also sets the banner colour at the same selector as --on-green; no override sets none', () => {
-    const css = themeCss('everyday', { ...E, primary: '#F5C542' });
-    const rule = css.split('\n')[0];
-    expect(rule).toMatch(/^html:root\[data-festival="everyday"\]\{/);
-    expect(rule).toContain('--banner-bg:#F5C542');
-    expect(rule).toContain('--on-green:#1B1B1B');
-    expect(themeCss('everyday', E)).toBe('');
-    expect(themeCss('diwali', PRESETS.diwali.config)).not.toContain('--banner-bg');
+  it('no look sets the banner colour or the green: the banner keeps the site\'s own', () => {
+    expect(themeCss('everyday')).toBe('');
+    expect(themeCss('diwali')).not.toContain('--banner-bg');
+    expect(themeCss('diwali')).not.toContain('--green');
   });
 });

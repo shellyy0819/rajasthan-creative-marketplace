@@ -2,7 +2,7 @@
 import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import { HeroStall } from './HeroStall';
 import type { ThemeDto } from '@/lib/themes/dto';
-import { addSticker, clampPlacement, effectivePrimary, haloOf, nudge, previewVars, primaryContrast, removeSticker, resize, stickerGroups } from '@/lib/themes/editor';
+import { addSticker, clampPlacement, haloOf, nudge, previewVars, removeSticker, resize, stickerGroups } from '@/lib/themes/editor';
 import { PRESETS, artOf } from '@/lib/themes/presets';
 import { STICKERS, type StickerId } from '@/lib/themes/stickers';
 import { LIMITS, type Placement, type ThemeConfig } from '@/lib/themes/types';
@@ -29,10 +29,8 @@ export function ThemeEditor({ theme, isBase, saving, onSave, onClose }: {
   const drag = useRef<{ id: StickerId; px: number; py: number; ox: number; oy: number } | null>(null);
 
   const preset = theme.preset;
-  const primary = effectivePrimary(preset, cfg);
-  const contrast = primaryContrast(primary);
   const windowBad = !isBase && !!startsAt && !!endsAt && endsAt <= startsAt;
-  const canSave = contrast.ok && !windowBad && !saving;
+  const canSave = !windowBad && !saving;
   const set = (patch: Partial<ThemeConfig>) => setCfg(c => ({ ...c, ...patch }));
   const update = (id: StickerId, fn: (p: Placement) => Placement) => setCfg(c => ({ ...c, stickers: c.stickers.map(p => (p.id === id ? fn(p) : p)) }));
   const byId = (id: StickerId) => cfg.stickers.find(p => p.id === id);
@@ -68,7 +66,7 @@ export function ThemeEditor({ theme, isBase, saving, onSave, onClose }: {
       <p className="form-note"><b>*</b> Required</p>
       <div className="theme-editor-grid">
         <div className="theme-stage-wrap">
-          <div className="theme-stage" style={previewVars(preset, cfg) as CSSProperties}>
+          <div className="theme-stage" style={previewVars(preset) as CSSProperties}>
             <HeroStall sign={cfg.sign} chalkLabel={cfg.chalkLabel} chalkTitle={cfg.chalkTitle} chalkSub={cfg.chalkSub} bunting={cfg.bunting} stickers={cfg.stickers} art={artOf(preset)} />
             <svg ref={stage} className="theme-overlay" viewBox="0 0 600 720" role="group" aria-label="Sticker positions. Select a sticker, then use arrow keys to move and plus or minus to resize.">
               {cfg.stickers.map(p => {
@@ -95,18 +93,6 @@ export function ThemeEditor({ theme, isBase, saving, onSave, onClose }: {
             </div>
           )}
           {windowBad && <p className="form-error" role="alert">The end must be after the start.</p>}
-
-          <label>
-            <span className="lbl">Primary colour</span>
-            <span className="theme-colour">
-              <input type="color" value={primary} aria-label="Primary colour" onChange={e => set({ primary: e.target.value.toUpperCase() })} />
-              <code>{primary}</code>
-              <span className={contrast.ok ? 'theme-ratio ok' : 'theme-ratio bad'} role="status">
-                {contrast.ok ? `Text contrast ${contrast.ratio}:1 ✓` : `Text contrast ${contrast.ratio}:1, needs 4.5:1. Pick a darker or lighter colour.`}
-              </span>
-              {cfg.primary && <button type="button" className="button" onClick={() => setCfg(c => { const { primary: _drop, ...rest } = c; void _drop; return rest; })}>Use preset colour</button>}
-            </span>
-          </label>
 
           {WORDING.map(([key, label, max]) => (
             <div key={key}>

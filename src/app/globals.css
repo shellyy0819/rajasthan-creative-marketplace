@@ -4473,11 +4473,6 @@ body.modal-open {
 .theme-halo { fill: transparent; stroke: transparent; stroke-width: 2; cursor: grab; touch-action: none; }
 .theme-halo:hover, .theme-halo.on { stroke: var(--orange); stroke-dasharray: 6 4; }
 .theme-halo:active { cursor: grabbing; }
-.theme-colour { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.theme-colour input[type="color"] { width: 44px; height: var(--control-h); padding: 2px; }
-.theme-ratio { font-size: 12px; }
-.theme-ratio.ok { color: var(--green); }
-.theme-ratio.bad { color: #a74d35; font-weight: 600; }
 .theme-check { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 500; }
 .theme-check input { width: auto; margin: 0; }
 .theme-stickers { display: grid; gap: 10px; }

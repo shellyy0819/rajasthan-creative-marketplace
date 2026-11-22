@@ -1,4 +1,3 @@
-import { onColor, passesContrast, contrastRatio, isHex } from './contrast';
 import { GREEN_TOKENS } from './css';
 import { PRESETS, type PresetKey } from './presets';
 import { STICKERS, type StickerId } from './stickers';
@@ -22,25 +21,11 @@ export function haloOf(box: StickerBox, p: Placement): StickerBox {
   return { x: box.x + box.w / 2 + p.x - w / 2, y: box.y + box.h / 2 + p.y - h / 2, w, h };
 }
 
-export const effectivePrimary = (preset: PresetKey, config: ThemeConfig): string =>
-  isHex(config.primary) ? config.primary : PRESETS[preset].primary;
-
-/** Live contrast of the best text colour on the primary: the editor shows it and disables Save under 4.5. */
-export function primaryContrast(hex: string): { ratio: number; ok: boolean; text: string } {
-  if (!isHex(hex)) return { ratio: 0, ok: false, text: '' };
-  const text = onColor(hex);
-  return { ratio: Math.round(contrastRatio(hex, text) * 10) / 10, ok: passesContrast(hex), text };
-}
-
 /** CSS variables for the editor's preview box (the public site scopes the same values to html[data-festival]). */
-export function previewVars(preset: PresetKey, config: ThemeConfig): Record<string, string> {
+export function previewVars(preset: PresetKey): Record<string, string> {
   const p = PRESETS[preset];
   const brand = Object.entries(p.brand).filter(([k]) => !GREEN_TOKENS.includes(k)); // the green is the same in every look
   const vars: Record<string, string> = { ...(preset === 'everyday' ? {} : Object.fromEntries(brand)), ...(p.stall as Record<string, string>) };
-  if (isHex(config.primary)) {
-    vars['--green'] = config.primary;
-    vars['--on-green'] = onColor(config.primary);
-  }
   return vars;
 }
 

@@ -9,9 +9,9 @@ import { PRESETS } from '@/lib/themes/presets';
 
 const dto = (id: number, preset: 'dhanteras' | 'diwali', state: ThemeDto['state'], extra: Partial<ThemeDto> = {}): ThemeDto => ({
   id, preset, label: PRESETS[preset].label, state, startsAtIst: '2026-11-05T06:00', endsAtIst: '2026-11-06T23:59',
-  config: PRESETS[preset].config, effectivePrimary: PRESETS[preset].primary, updatedAt: '2026-11-01T00:00:00.000Z', ...extra,
+  config: PRESETS[preset].config, updatedAt: '2026-11-01T00:00:00.000Z', ...extra,
 });
-const BASE: ThemeDto = dto(1, 'dhanteras', 'base', { preset: 'everyday' as never, label: 'Everyday', startsAtIst: null, endsAtIst: null, config: PRESETS.everyday.config, effectivePrimary: PRESETS.everyday.primary });
+const BASE: ThemeDto = dto(1, 'dhanteras', 'base', { preset: 'everyday' as never, label: 'Everyday', startsAtIst: null, endsAtIst: null, config: PRESETS.everyday.config,});
 const res = (status: number, body: unknown) => Promise.resolve({ ok: status < 400, status, json: () => Promise.resolve(body) } as Response);
 let themes: ThemeDto[]; let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -80,11 +80,11 @@ describe('ThemeEditor', () => {
     expect(body.config.banner).toBe('Happy Dhanteras');
     expect(body.startsAtIst).toBe('2026-11-05T06:00');
   });
-  it('disables Save and shows the ratio when the primary colour has too little contrast', () => {
+  it('has no primary colour picker: the green is the same in every theme', () => {
     open();
-    fireEvent.change(screen.getByLabelText('Primary colour'), { target: { value: '#777777' } });
-    expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText(/needs 4.5:1/)).toBeTruthy();
+    expect(screen.queryByLabelText('Primary colour')).toBeNull();
+    expect(screen.queryByText(/Text contrast/)).toBeNull();
+    expect(screen.queryByRole('button', { name: /Use preset colour/ })).toBeNull();
   });
   it('disables Save when the end is not after the start', () => {
     open();

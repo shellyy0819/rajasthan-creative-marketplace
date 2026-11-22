@@ -3,7 +3,6 @@ import type { PresetKey } from './presets';
 export type Placement = { id: string; x: number; y: number; s: number };
 
 export type ThemeConfig = {
-  primary?: string;
   banner: string;
   sign: string;
   chalkLabel: string;

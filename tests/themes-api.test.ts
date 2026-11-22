@@ -56,14 +56,14 @@ describe('/api/admin/themes flow', () => {
     const c = await createRoute(req('POST', { preset: 'christmas' }));
     expect(c.status).toBe(201);
     const t = await body(c);
-    expect(t).toMatchObject({ preset: 'christmas', label: PRESETS.christmas.label, state: 'draft', effectivePrimary: PRESETS.christmas.primary, startsAtIst: PRESETS.christmas.sample!.startsAt, endsAtIst: PRESETS.christmas.sample!.endsAt, updatedBy: 'root@x.co' });
+    expect(t).toMatchObject({ preset: 'christmas', label: PRESETS.christmas.label, state: 'draft', startsAtIst: PRESETS.christmas.sample!.startsAt, endsAtIst: PRESETS.christmas.sample!.endsAt, updatedBy: 'root@x.co' });
     expect((await createRoute(req('POST', { preset: 'nope' }))).status).toBe(400);
 
     const now = Date.now();
     const p = await patchOne(req('PATCH', { config: { ...t.config, primary: '#0F5132', banner: 'Merry!' }, startsAtIst: dateToIst(new Date(now - 3_600_000)), endsAtIst: dateToIst(new Date(now + 3_600_000)) }), ctx(t.id));
     expect(p.status).toBe(200);
     const pd = await body(p);
-    expect(pd.config.banner).toBe('Merry!'); expect(pd.effectivePrimary).toBe('#0F5132');
+    expect(pd.config.banner).toBe('Merry!'); expect(pd.config).not.toHaveProperty('primary'); // a colour sent for the green is ignored, never stored
 
     const s = await scheduleRoute(req('POST'), ctx(t.id));
     expect(s.status).toBe(200);
@@ -102,9 +102,6 @@ describe('/api/admin/themes flow', () => {
       { config: { ...t.config, stickers: [{ id: t.config.stickers[0]?.id ?? 'dfire', x: 301, y: 0, s: 1 }] } },
       { config: { ...t.config, stickers: [{ id: 'dfire', x: 0, y: 0, s: 5 }] } },
       { config: { ...t.config, banner: 'x'.repeat(61) } },
-      { config: { ...t.config, primary: 'red' } },
-      { config: { ...t.config, primary: '#fff;}body{display:none' } },
-      { config: { ...t.config, primary: '#7F7F7F' } },
       { startsAtIst: 'garbage' },
       { startsAtIst: '2030-01-02T00:00', endsAtIst: '2030-01-01T00:00' },
     ];

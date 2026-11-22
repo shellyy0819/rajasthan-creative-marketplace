@@ -10,14 +10,14 @@ import { validateConfig } from './validate';
 
 export type RenderTheme = { preset: PresetKey; config: ThemeConfig; css: string; previewing: boolean };
 
-const everyday = (): RenderTheme => ({ preset: 'everyday', config: EVERYDAY.config, css: themeCss('everyday', EVERYDAY.config), previewing: false });
+const everyday = (): RenderTheme => ({ preset: 'everyday', config: EVERYDAY.config, css: themeCss('everyday'), previewing: false });
 
 /** Stored config is untrusted: anything malformed or with an unknown preset renders as Everyday. */
 function checked(preset: unknown, config: unknown, previewing: boolean): RenderTheme {
   try {
     if (!isPresetKey(preset)) throw new Error(`unknown preset "${String(preset)}"`);
     const c = validateConfig(config);
-    return { preset, config: c, css: themeCss(preset, c), previewing };
+    return { preset, config: c, css: themeCss(preset), previewing };
   } catch (e) {
     console.error('Stored theme is not valid; rendering Everyday instead.', e instanceof Error ? e.message : e);
     return everyday();

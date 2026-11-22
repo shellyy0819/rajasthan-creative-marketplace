@@ -42,6 +42,12 @@ describe('contrast', () => {
   });
 });
 
+describe('validateConfig: the green is not a setting', () => {
+  it('ignores a primary colour (old saved themes may still carry one): it is neither checked nor kept', () => {
+    for (const primary of ['#112233', '#7F7F7F', 'red', '#fff;}body{display:none']) expect(validateConfig(cfg({ primary }))).not.toHaveProperty('primary');
+  });
+});
+
 describe('validateConfig: chalkboard', () => {
   it('lets all three chalkboard lines be empty', () => {
     const out = validateConfig(cfg({ chalkLabel: '', chalkTitle: '  ', chalkSub: '' }));
@@ -71,8 +77,6 @@ describe('validateConfig', () => {
     rejects(cfg({ stickers: [{ id: 'toran', x: 0, y: 0, s: 3.1 }] }), /scale/i);
     rejects(cfg({ banner: 'x'.repeat(61) }), /banner.*60/i);
     rejects(cfg({ sign: '   ' }), /sign/i);
-    rejects(cfg({ primary: '#fff;}body{display:none' }), /primary/i);
-    rejects(cfg({ primary: '#7F7F7F' }), /contrast/i);
     rejects(null, /object/i);
   });
 });
@@ -92,7 +96,7 @@ describe('validateWindow', () => {
 
 describe('themeCss', () => {
   it('emits palette rules for a festival', () => {
-    const css = themeCss('dhanteras', PRESETS.dhanteras.config);
+    const css = themeCss('dhanteras');
     expect(css).toContain('html:root[data-festival="dhanteras"]');
     expect(css).not.toContain('--green'); // the primary green is never themed
     expect(css).toContain('html:root[data-festival="dhanteras"][data-theme="light"]');
@@ -100,38 +104,24 @@ describe('themeCss', () => {
     expect(css).toContain('--stall-board:');
   });
   it('keeps stall tokens out of the all-modes rule', () => {
-    const css = themeCss('dhanteras', PRESETS.dhanteras.config);
+    const css = themeCss('dhanteras');
     const first = css.slice(0, css.indexOf('}'));
     expect(first).not.toContain('--stall-');
     expect(first).toContain('--orange:');
   });
-  it('rewrites green and on-green from a primary override', () => {
-    const css = themeCss('dhanteras', { ...PRESETS.dhanteras.config, primary: '#112233' });
-    expect(css).toContain('--green:#112233');
-    expect(css).toContain('--on-green:#FFFFFF');
-    expect(css).toContain('--green-d:#0E1B29');
-  });
-  it('everyday without override is empty, with override is not', () => {
-    expect(themeCss('everyday', EVERYDAY.config)).toBe('');
-    const css = themeCss('everyday', { ...EVERYDAY.config, primary: '#112233' });
-    expect(css).toContain('html:root[data-festival="everyday"]');
-    expect(css).toContain('--green:#112233');
-  });
-  it('never emits injected primary', () => {
-    const css = themeCss('diwali', { ...PRESETS.diwali.config, primary: '#fff;}body{display:none' });
-    expect(css).not.toContain('body{display:none');
-    expect(css).not.toContain('--green'); // an invalid colour is dropped, and the festival does not change the green either
+  it('everyday is empty: it is the site\'s own look', () => {
+    expect(themeCss('everyday')).toBe('');
   });
   it('no festival look changes the primary green, the dark green, the text on it or the banner: they keep the site\'s own light and dark values', () => {
     for (const k of Object.keys(PRESETS) as (keyof typeof PRESETS)[]) {
-      const css = themeCss(k, PRESETS[k].config);
+      const css = themeCss(k);
       for (const token of ['--green', '--green-d', '--on-green', '--banner-bg']) expect(css, `${k} ${token}`).not.toContain(token + ':');
       expect(PRESETS[k].primary, k).toBe('#405746');
       expect(PRESETS[k].brand['--green'], k).toBe('#405746');
     }
   });
   it('the accent colour still changes with a festival', () => {
-    expect(themeCss('diwali', PRESETS.diwali.config)).toContain('--orange:');
+    expect(themeCss('diwali')).toContain('--orange:');
   });
 });
 
