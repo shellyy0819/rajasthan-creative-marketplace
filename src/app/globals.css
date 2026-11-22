@@ -351,6 +351,8 @@ nav .seller-login-btn {
   display: none;
 }
 .hero {
+  position: relative;
+  overflow-x: clip; /* the home stall's visitors walk across the whole section and are cut off at its edges */
   padding: 65px 9% 72px;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -417,6 +419,7 @@ h2 em {
   font-size: 12px;
   font-weight: 700;
 }
+.hero-copy { position: relative; z-index: 1; } /* the walkers pass behind the words */
 .hero-proof {
   display: flex;
   flex-wrap: wrap;
@@ -471,6 +474,76 @@ h2 em {
 .st-nod { transform-origin: 430px 392px; animation: st-nod 2.4s ease-in-out infinite alternate; }
 .st-inspect { transform-origin: 11px 578px; animation: st-inspect 2s ease-in-out infinite alternate; }
 .st-blink { animation: st-blink 1.4s ease-in-out infinite; }
+/* People at the home stall (StallCrowd.tsx). Each purchase is one long loop (--T, started part-way in by --D); --sx is where the buyer stops. */
+.st-cy { animation-duration: var(--T); animation-delay: var(--D); animation-iteration-count: infinite; animation-timing-function: linear; animation-fill-mode: both; }
+.st-cy.buyer { animation-name: st-buyer-x; }
+.st-cy.show-walk { animation-name: st-show-walk; }
+.st-cy.show-stand { animation-name: st-show-stand; }
+.st-cy.show-item { animation-name: st-show-item; }
+.st-cy.show-down { animation-name: st-show-down; }
+.st-cy.note { animation-name: st-note; }
+.st-cy.parcel { animation-name: st-parcel; }
+.st-cy.show-wrap { animation-name: st-show-wrap; }
+.st-cy.show-take { animation-name: st-show-take; }
+.st-cy.coin { animation-name: st-coin; transform-origin: 430px 340px; }
+.st-wrap { transform-origin: 204px 412px; animation: st-wrapping .7s ease-in-out infinite alternate; }
+.st-pass { animation-duration: var(--T); animation-delay: var(--D); animation-iteration-count: infinite; animation-timing-function: linear; animation-fill-mode: both; }
+.st-pass.r { animation-name: st-pass-r; }
+.st-pass.l { animation-name: st-pass-l; }
+.st-step { animation: st-step .32s ease-in-out infinite alternate; }
+.st-idle { animation: st-bob 2.6s ease-in-out infinite alternate; }
+.st-leg { animation: st-stride .64s ease-in-out infinite alternate; }
+.st-leg.a { transform-origin: -2px 620px; }
+.st-leg.b { transform-origin: 4px 620px; animation-direction: alternate-reverse; }
+.st-arm { animation: st-stride .64s ease-in-out infinite alternate-reverse; }
+.st-arm.a { transform-origin: -8px 578px; animation-direction: alternate; }
+.st-arm.b { transform-origin: 8px 578px; }
+@keyframes st-stride { from { transform: rotate(-24deg); } to { transform: rotate(24deg); } }
+@keyframes st-step { from { transform: translateY(0); } to { transform: translateY(-1.6px); } }
+@keyframes st-wrapping { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
+/* --L and --R: how far the section reaches to the left and right of the picture, in picture units (StallRange measures them; these are the defaults) */
+.st-crowd { --L: 420; --R: 240; pointer-events: none; }
+@keyframes st-pass-r { from { transform: translateX(calc(var(--L) * -1px - 60px)); } to { transform: translateX(calc(660px + var(--R) * 1px)); } }
+@keyframes st-pass-l { from { transform: translateX(calc(660px + var(--R) * 1px)); } to { transform: translateX(calc(var(--L) * -1px - 60px)); } }
+/* The selfie taker walks in, stops 46% of the way along (the same speed before and after), poses 36-58% of the loop with the flash going off, then walks on */
+.st-pass.sf { animation-name: st-sf-x; }
+.st-cy.sf-walk { animation-name: st-sf-walk; }
+.st-cy.sf-stand { animation-name: st-sf-stand; }
+.st-cy.sf-flash { animation-name: st-sf-flash; }
+@keyframes st-sf-x {
+  0% { transform: translateX(calc(var(--L) * -1px - 60px)); }
+  36%, 58% { transform: translateX(calc(var(--L) * -1px - 60px + (var(--L) + var(--R) + 720) * .46px)); }
+  100% { transform: translateX(calc(660px + var(--R) * 1px)); }
+}
+@keyframes st-sf-walk { 0%, 36% { opacity: 1; } 36.1%, 58% { opacity: 0; } 58.1%, 100% { opacity: 1; } }
+@keyframes st-sf-stand { 0%, 36% { opacity: 0; } 36.1%, 58% { opacity: 1; } 58.1%, 100% { opacity: 0; } }
+@keyframes st-sf-flash { 0%, 40% { opacity: 0; } 41%, 43% { opacity: 1; } 43.1%, 48% { opacity: 0; } 49%, 51% { opacity: 1; } 51.1%, 56% { opacity: 0; } 100% { opacity: 0; } }
+.st-bags { transform-origin: 12px 604px; animation: st-bag-swing .64s ease-in-out infinite alternate; }
+.st-idle .st-bags { animation: none; }
+.st-hide { display: none; }
+@keyframes st-bag-swing { from { transform: rotate(7deg); } to { transform: rotate(-7deg); } }
+/* One purchase: walk in 0-16%, hold up the piece 16-30%, wrap 28-48%, pay 34-47% (coin 46-56%), parcel to the buyer 48-60%, walk off 62-92%, quiet 92-100% */
+@keyframes st-buyer-x { 0% { transform: translateX(calc(var(--sx) * -1px - 50px)); } 16%, 62% { transform: translateX(0); } 92%, 100% { transform: translateX(calc(650px + min(var(--R), 260) * 1px - var(--sx) * 1px)); } }
+@keyframes st-show-walk { 0%, 16% { opacity: 1; } 16.1%, 62% { opacity: 0; } 62.1%, 92% { opacity: 1; } 92.1%, 100% { opacity: 0; } }
+@keyframes st-show-stand { 0%, 16% { opacity: 0; } 16.1%, 62% { opacity: 1; } 62.1%, 100% { opacity: 0; } }
+@keyframes st-show-item { 0%, 16% { opacity: 0; } 16.1%, 29% { opacity: 1; } 29.1%, 100% { opacity: 0; } }
+@keyframes st-show-down { 0%, 16% { opacity: 1; } 16.1%, 29% { opacity: 0; } 29.1%, 100% { opacity: 1; } }
+@keyframes st-show-wrap { 0%, 27% { opacity: 0; } 27.1%, 47% { opacity: 1; } 47.1%, 100% { opacity: 0; } }
+@keyframes st-show-take { 0%, 35% { opacity: 0; } 35.1%, 47% { opacity: 1; } 47.1%, 100% { opacity: 0; } }
+@keyframes st-note {
+  0%, 33% { opacity: 0; transform: translate(22px, 566px); }
+  34% { opacity: 1; transform: translate(22px, 566px); }
+  40% { opacity: 1; transform: translate(calc((412 - var(--sx)) * .5px + 12px), 505px); }
+  46% { opacity: 1; transform: translate(calc((412 - var(--sx)) * 1px), 460px); }
+  47%, 100% { opacity: 0; transform: translate(calc((412 - var(--sx)) * 1px), 460px); }
+}
+@keyframes st-parcel {
+  0%, 27% { opacity: 0; transform: translate(calc((212 - var(--sx)) * 1px), 482px) scale(.3); }
+  33%, 48% { opacity: 1; transform: translate(calc((212 - var(--sx)) * 1px), 482px) scale(1); }
+  56% { opacity: 1; transform: translate(14px, 482px) scale(1); }
+  60%, 100% { opacity: 1; transform: translate(14px, 598px) scale(1); }
+}
+@keyframes st-coin { 0%, 45% { opacity: 0; transform: scale(.4) translateY(0); } 47% { opacity: 1; transform: scale(1) translateY(0); } 56% { opacity: 0; transform: scale(1) translateY(-14px); } 100% { opacity: 0; } }
 @keyframes st-bob { to { transform: translateY(-2.5px); } }
 @keyframes st-wave { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
 @keyframes st-nod { from { transform: rotate(-2deg); } to { transform: rotate(5deg); } }
@@ -499,6 +572,7 @@ h2 em {
 @keyframes st-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   .st-sway, .st-spin, .st-bob, .st-wave, .st-nod, .st-inspect, .st-blink, .st-twinkle { animation: none; }
+  .st-crowd { display: none; }
 }
 .intro {
   text-align: center;
