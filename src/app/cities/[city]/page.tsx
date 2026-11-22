@@ -6,6 +6,7 @@ import { ProductGrid } from '@/components/ProductGrid';
 import { WorkshopList } from '@/components/WorkshopList';
 import { listProducts, listWorkshops } from '@/lib/catalog';
 import { listActiveCities } from '@/lib/cities';
+import { isHandmade } from '@/lib/handmade';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { pageMetadata } from '@/lib/meta';
 
@@ -34,6 +35,8 @@ export default async function CityPage({ params }: Props) {
   const city = c.name;
   // Filter by slug: two cities can share a name (Udaipur, Rajasthan vs Udaipur, Tripura).
   const [products, workshops] = await Promise.all([listProducts({ city: c.slug }), listWorkshops({ city: c.slug })]);
+  // "Handmade" is claimed only when every product shown counts as handmade (same rule as the artist page).
+  const allHandmade = products.length > 0 && products.every(isHandmade);
   const crumbs = [{ name: 'Home', path: '/' }, { name: city, path: `/cities/${c.slug}` }];
   return (
     <>
@@ -41,11 +44,11 @@ export default async function CityPage({ params }: Props) {
       <Breadcrumbs items={crumbs} />
       <div className="page-head">
         <span className="eyebrow">{[city, c.state, 'India'].filter(Boolean).join(', ').toUpperCase()}</span>
-        <h1>Handmade products &amp; workshops in {city}</h1>
+        <h1>{allHandmade ? 'Handmade products' : 'Products'} &amp; workshops in {city}</h1>
       </div>
       <section className="section" aria-labelledby="c-shop">
-        <div className="section-heading"><h2 id="c-shop">Handmade</h2>{products.length > 0 && <span className="muted">{products.length} {products.length === 1 ? 'find' : 'finds'}</span>}</div>
-        <ProductGrid products={products} emptyMessage="No handmade finds here yet." />
+        <div className="section-heading"><h2 id="c-shop">{allHandmade ? 'Handmade' : 'Products'}</h2>{products.length > 0 && <span className="muted">{products.length} {products.length === 1 ? 'find' : 'finds'}</span>}</div>
+        <ProductGrid products={products} emptyMessage="No products here yet." />
       </section>
       <section className="workshop-band stacked" aria-labelledby="c-ws">
         <div className="section-heading"><h2 id="c-ws">Workshops</h2>{workshops.length > 0 && <span className="muted">{workshops.length} {workshops.length === 1 ? 'workshop' : 'workshops'}</span>}</div>
