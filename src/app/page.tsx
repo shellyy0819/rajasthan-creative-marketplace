@@ -19,6 +19,7 @@ import { cityLabeller } from '@/lib/city-label';
 import { pageMetadata } from '@/lib/meta';
 import { SITE } from '@/lib/site';
 import { getRenderTheme } from '@/lib/themes/render';
+import { artOf } from '@/lib/themes/presets';
 import { hasChalkboard } from '@/lib/themes/types';
 
 export const dynamic = 'force-dynamic';
@@ -40,7 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
 async function ThemedStall() {
   const theme = await getRenderTheme();
   const { sign, chalkLabel, chalkTitle, chalkSub, chalkHref, bunting, stickers } = theme.config;
-  return <HeroStall {...{ sign, chalkLabel, chalkTitle, chalkSub, ...(hasChalkboard(theme.config) ? { chalkHref: chalkHref ?? '/shop' } : {}), bunting, stickers }} />;
+  return <HeroStall {...{ sign, chalkLabel, chalkTitle, chalkSub, ...(hasChalkboard(theme.config) ? { chalkHref: chalkHref ?? '/shop' } : {}), bunting, stickers }} art={artOf(theme.preset)} />;
 }
 
 /** The few hero words that depend on what is on sale. Each streams in over its plain default; getCatalogWording is cached, so these share one lookup. */

@@ -20,8 +20,13 @@ export type StallToken =
   | '--sand' | '--sage' | '--clay' | '--stall-indigo' | '--stall-mustard' | '--stall-wood'
   | '--stall-wood-d' | '--stall-terra-d' | '--stall-chalk' | '--stall-board' | '--stall-ground';
 
+/** Which illustration the home stall shows: left out for the everyday stall, or a whole different picture (the Shilpgram village). */
+export type StallArt = 'shilpgram';
+
 export type Preset = {
   label: string;
+  /** The home stall's illustration; the everyday stall when left out. */
+  art?: StallArt;
   /** IST 'YYYY-MM-DDTHH:mm' */
   sample?: { startsAt: string; endsAt: string };
   primary: string;

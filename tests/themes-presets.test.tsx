@@ -13,8 +13,8 @@ const KEYS = Object.keys(PRESETS) as (keyof typeof PRESETS)[];
 const NEW = ['govardhan', 'bhaidooj', 'chhath', 'guru-nanak', 'thanksgiving'] as const;
 
 describe('festive presets', () => {
-  it('has all 9 preset keys', () => {
-    expect([...KEYS].sort()).toEqual(['bhaidooj', 'chhath', 'christmas', 'dhanteras', 'diwali', 'everyday', 'govardhan', 'guru-nanak', 'thanksgiving']);
+  it('has all 10 preset keys', () => {
+    expect([...KEYS].sort()).toEqual(['bhaidooj', 'chhath', 'christmas', 'dhanteras', 'diwali', 'everyday', 'govardhan', 'guru-nanak', 'shilpgram', 'thanksgiving']);
     for (const k of KEYS) expect(isPresetKey(k)).toBe(true);
   });
   it.each(KEYS)('%s primary meets 4.5:1 and matches --green', (k) => {

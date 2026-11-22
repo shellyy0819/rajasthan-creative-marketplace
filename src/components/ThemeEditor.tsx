@@ -3,7 +3,7 @@ import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerE
 import { HeroStall } from './HeroStall';
 import type { ThemeDto } from '@/lib/themes/dto';
 import { addSticker, clampPlacement, effectivePrimary, haloOf, nudge, previewVars, primaryContrast, removeSticker, resize, stickerGroups } from '@/lib/themes/editor';
-import { PRESETS } from '@/lib/themes/presets';
+import { PRESETS, artOf } from '@/lib/themes/presets';
 import { STICKERS, type StickerId } from '@/lib/themes/stickers';
 import { LIMITS, type Placement, type ThemeConfig } from '@/lib/themes/types';
 
@@ -69,7 +69,7 @@ export function ThemeEditor({ theme, isBase, saving, onSave, onClose }: {
       <div className="theme-editor-grid">
         <div className="theme-stage-wrap">
           <div className="theme-stage" style={previewVars(preset, cfg) as CSSProperties}>
-            <HeroStall sign={cfg.sign} chalkLabel={cfg.chalkLabel} chalkTitle={cfg.chalkTitle} chalkSub={cfg.chalkSub} bunting={cfg.bunting} stickers={cfg.stickers} />
+            <HeroStall sign={cfg.sign} chalkLabel={cfg.chalkLabel} chalkTitle={cfg.chalkTitle} chalkSub={cfg.chalkSub} bunting={cfg.bunting} stickers={cfg.stickers} art={artOf(preset)} />
             <svg ref={stage} className="theme-overlay" viewBox="0 0 600 720" role="group" aria-label="Sticker positions. Select a sticker, then use arrow keys to move and plus or minus to resize.">
               {cfg.stickers.map(p => {
                 if (!(p.id in STICKERS)) return null;

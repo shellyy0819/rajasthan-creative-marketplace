@@ -64,6 +64,7 @@
   --stall-skin: #c98b62;
   --stall-skin-2: #8e5b3c;
   --stall-hair: #2a211c;
+  --stall-sun: #f3e0ba; --stall-hill: #cdb78f; --stall-hill-2: #e2d1b0; --stall-mud: #c28a5f; --stall-mud-l: #d9b08a; --stall-thatch: #d1a94f; --stall-thatch-d: #a9802f; --stall-leaf: #6f8a5a; /* the Shilpgram stall: sun, hills, mud walls, thatch, leaves */
   /* festive sticker colours: fixed, the same in light and dark */
   --stk-clay: #B5532A; --stk-flame: #FFC94A; --stk-flame2: #FF8A2A; --stk-marigold: #F29A1F; --stk-marigold2: #FFC436;
   --stk-leaf: #3F6B3A; --stk-gold: #E8B02E; --stk-red: #B3262E; --stk-pine: #1F5A3A; --stk-pine2: #2E7D50;
@@ -134,6 +135,7 @@
     --stall-skin: #d49a72;
     --stall-skin-2: #a06c48;
     --stall-hair: #120d0a;
+    --stall-sun: #3a3426; --stall-hill: #232a22; --stall-hill-2: #2c3329; --stall-mud: #7a5238; --stall-mud-l: #8c6244; --stall-thatch: #8f7a3f; --stall-thatch-d: #6e5c2d; --stall-leaf: #46644b;
     --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%23a7ab9f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
     color-scheme: dark;
   }
@@ -201,6 +203,7 @@
   --stall-skin: #d49a72;
   --stall-skin-2: #a06c48;
   --stall-hair: #120d0a;
+  --stall-sun: #3a3426; --stall-hill: #232a22; --stall-hill-2: #2c3329; --stall-mud: #7a5238; --stall-mud-l: #8c6244; --stall-thatch: #8f7a3f; --stall-thatch-d: #6e5c2d; --stall-leaf: #46644b;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%23a7ab9f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
   color-scheme: dark;
 }
@@ -469,6 +472,9 @@ h2 em {
 .st-t-hair { fill: var(--stall-hair); } /* dark text on the chalk speech bubbles, in both themes */
 .st-f-skin { fill: var(--stall-skin); } .st-f-skin2 { fill: var(--stall-skin-2); } .st-f-hair { fill: var(--stall-hair); }
 .st-s-skin { stroke: var(--stall-skin); } .st-s-skin2 { stroke: var(--stall-skin-2); } .st-s-hair { stroke: var(--stall-hair); }
+.st-f-sun { fill: var(--stall-sun); } .st-f-hill { fill: var(--stall-hill); } .st-f-hill2 { fill: var(--stall-hill-2); } .st-f-mud { fill: var(--stall-mud); } .st-f-mudl { fill: var(--stall-mud-l); }
+.st-f-thatch { fill: var(--stall-thatch); } .st-f-thatchd { fill: var(--stall-thatch-d); } .st-f-leaf { fill: var(--stall-leaf); }
+.st-s-thatchd { stroke: var(--stall-thatch-d); } .st-s-leaf { stroke: var(--stall-leaf); }
 .st-bob { animation: st-bob 2.2s ease-in-out infinite alternate; }
 .st-bob.b1 { animation-delay: -.6s; } .st-bob.b2 { animation-delay: -1.2s; } .st-bob.b3 { animation-delay: -1.8s; }
 .st-wave { transform-origin: 170px 408px; animation: st-wave 1.1s ease-in-out infinite alternate; }

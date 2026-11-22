@@ -1,4 +1,6 @@
-import type { Placement, Preset } from './types';
+import type { Placement, Preset, StallArt } from './types';
+
+export type { StallArt } from './types';
 
 const place = (...ids: string[]): Placement[] => ids.map((id) => ({ id, x: 0, y: 0, s: 1 }));
 
@@ -168,8 +170,28 @@ export const PRESETS = {
       stickers: place('tgarland', 'tpumpkins', 'tleaves', 'tturkey'),
     },
   },
+  shilpgram: {
+    label: 'Shilpgram Utsav',
+    art: 'shilpgram',
+    sample: { startsAt: '2026-12-24T06:00', endsAt: '2026-12-30T23:59' },
+    primary: '#7A3E1D',
+    brand: { '--green': '#7A3E1D', '--green-d': '#62311A', '--orange': '#C2561F', '--orange-2': '#C2561F', '--on-green': '#FFF4DC' },
+    stall: {},
+    config: {
+      banner: 'Shilpgram Utsav · handmade finds from makers near you',
+      sign: 'Craftofy at Shilpgram',
+      chalkLabel: 'Shilpgram Utsav',
+      chalkTitle: 'Meet the maker',
+      chalkSub: 'From Udaipur and beyond',
+      bunting: false,
+      stickers: [],
+    },
+  },
 } as const satisfies Record<string, Preset>;
 
 export type PresetKey = keyof typeof PRESETS;
 export const isPresetKey = (v: unknown): v is PresetKey => typeof v === 'string' && Object.hasOwn(PRESETS, v);
 export const EVERYDAY: Preset = PRESETS.everyday;
+
+/** The home stall's illustration for a look: the everyday stall unless the preset draws its own. */
+export const artOf = (key: PresetKey): StallArt | undefined => (PRESETS[key] as Preset).art;
