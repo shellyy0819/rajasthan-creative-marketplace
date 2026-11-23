@@ -27,11 +27,26 @@ export const websiteJsonLd = () => ({
 
 export function productJsonLd(p: Product) {
   const path = `/products/${productSlug(p)}`;
+  const image = [...(p.images?.length ? p.images : p.imageUrl ? [p.imageUrl] : []), abs(`${path}/opengraph-image`)];
+  // Google only accepts a Product with a price (offers), reviews or ratings. A "price on request" product has none of them and we never invent one,
+  // so it is described as a plain page about the item instead of a Product (which would be a critical error in Search Console).
+  if (p.pricePaise == null) {
+    return {
+      '@context': CTX, '@type': 'WebPage',
+      name: p.name, description: p.description, url: abs(path), image,
+      about: { '@type': 'Thing', name: p.name, description: p.description, image },
+      isPartOf: { '@type': 'WebSite', name: SITE.name, url: siteUrl() },
+    };
+  }
   return {
     '@context': CTX, '@type': 'Product',
-    name: p.name, description: p.description, sku: p.id, category: p.category,
-    image: [...(p.images?.length ? p.images : p.imageUrl ? [p.imageUrl] : []), abs(`${path}/opengraph-image`)],
+    name: p.name, description: p.description, sku: p.id, category: p.category, image,
     brand: { '@type': 'Brand', name: p.seller },
+    offers: {
+      '@type': 'Offer', url: abs(path), price: (p.pricePaise / 100).toFixed(2), priceCurrency: 'INR',
+      availability: p.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      seller: { '@type': 'Organization', name: p.seller },
+    },
   };
 }
 
