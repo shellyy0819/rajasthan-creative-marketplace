@@ -175,4 +175,12 @@ describe('banner styles', () => {
     expect(css).toMatch(/\.cookie-banner\{[^}]*z-index:\d+/);
     expect(css).toMatch(/@media\(max-width:\d+px\)\{[^}]*\.cookie-banner/);
   });
+
+  it('on phones sits above the in-app browser toolbar and can never grow taller than the screen', async () => {
+    const css = (await import('./helpers/css')).readCss();
+    const phone = css.match(/@media\(max-width:600px\)\{\.cookie-banner\{[^}]*\}/)?.[0] ?? '';
+    expect(phone).toMatch(/bottom:calc\(\d+px \+ env\(safe-area-inset-bottom/);
+    expect(phone).toMatch(/max-height:70dvh/);
+    expect(phone).toMatch(/overflow-y:auto/);
+  });
 });
