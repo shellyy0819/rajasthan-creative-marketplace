@@ -86,9 +86,11 @@ async function HomeSections() {
           <span className="eyebrow">OUT OF THE SCROLL, INTO THE STUDIO</span>
           <h2 id="ws-h">Make time for<br /><em>making things.</em></h2>
           <p>Find friendly workshops, creative meetups and pop-up experiences hosted by local makers and venues.</p>
-          <p><Link className="text-link" href="/workshops">Browse &amp; filter all →</Link></p>
         </div>
-        <Suspense fallback={null}><HomeWorkshops /></Suspense>
+        <div className="workshop-feed">
+          <div className="workshop-feed-head"><Link className="text-link" href="/workshops">All workshops →</Link></div>
+          <Suspense fallback={null}><HomeWorkshops /></Suspense>
+        </div>
       </section>
       <Suspense fallback={null}><TrendingWorkshopsSection /></Suspense>
       <section className="maker-cta" id="makers">
