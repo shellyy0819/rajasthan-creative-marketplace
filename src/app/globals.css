@@ -1140,7 +1140,7 @@ form label select {
     padding: 52px 22px;
   }
   .section {
-    padding: 55px 5% 65px;
+    padding: 32px 5%;
   }
   .section-heading {
     align-items: start;
@@ -2591,6 +2591,14 @@ main {
 }
 .intro .hero-actions {
   justify-content: center;
+}
+/* Phones: the two hero buttons share one row, each taking half of it. On the narrowest screens the arrows go so both labels still fit. */
+@media (max-width: 600px) {
+  .hero .hero-actions { flex-wrap: nowrap; align-items: stretch; gap: 10px; }
+  .hero .hero-actions .button { flex: 1 1 0; min-width: 0; padding: 14px 10px; gap: 6px; text-align: center; }
+}
+@media (max-width: 360px) {
+  .hero .hero-actions .button > span { display: none; }
 }
 
 .cookie-banner {
