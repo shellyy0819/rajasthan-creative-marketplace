@@ -55,13 +55,17 @@ describe('the event helpers', () => {
       { name: 'select_item', params: { item_id: 'w4', item_list_id: 'workshops', item_list_name: 'workshops', content_type: 'class', item_category: 'Yoga' } },
     ]);
   });
-  it('a contact fires contact_seller and the method event, with the workshop id and where the button was', () => {
+  it('a contact fires contact_seller, the method event and workshop_inquiry, with the workshop id and where the button was', () => {
     gaWorkshopContact({ workshopId: 'w4', method: 'website', placement: 'bar', category: 'Yoga', contentType: 'class' });
-    expect(names()).toEqual(['contact_seller', 'contact_website']);
-    expect(events[1].params).toEqual({ workshop_id: 'w4', contact_method: 'website', content_type: 'class', placement: 'bar', item_category: 'Yoga' });
+    expect(names()).toEqual(['contact_seller', 'contact_website', 'workshop_inquiry']);
+    const sent = { workshop_id: 'w4', contact_method: 'website', content_type: 'class', placement: 'bar', item_category: 'Yoga' };
+    expect(events.map(e => e.params)).toEqual([sent, sent, sent]); // the same details on all three, so any of them can be reported by workshop
     events.length = 0;
     for (const m of ['whatsapp', 'call', 'instagram'] as const) gaWorkshopContact({ workshopId: 'w4', method: m, placement: 'card', contentType: 'class' });
-    expect(names()).toEqual(['contact_seller', 'contact_whatsapp', 'contact_seller', 'contact_call', 'contact_seller', 'contact_instagram']);
+    expect(names()).toEqual(['contact_seller', 'contact_whatsapp', 'workshop_inquiry', 'contact_seller', 'contact_call', 'workshop_inquiry', 'contact_seller', 'contact_instagram', 'workshop_inquiry']);
+    events.length = 0;
+    gaWorkshopContact({ workshopId: 'w4', method: 'copy', placement: 'page', contentType: 'class' });
+    expect(names()).toEqual(['contact_seller', 'workshop_inquiry']); // a copied number has no method event but is still an enquiry
   });
   it('the list event reports the filters in use; a changed filter adds filter_change and new search text adds search', () => {
     gaWorkshopList({ filters: { city: 'jaipur', q: 'yoga' }, count: 3 });
@@ -103,7 +107,7 @@ describe('the detail page', () => {
     const { container } = render(<ClassDetail w={cls} ended={false} now={new Date('2099-01-01T00:00:00Z')} />);
     const primary = container.querySelector('.cd-cta a.primary')!;
     fireEvent.click(primary);
-    expect(names()).toEqual(['contact_seller', 'contact_whatsapp']);
+    expect(names()).toEqual(['contact_seller', 'contact_whatsapp', 'workshop_inquiry']);
     expect(last('contact_whatsapp')).toMatchObject({ workshop_id: 'w4', placement: 'page', content_type: 'class', item_category: 'Yoga' });
     events.length = 0;
     fireEvent.click(container.querySelector('.cd-aside a.primary')!);
@@ -119,7 +123,7 @@ describe('the detail page', () => {
     fireEvent.mouseOver(primary);
     expect(events).toHaveLength(0);
     fireEvent(primary, new MouseEvent('auxclick', { bubbles: true, button: 1 }));
-    expect(names()).toEqual(['contact_seller', 'contact_whatsapp']);
+    expect(names()).toEqual(['contact_seller', 'contact_whatsapp', 'workshop_inquiry']);
     events.length = 0;
     fireEvent(primary, new MouseEvent('auxclick', { bubbles: true, button: 2 }));
     expect(events).toHaveLength(0);
@@ -152,6 +156,7 @@ describe('the cards', () => {
     render(<WorkshopContact w={cls} workshopId="w4" contentType="class" placement="card" />);
     for (const label of [/^Call/, 'Chat on WhatsApp', /Instagram/, 'Website']) fireEvent.click(screen.getByRole('link', { name: label }));
     expect(names().filter(n => n === 'contact_seller')).toHaveLength(4);
+    expect(names().filter(n => n === 'workshop_inquiry')).toHaveLength(4); // one per contact, whatever the method
     expect(names().filter(n => n.startsWith('contact_') && n !== 'contact_seller')).toEqual(['contact_call', 'contact_whatsapp', 'contact_instagram', 'contact_website']);
   });
   it('no event carries a phone number, an email or a link', () => {
