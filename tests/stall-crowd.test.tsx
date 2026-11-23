@@ -9,8 +9,9 @@ const css = fs.readFileSync('src/app/globals.css', 'utf8').replace(/\/\*[\s\S]*?
 const crowd = renderToStaticMarkup(<StallCrowd />);
 
 describe('the people at the home stall', () => {
-  it('are in the stall picture itself, so they are in the first HTML', () => {
-    expect(renderToStaticMarkup(<HeroStall />)).toContain('class="st-crowd"');
+  it('are in the Shilpgram stall picture itself, so they are in the first HTML; the everyday stall has no crowd', () => {
+    expect(renderToStaticMarkup(<HeroStall art="shilpgram" />)).toContain('class="st-crowd"');
+    expect(renderToStaticMarkup(<HeroStall />)).not.toContain('class="st-crowd"');
   });
   it('are two purchases and nine people strolling across the section (two of them stop for selfies), drawn with the stall colour classes and no hex values', () => {
     expect(crowd.match(/class="st-deal"/g)).toHaveLength(2);
@@ -32,13 +33,15 @@ describe('the people at the home stall', () => {
 
 describe('nobody stands still', () => {
   const seconds = (t: string) => +t.replace('s', '');
-  it('the four shoppers who used to stand by the stall are only drawn for reduced motion; everyone else sees them walk', () => {
+  it('the everyday stall keeps its four standing shoppers (bobbing in place) and no walking crowd; the Shilpgram stall has the walkers instead', () => {
     const stall = renderToStaticMarkup(<HeroStall />);
-    expect(stall).toContain('class="st-still"');
-    expect(stall.slice(stall.indexOf('class="st-still"'), stall.indexOf('class="st-crowd"'))).toContain('st-bob b1');
-    expect(css).toMatch(/\.st-still \{ display: none; \}/);
-    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{[^@]*\.st-still \{ display: inline; \}/);
-    // the walkers that replace them: a plait, a pot being looked at, a parcel, a second selfie taker
+    expect(stall.match(/class="st-bob b[123]"/g)!.length).toBeGreaterThanOrEqual(4); // the four shoppers
+    expect(stall).not.toContain('st-pass');
+    expect(css).not.toContain('.st-still'); // nothing hides them any more
+    const village = renderToStaticMarkup(<HeroStall art="shilpgram" />);
+    expect(village).toContain('st-pass');
+    expect(village).not.toContain('M-14 628L-11 572Q0 566 11 572L14 628Z'); // the standing shoppers' bodies are not drawn there
+    // the walkers: a plait, a pot being looked at, a parcel, a second selfie taker: a plait, a pot being looked at, a parcel, a second selfie taker
     expect(crowd).toContain('M-1 563Q-6 588 0 608');
     expect(crowd).toContain('M23 556Q21 546 25 542H31Q35 546 33 556Z');
     expect(crowd).toContain('M13 603H29');
@@ -78,8 +81,9 @@ describe('who is walking by', () => {
     expect(css).toMatch(/\.hero-copy \{ position: relative; z-index: 1; \}/);
     expect(css).toMatch(/\.hero-art \{ position: relative; z-index: 2; \}/);
   });
-  it('the crowd is the last thing drawn in the stall, so no sign, board or sticker covers it', () => {
-    const src = fs.readFileSync('src/components/HeroStall.tsx', 'utf8');
+  it('the crowd is the last thing drawn in the Shilpgram stall, so no sign, board or sticker covers it; the everyday stall does not draw it at all', () => {
+    expect(fs.readFileSync('src/components/HeroStall.tsx', 'utf8')).not.toContain('StallCrowd');
+    const src = fs.readFileSync('src/components/ShilpgramStall.tsx', 'utf8');
     expect(src.indexOf('<StallCrowd />')).toBeGreaterThan(src.indexOf('<StickerLayer'));
     expect(src.match(/<StallCrowd \/>/g)).toHaveLength(1);
   });

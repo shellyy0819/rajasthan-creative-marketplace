@@ -14,7 +14,10 @@ import { StallRange } from './StallRange';
  * - Loops have different lengths and start at different points, so the scene never repeats in step.
  *
  * Everything is drawn from the stall's own colour classes (.st-f-*), so it follows light and dark. With reduced motion the whole layer is hidden
- * and the stall shows its four still shoppers instead (HeroStall, .st-still).
+ * (and the Shilpgram stall has none of the standing shoppers).
+ *
+ * The crowd belongs to the Shilpgram look (ShilpgramStall) only. The everyday stall (HeroStall) has no crowd and keeps its four standing shoppers, so when the
+ * Shilpgram theme ends the walking stops and the stall is exactly the one it was before.
  */
 type Outfit = 'plain' | 'tourist' | 'saree' | 'kurta';
 type Look = {
