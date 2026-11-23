@@ -4,9 +4,10 @@ const h = vi.hoisted(() => ({ cache: vi.fn((fn: unknown, key: string[], opts: un
 vi.mock('next/cache', () => ({ unstable_cache: h.cache }));
 vi.mock('@/lib/catalog', () => ({ listProducts: h.list, countProductsByCategory: h.counts }));
 vi.mock('@/lib/trending', () => ({ trending: h.trend }));
+const settings = vi.hoisted(() => ({ get: vi.fn(async () => ({ productLimit: 30 })) }));
+vi.mock('@/lib/home-settings', () => ({ getHomeSettings: settings.get }));
 
 import { getHomeShelf, getHomeTrending, HOME_PRODUCTS_TTL, HOME_TRENDING_TTL } from '@/lib/home-cache';
-import { SHELF_PAGE_SIZE } from '@/lib/catalog-shared';
 
 beforeEach(() => { h.list.mockClear(); h.counts.mockClear(); h.trend.mockClear(); });
 
@@ -17,10 +18,15 @@ describe('home-page data cache', () => {
     expect(t.opts).toEqual({ revalidate: HOME_TRENDING_TTL, tags: ['home-trending'] });
     expect(p.key).not.toEqual(t.key);
   });
-  it('loads only the first page of the catalogue with the category counts, and the top six trending items', async () => {
+  it('loads only the first page of the catalogue (no category counts), and the top six trending items', async () => {
     await getHomeShelf(); await getHomeTrending();
-    expect(h.list).toHaveBeenCalledWith({ limit: SHELF_PAGE_SIZE });
-    expect(h.counts).toHaveBeenCalledWith();
+    expect(h.list).toHaveBeenCalledWith({ limit: 30 });
+    expect(h.counts).not.toHaveBeenCalled();
     expect(h.trend).toHaveBeenCalledWith({ limit: 6 });
+  });
+  it('asks for as many products as the admin set', async () => {
+    settings.get.mockResolvedValueOnce({ productLimit: 12 });
+    await getHomeShelf();
+    expect(h.list).toHaveBeenCalledWith({ limit: 12 });
   });
 });

@@ -121,7 +121,7 @@ describe('lists and sitemap', () => {
   });
   it('the page says what can be listed', async () => {
     await createWorkshop(event);
-    expect(renderToStaticMarkup(await WorkshopsPage(sp()))).toContain('You can list workshops, meetups, pop-ups, flea markets and online classes.');
+    expect(renderToStaticMarkup(await WorkshopsPage(sp()))).toContain('Hosting one for visitors and locals? You can list workshops, meetups, flea markets and online classes.');
   });
 });
 

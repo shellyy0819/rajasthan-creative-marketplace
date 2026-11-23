@@ -820,6 +820,12 @@ h2 em {
 .workshop-intro h2 {
   font-size: 44px;
 }
+/* The link to every workshop sits above the home list, at its right edge, like "All categories →" above the category tiles. */
+.workshop-feed-head {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 18px;
+}
 .workshop-intro > p {
   color: var(--muted);
   font-size: 12px;
