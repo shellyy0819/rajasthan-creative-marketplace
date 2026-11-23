@@ -5,7 +5,8 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 
 import { createProduct, createWorkshop } from '@/lib/admin';
 import { recordEvent, recordWorkshopEvent } from '@/lib/engagement';
-import { sellerEngagement, windowFrom } from '@/lib/seller-engagement';
+import { artistSlug } from '@/lib/artist-slug';
+import { activityFrom, filterSellers, sellerEngagement, windowFrom } from '@/lib/seller-engagement';
 import { admin } from './helpers/actors';
 import { cityRef } from './helpers/cities';
 import { makeSeller, resetTestDb } from './helpers/testdb';
@@ -105,5 +106,40 @@ describe('sellerEngagement()', () => {
     const { eq } = await import('drizzle-orm');
     await (await getTestDb()).update(users).set({ active: false }).where(eq(users.id, busy.id));
     expect((await sellerEngagement({ now: NOW })).rows.map(r => r.name)).not.toContain('Zzz Busy');
+  });
+});
+
+describe('profile link data', () => {
+  it('gives the same slug the site uses, and marks a seller with no published listing as having no public page', async () => {
+    const live = await makeSeller('a@x.co', 'Star Maker'); const none = await makeSeller('b@x.co', 'No Listing');
+    await mkProduct(live.id, 'Star Pot');
+    expect(await row('Star Maker')).toMatchObject({ slug: artistSlug('Star Maker', live.id), listed: true });
+    expect(await row('No Listing')).toMatchObject({ slug: artistSlug('No Listing', none.id), listed: false });
+  });
+  it('a host with only a published class has a public page', async () => {
+    const h = await makeSeller('swati@x.co', 'Swati Rao');
+    await createWorkshop({ ...online, hostId: h.id });
+    expect((await row('Swati Rao')).listed).toBe(true);
+  });
+});
+
+describe('filterSellers', () => {
+  const mk = (name: string, viewers: number, openedContact: number, contacted: number) => ({ sellerId: name, name, slug: name, listed: true, viewers, openedContact, contacted, byMethod: { call: 0, whatsapp: 0, email: 0, instagram: 0, youtube: 0, website: 0, copy: 0 } });
+  const rows = [mk('Meera Blue Pottery', 5, 1, 1), mk('Lakshmi Bandhani', 6, 0, 0), mk('Marwar Woodcraft', 0, 0, 0)];
+  it('searches any part of the name, ignoring case and spaces around it', () => {
+    expect(filterSellers(rows, { q: '  BLUE ' }).map(r => r.name)).toEqual(['Meera Blue Pottery']);
+    expect(filterSellers(rows, { q: 'war' }).map(r => r.name)).toEqual(['Marwar Woodcraft']);
+    expect(filterSellers(rows, { q: 'zzz' })).toEqual([]);
+  });
+  it('"visited" drops sellers nobody came to, "reached" keeps only those someone contacted', () => {
+    expect(filterSellers(rows, { activity: 'visited' }).map(r => r.name)).toEqual(['Meera Blue Pottery', 'Lakshmi Bandhani']);
+    expect(filterSellers(rows, { activity: 'reached' }).map(r => r.name)).toEqual(['Meera Blue Pottery']);
+    expect(filterSellers(rows)).toHaveLength(3);
+  });
+  it('the two filters work together, and an unknown activity means all', () => {
+    expect(filterSellers(rows, { q: 'bandh', activity: 'reached' })).toEqual([]);
+    expect(filterSellers(rows, { q: 'l', activity: 'visited' }).map(r => r.name)).toEqual(['Meera Blue Pottery', 'Lakshmi Bandhani']);
+    expect(activityFrom('bogus')).toBe('all');
+    expect(activityFrom(['reached'])).toBe('reached');
   });
 });
