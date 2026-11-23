@@ -6,13 +6,14 @@ import { getCityByNameOrSlug, sameCityIds } from './cities';
 import { normalizeQuery, textSearch } from './search';
 import { productSlug, workshopSlug } from './catalog-shared';
 import type { Product, Workshop } from './types';
-import { isCurrent } from './workshop-listing';
+import { isCurrent, lastDay } from './workshop-listing';
 
 export { DEFAULT_CATEGORIES, productSlug, workshopSlug } from './catalog-shared';
 
 /** `limit`/`offset` return one page of the same ordering the full list has. */
 export type ProductFilter = { city?: string; category?: string; source?: string; q?: string; limit?: number; offset?: number };
-export type WorkshopFilter = { city?: string; type?: string; q?: string; mode?: string };
+/** `includeEnded`: the /workshops page also lists listings that have ended, after the ones still on. */
+export type WorkshopFilter = { city?: string; type?: string; q?: string; mode?: string; includeEnded?: boolean };
 
 const anyCity = (c?: string) => !c || c === 'All India';
 const idOrder = (t: { id: typeof productsT.id | typeof workshopsT.id }) => [sql`length(${t.id})`, asc(t.id)] as const;
@@ -81,7 +82,10 @@ export async function countProductsByCategory(): Promise<{ name: string; count: 
   return rows;
 }
 
-/** Published listings that have not ended (India time). Online classes have no city, so a city filter never matches them. */
+/**
+ * Published listings that have not ended (India time); with `includeEnded`, the ended ones follow, the most recently ended first (their pages stay up
+ * with a notice). Online classes have no city, so a city filter never matches them.
+ */
 export async function listWorkshops(f: WorkshopFilter = {}): Promise<Workshop[]> {
   const where: (SQL | undefined)[] = [eq(workshopsT.status, 'APPROVED')];
   if (!anyCity(f.city)) {
@@ -95,7 +99,11 @@ export async function listWorkshops(f: WorkshopFilter = {}): Promise<Workshop[]>
   const search = textSearch(workshopDoc, f.q);
   where.push(search.where);
   const rows = await workshopsQuery(getDb()).where(and(...where)).orderBy(...(search.rank ? [desc(search.rank)] : []), ...idOrder(workshopsT));
-  return (await withPrices(getDb(), rows.map(toWorkshop))).filter(w => isCurrent(w));
+  const all = await withPrices(getDb(), rows.map(toWorkshop));
+  const current = all.filter(w => isCurrent(w));
+  if (!f.includeEnded) return current;
+  const ended = all.filter(w => !isCurrent(w)).sort((a, b) => (lastDay(b) ?? '').localeCompare(lastDay(a) ?? ''));
+  return [...current, ...ended];
 }
 
 /** Every listing in every status, newest first, with the admin-only fields. For the dashboard. */

@@ -2,7 +2,7 @@ import type { Workshop } from '@/lib/types';
 import { money } from '@/lib/money';
 import { formatDay } from '@/lib/format';
 import { workshopSlug } from '@/lib/catalog-shared';
-import { describeSchedule, summarizePrices } from '@/lib/workshop-listing';
+import { describeSchedule, isCurrent, summarizePrices } from '@/lib/workshop-listing';
 import { LEVEL_LABEL } from '@/lib/workshop-support';
 import { ClassArt } from './class/ClassIllustration';
 import { artKind } from '@/lib/class-page';
@@ -22,15 +22,17 @@ function ScheduleLine({ text }: { text: string }) {
 export function WorkshopCard({ w }: { w: Workshop }) {
   const { day, month } = formatDay(w.date);
   const isClass = w.kind === 'class' || w.mode === 'online';
-  const bookable = !isClass && w.seats !== null;
+  // An ended listing stays in the /workshops list (after the ones still on), marked Ended, with nothing to book or contact.
+  const ended = !isCurrent(w);
+  const bookable = !ended && !isClass && w.seats !== null;
   const left = (w.seats ?? 0) - w.booked;
   const cover = w.images[0]; // the first photo is the cover
   // A card without a photo shows the illustration for its category (yoga, crochet, painting, food, resin, or the generic one), so every card has a picture.
-  const trialChip = w.freeTrial ? (w.freeTrialDays ? `${w.freeTrialDays}-day free trial` : 'Free trial') : null;
-  const chip = isClass ? `Online${w.platform ? ` · ${w.platform}` : ''}` : `${day} ${month}`;
+  const trialChip = !ended && w.freeTrial ? (w.freeTrialDays ? `${w.freeTrialDays}-day free trial` : 'Free trial') : null;
+  const chip = ended ? (isClass ? 'Ended' : `Ended · ${day} ${month}`) : isClass ? `Online${w.platform ? ` · ${w.platform}` : ''}` : `${day} ${month}`;
   const price = w.prices.length ? summarizePrices(w.prices).from : w.type === 'FREE' ? 'Free' : money(w.pricePaise);
   return (
-    <article className="workshop-card with-photo">
+    <article className={`workshop-card with-photo${ended ? ' is-ended' : ''}`}>
       <div className="tile-col">
         {cover
           ? (
@@ -66,10 +68,12 @@ export function WorkshopCard({ w }: { w: Workshop }) {
           {bookable && <span className="ws-seats">{left} seats left</span>}
         </span>
         {/* Every card shows the host's public contact icons; a workshop with seats adds Reserve spot beside them, so a class and a workshop read the same. */}
-        <div className="ws-actions">
-          <WorkshopContact w={w} workshopId={w.id} category={w.topic?.name} contentType={gaWorkshopType(w)} placement="card" />
-          {bookable && <ReserveButton workshop={w} />}
-        </div>
+        {!ended && (
+          <div className="ws-actions">
+            <WorkshopContact w={w} workshopId={w.id} category={w.topic?.name} contentType={gaWorkshopType(w)} placement="card" />
+            {bookable && <ReserveButton workshop={w} />}
+          </div>
+        )}
       </div>
     </article>
   );

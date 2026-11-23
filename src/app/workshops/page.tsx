@@ -37,7 +37,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 export default async function WorkshopsPage({ searchParams }: Props) {
   const sp = await searchParams;
   const f = parseFilters(sp);
-  const [workshops, cities, version, topics, signText] = await Promise.all([listWorkshops(f), listActiveCities(), getDataVersion(), listActiveTopics(), getSignText()]);
+  const [workshops, cities, version, topics, signText] = await Promise.all([listWorkshops({ ...f, includeEnded: true }), listActiveCities(), getDataVersion(), listActiveTopics(), getSignText()]);
   const crumbs = [{ name: 'Home', path: '/' }, { name: 'Workshops', path: '/workshops' }];
   const noneListed = workshops.length === 0 && !hasFilters(f);
   return (

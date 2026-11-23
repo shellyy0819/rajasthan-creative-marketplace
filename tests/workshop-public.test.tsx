@@ -112,10 +112,12 @@ describe('lists and sitemap', () => {
     const h = renderToStaticMarkup(await WorkshopsPage(sp({ mode: 'online' })));
     expect(h).toContain(`>${online.id}<`);
   });
-  it('when every listing has ended /workshops is the empty state and noindex', async () => {
-    await createWorkshop({ ...event, date: ymd(-3) });
+  it('when every listing has ended /workshops still lists them (each card is marked Ended) but stays out of the search index until something is on', async () => {
+    const ended = await createWorkshop({ ...event, date: ymd(-3) });
     expect((await listMeta(sp())).robots).toEqual({ index: false, follow: true });
-    expect(renderToStaticMarkup(await WorkshopsPage(sp()))).toMatch(/first workshops/i);
+    const html = renderToStaticMarkup(await WorkshopsPage(sp()));
+    expect(html).toContain(`>${ended.id}<`); // in the list the page hands to the live catalog (its card is marked Ended by WorkshopCard)
+    expect(html).not.toMatch(/first workshops/i);
   });
   it('the page says what can be listed', async () => {
     await createWorkshop(event);

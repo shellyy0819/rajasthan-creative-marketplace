@@ -31,4 +31,18 @@ describe('workshop card actions are the same for every kind of listing', () => {
     expect(css).toMatch(/\.workshop-card \.ws-actions \{[^}]*display: flex;[^}]*justify-content: flex-end;/);
     expect(css).toMatch(/\.ws-actions > \.ws-contact:not\(:last-child\) \.ws-icon:last-child \{ margin-right: 0; \}/);
   });
+  it('an ended listing stays in the list, marked Ended, with nothing to book or contact', () => {
+    const ended = { ...(base as object), date: '2020-01-02' } as never;
+    const html = renderToStaticMarkup(<WorkshopCard w={ended} />);
+    expect(html).toContain('is-ended');
+    expect(html).toContain('Ended · 2 Jan');
+    expect(html).not.toContain('Reserve spot');
+    expect(html).not.toContain('ws-contact');
+    expect(html).toContain('/workshops/'); // its page is still there
+    const klass = renderToStaticMarkup(<WorkshopCard w={{ ...(base as object), kind: 'class', mode: 'online', seats: null, schedule: null, endsOn: '2020-01-31', freeTrial: true } as never} />);
+    expect(klass).toContain('>Ended<');
+    expect(klass).not.toContain('free trial');
+    expect(klass).not.toContain('ws-contact');
+    expect(renderToStaticMarkup(<WorkshopCard w={{ ...(base as object), date: '2099-01-02' } as never} />)).not.toContain('is-ended');
+  });
 });

@@ -109,3 +109,6 @@
 /* The contact icons and, on a workshop with seats, Reserve spot: one row at the end of the price column on every card. The last icon only pulls out to line up with the price when nothing follows it. */
 .workshop-card .ws-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 .workshop-card .ws-actions > .ws-contact:not(:last-child) .ws-icon:last-child { margin-right: 0; }
+
+/* An ended listing stays in the list, marked Ended: its picture is toned down so the ones still on stand out. */
+.workshop-card.is-ended .date-tile img, .workshop-card.is-ended .date-tile svg { filter: grayscale(.75); }

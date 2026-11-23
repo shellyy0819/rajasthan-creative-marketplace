@@ -91,6 +91,16 @@ describe('catalog: public lists show only published, current listings', () => {
     expect(isCurrent(page!)).toBe(false);
     expect(await getWorkshopBySlug(workshopSlug(draft))).toBeUndefined();
   });
+  it('the workshops page lists ended listings too: after the ones still on, the most recently ended first, never drafts; every other list stays current only', async () => {
+    const live = await createWorkshop({ ...inPerson, status: 'APPROVED' });
+    const old = await createWorkshop({ ...inPerson, date: ymd(-10), status: 'APPROVED' });
+    const recent = await createWorkshop({ ...inPerson, date: ymd(-2), status: 'APPROVED' });
+    const draft = await createWorkshop({ ...inPerson, date: ymd(-2) });
+    const mine = [live.id, recent.id, old.id, draft.id];
+    const ids = (await listWorkshops({ includeEnded: true })).map(w => w.id).filter(id => mine.includes(id)); // the test database also holds seeded listings
+    expect(ids).toEqual([live.id, recent.id, old.id]);
+    expect((await listWorkshops()).map(w => w.id).filter(id => mine.includes(id))).toEqual([live.id]);
+  });
   it('an open-ended class stays listed even when it started long ago', async () => {
     const c = await createWorkshop({ ...yoga, date: '2025-01-06', status: 'APPROVED' });
     expect((await listWorkshops()).map(w => w.id)).toContain(c.id);
