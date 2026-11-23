@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import fs from 'node:fs';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -16,6 +17,10 @@ describe('what the workshops page says we support', () => {
     const line = supportLine();
     for (const s of SUPPORTED_LISTINGS) expect(line).toContain(s.label);
     expect(line.length).toBeLessThan(120);
+  });
+  it('does not mention pop-ups for now, on the page, its loading state or its empty state', () => {
+    expect(supportLine()).not.toMatch(/pop-?up/i);
+    for (const f of ['src/app/workshops/page.tsx', 'src/app/workshops/loading.tsx', 'src/components/WorkshopsEmptyState.tsx']) expect(fs.readFileSync(f, 'utf8'), f).not.toMatch(/pop-?ups?/i);
   });
   it('promises nothing the form cannot take: every entry has a matching choice in the host form', () => {
     render(<HostWorkshopButton />);

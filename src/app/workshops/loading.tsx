@@ -13,8 +13,8 @@ export default function WorkshopsLoading() {
       <Breadcrumbs items={crumbs} />
       <div className="page-head ws-head">
         <span className="eyebrow">OUT OF THE SCROLL, INTO THE STUDIO</span>
-        <h1>Creative workshops &amp; pop-ups</h1>
-        <p>Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.</p>
+        <h1>Creative workshops in India</h1>
+        <p>Planning a trip to India? Make time for a hands-on workshop with local makers: try a craft, meet the people behind it and take home a memory made by hand.</p>
         <p className="ws-supports">{supportLine()}</p>
         <div className="ws-head-cta"><span className="skeleton skeleton-button" aria-hidden="true" /></div>
       </div>

@@ -12,7 +12,7 @@ export function WorkshopsEmptyState({ openHostForm = false, initialPath, topics 
     <div className="ws-empty-wrap">
     <section className="ws-empty" aria-labelledby="ws-empty-h">
       <h2 id="ws-empty-h">The first workshops are coming</h2>
-      <p>No workshop is scheduled yet. Studios, cafés and makers across India can host hands-on workshops, creative meetups and pop-ups here.</p>
+      <p>No workshop is scheduled yet. Studios, cafés and makers across India can host hands-on workshops and creative meetups here.</p>
       <ol className="ws-empty-steps">
         <li>Tell us about your workshop: what happens, when and where.</li>
         <li>We check the details and write to you to confirm.</li>
