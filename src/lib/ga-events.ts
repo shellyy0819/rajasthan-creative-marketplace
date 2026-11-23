@@ -97,12 +97,14 @@ export function gaViewWorkshop(p: { workshopId: string; category?: string; conte
   gaEvent('view_item', { item_id: p.workshopId, content_type: p.contentType, ...(p.category ? { item_category: p.category } : {}) });
 }
 
-/** GA4: a real contact action on a workshop (WhatsApp, Call, Instagram, Website): `contact_seller` plus the method's own event, like products. */
+/** GA4: a real contact action on a workshop (WhatsApp, Call, Instagram, Website): `contact_seller` plus the method's own event, like products, plus `workshop_inquiry`
+ *  (the one event to mark as a key event for "a visitor enquired about a workshop"; products never send it). Never call it for merely opening a page. */
 export function gaWorkshopContact(p: { workshopId: string; method: GaContactMethod; placement: WorkshopPlacement; category?: string; contentType: 'class' | 'workshop' }): void {
   const params = { workshop_id: p.workshopId, contact_method: p.method, content_type: p.contentType, placement: p.placement, ...(p.category ? { item_category: p.category } : {}) };
   gaEvent('contact_seller', params);
   const specific = METHOD_EVENT[p.method];
   if (specific) gaEvent(specific, params);
+  gaEvent('workshop_inquiry', params);
 }
 
 /** GA4: the booking funnel. `reserve_open` when Reserve spot is pressed, `reserve_complete` once the reservation is saved (seats, free or paid), `reserve_error` when it is refused. */
