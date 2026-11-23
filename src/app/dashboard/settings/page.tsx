@@ -3,10 +3,12 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { EmailSettingsForm } from '@/components/EmailSettingsForm';
 import { ExtraAreasForm } from '@/components/ExtraAreasForm';
 import { FairSettingsForm } from '@/components/FairSettingsForm';
+import { HomeSettingsForm } from '@/components/HomeSettingsForm';
 import { ShareSettingsForm } from '@/components/ShareSettingsForm';
 import { requireAdminPage } from '@/lib/admin-page';
 import { getExtraAreas } from '@/lib/extra-areas';
 import { getFairSettings } from '@/lib/fair-settings';
+import { getHomeSettings } from '@/lib/home-settings';
 import { hostConfig } from '@/lib/hosts';
 import { getEmailSettings } from '@/lib/settings';
 import { getShareSettings } from '@/lib/share-settings';
@@ -27,6 +29,7 @@ export default async function SettingsPage() {
         </div>
         <EmailSettingsForm initial={await getEmailSettings()} adminEmail={session?.user?.email ?? ''} />
         <FairSettingsForm initial={await getFairSettings()} />
+        <HomeSettingsForm initial={await getHomeSettings()} />
         <ShareSettingsForm initial={await getShareSettings()} />
         <ExtraAreasForm initial={await getExtraAreas()} />
       </section>

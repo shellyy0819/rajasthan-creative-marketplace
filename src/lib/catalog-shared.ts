@@ -12,8 +12,10 @@ export const DEFAULT_SOURCING_TYPES = [
   { name: 'Resold', countsAsHandmade: false, showBadge: true },
 ] as const;
 
-/** How many products the home shelf shows at first, and how many each scroll adds. Also the most the products API returns per request. */
-export const SHELF_PAGE_SIZE = 8;
+/** How many products the home shelf shows, and no more: /shop has the rest, with the filters. An admin can change it (Settings > Home page) within these bounds. */
+export const DEFAULT_HOME_PRODUCT_LIMIT = 30;
+export const MIN_HOME_PRODUCT_LIMIT = 4;
+export const MAX_HOME_PRODUCT_LIMIT = 48;
 /** How many products /shop shows at first and adds per scroll (three rows of four). */
 export const SHOP_PAGE_SIZE = 12;
 export const PRODUCTS_PAGE_MAX = 48;
