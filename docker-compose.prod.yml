@@ -10,7 +10,12 @@ services:
     restart: "no"
 
   api:
-    build: { context: ., target: runner }
+    build:
+      context: .
+      target: runner
+      args:
+        APP_COMMIT: ${APP_COMMIT:-unknown}
+        APP_BUILT_AT: ${APP_BUILT_AT:-}
     image: rr-api
     depends_on:
       migrate: { condition: service_completed_successfully }
