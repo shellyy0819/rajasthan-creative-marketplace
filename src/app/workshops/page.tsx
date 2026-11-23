@@ -26,8 +26,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   // With no workshop at all the page is empty content (a "soft 404" to search engines): keep it out of the index until one exists.
   const none = !hasFilters(f) && (await listWorkshops()).length === 0;
   return pageMetadata({
-    title: 'Creative workshops & pop-ups in India',
-    description: 'Hands-on crochet, painting and maker meetups hosted by local studios and cafés across India. Free and paid.',
+    title: 'Creative workshops in India',
+    description: 'Visiting India? Join hands-on crochet, painting and craft workshops hosted by local studios and cafés. Free and paid.',
     path: '/workshops',
     // The shared ?host=1 link is a way into the form, not a page of its own: its canonical stays /workshops and it is not indexed.
     noindex: hasFilters(f) || none || wantsHostForm(sp),
@@ -47,8 +47,8 @@ export default async function WorkshopsPage({ searchParams }: Props) {
       <Breadcrumbs items={crumbs} />
       <div className="page-head ws-head">
         <span className="eyebrow">OUT OF THE SCROLL, INTO THE STUDIO</span>
-        <h1>Creative workshops &amp; pop-ups</h1>
-        <p>Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.</p>
+        <h1>Creative workshops in India</h1>
+        <p>Planning a trip to India? Make time for a hands-on workshop with local makers: try a craft, meet the people behind it and take home a memory made by hand.</p>
         <p className="ws-supports">{supportLine()}</p>
         {/* The button sits in the header on every screen, so it is the first thing to reach. */}
         <div className="ws-head-cta"><HostWorkshopButton className="button primary" contactEmail={contactEmail()} topics={topics} defaultOpen={wantsHostForm(sp) && !noneListed} initialPath={hostPath(sp)} prefill saveDraft shareable reminderTarget /></div>

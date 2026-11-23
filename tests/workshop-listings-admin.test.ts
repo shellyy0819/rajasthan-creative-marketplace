@@ -101,6 +101,18 @@ describe('catalog: public lists show only published, current listings', () => {
     expect(ids).toEqual([live.id, recent.id, old.id]);
     expect((await listWorkshops()).map(w => w.id).filter(id => mine.includes(id))).toEqual([live.id]);
   });
+  it('the status filter: open is only what is still on, ended is only what has ended (most recent first), and it wins over includeEnded', async () => {
+    const live = await createWorkshop({ ...inPerson, status: 'APPROVED' });
+    const old = await createWorkshop({ ...inPerson, date: ymd(-10), status: 'APPROVED' });
+    const recent = await createWorkshop({ ...inPerson, date: ymd(-2), status: 'APPROVED' });
+    const mine = [live.id, old.id, recent.id];
+    const ids = async (f: Parameters<typeof listWorkshops>[0]) => (await listWorkshops(f)).map(w => w.id).filter(id => mine.includes(id));
+    expect(await ids({ status: 'open', includeEnded: true })).toEqual([live.id]);
+    expect(await ids({ status: 'ended' })).toEqual([recent.id, old.id]);
+    expect(await ids({ status: 'ended', includeEnded: true })).toEqual([recent.id, old.id]);
+    expect(await ids({ includeEnded: true })).toEqual([live.id, recent.id, old.id]);
+    expect(await ids({ status: 'ended', mode: 'online' })).toEqual([]); // the other filters still apply
+  });
   it('an open-ended class stays listed even when it started long ago', async () => {
     const c = await createWorkshop({ ...yoga, date: '2025-01-06', status: 'APPROVED' });
     expect((await listWorkshops()).map(w => w.id)).toContain(c.id);

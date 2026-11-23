@@ -577,11 +577,9 @@ h2 em {
 }
 @keyframes st-sway { from { transform: rotate(-1.6deg); } to { transform: rotate(1.6deg); } }
 @keyframes st-spin { to { transform: rotate(360deg); } }
-.st-still { display: none; } /* the four standing shoppers: only for visitors who asked for less motion; the crowd walks instead */
 @media (prefers-reduced-motion: reduce) {
   .st-sway, .st-spin, .st-bob, .st-wave, .st-nod, .st-inspect, .st-blink, .st-twinkle { animation: none; }
   .st-crowd { display: none; }
-  .st-still { display: inline; }
 }
 .intro {
   text-align: center;
@@ -821,6 +819,12 @@ h2 em {
 }
 .workshop-intro h2 {
   font-size: 44px;
+}
+/* The link to every workshop sits above the home list, at its right edge, like "All categories →" above the category tiles. */
+.workshop-feed-head {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 18px;
 }
 .workshop-intro > p {
   color: var(--muted);
@@ -4955,6 +4959,13 @@ button.fair-opt:hover { background: var(--cream); }
 .theme-admin-list { display: grid; gap: 14px; }
 .theme-admin-list .admin-row { align-items: center; margin: 0; }
 .theme-admin-list .theme-new { align-items: flex-end; margin: 0; }
+/* Whole-site totals above the seller table (dashboard > Seller engagement). */
+.engagement-totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 18px 0; }
+.engagement-totals > div { background: var(--card-2); border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px; }
+.engagement-totals dt { margin: 0 0 6px; font: 700 10px/1.3 var(--font-sans); letter-spacing: 1px; text-transform: uppercase; color: var(--muted-2); }
+.engagement-totals dd { margin: 0; font: 500 22px/1.2 var(--font-display); color: var(--ink); }
+.engagement-totals dd small { font: 400 11px var(--font-sans); color: var(--muted); }
+@media (max-width: 700px) { .engagement-totals { grid-template-columns: repeat(2, 1fr); } }
 .theme-new label { flex: 1; margin: 0; }
 .theme-new select, .theme-new .button { height: var(--control-h); }
 
