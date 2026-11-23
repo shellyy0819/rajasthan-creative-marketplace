@@ -4995,6 +4995,7 @@ button.fair-opt:hover { background: var(--cream); }
 .skeleton-workshop { height: 120px; }
 .skeleton-line { height: 12px; width: 100%; max-width: 260px; margin-bottom: 12px; }
 .skeleton-line.short { max-width: 120px; height: 10px; }
+.product-preview-fill { position: absolute; inset: 0; border-radius: 0; }
 .skeleton-line.title { height: 34px; max-width: 360px; margin-bottom: 0; }
 /* A product card still loading (ProductCardSkeleton): same shape as the real card, no text, no dark overlay */
 .product-card-skeleton { background: var(--cream); pointer-events: none; }

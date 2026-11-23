@@ -1,10 +1,10 @@
-import Link from 'next/link';
 import type { Product } from '@/lib/types';
 import { money } from '@/lib/money';
 import { productSlug } from '@/lib/catalog-shared';
 import { ArtistAvatar } from './ArtistAvatar';
 import { ContactArtistButton } from './ContactArtistButton';
 import { LikeButton } from './LikeButton';
+import { ProductLink } from './ProductLink';
 import { ProductImage } from './ProductImage';
 import { ProductPlaceholder } from './ProductPlaceholder';
 
@@ -24,7 +24,7 @@ export function ProductCard({ p, eager = false }: { p: Product; eager?: boolean 
         <LikeButton productId={p.id} initialCount={p.likeCount ?? 0} productName={p.name} />
       </div>
       <div className="product-info">
-        <h3><Link href={`/products/${productSlug(p)}`}>{p.name}</Link></h3>
+        <h3><ProductLink href={`/products/${productSlug(p)}`} p={p} variant={i}>{p.name}</ProductLink></h3>
         <p className="pc-who"><span className="pc-av" aria-hidden="true"><ArtistAvatar key={p.sellerLogo ?? 'none'} src={p.sellerLogo} initial={p.seller.trim().charAt(0).toUpperCase()} /></span><span>{p.seller} · {p.city}</span></p>
         <div className="product-bottom">
           <span className="price">{money(p.pricePaise)}</span>

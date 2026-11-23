@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
+import { Suspense, cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -21,10 +21,12 @@ import { money } from "@/lib/money";
 import { abs } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
+/** The page and its metadata both need the product: one database read per request, not two. */
+const loadProduct = cache(getProductBySlug);
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const p = await getProductBySlug((await params).slug);
+  const p = await loadProduct((await params).slug);
   if (!p) return { title: "Product not found", robots: { index: false } };
   return pageMetadata({
     title: isHandmade(p) ? `${p.name} — handmade in ${p.city}` : `${p.name} — from ${p.city}`,
@@ -36,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params }: Props) {
-  const p = await getProductBySlug((await params).slug);
+  const p = await loadProduct((await params).slug);
   if (!p) notFound();
   const i = visualIndex(p.id);
   const crumbs = [
