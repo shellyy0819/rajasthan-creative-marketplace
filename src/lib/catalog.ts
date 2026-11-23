@@ -12,8 +12,11 @@ export { DEFAULT_CATEGORIES, productSlug, workshopSlug } from './catalog-shared'
 
 /** `limit`/`offset` return one page of the same ordering the full list has. */
 export type ProductFilter = { city?: string; category?: string; source?: string; q?: string; limit?: number; offset?: number };
-/** `includeEnded`: the /workshops page also lists listings that have ended, after the ones still on. */
-export type WorkshopFilter = { city?: string; type?: string; q?: string; mode?: string; includeEnded?: boolean };
+/**
+ * `includeEnded`: the /workshops page also lists listings that have ended, after the ones still on.
+ * `status`: only the ones still `open`, or only the `ended` ones (this wins over `includeEnded`).
+ */
+export type WorkshopFilter = { city?: string; type?: string; q?: string; mode?: string; includeEnded?: boolean; status?: 'open' | 'ended' };
 
 const anyCity = (c?: string) => !c || c === 'All India';
 const idOrder = (t: { id: typeof productsT.id | typeof workshopsT.id }) => [sql`length(${t.id})`, asc(t.id)] as const;
@@ -101,9 +104,9 @@ export async function listWorkshops(f: WorkshopFilter = {}): Promise<Workshop[]>
   const rows = await workshopsQuery(getDb()).where(and(...where)).orderBy(...(search.rank ? [desc(search.rank)] : []), ...idOrder(workshopsT));
   const all = await withPrices(getDb(), rows.map(toWorkshop));
   const current = all.filter(w => isCurrent(w));
-  if (!f.includeEnded) return current;
+  if (f.status === 'open' || (!f.status && !f.includeEnded)) return current;
   const ended = all.filter(w => !isCurrent(w)).sort((a, b) => (lastDay(b) ?? '').localeCompare(lastDay(a) ?? ''));
-  return [...current, ...ended];
+  return f.status === 'ended' ? ended : [...current, ...ended];
 }
 
 /** Every listing in every status, newest first, with the admin-only fields. For the dashboard. */

@@ -10,6 +10,13 @@ describe('parseFilters', () => {
     expect(parseFilters({ city: 'Jaipur', category: 'Pottery', type: 'FREE' }))
       .toEqual({ city: 'Jaipur', category: 'Pottery', type: 'FREE' });
   });
+  it('accepts a workshop status of open or ended, and drops anything else', () => {
+    expect(parseFilters({ status: 'ended' })).toEqual({ status: 'ended' });
+    expect(parseFilters({ status: 'open', mode: 'online' })).toEqual({ status: 'open', mode: 'online' });
+    expect(parseFilters({ status: 'all' })).toEqual({});
+    expect(parseFilters({ status: 'ENDED' })).toEqual({});
+    expect(hasFilters(parseFilters({ status: 'ended' }))).toBe(true);
+  });
   it('accepts any non-empty city up to 100 chars (cities are data, not a whitelist)', () => {
     expect(parseFilters({ city: 'Kota' })).toEqual({ city: 'Kota' });
     expect(parseFilters({ city: '  ' })).toEqual({});
