@@ -106,6 +106,21 @@ describe('city listings come from active cities', () => {
     await expect(cityPage('jaipur')).rejects.toThrow('NOT_FOUND');
     expect(nav.notFound).toHaveBeenCalled();
   });
+  it('a city whose only workshop has ended still has its page: workshops only, marked as ended, kept out of search', async () => {
+    const { inArray } = await import('drizzle-orm');
+    const { getDb } = await import('@/db/client');
+    const { products, workshops } = await import('@/db/schema');
+    await getDb().update(products).set({ status: 'ARCHIVED' }).where(inArray(products.id, ['p3', 'p4']));
+    await getDb().update(workshops).set({ startsAt: new Date('2020-01-01T10:00:00Z'), endsOn: null }).where(inArray(workshops.id, ['w2']));
+    render(await cityPage('jaipur'));
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Workshops in Jaipur');
+    expect(screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent)).toEqual(['Workshops']);
+    expect(document.querySelectorAll('.product-card')).toHaveLength(0);
+    expect(document.querySelectorAll('.workshop-card.is-ended').length).toBeGreaterThan(0);
+    const { generateMetadata } = await import('@/app/cities/[city]/page');
+    expect((await generateMetadata({ params: Promise.resolve({ city: 'jaipur' }) })).robots).toEqual({ index: false, follow: true });
+    expect((await generateMetadata({ params: Promise.resolve({ city: 'udaipur' }) })).robots).toBeUndefined();
+  });
   it('the city page for an unknown slug, or a city with nothing at all, calls notFound', async () => {
     await expect(cityPage('atlantis')).rejects.toThrow('NOT_FOUND');
     const { getDb } = await import('@/db/client');

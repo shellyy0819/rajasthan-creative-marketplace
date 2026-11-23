@@ -4,7 +4,8 @@ import { describe, it, expect } from 'vitest';
 describe('city page headings (source contract)', () => {
   const src = fs.readFileSync('src/app/cities/[city]/page.tsx', 'utf8');
   it('names the city in the breadcrumb, eyebrow and h1 only: handmade wording, no subtitle, plain section headings', () => {
-    expect(src).toContain("<h1>{allHandmade ? 'Handmade products' : 'Products'} &amp; workshops in {city}</h1>");
+    expect(src).toContain('<h1>{noun} in {city}</h1>');
+    expect(src).toContain("`${allHandmade ? 'Handmade products' : 'Products'} & workshops`");
     expect(src).not.toContain('Independent makers');
     expect(src).toContain(`<h2 id="c-shop">{allHandmade ? 'Handmade' : 'Products'}</h2>`);
     expect(src).toContain('products.length > 0 && products.every(isHandmade)');

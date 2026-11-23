@@ -131,6 +131,20 @@ export async function listActiveCities(): Promise<City[]> {
   return rows.map(toCity);
 }
 
+/**
+ * A city that has a page: it has at least one APPROVED product or workshop, an ended workshop included. The workshop's own page keeps its link
+ * to the city after it ends, and that link must not lead to "not found". `active` is false when everything there has ended.
+ */
+export async function getCityWithListings(slug: string): Promise<{ city: City; active: boolean } | undefined> {
+  const db = getDb();
+  const [row] = await db.select().from(cities).where(and(eq(cities.slug, slug), or(
+    exists(db.select({ x: sql`1` }).from(products).where(and(eq(products.cityId, cities.id), eq(products.status, 'APPROVED')))),
+    exists(db.select({ x: sql`1` }).from(workshops).where(and(eq(workshops.cityId, cities.id), eq(workshops.status, 'APPROVED')))),
+  ))).limit(1);
+  if (!row) return undefined;
+  return { city: toCity(row), active: (await listActiveCities()).some(c => c.id === row.id) };
+}
+
 const ACTIVE_TTL_MS = 60_000;
 let activeCache: { at: number; rows: City[] } | null = null;
 /** The home page's city list, kept in memory for a minute so the page does not wait on this query every visit. Everything else uses the live list. */
