@@ -1771,6 +1771,15 @@ a.maker-head:hover .maker-name {
 .admin-shell {
   min-height: 60vh;
 }
+/* Which commit is live: one quiet line under every admin page. */
+.admin-build {
+  margin: 0;
+  padding: 0 8.5% 28px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.admin-build code { font: inherit; font-weight: 600; }
 .admin-grid-solo { grid-template-columns: minmax(0, 1fr) !important; }
 .admin-grid {
   display: grid;

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AdminTabs } from '@/components/AdminTabs';
+import { BuildNote } from '@/components/BuildNote';
 import { requireStaffPage } from '@/lib/admin-page';
 
 export const metadata: Metadata = { title: { absolute: 'Dashboard | Craftofy' }, robots: { index: false, follow: false } };
@@ -12,6 +13,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* A seller has a single page, so the breadcrumb is their way back; the tabs are for admins only. */}
       {user.role === 'admin' && <AdminTabs />}
       {children}
+      {user.role === 'admin' && <BuildNote />}
     </div>
   );
 }

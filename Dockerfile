@@ -18,6 +18,10 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public
+# Which commit this image is, shown to admins in the dashboard and at /api/admin/version. `npm run docker:up` passes both from git.
+ARG APP_COMMIT=unknown
+ARG APP_BUILT_AT=
+ENV APP_COMMIT=$APP_COMMIT APP_BUILT_AT=$APP_BUILT_AT
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=3 \
