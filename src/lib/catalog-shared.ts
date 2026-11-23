@@ -16,6 +16,10 @@ export const DEFAULT_SOURCING_TYPES = [
 export const DEFAULT_HOME_PRODUCT_LIMIT = 30;
 export const MIN_HOME_PRODUCT_LIMIT = 4;
 export const MAX_HOME_PRODUCT_LIMIT = 48;
+/** The home page's workshop section only appears once at least this many workshops are on (0 = always). An admin can change it (Settings > Home page). */
+export const DEFAULT_HOME_MIN_WORKSHOPS = 10;
+export const MIN_HOME_MIN_WORKSHOPS = 0;
+export const MAX_HOME_MIN_WORKSHOPS = 100;
 /** How many products /shop shows at first and adds per scroll (three rows of four). */
 export const SHOP_PAGE_SIZE = 12;
 export const PRODUCTS_PAGE_MAX = 48;

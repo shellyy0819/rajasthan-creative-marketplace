@@ -81,17 +81,7 @@ async function HomeSections() {
         <Suspense fallback={null}><HomeShelf /></Suspense>
       </section>
       <Suspense fallback={null}><ShopByCategory /></Suspense>
-      <section className="workshop-band" id="workshops" aria-labelledby="ws-h">
-        <div className="workshop-intro">
-          <span className="eyebrow">OUT OF THE SCROLL, INTO THE STUDIO</span>
-          <h2 id="ws-h">Make time for<br /><em>making things.</em></h2>
-          <p>Find friendly workshops, creative meetups and pop-up experiences hosted by local makers and venues.</p>
-        </div>
-        <div className="workshop-feed">
-          <div className="workshop-feed-head"><Link className="text-link" href="/workshops">All workshops →</Link></div>
-          <Suspense fallback={null}><HomeWorkshops /></Suspense>
-        </div>
-      </section>
+      <Suspense fallback={null}><HomeWorkshops /></Suspense>
       <Suspense fallback={null}><TrendingWorkshopsSection /></Suspense>
       <section className="maker-cta" id="makers">
         <div className="cta-flower" aria-hidden="true">✿</div>
