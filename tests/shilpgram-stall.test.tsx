@@ -24,7 +24,8 @@ describe('the Shilpgram stall is a look that is switched on and off like any the
     const everyday = renderToStaticMarkup(<HeroStall />);
     expect(everyday).not.toContain('hero-stall-shilpgram');
     expect(everyday).toContain('Craftofy · Handmade'); // the plain stall's own signboard
-    expect(everyday).toContain('class="st-crowd"');
+    expect(everyday).not.toContain('class="st-crowd"'); // the walking stops with the Shilpgram look...
+    expect(everyday).toContain('class="st-bob b1"'); // ...and the standing shoppers are back
   });
   it('is drawn when its theme is live: the village stall instead of the market stall, with the crowd still in front', () => {
     expect(shil).toContain('hero-stall-shilpgram');

@@ -1,9 +1,10 @@
-import { HomeCraftExplorer } from './HomeCraftExplorer';
-import { getCatalogWording } from '@/lib/catalog-wording';
+import { ProductGrid } from './ProductGrid';
 import { getHomeShelf } from '@/lib/home-cache';
 
-/** Loads the home-page catalogue (first page and category counts, cached for a minute, see home-cache) by itself so the page can stream it. */
+/**
+ * A short, fixed taste of the catalogue (the "Browse & filter all" link next to it opens /shop). No category tabs and no scrolling for more here:
+ * filtering and paging live on /shop. Loaded by itself (cached for a minute, see home-cache) so the page can stream it.
+ */
 export async function HomeShelf() {
-  const [{ items, categories }, wording] = await Promise.all([getHomeShelf(), getCatalogWording()]);
-  return <HomeCraftExplorer initialItems={items} categories={categories} emptyMessage={`No ${wording.finds} yet. Check back soon.`} />;
+  return <ProductGrid products={await getHomeShelf()} emptyMessage="No finds yet. Check back soon." />;
 }

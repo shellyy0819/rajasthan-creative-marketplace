@@ -51,10 +51,10 @@ describe('the workshops loading state', () => {
   it('shows the static top of the page at once: breadcrumbs, eyebrow, title, intro and the line about what can be listed', () => {
     render(<WorkshopsLoading />);
     expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toContain('Workshops');
-    expect(screen.getByRole('heading', { level: 1, name: 'Creative workshops & pop-ups' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Creative workshops in India' })).toBeTruthy();
     expect(screen.getByText('OUT OF THE SCROLL, INTO THE STUDIO')).toBeTruthy();
-    expect(screen.getByText(/Hands-on workshops, creative meetups and pop-ups hosted by local studios/)).toBeTruthy();
-    expect(screen.getByText(/^You can list /)).toBeTruthy();
+    expect(screen.getByText(/^Planning a trip to India\? Make time for a hands-on workshop with local makers/)).toBeTruthy();
+    expect(screen.getByText(/^Hosting one for visitors and locals\? You can list /)).toBeTruthy();
   });
   it('holds the button, the filters and four list rows as placeholders, with no spinner', () => {
     const { container } = render(<WorkshopsLoading />);
@@ -67,7 +67,7 @@ describe('the workshops loading state', () => {
   it('matches the real page: the same heading structure and copy as app/workshops/page.tsx (source contract)', () => {
     const page = fs.readFileSync('src/app/workshops/page.tsx', 'utf8');
     const loading = fs.readFileSync('src/app/workshops/loading.tsx', 'utf8');
-    for (const marker of ['<div className="page-head ws-head">', 'OUT OF THE SCROLL, INTO THE STUDIO', '<h1>Creative workshops &amp; pop-ups</h1>', 'Hands-on workshops, creative meetups and pop-ups hosted by local studios and cafés.', '<p className="ws-supports">{supportLine()}</p>']) {
+    for (const marker of ['<div className="page-head ws-head">', 'OUT OF THE SCROLL, INTO THE STUDIO', '<h1>Creative workshops in India</h1>', 'Planning a trip to India? Make time for a hands-on workshop with local makers: try a craft, meet the people behind it and take home a memory made by hand.', '<p className="ws-supports">{supportLine()}</p>']) {
       expect(page).toContain(marker);
       expect(loading).toContain(marker);
     }

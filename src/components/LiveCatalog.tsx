@@ -10,7 +10,7 @@ import { ProductGrid } from './ProductGrid';
 import { RemovableChip } from './RemovableChip';
 import { WorkshopList } from './WorkshopList';
 
-type Values = { city?: string; category?: string; source?: string; type?: string; q?: string; mode?: string };
+type Values = { city?: string; category?: string; source?: string; type?: string; q?: string; mode?: string; status?: string };
 type CityOption = { name: string; slug: string; state?: string };
 /** `cities` are the active cities (from the server), offered in the city filter by slug (labelled with the state when a name repeats). */
 type Props =
@@ -30,6 +30,7 @@ function buildQs(v: Values, selectKey: 'category' | 'type'): string {
   if (v[selectKey]) sp.set(selectKey, v[selectKey]!);
   if (selectKey === 'category' && v.source) sp.set('source', v.source);
   if (selectKey === 'type' && v.mode) sp.set('mode', v.mode);
+  if (selectKey === 'type' && v.status) sp.set('status', v.status);
   const q = (v.q ?? '').trim();
   if (q) sp.set('q', q);
   return sp.toString();
@@ -95,6 +96,7 @@ export function LiveCatalog(props: Props) {
     if (p.get('city')) filters.city = p.get('city')!;
     if (p.get('type')) filters.price_type = p.get('type')!;
     if (p.get('mode')) filters.format = p.get('mode')!;
+    if (p.get('status')) filters.status = p.get('status')!;
     if (p.get('q')) filters.q = p.get('q')!;
     gaWorkshopList({ filters, previous: reported.current?.filters, count: items.length });
     reported.current = { applied, filters };
@@ -129,7 +131,7 @@ export function LiveCatalog(props: Props) {
 
   // The filters in use (as applied to the results), each a removable chip, with one Clear all.
   const inUse = new URLSearchParams(applied);
-  const FORMAT: Record<string, string> = { FREE: 'Free', PAID: 'Paid', in_person: 'In person', online: 'Online' };
+  const FORMAT: Record<string, string> = { FREE: 'Free', PAID: 'Paid', in_person: 'In person', online: 'Online', open: 'Open', ended: 'Ended' };
   const appliedCity = inUse.get('city') ?? '';
   const appliedCityMatch = props.cities.find(c => c.slug === appliedCity.toLowerCase()) ?? props.cities.find(c => c.name.toLowerCase() === appliedCity.trim().toLowerCase());
   const chips: { key: keyof Values; label: string }[] = [
@@ -139,6 +141,7 @@ export function LiveCatalog(props: Props) {
     ...(inUse.get('source') ? [{ key: 'source' as const, label: inUse.get('source')! }] : []),
     ...(inUse.get('type') ? [{ key: 'type' as const, label: FORMAT[inUse.get('type')!] ?? inUse.get('type')! }] : []),
     ...(inUse.get('mode') ? [{ key: 'mode' as const, label: FORMAT[inUse.get('mode')!] ?? inUse.get('mode')! }] : []),
+    ...(inUse.get('status') ? [{ key: 'status' as const, label: FORMAT[inUse.get('status')!] ?? inUse.get('status')! }] : []),
   ];
   const removeFilter = (key: keyof Values) => { setDelay(0); setValues(v => ({ ...v, [key]: '' })); };
 
@@ -179,6 +182,13 @@ export function LiveCatalog(props: Props) {
           <option value="">In person &amp; online</option>
           <option value="in_person">In person</option>
           <option value="online">Online</option>
+        </select>
+      )}
+      {kind === 'workshops' && (
+        <select name="status" value={values.status ?? ''} onChange={e => set({ status: e.target.value }, 0)} aria-label="Filter by status">
+          <option value="">Open &amp; ended</option>
+          <option value="open">Open</option>
+          <option value="ended">Ended</option>
         </select>
       )}
       <button type="submit">Search</button>

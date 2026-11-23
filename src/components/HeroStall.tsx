@@ -1,5 +1,4 @@
 import { StickerLayer } from './theme/StickerLayer';
-import { StallCrowd } from './StallCrowd';
 import { Fitted, StallBadge, StallBoard } from './StallParts';
 import { ShilpgramStall } from './ShilpgramStall';
 import { EVERYDAY, type StallArt } from '@/lib/themes/presets';
@@ -246,8 +245,7 @@ export function HeroStall({ sign = D.sign, chalkLabel = D.chalkLabel, chalkTitle
       <rect x="556" y="552" width="36" height="7" rx="3" className="st-f-mustard"/>
       <path d="M544 596C540 584 544 574 554 572H560L558 596Z" className="st-f-terra"/>
 
-      {/* The four still shoppers: shown only to visitors who asked for less motion. Everyone else sees these four walking about (StallCrowd), so nobody in the picture stands still. */}
-      <g className="st-still">
+      {/* shoppers */}
       <g transform="translate(140 0)"><g className="st-bob b1">
       <rect x="-8" y="620" width="7" height="38" rx="2" className="st-f-sage"/><rect x="1" y="620" width="7" height="38" rx="2" className="st-f-sage"/>
       <ellipse cx="-5" cy="660" rx="6" ry="3" className="st-f-board"/><ellipse cx="5" cy="660" rx="6" ry="3" className="st-f-board"/>
@@ -296,7 +294,6 @@ export function HeroStall({ sign = D.sign, chalkLabel = D.chalkLabel, chalkTitle
       <circle cx="0" cy="553" r="11" className="st-f-hair"/><circle cx="-11" cy="555" r="2" className="st-f-skin"/><circle cx="11" cy="555" r="2" className="st-f-skin"/>
       <path d="M-11 578L-16 606" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" className="st-s-skin"/><path d="M11 578L22 566L24 552" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" className="st-s-skin"/><rect x="21" y="540" width="7" height="12" rx="1.5" className="st-f-board"/><path d="M32 546q5 6 0 12M36 543q8 9 0 18" fill="none" strokeWidth="1.3" className="st-s-mustard st-blink"/>
       </g></g>
-      </g>
       {/* easel sign: drawn only when it has words, and a link when the admin gave it somewhere to go */}
       {hasChalkboard({ chalkLabel, chalkTitle, chalkSub }) && <StallBoard {...{ chalkLabel, chalkTitle, chalkSub, chalkHref }} />}
       {/* badge */}
@@ -307,8 +304,6 @@ export function HeroStall({ sign = D.sign, chalkLabel = D.chalkLabel, chalkTitle
 
       <StickerLayer placements={stickers} />
 
-      {/* people walking past, and buyers being served: drawn last so nothing in the picture covers them (CSS only; hidden with reduced motion) */}
-      <StallCrowd />
     </svg>
   );
 }

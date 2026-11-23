@@ -75,7 +75,7 @@ async function HomeSections() {
       <Suspense fallback={null}><TrendingSection /></Suspense>
       <section className="section" id="shop" aria-labelledby="shop-h">
         <div className="section-heading">
-          <div><span className="eyebrow">THE MAKERS&apos; SHELF</span><h2 id="shop-h">{capitalize(wording.finds)}</h2></div>
+          <div><span className="eyebrow">THE MAKERS&apos; SHELF</span><h2 id="shop-h">Finds</h2></div>
           <Link className="text-link" href="/shop">Browse &amp; filter all →</Link>
         </div>
         <Suspense fallback={null}><HomeShelf /></Suspense>

@@ -295,6 +295,33 @@ describe('LiveCatalog (workshops)', () => {
   });
 });
 
+describe('LiveCatalog (workshops): open and ended', () => {
+  const chipNames = () => [...document.querySelectorAll('.filter-chips .chip-x')].map(b => b.getAttribute('aria-label'));
+  it('has a status menu (open and ended) on the workshops list only, sends it as ?status=, shows a chip and removes it', async () => {
+    fetchMock.mockReturnValue(reply([ws('w3', 'Past pop-up')]));
+    renderCat(<LiveCatalog cities={CITIES} kind="workshops" initialItems={[ws('w1', 'Old') as any]} initialValues={{}} />);
+    const menu = screen.getByLabelText('Filter by status') as HTMLSelectElement;
+    expect([...menu.options].map(o => o.textContent)).toEqual(['Open & ended', 'Open', 'Ended']);
+    fireEvent.change(menu, { target: { value: 'ended' } });
+    await flush(0);
+    expect(fetchMock.mock.calls.at(-1)![0]).toBe('/api/workshops?status=ended');
+    expect(screen.getByText('Past pop-up')).toBeTruthy();
+    expect(chipNames()).toEqual(['Remove Ended']);
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Ended' }));
+    await flush(0);
+    expect(chipNames()).toEqual([]); // back to the unfiltered list the page handed over, so nothing more to fetch
+    expect((screen.getByLabelText('Filter by status') as HTMLSelectElement).value).toBe('');
+  });
+  it('a link with ?status=open opens with the menu and chip already set; the shop has no status menu', () => {
+    renderCat(<LiveCatalog cities={CITIES} kind="workshops" initialItems={[ws('w1', 'Old') as any]} initialValues={{ status: 'open' }} />);
+    expect((screen.getByLabelText('Filter by status') as HTMLSelectElement).value).toBe('open');
+    expect(chipNames()).toEqual(['Remove Open']);
+    cleanup();
+    renderCat(<LiveCatalog cities={CITIES} kind="products" initialItems={[]} initialValues={{}} />);
+    expect(screen.queryByLabelText('Filter by status')).toBeNull();
+  });
+});
+
 describe('loader', () => {
   const pending = async (kind: 'products' | 'workshops') => {
     let release!: (v: Response) => void;

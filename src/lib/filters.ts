@@ -1,5 +1,5 @@
 type SP = Record<string, string | string[] | undefined>;
-export type Filters = { city?: string; category?: string; source?: string; q?: string; type?: 'FREE' | 'PAID'; mode?: 'in_person' | 'online' };
+export type Filters = { city?: string; category?: string; source?: string; q?: string; type?: 'FREE' | 'PAID'; mode?: 'in_person' | 'online'; /** Workshops: only the ones still on, or only the ended ones; left out, both. */ status?: 'open' | 'ended' };
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
@@ -18,6 +18,8 @@ export function parseFilters(sp: SP): Filters {
   if (type === 'FREE' || type === 'PAID') out.type = type;
   const mode = first(sp.mode);
   if (mode === 'in_person' || mode === 'online') out.mode = mode;
+  const status = first(sp.status);
+  if (status === 'open' || status === 'ended') out.status = status;
   const q = (first(sp.q) ?? '').trim().slice(0, 100);
   if (q) out.q = q;
   return out;
