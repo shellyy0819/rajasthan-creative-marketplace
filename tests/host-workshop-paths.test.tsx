@@ -76,14 +76,42 @@ describe('step 1: what are you hosting?', () => {
 });
 
 describe('step 2 and 3 on the online class path', () => {
-  it('asks for platform, days, time, duration and price plans, and not city, venue or seats', () => {
+  it('asks for platform, days, time, duration and price plans, and an optional city, but not venue or seats', () => {
     openClass(); classStep1(); next();
     expect(stepText()).toBe('Step 2 of 3');
     for (const l of [/online platform/i, /start date/i, /class time/i, /duration/i]) expect(screen.getByLabelText(l)).toBeTruthy();
     for (const d of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) expect(screen.getByLabelText(d)).toBeTruthy();
     expect(screen.queryByLabelText(/venue/i)).toBeNull();
-    expect(screen.queryByLabelText(/^city/i)).toBeNull();
+    expect((screen.getByLabelText(/^city/i) as HTMLInputElement).required).toBe(false); // optional: the instructor may leave it empty
+    expect(screen.getByText(/the city you teach from/i)).toBeTruthy();
     expect(screen.queryByLabelText(/^seats/i)).toBeNull();
+  });
+  it('Next does not need the city', () => {
+    openClass(); classStep1(); next(); classStep2(); next();
+    expect(stepText()).toBe('Step 3 of 3');
+  });
+  it('sends the chosen city with an online class, and nothing when it is left empty', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'r1', email: 'asha@example.com', status: 'pending' }) });
+    const fill = () => {
+      val('Topic', '1'); classStep1(); next(); classStep2();
+      fireEvent.change(screen.getByLabelText('Plan 1 name'), { target: { value: 'Monthly' } });
+      fireEvent.change(screen.getByLabelText('Plan 1 price (Rs.)'), { target: { value: '1500' } });
+      fireEvent.change(screen.getByLabelText('Plan 1 sessions'), { target: { value: '12' } });
+    };
+    const finish = () => {
+      next();
+      val(/host, studio/i, 'Asha Yoga'); val(/your name/i, 'Asha Rao'); val(/phone number/i, '9989898999'); val(/^email/i, 'asha@example.com');
+      fireEvent.click(screen.getByRole('combobox', { name: /languages/i })); fireEvent.click(screen.getByRole('option', { name: 'Hindi' }));
+      val(/whatsapp/i, '9989898999');
+      fireEvent.click(screen.getByRole('button', { name: /send details/i }));
+    };
+    openClass(); fill(); val(/^city/i, 'signed-ref-1'); finish();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ mode: 'online', cityRef: 'signed-ref-1' });
+    cleanup(); fetchMock.mockClear();
+    openClass(); fill(); finish();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).not.toHaveProperty('cityRef');
   });
   it('Next needs at least one class day', () => {
     openClass(); classStep1(); next();

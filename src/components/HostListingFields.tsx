@@ -96,6 +96,8 @@ export function ClassWhenAndPrice({ startDate, setStartDate, rows, setRows, repe
     <>
       <label><span className="lbl">Online platform</span><input name="platform" list="host-platforms" required maxLength={60} placeholder="Zoom, Google Meet…" autoCapitalize="words" enterKeyHint="next" /><FieldError errors={errors} name="platform" /></label>
       <datalist id="host-platforms"><option value="Zoom" /><option value="Google Meet" /><option value="Microsoft Teams" /></datalist>
+      <label>City (optional)<CityInput valueFormat="name" /></label>
+      <p className="form-note">The city you teach from. It helps us see where our instructors are. It is never shown on the website.</p>
       <label>Meeting link (optional)<input name="joinLink" type="url" inputMode="url" maxLength={500} placeholder="https://zoom.us/j/…" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /><FieldError errors={errors} name="joinLink" /></label>
       <p className="form-note">Private: only our team sees it. It is never shown on the website.</p>
       <div className="admin-form-row">

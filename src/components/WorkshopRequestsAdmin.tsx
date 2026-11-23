@@ -35,7 +35,7 @@ export function WorkshopRequestsAdmin({ requests }: { requests: WorkshopRequest[
                   {r.mode === 'online' && r.certifications && <div className="muted request-rich"><small>Certifications</small><RichText value={r.certifications} /></div>}
                   {r.notes && <><br /><small className="muted">Note: {r.notes}</small></>}</td>
                 <td>{dates(r)}</td>
-                <td>{r.mode === 'online' ? <>{`Online${r.platform ? ` · ${r.platform}` : ''}`}{r.joinLink && <><br /><a href={r.joinLink} target="_blank" rel="noreferrer">Meeting link</a></>}</> : `${r.venue}, ${r.city}`}</td>
+                <td>{r.mode === 'online' ? <>{`Online${r.platform ? ` · ${r.platform}` : ''}`}{r.city && <><br /><small className="muted">Instructor in {r.city}</small></>}{r.joinLink && <><br /><a href={r.joinLink} target="_blank" rel="noreferrer">Meeting link</a></>}</> : `${r.venue}, ${r.city}`}</td>
                 <td>{r.prices.length ? summarizePrices(r.prices).all.map(p => <div key={p}>{p}</div>) : <>{r.mode === 'online' ? '' : `${r.seats ?? 'Open'} · `}{r.priceType === 'PAID' && r.pricePaise != null ? `Rs. ${r.pricePaise / 100}` : 'Free'}</>}</td>
                 <td>{r.hostName}<br />{r.instagram && <a href={instagramUrl(r.instagram)} target="_blank" rel="noreferrer">{r.instagram}</a>}{site && <> <a href={site} target="_blank" rel="noreferrer">{site.replace(/^https?:\/\//i, '')}</a></>}</td>
                 <td>{r.images.length ? r.images.map((u, i) => <a key={u} href={u} target="_blank" rel="noreferrer">{i ? ', ' : ''}Photo {i + 1}</a>) : '—'}</td>

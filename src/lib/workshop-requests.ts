@@ -91,7 +91,7 @@ function requestImages(v: unknown): string[] {
   return urls;
 }
 
-/** The city must be a pick from the city search (signed reference); stored as "Name, State". */
+/** The city must be a pick from the city search (signed reference); stored as "Name, State". An online class may leave it out (it is optional and only tracks where the instructor is from). */
 function cityLabel(ref: unknown): string {
   const c = verifyCityRef(ref); // 400 "Invalid city selection." for anything else
   return c.state ? `${c.name}, ${c.state}` : c.name;
@@ -127,7 +127,7 @@ export async function createWorkshopRequest(input: unknown): Promise<WorkshopReq
   }
   const [row] = await getDb().insert(workshopRequests).values({
     hostName: text(raw.hostName, 'hostName', 150), contactName: text(raw.contactName, 'contactName', 100), phone: `+91${phone.slice(-10)}`, phonePublic, email,
-    city: online ? null : cityLabel(raw.cityRef), venue: online ? null : text(raw.venue, 'venue', 300), title: text(raw.title, 'title', 150),
+    city: online ? (raw.cityRef === undefined || raw.cityRef === null || raw.cityRef === '' ? null : cityLabel(raw.cityRef)) : cityLabel(raw.cityRef), venue: online ? null : text(raw.venue, 'venue', 300), title: text(raw.title, 'title', 150),
     kind: l.kind, mode: l.mode, topicId: l.topicId, description: text(raw.description, 'description', 2000),
     startDate, endDate, startTime: startTime ?? null, endTime: endTime ?? null, seats, priceType, pricePaise,
     instagram: l.instagram, website: l.website, notes: optionalText(raw.notes, 'notes', 2000) ?? null, images: requestImages(raw.images),

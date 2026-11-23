@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { workshopRequests, workshopTopics } from '@/db/schema';
 import { setMailSenderForTests } from '@/lib/mailer';
+import { signCityRef } from '@/lib/city-ref';
 import { createWorkshopRequest, KIND_LABEL, listWorkshopRequests, verifyWorkshopRequestCode, type WorkshopRequest } from '@/lib/workshop-requests';
 import { notificationMail } from '@/lib/workshop-notify';
 import { getTestDb, resetTestDb } from './helpers/testdb';
@@ -33,6 +34,20 @@ describe('an online class request', () => {
     const r = await createWorkshopRequest({ ...online(), venue: 'Somewhere', seats: 10 });
     const [row] = await (await getTestDb()).select().from(workshopRequests).where(eq(workshopRequests.id, r.id));
     expect(row).toMatchObject({ city: null, venue: null, seats: null });
+  });
+  it('keeps an optional city for an online class, from the city search, to see where instructors are from', async () => {
+    const cityRef = signCityRef({ osmType: 'R', osmId: 2, name: 'Udaipur', state: 'Rajasthan', lat: 24.58, lng: 73.68 });
+    const r = await createWorkshopRequest({ ...online(), cityRef });
+    expect(r.city).toBe('Udaipur, Rajasthan');
+    const [row] = await (await getTestDb()).select().from(workshopRequests).where(eq(workshopRequests.id, r.id));
+    expect(row).toMatchObject({ city: 'Udaipur, Rajasthan', venue: null, seats: null });
+  });
+  it('an online class may leave the city out (empty or missing), but a made-up one is refused', async () => {
+    for (const cityRef of [undefined, null, '']) {
+      const r = await createWorkshopRequest({ ...online(), cityRef });
+      expect(r.city).toBe('');
+    }
+    await expect(createWorkshopRequest({ ...online(), cityRef: 'Udaipur' })).rejects.toMatchObject({ status: 400, message: 'Invalid city selection.' });
   });
   it('with no end date the classes end on the start date', async () => {
     const r = await createWorkshopRequest(online());
