@@ -79,3 +79,13 @@ describe('the Fair players admin page (source contract)', () => {
     expect(tabs.indexOf("'/dashboard/fair-players'")).toBeLessThan(tabs.indexOf("'/dashboard/trending'"));
   });
 });
+
+describe('the privacy page says what the fair keeps', () => {
+  const privacy = fs.readFileSync('src/app/privacy/page.tsx', 'utf8');
+  it('names the fair play record, the player code and 90 days, and flags consent for counsel', () => {
+    expect(privacy).toContain('<b>Fair play.</b>');
+    expect(privacy).toContain('random player code');
+    expect(privacy).toMatch(/Fair play records: 90 days/);
+    expect(privacy).toMatch(/\[Counsel to confirm whether the fair play record needs consent\.\]/);
+  });
+});
