@@ -1,17 +1,19 @@
 :root {
   --font-display: var(--font-sans), sans-serif;
   --ink: #252a24;
-  --muted: #77796f;
+  --muted: #666860;
   --paper: #f8f4ee;
   --cream: #eee5d8;
   --green: #405746;
   --on-green: #fff;
   --orange: #c66b43;
+  /* Small orange text (eyebrows, labels): a deeper orange that keeps 4.5:1 on the paper, cream and card surfaces. --orange stays for fills, borders and large headings. */
+  --orange-text: #9a4a28;
   --line: #e5ddd1;
   --white: #fffdf9;
   --control-border: #cfc5b7;
   --backdrop: #0b0e0ae6; /* behind every modal: near black, so it dims the dark theme too */
-  --muted-2: #6e7068;
+  --muted-2: #5f6158;
   --bar-bg: #f8f4eef2;
   --veil: #f8f4eecc;
   --sand: #e7d5bd;
@@ -80,6 +82,7 @@
     --green: #5f8167;
     --banner-bg: #4d6b54;
     --orange: #e0865c;
+    --orange-text: var(--orange);
     --line: #2d362f;
     --white: #1d241e;
     --control-border: #3d483f;
@@ -148,6 +151,7 @@
   --green: #5f8167;
   --banner-bg: #4d6b54;
   --orange: #e0865c;
+  --orange-text: var(--orange);
   --line: #2d362f;
   --white: #1d241e;
   --control-border: #3d483f;
@@ -291,7 +295,7 @@ nav {
 }
 nav a:hover,
 .text-link:hover {
-  color: var(--orange);
+  color: var(--orange-text);
 }
 .theme-toggle {
   display: grid;
@@ -308,7 +312,7 @@ nav a:hover,
 }
 .theme-toggle:hover {
   background: var(--cream);
-  color: var(--orange);
+  color: var(--orange-text);
 }
 .theme-sun { display: none; }
 :root[data-theme="dark"] .theme-moon { display: none; }
@@ -368,7 +372,7 @@ nav .seller-login-btn {
   font-size: 9px;
   letter-spacing: 2px;
   font-weight: 700;
-  color: var(--orange);
+  color: var(--orange-text);
 }
 h1,
 h2,
@@ -627,7 +631,7 @@ h2 em {
 .filters:has(+ .filter-chips) { margin-bottom: 14px; }
 /* Clear all: plain underlined text, no background (a bare button would be painted grey by the browser). */
 .filter-chips .text-link { padding: 6px 4px; border: 0; background: none; color: var(--ink); font: 600 12px var(--font-sans); text-decoration: underline; cursor: pointer; }
-.filter-chips .text-link:hover { color: var(--orange); }
+.filter-chips .text-link:hover { color: var(--orange-text); }
 .filters input,
 .filters select,
 .workshop-controls input,
@@ -695,7 +699,7 @@ h2 em {
 }
 .product-meta {
   font-size: 9px;
-  color: var(--orange);
+  color: var(--orange-text);
   letter-spacing: 0.8px;
   text-transform: uppercase;
 }
@@ -1381,7 +1385,7 @@ form label select {
   margin-right: 8px;
 }
 .crumbs a:hover {
-  color: var(--orange);
+  color: var(--orange-text);
 }
 .page-head {
   padding: 56px 8.5% 12px;
@@ -1480,7 +1484,7 @@ form label select {
   gap: 14px;
 }
 a.maker-head:hover .maker-name {
-  color: var(--orange);
+  color: var(--orange-text);
 }
 .maker-avatar {
   flex: none;
@@ -1501,7 +1505,7 @@ a.maker-head:hover .maker-name {
   min-width: 0;
 }
 .maker-eyebrow {
-  color: var(--orange);
+  color: var(--orange-text);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.8px;
@@ -1611,7 +1615,7 @@ a.maker-head:hover .maker-name {
 }
 .link-row a:hover {
   border-color: var(--orange);
-  color: var(--orange);
+  color: var(--orange-text);
 }
 .product-card {
   position: relative;
@@ -2038,7 +2042,7 @@ a.maker-head:hover .maker-name {
 .admin-form legend {
   font-size: 10px;
   letter-spacing: 1px;
-  color: var(--orange);
+  color: var(--orange-text);
   font-weight: 700;
   padding: 0 6px;
 }
@@ -2401,7 +2405,7 @@ label:has(> .place-field > :required) > .lbl::after {
     sans-serif;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--orange);
+  color: var(--orange-text);
   margin: 18px 0 6px;
 }
 .pd-grid {
@@ -2684,7 +2688,7 @@ main {
 }
 .like-btn:hover {
   border-color: var(--orange);
-  color: var(--orange);
+  color: var(--orange-text);
 }
 .like-btn.liked {
   color: var(--like);
@@ -2912,7 +2916,7 @@ main {
 }
 .footer-col a:hover,
 .footer-col .cookie-settings:hover {
-  color: var(--orange);
+  color: var(--orange-text);
   text-decoration: underline;
 }
 .footer-base {
@@ -4744,7 +4748,7 @@ body.modal-open {
 .profile-tags span { font: 600 11px var(--font-sans), sans-serif; padding: 4px 11px; border-radius: 30px; background: var(--chip-sand); color: var(--chip-sand-ink); }
 .profile-tags span:last-child:not(:first-child) { background: var(--chip-green); color: var(--green-d); }
 .profile-section { margin-top: 18px; }
-.profile-sub { font: 700 10px var(--font-sans), sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--orange); margin: 0 0 8px; }
+.profile-sub { font: 700 10px var(--font-sans), sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--orange-text); margin: 0 0 8px; }
 .profile-bio { margin: 0; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
 .profile-view { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 24px; }
 .profile-view .wide { grid-column: 1 / -1; }
@@ -5086,7 +5090,7 @@ button.fair-opt:hover { background: var(--cream); }
   pointer-events: auto;
 }
 .scroll-top:hover {
-  color: var(--orange);
+  color: var(--orange-text);
   border-color: var(--orange);
 }
 @media (max-width: 600px) {
@@ -5131,7 +5135,7 @@ button.fair-opt:hover { background: var(--cream); }
 }
 .req-done-eyebrow {
   margin: 10px 0 0;
-  color: var(--orange);
+  color: var(--orange-text);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.8px;
@@ -5216,7 +5220,7 @@ button.fair-opt:hover { background: var(--cream); }
   height: 24px;
   border-radius: 50%;
   background: color-mix(in srgb, var(--orange) 16%, var(--white));
-  color: var(--orange);
+  color: var(--orange-text);
   font-size: 12px;
   font-weight: 700;
 }
@@ -5233,7 +5237,7 @@ button.fair-opt:hover { background: var(--cream); }
   }
 }
 .enquiry-maker {
-  color: var(--orange);
+  color: var(--orange-text);
 }
 /* The maker's address in the email form: a grey read-only field. The text can be selected and copied, but it is not a tab stop and shows no focus ring. */
 .enquiry-to input {

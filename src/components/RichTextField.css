@@ -5,7 +5,7 @@
 .rich-box[data-invalid='true'] { border-color: var(--danger); }
 .rich-toolbar { display: flex; gap: 2px; padding: 4px; border-bottom: 1px solid var(--line); }
 .rich-btn { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid transparent; border-radius: 3px; background: transparent; color: var(--ink); cursor: pointer; }
-.rich-btn:hover { background: var(--cream); color: var(--orange); }
+.rich-btn:hover { background: var(--cream); color: var(--orange-text); }
 .rich-btn[aria-pressed='true'] { background: var(--chip-green); border-color: var(--control-border); color: var(--green-d); }
 .rich-editor { min-height: 64px; max-height: 220px; overflow-y: auto; padding: 11px; font: 12px/1.6 var(--font-sans), sans-serif; color: var(--ink); outline-offset: -2px; }
 .rich-editor p { margin: 0; }

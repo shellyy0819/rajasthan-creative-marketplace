@@ -20,3 +20,19 @@ export function onColor(bg: string): '#FFFFFF' | '#1B1B1B' {
 }
 
 export const passesContrast = (primary: string): boolean => contrastRatio(primary, onColor(primary)) >= 4.5;
+
+/** The surfaces small text sits on in light mode (paper, white, cream, card): a text colour must keep its contrast on the weakest of them. */
+export const LIGHT_SURFACES: readonly string[] = ['#f8f4ee', '#fffdf9', '#eee5d8', '#f9f7f0'];
+
+/**
+ * `hex` made as little darker as needed (same hue, scaled toward black) so it reaches `min`:1 on every surface. Used for the small orange text of a
+ * festive look, whose accent can be as light as amber. A colour that already passes is returned as given (upper-cased).
+ */
+export function readableOnLight(hex: string, min = 4.5, surfaces: readonly string[] = LIGHT_SURFACES): string {
+  const rgb = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  for (let k = 100; k >= 0; k--) {
+    const out = '#' + rgb.map((c) => Math.round((c * k) / 100).toString(16).padStart(2, '0')).join('').toUpperCase();
+    if (surfaces.every((bg) => contrastRatio(out, bg) >= min)) return out;
+  }
+  return '#000000';
+}
