@@ -1,4 +1,5 @@
 'use client';
+import { gaFairActivityStart, gaFairQuestComplete, gaFairShortlistAdd, gaFairStallOpen } from '@/lib/ga-events';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CODE_RE } from '@/lib/fair-constants';
 import { characterFor, formatCode, lookFor, normalizeCode } from '@/lib/fair-characters';
@@ -181,7 +182,7 @@ export function FairGame({ data, diyas = true, schedule }: { data: FairData; diy
     if (!r.completed.length && r.state === qsRef.current) return;
     qsRef.current = r.state; setQs(r.state);
     const done = quests.filter(q => isDone(r.state, q)).length;
-    if (r.completed.length) { notify(done === quests.length ? 'All three quests done! You earned a marigold garland.' : `Quest done: ${r.completed[0].title}`); play(done === quests.length ? 'garland' : 'quest'); }
+    if (r.completed.length) { r.completed.forEach(q => gaFairQuestComplete({ questId: q.id, done, total: quests.length })); notify(done === quests.length ? 'All three quests done! You earned a marigold garland.' : `Quest done: ${r.completed[0].title}`); play(done === quests.length ? 'garland' : 'quest'); }
   }, [quests, notify, play]);
   const visit = useCallback((id: string, name: string) => {
     setProfile(p => (p.met.includes(id) ? p : { ...p, met: [...p.met, id] }));
@@ -191,7 +192,7 @@ export function FairGame({ data, diyas = true, schedule }: { data: FairData; diy
   const handlers = useRef<EngineCallbacks>({ onNearest() {}, onOpenStall() {}, onOpenMirror() {}, onToast() {}, onEvent() {}, onMoved() {}, onPhase() {}, onCrowd() {}, onSfx() {}, onCraft() {}, onOpenActivity() {} });
   handlers.current = {
     onNearest: i => setNearIdx(i),
-    onOpenStall: slot => { if (slot.place) setSheet({ kind: slot.place }); else if (!slot.maker) setSheet({ kind: 'open', label: slot.label }); else { visit(slot.maker.id, slot.maker.name); setSheet({ kind: 'stall', idx: slot.idx }); } },
+    onOpenStall: slot => { if (slot.place) setSheet({ kind: slot.place }); else if (!slot.maker) setSheet({ kind: 'open', label: slot.label }); else { visit(slot.maker.id, slot.maker.name); gaFairStallOpen(slot.maker); setSheet({ kind: 'stall', idx: slot.idx }); } },
     onOpenMirror: view => setSheet({ kind: 'mirror', view }),
     onToast: t => notify(t),
     onEvent: record,
@@ -278,6 +279,7 @@ export function FairGame({ data, diyas = true, schedule }: { data: FairData; diy
   const addItem = (item: FairItem) => {
     setProfile(p => ({ ...p, shortlist: { ...p.shortlist, [item.key]: Math.min(MAX_QTY, (p.shortlist[item.key] ?? 0) + 1) } }));
     record({ type: 'shortlist', itemKey: item.key, pricePaise: item.pricePaise }); play('add');
+    gaFairShortlistAdd(item, data.makers.find(m => m.items.some(i => i.key === item.key)));
   };
   const changeQty = (key: string, d: number) => { play(d > 0 ? 'add' : 'remove'); setProfile(p => {
     const q = Math.max(0, Math.min(MAX_QTY, (p.shortlist[key] ?? 0) + d)), next = { ...p.shortlist };
@@ -302,10 +304,10 @@ export function FairGame({ data, diyas = true, schedule }: { data: FairData; diy
   /** The holy dip at Pushkar Lake, on Kartik Purnima: you stand in the water with the devotees and the quest is done. */
   useEffect(() => () => folkRef.current?.stop(), []);
   /** Hot air balloon: the camera pulls back and you float across the fair. */
-  const takeRide = () => { engineRef.current?.ride(); setSheet(null); notify('Up you go! Hold on tight.'); play('stamp'); };
+  const takeRide = () => { gaFairActivityStart('balloon'); engineRef.current?.ride(); setSheet(null); notify('Up you go! Hold on tight.'); play('stamp'); };
   /** Folk music: the musicians play (you hear them when sound is on) and the shoppers come over to listen. */
   const playMusic = () => {
-    folkRef.current?.stop(); folkRef.current = muted ? null : playFolk();
+    gaFairActivityStart('music'); folkRef.current?.stop(); folkRef.current = muted ? null : playFolk();
     engineRef.current?.music(); setSheet(null);
     notify(muted ? 'The musicians are playing. Sound is off: switch it on from the menu to hear them.' : 'The folk musicians are playing.');
   };
@@ -315,7 +317,7 @@ export function FairGame({ data, diyas = true, schedule }: { data: FairData; diy
     const idx = id === 'music' || id === 'sports' ? places?.[id] ?? -1 : -1;
     if (idx >= 0 && engineRef.current) engineRef.current.walkToSlot(idx, () => setSheet({ kind: id })); else setSheet({ kind: id });
   };
-  const takeDip = () => { engineRef.current?.dip(); setSheet(null); notify('You took the holy dip at Pushkar Lake with the other devotees.'); play('stamp'); record({ type: 'dip' }); };
+  const takeDip = () => { gaFairActivityStart('holy_dip'); engineRef.current?.dip(); setSheet(null); notify('You took the holy dip at Pushkar Lake with the other devotees.'); play('stamp'); record({ type: 'dip' }); };
 
   const near = data.makers[0] ? (data.makers.find((_, i) => i === nearIdx)?.id ? engineRef.current?.slots[nearIdx]?.maker ?? data.makers[0] : data.makers[0]) : null;
   const total = cartCount(profile.shortlist);

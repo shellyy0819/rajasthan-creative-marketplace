@@ -1,4 +1,5 @@
 'use client';
+import { gaFairActivityStart } from '@/lib/ga-events';
 import { useEffect, useRef, useState } from 'react';
 import { money } from '@/lib/money';
 import type { FairData } from '@/lib/fair-types';
@@ -87,7 +88,7 @@ export function SportsSheet({ onFinish, onClose }: { onFinish: (won: boolean) =>
     const id = setInterval(() => { const now = performance.now(), dt = (now - last) / 1000; last = now; live.current.elapsed += dt; live.current.pos = tugTick(live.current.pos, dt, live.current.elapsed); sync(); }, 50);
     return () => clearInterval(id);
   }, [running]);
-  const start = () => { live.current = { pos: 0, elapsed: 0, tap: 0 }; over.current = false; setPos(0); setElapsed(0); setResult(null); setRunning(true); };
+  const start = () => { gaFairActivityStart('tug_of_war'); live.current = { pos: 0, elapsed: 0, tap: 0 }; over.current = false; setPos(0); setElapsed(0); setResult(null); setRunning(true); };
   const pull = () => { if (!running) return; live.current.pos = tugTap(live.current.pos); live.current.tap = performance.now(); sync(); };
   const side = Math.abs(pos) < .08 ? 'The rope is level.' : pos > 0 ? 'The rope is on your side.' : 'The rope is on the village side.';
   return (
