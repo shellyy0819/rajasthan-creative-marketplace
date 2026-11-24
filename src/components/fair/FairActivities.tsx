@@ -73,7 +73,7 @@ function TugScene({ pos, clock, heave, result }: { pos: number; clock: number; h
 }
 
 /** A tug of war against the village team: tap Pull as fast as you can. The rope marker moves towards your side with every tap and back towards theirs all the time. */
-export function SportsSheet({ onFinish, onClose }: { onFinish: (won: boolean) => void; onClose: () => void }) {
+export function SportsSheet({ onFinish, onClose, onStart }: { onFinish: (won: boolean) => void; onClose: () => void; onStart?: () => void }) {
   const [pos, setPos] = useState(0), [elapsed, setElapsed] = useState(0), [running, setRunning] = useState(false), [result, setResult] = useState<TugResult>(null), [cool, setCool] = useState(false);
   const live = useRef({ pos: 0, elapsed: 0, tap: 0 }), over = useRef(false), doneRef = useRef(onFinish); doneRef.current = onFinish;
   const sync = () => {
@@ -88,7 +88,7 @@ export function SportsSheet({ onFinish, onClose }: { onFinish: (won: boolean) =>
     const id = setInterval(() => { const now = performance.now(), dt = (now - last) / 1000; last = now; live.current.elapsed += dt; live.current.pos = tugTick(live.current.pos, dt, live.current.elapsed); sync(); }, 50);
     return () => clearInterval(id);
   }, [running]);
-  const start = () => { gaFairActivityStart('tug_of_war'); live.current = { pos: 0, elapsed: 0, tap: 0 }; over.current = false; setPos(0); setElapsed(0); setResult(null); setRunning(true); };
+  const start = () => { gaFairActivityStart('tug_of_war'); onStart?.(); live.current = { pos: 0, elapsed: 0, tap: 0 }; over.current = false; setPos(0); setElapsed(0); setResult(null); setRunning(true); };
   const pull = () => { if (!running) return; live.current.pos = tugTap(live.current.pos); live.current.tap = performance.now(); sync(); };
   const side = Math.abs(pos) < .08 ? 'The rope is level.' : pos > 0 ? 'The rope is on your side.' : 'The rope is on the village side.';
   return (

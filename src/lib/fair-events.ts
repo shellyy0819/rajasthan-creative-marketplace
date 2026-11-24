@@ -3,14 +3,10 @@ import { getDb } from '../db/client';
 import { fairEvents } from '../db/schema';
 import { ApiError } from './errors';
 import { CODE_TAKEN, claimCode, parseClaim } from './fair-codes';
+import { DETAIL_MAX, FAIR_EVENT_KINDS, MAX_EVENTS_PER_CALL, type FairEventInput, type FairEventKind } from './fair-event-kinds';
 import { bad, obj } from './validate';
 
-/** What a player did at the fair, as the admin "Fair players" page counts it. */
-export const FAIR_EVENT_KINDS = ['stall', 'shortlist', 'activity', 'quest'] as const;
-export type FairEventKind = (typeof FAIR_EVENT_KINDS)[number];
-export type FairEventInput = { kind: FairEventKind; detail: string };
-export const MAX_EVENTS_PER_CALL = 10;
-export const DETAIL_MAX = 80;
+export { DETAIL_MAX, FAIR_EVENT_KINDS, MAX_EVENTS_PER_CALL, type FairEventInput, type FairEventKind } from './fair-event-kinds';
 /** How long events and play days are kept. */
 export const EVENT_KEEP_DAYS = 90;
 
