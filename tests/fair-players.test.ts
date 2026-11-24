@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fairEvents, fairPlayDays, fairQuestDays } from '@/db/schema';
 import { listPlayers } from '@/lib/fair-players';
@@ -55,5 +56,26 @@ describe('listPlayers', () => {
     await db.insert(fairQuestDays).values([{ code: 'WON234', day: '2026-11-12', ...snap(3) }, { code: 'MID234', day: '2026-11-12', ...snap(2) }]);
     expect((await listPlayers({ finishedAll: true })).map(p => p.code)).toEqual(['WON234']);
     expect((await listPlayers()).map(p => [p.code, p.questsDone, p.questsTotal])).toEqual([['NON234', 0, 0], ['MID234', 2, 3], ['WON234', 3, 3]]);
+  });
+});
+
+describe('the Fair players admin page (source contract)', () => {
+  const page = fs.readFileSync('src/app/dashboard/fair-players/page.tsx', 'utf8');
+  it('is for admins only: the check comes before any data is read', () => {
+    expect(page).toContain('await requireAdminPage()');
+    expect(page.indexOf('requireAdminPage()')).toBeLessThan(page.indexOf('listPlayers('));
+  });
+  it('has breadcrumbs and shows every column the owner asked for', () => {
+    expect(page).toContain('<Breadcrumbs');
+    for (const h of ['Code', 'First seen', 'Last seen', 'Days', 'Minutes', 'Stalls', 'Shortlisted', 'Quests']) expect(page, h).toContain(`<th>${h}</th>`);
+  });
+  it('can show only the players who finished every quest, from a ?done=all link', () => {
+    expect(page).toContain("sp.done === 'all'");
+    expect(page).toContain('finishedAll');
+  });
+  it('is in the dashboard tabs right after Fair feedback', () => {
+    const tabs = fs.readFileSync('src/components/AdminTabs.tsx', 'utf8');
+    expect(tabs.indexOf("'/dashboard/fair-players'")).toBeGreaterThan(tabs.indexOf("'/dashboard/fair-notes'"));
+    expect(tabs.indexOf("'/dashboard/fair-players'")).toBeLessThan(tabs.indexOf("'/dashboard/trending'"));
   });
 });
