@@ -53,7 +53,7 @@ describe('/fair page', () => {
     getFairData.mockResolvedValue(sampleFairData());
     render(await FairPage());
     const note = screen.getByRole('note');
-    expect(note.textContent).toMatch(/sample exhibition/i);
+    expect(note.textContent).toMatch(/this is a game, and a sample exhibition/i);
     expect(note.textContent).toMatch(/made up for the game/i);
     expect(note.textContent).toMatch(/not real sellers or listings/i);
     expect(note.compareDocumentPosition(screen.getByTestId('game')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

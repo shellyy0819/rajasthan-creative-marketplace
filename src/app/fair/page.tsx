@@ -51,7 +51,7 @@ export default async function FairPage() {
         <p>Two rows of stalls and one lane between them. Walk with the arrow keys or click where you want to go, meet the makers, watch them work and shortlist what you love.</p>
       </div>
       {data.source === 'sample' && (
-        <p className="fair-sample-note" role="note"><b>This is a sample exhibition.</b> The makers, stalls, products and prices you see here are made up for the game. They are not real sellers or listings, and nothing can be ordered. To shop from real makers, <Link href="/shop">browse the shop</Link>.</p>
+        <p className="fair-sample-note" role="note"><b>This is a game, and a sample exhibition.</b> The makers, stalls, products and prices you see here are made up for the game. They are not real sellers or listings, and nothing can be ordered. To shop from real makers, <Link href="/shop">browse the shop</Link>.</p>
       )}
       <section className="section">
         <FairGame data={data} diyas={!diwaliOver(new Date())} schedule={mela} />

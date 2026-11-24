@@ -125,7 +125,7 @@ describe('FairGame: the fair', () => {
     expect(within(quests).getByText(/saved under your code/i)).toBeTruthy();
     expect(screen.getByText(/invented for the game/i)).toBeTruthy();
     // The notice sits on the stage itself (so it shows in full screen too) and on the stall card, not only in the footnote.
-    expect(document.querySelector('.fair-stage .fair-sample-tag')!.textContent).toMatch(/sample makers and products\. not real, nothing can be ordered/i);
+    expect(document.querySelector('.fair-stage .fair-sample-tag')!.textContent).toMatch(/this is a game\. sample makers and products, not real/i);
     expect(document.querySelector('.fair-now .fair-tag')!.textContent).toBe('Sample');
   });
   it('names the open stalls after the categories they wait for when sellers are live', async () => {
