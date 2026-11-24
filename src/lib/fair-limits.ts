@@ -10,3 +10,6 @@ export let noteIpLimiter = createLimiter(10, 3_600_000);
 export let noteCodeLimiter = createLimiter(5, 3_600_000);
 /** Saving and reading quest progress: per network address. */
 export let questIpLimiter = createLimiter(120, 60_000);
+/** Player events sent by the browser in batches: per network address and per code. */
+export let eventIpLimiter = createLimiter(120, 60_000);
+export let eventCodeLimiter = createLimiter(30, 60_000);
