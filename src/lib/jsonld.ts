@@ -3,12 +3,14 @@ import { productSlug, workshopSlug } from './catalog';
 import type { Product, Workshop } from './types';
 
 const CTX = 'https://schema.org';
+// Names Google may match to the brand. Not "Craftify": that is a different business.
+const ALTERNATE_NAMES = ['Craftofy Online', 'craftofy.online'];
 
 export const serializeJsonLd = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
 
 export const organizationJsonLd = (description: string = SITE.description) => ({
   '@context': CTX, '@type': 'Organization',
-  name: SITE.name, url: siteUrl(), description, email: contactEmail(),
+  name: SITE.name, alternateName: ALTERNATE_NAMES, url: siteUrl(), description, email: contactEmail(),
   logo: abs('/icons/icon-512.png'),
   sameAs: [`https://www.instagram.com/${INSTAGRAM_HANDLE}`],
   contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', email: contactEmail(), areaServed: 'IN', availableLanguage: ['en'] },
@@ -17,7 +19,7 @@ export const organizationJsonLd = (description: string = SITE.description) => ({
 
 export const websiteJsonLd = () => ({
   '@context': CTX, '@type': 'WebSite',
-  name: SITE.name, url: siteUrl(), inLanguage: 'en-IN',
+  name: SITE.name, alternateName: ALTERNATE_NAMES, url: siteUrl(), inLanguage: 'en-IN',
   potentialAction: {
     '@type': 'SearchAction',
     target: { '@type': 'EntryPoint', urlTemplate: `${abs('/shop')}?q={search_term_string}` },
