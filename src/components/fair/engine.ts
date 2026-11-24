@@ -1029,7 +1029,7 @@ export function createFairEngine(canvas: HTMLCanvasElement, data: FairData, cb: 
 
   function resize() {
     const box = canvas.parentElement ?? canvas; W = Math.max(300, box.clientWidth); DPR = Math.min(2, window.devicePixelRatio || 1);
-    if (fill && box.clientHeight > 200) { H = Math.round(box.clientHeight); S = Math.max(Math.min(W / WORLD_W, H / WORLD_H), .45); }   // full screen: the whole stage
+    if (fill && box.clientHeight > 200) { H = Math.round(box.clientHeight - canvas.offsetTop); S = Math.max(Math.min(W / WORLD_W, H / WORLD_H), .45); }   // full screen: the stage below the phone toolbar
     else { S = Math.max(W / WORLD_W, .62); H = Math.round(Math.min(WORLD_H * S, 640)); }
     canvas.width = W * DPR; canvas.height = H * DPR; canvas.style.height = H + 'px';
   }

@@ -4873,6 +4873,15 @@ body.modal-open {
 .fair-qty-badge { position: absolute; right: 8px; top: 8px; }
 .fair-price { margin: 0; font: 600 15px var(--font-sans); font-variant-numeric: tabular-nums; }
 .fair-item-actions { display: grid; gap: 6px; }
+@media (max-width: 700px) {
+  .fair-sheet-body { padding: 16px; gap: 12px; }
+  .fair-items { grid-template-columns: 1fr; gap: 8px; }
+  .fair-item { grid-template-columns: 76px minmax(0, 1fr); column-gap: 12px; row-gap: 2px; padding: 10px; align-items: start; }
+  .fair-item-pic { grid-row: 1 / span 3; }
+  .fair-item h3, .fair-item .fair-price, .fair-item-actions { grid-column: 2; }
+  .fair-item-actions { margin-top: 6px; }
+  .fair-item-pic .fair-qty-badge { right: 4px; top: 4px; }
+}
 .fair-sheet-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px; }
 .fair-empty { padding: 24px 12px; text-align: center; color: var(--muted); margin: 0; }
 .fair-lines { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
@@ -4949,10 +4958,11 @@ button.fair-opt:hover { background: var(--cream); }
 .fair-layout.panel-hidden { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 700px) {
   .fair-stage { display: flex; flex-direction: column; }
-  .fair-toolbar { position: static; order: -1; max-width: none; align-items: stretch; padding: 8px; background: var(--paper); border-bottom: 1px solid var(--line); }
+  .fair-toolbar { position: static; order: -1; max-width: none; align-items: stretch; padding: 8px; padding-right: 52px; background: var(--paper); border-bottom: 1px solid var(--line); }
+  .fair-fs { top: 8px; right: 8px; bottom: auto; z-index: 3; }
   .fair-time { top: 58px; }
 }
-.fair.is-full { position: fixed; inset: 0; z-index: 70; background: var(--paper); gap: 0; }
+.fair.is-full { display: block; position: fixed; inset: 0; z-index: 70; background: var(--paper); }
 .fair:fullscreen { background: var(--paper); }
 .fair.is-full .fair-layout { display: block; position: relative; height: 100%; }
 .fair.is-full .fair-stage { height: 100%; border: 0; border-radius: 0; }

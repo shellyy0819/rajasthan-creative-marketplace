@@ -80,9 +80,11 @@ export function FairGame({ data, diyas = true, schedule }: { data: FairData; diy
   useEffect(() => { // sound: made in the browser, switched on by the first click or key press (browsers require that)
     const snd = createSound(typeof localStorage === 'undefined' ? null : localStorage);
     soundRef.current = snd; setMuted(snd.muted);
+    // A phone only lets audio start from the end of a tap (pointerup, touchend, click), not its start, so listen for all of them.
+    const UNLOCK_EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'] as const;
     const unlock = () => snd.unlock();
-    window.addEventListener('pointerdown', unlock); window.addEventListener('keydown', unlock);
-    return () => { window.removeEventListener('pointerdown', unlock); window.removeEventListener('keydown', unlock); snd.destroy(); soundRef.current = null; };
+    UNLOCK_EVENTS.forEach(e => window.addEventListener(e, unlock));
+    return () => { UNLOCK_EVENTS.forEach(e => window.removeEventListener(e, unlock)); snd.destroy(); soundRef.current = null; };
   }, []);
   const toggleSound = () => { const snd = soundRef.current; if (!snd) return; snd.unlock(); const next = !snd.muted; snd.setMuted(next); setMuted(next); if (!next) snd.sfx('look'); };
 

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect, vi } from 'vitest';
 import { AMBIENCE_GAIN, MASTER_GAIN, MUTE_KEY, STEP_GAIN, ambienceFor, createSound } from '@/components/fair/sound';
 
@@ -50,6 +51,17 @@ describe('createSound', () => {
     const a = fakeAudio(), s = createSound(memory(), () => a.ctx);
     s.sfx('stamp'); expect(a.made.osc).toBe(0);
     s.unlock(); s.sfx('stamp'); expect(a.made.osc).toBeGreaterThan(0);
+  });
+  it('asks a suspended or interrupted context to resume on later unlocks (iPhone Safari interrupts it)', () => {
+    const a = fakeAudio(), s = createSound(memory(), () => a.ctx); s.unlock();
+    const c = a.ctx as unknown as { state: string; resume: ReturnType<typeof vi.fn> };
+    for (const st of ['suspended', 'interrupted']) { c.state = st; c.resume.mockClear(); s.unlock(); expect(c.resume, st).toHaveBeenCalledTimes(1); }
+    c.state = 'running'; c.resume.mockClear(); s.unlock(); expect(c.resume).not.toHaveBeenCalled();
+  });
+  it('is unlocked by the events a phone counts as a tap, not only the first touch (which iOS and Chrome ignore)', () => {
+    const src = readFileSync('src/components/fair/FairGame.tsx', 'utf8');
+    const list = /UNLOCK_EVENTS = \[([^\]]*)\]/.exec(src)?.[1] ?? '';
+    for (const e of ['pointerup', 'touchend', 'click', 'keydown']) expect(list, e).toContain(`'${e}'`);
   });
   it('makes a sound for every effect', () => {
     const a = fakeAudio(), s = createSound(memory(), () => a.ctx); s.unlock();

@@ -50,6 +50,8 @@ export function createSound(storage: Pick<Storage, 'getItem' | 'setItem'> | null
   let birdT: ReturnType<typeof setTimeout> | undefined, cricketT: ReturnType<typeof setInterval> | undefined, stepFlip = false;
 
   const ready = () => !!ctx && !!master && !muted && ctx.state !== 'closed';
+  /** Start a context that is not running. Phones leave it 'suspended' until a tap, and iPhone Safari also 'interrupts' it (a call, the screen locking). */
+  const wake = () => { if (ctx && ctx.state !== 'closed' && (ctx.state as string) !== 'running') ctx.resume().catch(() => undefined); };
   const now = () => ctx!.currentTime;
   /** A short pitched sound. */
   const tone = (freq: number, dur: number, o: Opt = {}) => {
@@ -126,13 +128,13 @@ export function createSound(storage: Pick<Storage, 'getItem' | 'setItem'> | null
     supported,
     get muted() { return muted; },
     unlock() {
-      if (!supported || ctx) { if (ctx?.state === 'suspended') void ctx.resume(); return; }
+      if (!supported || ctx) { wake(); return; }
       try {
         ctx = factory(); if (!ctx) return;
         master = ctx.createGain(); master.gain.value = MASTER_GAIN; master.connect(ctx.destination);
         const len = ctx.sampleRate, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
         for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-        noise = buf; if (ctx.state === 'suspended') void ctx.resume();
+        noise = buf; wake();
         applyAmbience();
       } catch { ctx = null; }
     },
