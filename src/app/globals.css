@@ -1149,6 +1149,16 @@ form label select {
   .section-heading .muted {
     padding-top: 20px;
   }
+  /* The "See all" link of a section sits on the baseline of the heading's last row and never wraps, instead of floating up beside the small label in three lines.
+     Both items need the baseline alignment, so it is set on the row (the product page's related headings keep their own). */
+  .section-heading:has(> .text-link):not(.related-head) {
+    align-items: end;
+    align-items: last baseline;
+  }
+  .section-heading > .text-link {
+    flex: none;
+    white-space: nowrap;
+  }
   /* Product page sections (Similar products, More from the maker): the "See all" link shares the small label's line instead of sitting higher than it */
   .section-heading.related-head {
     align-items: baseline;
