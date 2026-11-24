@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { serializeJsonLd, productJsonLd, workshopJsonLd, breadcrumbJsonLd, organizationJsonLd } from '@/lib/jsonld';
+import { serializeJsonLd, productJsonLd, workshopJsonLd, breadcrumbJsonLd, organizationJsonLd, websiteJsonLd } from '@/lib/jsonld';
 import type { Product, Workshop } from '@/lib/types';
 
 beforeEach(() => { process.env.NEXT_PUBLIC_SITE_URL = 'https://rr.test'; });
@@ -81,5 +81,15 @@ describe('organizationJsonLd', () => {
     expect(j.logo).toBe('https://rr.test/icons/icon-512.png');
     expect(j.sameAs).toEqual(['https://www.instagram.com/craftofy_official']);
     expect(j.contactPoint).toMatchObject({ '@type': 'ContactPoint', email: 'hello.craftofy@gmail.com' });
+  });
+});
+
+describe('brand alternate names', () => {
+  it('organization and website carry the same alternate names, never Craftify', () => {
+    const org = organizationJsonLd() as any;
+    const site = websiteJsonLd() as any;
+    expect(org.alternateName).toEqual(['Craftofy Online', 'craftofy.online']);
+    expect(site.alternateName).toEqual(org.alternateName);
+    expect(JSON.stringify([org, site])).not.toMatch(/craftify/i);
   });
 });
