@@ -4948,6 +4948,10 @@ button.fair-opt:hover { background: var(--cream); }
 @media (prefers-reduced-motion: reduce) { .toggle-switch-track, .toggle-switch-knob { transition: none; } }
 .fair-toolbar .button[aria-pressed="true"] { border-color: var(--green); }
 .fair-time { position: absolute; left: 10px; top: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px 7px 10px; border-radius: 30px; background: var(--stall-board); color: var(--stall-chalk); font: 600 11px var(--font-sans); pointer-events: none; }
+.fair-sample-tag { position: absolute; left: 10px; top: 46px; z-index: 2; max-width: calc(100% - 20px); padding: 6px 12px; border-radius: 30px; background: var(--orange); color: #fffdf9; font: 600 11px var(--font-sans); pointer-events: none; }
+.fair-sample-note { margin: 0 8.5% 18px; padding: 12px 16px; border: 1px solid var(--orange); border-radius: 6px; background: var(--card-2); color: var(--ink); font-size: 12px; line-height: 1.6; }
+.fair-sample-note a { color: var(--green-d); font-weight: 600; text-decoration: underline; }
+.fair-sample-tag ~ .fair-mela-tag { top: 82px; }
 .fair-mela-tag { position: absolute; left: 10px; top: 46px; z-index: 2; max-width: calc(100% - 20px); padding: 6px 12px; border-radius: 30px; background: var(--orange); color: #fffdf9; font: 600 11px var(--font-sans); pointer-events: none; }
 .fair-mela p { margin: 0 0 6px; }
 .fair-time-icon { width: 12px; height: 12px; border-radius: 50%; background: #ffd27a; box-shadow: 0 0 9px #ffd27a; }
@@ -4961,6 +4965,8 @@ button.fair-opt:hover { background: var(--cream); }
   .fair-toolbar { position: static; order: -1; max-width: none; align-items: stretch; padding: 8px; padding-right: 52px; background: var(--paper); border-bottom: 1px solid var(--line); }
   .fair-fs { top: 8px; right: 8px; bottom: auto; z-index: 3; }
   .fair-time { top: 58px; }
+  .fair-sample-tag { top: 94px; }
+  .fair-sample-tag ~ .fair-mela-tag { top: 130px; }
 }
 .fair.is-full { display: block; position: fixed; inset: 0; z-index: 70; background: var(--paper); }
 .fair:fullscreen { background: var(--paper); }

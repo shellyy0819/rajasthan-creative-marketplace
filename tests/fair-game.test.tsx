@@ -123,7 +123,10 @@ describe('FairGame: the fair', () => {
     const quests = screen.getByRole('heading', { name: /today.s quests/i }).closest('section')!;
     expect(within(quests).getAllByRole('listitem')).toHaveLength(3);
     expect(within(quests).getByText(/saved under your code/i)).toBeTruthy();
-    expect(screen.getByText(/sample makers/i)).toBeTruthy();
+    expect(screen.getByText(/invented for the game/i)).toBeTruthy();
+    // The notice sits on the stage itself (so it shows in full screen too) and on the stall card, not only in the footnote.
+    expect(document.querySelector('.fair-stage .fair-sample-tag')!.textContent).toMatch(/this is a game\. sample makers and products, not real/i);
+    expect(document.querySelector('.fair-now .fair-tag')!.textContent).toBe('Sample');
   });
   it('names the open stalls after the categories they wait for when sellers are live', async () => {
     const stalls = [{ maker: SAMPLE_MAKERS[0], label: 'Handmade crochet' }, { maker: null, label: 'Wood craft' }, ...stallsOf([]).slice(2)];
@@ -131,6 +134,8 @@ describe('FairGame: the fair', () => {
     expect(screen.getByText('Open: Wood craft')).toBeTruthy();
     expect(screen.getByText(/waiting for a wood craft maker/i)).toBeTruthy();
     expect(screen.getByText(/show sellers on Craftofy right now/i)).toBeTruthy();
+    expect(document.querySelector('.fair-sample-tag')).toBeNull();
+    expect(screen.queryByText('Sample')).toBeNull();
   });
   it('tells the server where you are, with your secret, and shows how many are here', async () => {
     presenceCount = 4;

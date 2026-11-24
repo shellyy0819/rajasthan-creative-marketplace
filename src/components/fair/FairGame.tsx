@@ -335,6 +335,7 @@ export function FairGame({ data, diyas = true, schedule }: { data: FairData; diy
             </svg>
           </button>
           {phase && <span className={`fair-time ${phase}`} role="status"><span className="fair-time-icon" aria-hidden="true" />{PHASE_LABEL[phase]}</span>}
+          {!real && <span className="fair-sample-tag" role="note">This is a game. Sample makers and products, not real.</span>}
           {mela && <span className="fair-mela-tag">Pushkar Camel Fair · {mela.label}</span>}
           <div className="fair-toolbar" role="toolbar" aria-label="Fair controls" onKeyDown={e => { if (e.key === 'Escape') setMenuOpen(false); }}>
             <button type="button" className="button fair-burger" aria-expanded={menuOpen} aria-controls="fair-menu" aria-label="Menu" onClick={() => setMenuOpen(o => !o)}>
@@ -359,7 +360,7 @@ export function FairGame({ data, diyas = true, schedule }: { data: FairData; diy
             <section className="fair-card fair-now" aria-live="polite">
               <div className="fair-who">
                 <span className="fair-avatar" dangerouslySetInnerHTML={{ __html: makerAvatar(near.look) }} />
-                <div><h2>{near.name}</h2><p className="fair-meta">{near.city} · {near.category}{profile.met.includes(near.id) && <span className="fair-tag">Met</span>}</p></div>
+                <div><h2>{near.name}</h2><p className="fair-meta">{near.city} · {near.category}{!real && <span className="fair-tag">Sample</span>}{profile.met.includes(near.id) && <span className="fair-tag">Met</span>}</p></div>
               </div>
               <p>{near.items.length} {near.items.length === 1 ? 'thing' : 'things'} on the counter, from {money(Math.min(...near.items.map(i => i.pricePaise)))}.</p>
               <div className="fair-acts">
