@@ -49,6 +49,23 @@ describe('/fair page', () => {
     expect(types).toEqual(expect.arrayContaining(['BreadcrumbList', 'WebPage']));
     expect(ld().find(d => d['@type'] === 'WebPage')).toMatchObject({ name: 'Craftofy Fair', inLanguage: 'en-IN' });
   });
+  it('says plainly, above the game, that sample makers and products are made up', async () => {
+    getFairData.mockResolvedValue(sampleFairData());
+    render(await FairPage());
+    const note = screen.getByRole('note');
+    expect(note.textContent).toMatch(/this is a game, and a sample exhibition/i);
+    expect(note.textContent).toMatch(/made up for the game/i);
+    expect(note.textContent).toMatch(/not real sellers or listings/i);
+    expect(note.compareDocumentPosition(screen.getByTestId('game')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(note).getByRole('link', { name: 'browse the shop' }).getAttribute('href')).toBe('/shop');
+    expect(screen.getByText(/sample stalls and the made-up products/i)).toBeTruthy();
+  });
+  it('shows no sample notice when the stalls are real sellers', async () => {
+    getFairData.mockResolvedValue({ ...sampleFairData(), source: 'real' });
+    render(await FairPage());
+    expect(screen.queryByRole('note')).toBeNull();
+    expect(screen.getByText(/everything on the counters right now/i)).toBeTruthy();
+  });
   it('lists every stall and product as plain text for people and crawlers who skip the game', async () => {
     getFairData.mockResolvedValue(sampleFairData());
     render(await FairPage());
