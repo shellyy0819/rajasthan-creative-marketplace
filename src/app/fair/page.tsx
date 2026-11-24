@@ -50,12 +50,15 @@ export default async function FairPage() {
         <h1>Craftofy Fair</h1>
         <p>Two rows of stalls and one lane between them. Walk with the arrow keys or click where you want to go, meet the makers, watch them work and shortlist what you love.</p>
       </div>
+      {data.source === 'sample' && (
+        <p className="fair-sample-note" role="note"><b>This is a sample exhibition.</b> The makers, stalls, products and prices you see here are made up for the game. They are not real sellers or listings, and nothing can be ordered. To shop from real makers, <Link href="/shop">browse the shop</Link>.</p>
+      )}
       <section className="section">
         <FairGame data={data} diyas={!diwaliOver(new Date())} schedule={mela} />
       </section>
       <section className="section fair-index" aria-labelledby="fair-index-h">
         <h2 id="fair-index-h">Stalls in the fair</h2>
-        <p>Prefer a plain list? Here is everything on the counters right now.</p>
+        <p>{data.source === 'sample' ? 'Prefer a plain list? These are the sample stalls and the made-up products on their counters.' : 'Prefer a plain list? Here is everything on the counters right now.'}</p>
         {data.makers.length === 0 ? <p>No stalls are open yet.</p> : (
           <ul>
             {data.makers.map(m => (
