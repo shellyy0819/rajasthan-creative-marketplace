@@ -9,13 +9,19 @@ import { isCurrent } from './workshop-listing';
 
 export type MatchedItem = TrendItem & { count: number; href: string };
 
-/** The active topic whose name appears in the text (case-insensitive); the longest name wins. */
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Is `name` in `hay` as a whole word (case-insensitive)? Letters, marks and digits on either side rule it out, in any script (\b is ASCII-only). */
+function hasWord(hay: string, name: string): boolean {
+  return new RegExp(`(?<![\\p{L}\\p{M}\\p{N}])${escapeRegExp(name)}(?![\\p{L}\\p{M}\\p{N}])`, 'iu').test(hay);
+}
+
+/** The active topic whose name appears in the text as a whole word (case-insensitive); the longest name wins. */
 function topicIn(text: string, topics: TopicOption[]): TopicOption | null {
-  const hay = text.toLowerCase();
   let best: TopicOption | null = null;
   for (const t of topics) {
-    const name = t.name.trim().toLowerCase();
-    if (name && hay.includes(name) && (!best || name.length > best.name.trim().length)) best = t;
+    const name = t.name.trim();
+    if (name && hasWord(text, name) && (!best || name.length > best.name.trim().length)) best = t;
   }
   return best;
 }
