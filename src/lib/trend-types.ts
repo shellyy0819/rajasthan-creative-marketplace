@@ -24,8 +24,8 @@ function sourceUrl(v: unknown): string | undefined {
   if (typeof v !== 'string' || v.trim().length > 300) throw bad(msg);
   let u: URL;
   try { u = new URL(v.trim()); } catch { throw bad(msg); }
-  if (u.protocol !== 'https:') throw bad(msg);
-  return v.trim();
+  if (u.protocol !== 'https:' || u.username || u.password) throw bad(msg);
+  return u.toString();
 }
 
 function parseSource(input: unknown): TrendSource {

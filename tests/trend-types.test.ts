@@ -43,6 +43,14 @@ describe('parseItemInput', () => {
     expect(status(() => parseItemInput({ ...good(), sources: [{ title: 'Bad', url: 'javascript:alert(1)' }] }, 'web'))).toBe(400);
     expect(status(() => parseItemInput({ ...good(), sources: [{ title: 'Bad', url: 'http://x.in' }] }, 'web'))).toBe(400);
   });
+  it('rejects a source link that carries credentials', () => {
+    expect(status(() => parseItemInput({ ...good(), sources: [{ title: 'Bad', url: 'https://google.com@evil.com' }] }, 'web'))).toBe(400);
+    expect(status(() => parseItemInput({ ...good(), sources: [{ title: 'Bad', url: 'https://user:pass@x.in' }] }, 'web'))).toBe(400);
+  });
+  it('stores a source link in its normalised form', () => {
+    const item = parseItemInput({ ...good(), sources: [{ title: 'Shouty', url: ' HTTPS://X.IN ' }] }, 'web');
+    expect(item.sources).toEqual([{ title: 'Shouty', url: 'https://x.in/' }]);
+  });
   it('requires at least one source', () => {
     expect(status(() => parseItemInput({ ...good(), sources: [] }, 'web'))).toBe(400);
   });
