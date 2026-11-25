@@ -6,10 +6,10 @@ const site = norm(readFileSync('src/app/globals.css', 'utf8'));
 const rule = (selector: string) => new RegExp(`(?:^|[ }])${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{([^}]*)\\}`).exec(site)?.[1] ?? '';
 
 describe('the home page maker call to action follows the site type scale and tokens', () => {
-  it('its heading is the site section heading, its intro the 14px muted lead, its eyebrow the site eyebrow', () => {
+  it('its heading is the site section heading, its intro the 13px muted intro text the home intro band uses, its eyebrow the site eyebrow', () => {
     expect(site).toMatch(/\.maker-cta h2 \{ font: 500 clamp\(32px, 4vw, 45px\)\/1\.15 var\(--font-display\)/);
-    expect(rule('.maker-cta .mc-lead')).toMatch(/font-size: 14px/);
-    expect(rule('.maker-cta .mc-lead')).toMatch(/color: var\(--muted-2\)/);
+    expect(rule('.maker-cta .mc-lead')).toMatch(/font-size: 13px/);
+    expect(rule('.maker-cta .mc-lead')).toMatch(/color: var\(--muted\)/);
     expect(site).not.toMatch(/\.maker-cta \.eyebrow/);
   });
   it('the button is the site primary button and the card uses tokens only', () => {

@@ -935,9 +935,9 @@ h2 em {
 .maker-cta .mc-lead {
   max-width: 520px;
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.8;
-  color: var(--muted-2);
+  color: var(--muted);
 }
 .maker-cta .button {
   margin-top: 26px;
