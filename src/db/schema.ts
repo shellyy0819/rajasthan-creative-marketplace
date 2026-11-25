@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import type { TrendItem } from '../lib/trend-types';
 import { type AnyPgColumn, bigint, bigserial, boolean, check, date, doublePrecision, index, integer, jsonb, pgTable, primaryKey, serial, smallint, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 export const roles = pgTable('roles', {
@@ -306,6 +307,27 @@ export const workshopEvents = pgTable('workshop_events', {
   uniqueIndex('workshop_events_unique_idx').on(t.workshopId, t.type, t.actor, t.day),
   index('workshop_events_day_idx').on(t.day),
 ]);
+
+/**
+ * One market-trends research run, kept as a draft until an admin publishes it. status 'ok' (items found), 'empty' (nothing usable) or 'failed' (error holds why).
+ * Only one row may have published_at set: publishing replaces the previous digest. createdBy and publishedBy are admin ids kept as text, so a removed admin never blocks history.
+ */
+export const trendDigests = pgTable('trend_digests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  createdBy: text('created_by').notNull(),
+  model: text('model').notNull(),
+  status: text('status').notNull(),
+  error: text('error'),
+  items: jsonb('items').$type<TrendItem[]>().notNull().default(sql`'[]'::jsonb`),
+  publishedAt: timestamp('published_at', { withTimezone: true, mode: 'date' }),
+  publishedBy: text('published_by'),
+}, t => [
+  check('trend_digests_status_valid', sql`${t.status} in ('ok', 'empty', 'failed')`),
+  uniqueIndex('trend_digests_one_published_idx').on(sql`(true)`).where(sql`${t.publishedAt} is not null`),
+  index('trend_digests_created_idx').on(t.createdAt),
+]);
+export type TrendDigestRow = typeof trendDigests.$inferSelect;
 
 /** People who want to sell on the marketplace (public form). Phone is format-checked, not verified: an admin calls, then confirms. */
 export const listingRequests = pgTable('listing_requests', {
