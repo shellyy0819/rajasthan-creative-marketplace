@@ -15,6 +15,9 @@ vi.mock('@/components/TrackedLink', () => ({ TrackedLink: ({ productId, type, ..
 vi.mock('@/lib/request-origin', () => ({ requestOrigin: async () => 'http://localhost:3000' }));
 const nav = vi.hoisted(() => ({ notFound: vi.fn(() => { throw new Error('NOT_FOUND'); }) }));
 vi.mock('next/navigation', () => nav);
+// The market trends block asks for the request's cookies and session; outside Next there is no request, so each test says what the digest is (nothing, unless it says otherwise).
+const trends = vi.hoisted(() => ({ get: vi.fn(async (): Promise<unknown> => null) }));
+vi.mock('@/lib/trend-preview', () => ({ getTrendsForPage: trends.get, TREND_PREVIEW_COOKIE: 'rr_trend_preview' }));
 vi.mock('next/cache', async orig => ({ ...(await orig<typeof import('next/cache')>()), unstable_cache: (fn: unknown) => fn })); // no Next cache outside a request: call straight through
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TrendingSection } from '@/components/TrendingSection';
@@ -24,7 +27,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { likeProduct, recordEvent } from '@/lib/engagement';
 import { resetTestDb } from './helpers/testdb';
 
-beforeEach(async () => { await resetTestDb(); nav.notFound.mockClear(); });
+beforeEach(async () => { await resetTestDb(); nav.notFound.mockClear(); trends.get.mockReset(); trends.get.mockResolvedValue(null); });
 afterEach(cleanup);
 
 describe('TrendingSection (home page)', () => {
@@ -59,6 +62,69 @@ describe('/trending page', () => {
     await recordEvent({ productId: 'p1', type: 'contact', actor: 'h:a' });
     render(await Page());
     expect(document.querySelectorAll('.product-card')).toHaveLength(1);
+  });
+});
+
+describe('/trending page, market trends block', () => {
+  const digest = (o: Record<string, unknown> = {}) => ({
+    items: [
+      { id: 'a', kind: 'craft', title: 'Block prints', why: 'People want block prints.', tags: [], origin: 'web', sources: [{ title: 'Source A' }], show: true, count: 2, href: '/shop?q=block' },
+      { id: 'b', kind: 'workshop', title: 'Block printing', why: 'Beginners want a class.', tags: [], origin: 'web', sources: [{ title: 'Source B' }], show: true, count: 0, href: '/workshops' },
+    ],
+    sourceLine: 'Gathered from public web sources, then picked by our team.', updatedOn: new Date('2026-11-24T10:00:00Z'), previewing: false, ...o,
+  });
+  const text = (el: Element) => el.textContent ?? '';
+
+  it('with a published digest shows the block above the product grid, and the grid gets a picks heading from the site name', async () => {
+    const { SITE } = await import('@/lib/site');
+    const Page = (await import('@/app/trending/page')).default;
+    await recordEvent({ productId: 'p1', type: 'contact', actor: 'h:a' });
+    trends.get.mockResolvedValue(digest());
+    render(await Page());
+    const block = document.querySelector('.trends-block')!;
+    const grid = document.querySelector('.product-grid')!;
+    expect(block).toBeTruthy();
+    expect(block.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: `${SITE.name} picks` })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: /^Trending / })).toBeTruthy();       // the existing title stays
+    expect(document.querySelectorAll('.product-card')).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 2, name: 'Crafts to look at' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Workshops on the rise' })).toBeTruthy();
+    // order of the page: head, the block, the product grid
+    const order = Array.from(document.querySelectorAll('.page-head, .trends-block, .product-grid'));
+    expect(order.map(e => e.className.split(' ')[0])).toEqual(['page-head', 'trends-block', 'product-grid']);
+  });
+  it('with no digest the page is as before: no block, no picks heading', async () => {
+    const Page = (await import('@/app/trending/page')).default;
+    render(await Page());
+    expect(document.querySelector('.trends-block')).toBeNull();
+    expect(screen.queryByText(/ picks$/)).toBeNull();
+    expect(document.querySelectorAll('.page-head h1')).toHaveLength(1);
+  });
+  it('shows the preview pill only while an admin previews', async () => {
+    const Page = (await import('@/app/trending/page')).default;
+    trends.get.mockResolvedValue(digest());
+    render(await Page());
+    expect(screen.queryByText('Previewing market trends, not public yet')).toBeNull();
+    cleanup();
+    trends.get.mockResolvedValue(digest({ previewing: true }));
+    render(await Page());
+    expect(screen.getByText('Previewing market trends, not public yet')).toBeTruthy();
+  });
+  it('a failure of the optional block is logged and the page renders exactly as it would without it', async () => {
+    const Page = (await import('@/app/trending/page')).default;
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      render(await Page());
+      const before = text(document.body);
+      cleanup();
+      trends.get.mockRejectedValue(new Error('boom'));
+      render(await Page());
+      expect(log).toHaveBeenCalled();
+      expect(document.querySelector('.trends-block')).toBeNull();
+      expect(screen.queryByText(/ picks$/)).toBeNull();
+      expect(text(document.body)).toBe(before);
+    } finally { log.mockRestore(); }
   });
 });
 

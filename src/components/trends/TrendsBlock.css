@@ -1,0 +1,35 @@
+/* The market trends block on /trending. Tokens only, so light and dark follow the theme; sizes are the site's type scale. */
+.trends-block { padding: 0 8.5%; }
+.trends-block .section { padding: 36px 0 0; }
+.trends-block .section-heading { margin-bottom: 20px; }
+.trends-block .section h2 { font: 500 clamp(22px, 2.4vw, 26px) / 1.2 var(--font-display); letter-spacing: -0.5px; margin: 8px 0 0; }
+.trends-updated { margin: 16px 0 0; max-width: 560px; line-height: 1.6; }
+.trends-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.trends-card { display: flex; flex-direction: column; min-width: 0; background: var(--card-2); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.trends-row { flex-direction: row; }
+.trends-tile { height: 150px; background-color: var(--cream); border-bottom: 1px solid var(--line); }
+.trends-row .trends-tile { width: 72px; height: auto; flex: none; border-bottom: 0; border-right: 1px solid var(--line); }
+/* Four patterns from the tokens, handed out in turn: stripes, rings, diamonds, dots. */
+.trends-tile-0 { background-image: repeating-linear-gradient(90deg, var(--green) 0 10px, var(--cream) 10px 26px, var(--orange) 26px 32px, var(--cream) 32px 48px); }
+.trends-tile-1 { background-image: radial-gradient(circle at 50% 50%, var(--orange) 0 14px, var(--cream) 15px 30px, var(--green) 31px 34px, var(--cream) 35px); background-size: 68px 68px; }
+.trends-tile-2 { background-image: linear-gradient(45deg, var(--orange) 25%, transparent 25% 75%, var(--orange) 75%), linear-gradient(45deg, var(--orange) 25%, transparent 25% 75%, var(--orange) 75%); background-size: 48px 48px; background-position: 0 0, 24px 24px; }
+.trends-tile-3 { background-image: radial-gradient(circle, var(--green) 0 5px, transparent 6px); background-size: 24px 24px; }
+.trends-body { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; flex: 1; min-width: 0; padding: 14px 16px 16px; overflow-wrap: anywhere; }
+.trends-card .eyebrow { display: block; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; }
+.trends-card h3 { font: 500 18px / 1.25 var(--font-display); letter-spacing: -0.2px; margin: 0; }
+.trends-why { margin: 0; font-size: 12px; line-height: 1.6; }
+.trends-pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.trends-pills li { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 30px; background: var(--chip-sand); color: var(--chip-sand-ink); }
+.trends-src { margin: auto 0 0; padding-top: 6px; font-size: 11px; color: var(--muted-2); }
+.trends-src a { color: var(--muted-2); text-decoration: underline; }
+.trends-reach { padding-top: 4px; }
+@media (max-width: 900px) {
+  .trends-grid { grid-template-columns: 1fr; }
+  .trends-tile { height: clamp(96px, 28vw, 150px); }
+  .trends-row .trends-tile { height: auto; }
+}
+@media (max-width: 700px) {
+  .trends-block { padding: 0 5%; }
+  .trends-block .section { padding-top: 32px; }
+  .trends-reach { display: inline-flex; align-items: center; min-height: 44px; padding-top: 0; }
+}
