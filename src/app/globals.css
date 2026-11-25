@@ -895,32 +895,56 @@ h2 em {
 }
 .maker-cta {
   margin: 70px 8.5%;
-  padding: 35px 40px;
-  background: var(--green);
-  color: #f8f4ee;
-  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--sand-soft);
+}
+/* The stall awning, the same stripes as the logo: a striped band over a scalloped edge. */
+.mc-awning {
+  display: block;
+  height: 30px;
+  line-height: 0;
+}
+.mc-awning i {
+  display: block;
+  height: 16px;
+  background: repeating-linear-gradient(90deg, var(--stall-terra-d) 0 28px, var(--stall-mustard) 28px 56px);
+}
+.mc-awning b {
+  display: block;
+  height: 14px;
+  background:
+    radial-gradient(circle at 14px 0, var(--stall-terra-d) 13.5px, transparent 14px) 0 0 / 56px 14px repeat-x,
+    radial-gradient(circle at 42px 0, var(--stall-mustard) 13.5px, transparent 14px) 0 0 / 56px 14px repeat-x;
+}
+.mc-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 260px);
+  gap: 48px;
   align-items: center;
-  gap: 25px;
+  padding: 40px 48px 44px;
 }
-.maker-cta .eyebrow {
-  color: #e5b28c;
+.mc-copy {
+  min-width: 0;
 }
-.maker-cta h2 {
-  font-size: 29px;
-  margin: 10px 0;
+.maker-cta h2 em {
+  font-style: normal;
 }
-.maker-cta p {
-  font-size: 11px;
-  color: #d5ddd3;
+.maker-cta .mc-lead {
+  max-width: 520px;
   margin: 0;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--muted-2);
 }
-.cta-flower {
-  font-size: 54px;
-  color: #e2b28d;
+.maker-cta .button {
+  margin-top: 26px;
 }
-.maker-cta > div:nth-child(2) {
-  flex: 1;
+.mc-art {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 .light {
   background: #f8f1e5;
@@ -1082,7 +1106,11 @@ form label select {
   .maker-cta {
     margin-left: 6%;
     margin-right: 6%;
-    padding: 28px;
+  }
+  .mc-body {
+    gap: 32px;
+    padding-left: 32px;
+    padding-right: 32px;
   }
   .hero-art {
     height: auto;
@@ -1213,22 +1241,17 @@ form label select {
   }
   .maker-cta {
     margin: 40px 5%;
-    padding: 25px 20px;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 12px;
   }
-  .cta-flower {
-    font-size: 37px;
+  .mc-body {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 26px 20px 28px;
   }
-  .maker-cta h2 {
-    font-size: 24px;
+  .mc-art {
+    display: none;
   }
   .maker-cta .button {
-    grid-column: 1/-1;
-  }
-  .maker-cta p {
-    line-height: 1.7;
+    display: flex;
+    width: 100%;
   }
   footer {
     padding: 25px 5%;
