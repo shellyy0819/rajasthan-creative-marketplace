@@ -930,6 +930,7 @@ h2 em {
 }
 .maker-cta h2 em {
   font-style: normal;
+  white-space: nowrap; /* keep "You sell." together when the heading wraps */
 }
 .maker-cta .mc-lead {
   max-width: 520px;
