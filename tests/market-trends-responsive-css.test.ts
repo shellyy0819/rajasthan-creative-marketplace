@@ -41,7 +41,10 @@ describe('the market trends admin page', () => {
   });
   it('gives the phone toolbar and the buttons of a card or an item 44px tap targets', () => {
     const block = /@media \(max-width: 600px\) \{(.*)$/.exec(trends)?.[1] ?? '';
-    expect(block).toMatch(/\.trend-admin \.trend-bar > \* \{ min-height: 44px;/);
+    // Specificity must beat the base rules (.trend-admin .button, .admin-toolbar .button and .trend-admin .trend-bar select, all at least (0,2,0) and the select (0,2,1)) whatever order the stylesheets load in.
+    const bar = /(\.trend-admin \.admin-toolbar\.trend-bar[^{]*) \{ min-height: 44px;/.exec(block)?.[1] ?? '';
+    expect(bar).toMatch(/\.trend-admin \.admin-toolbar\.trend-bar select/); // (0,3,1): beats the base select rule (0,2,1)
+    expect(bar).toMatch(/\.trend-admin \.admin-toolbar\.trend-bar \.button/); // (0,4,0): beats .admin-toolbar .button and .trend-admin .button (0,2,0)
     expect(block).toMatch(/\.trend-admin \.admin-row-actions > \.button,[^{]*\{ flex: 1 1 0; min-height: 44px;/);
   });
 });

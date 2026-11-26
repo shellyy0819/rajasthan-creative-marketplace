@@ -113,10 +113,13 @@
 }
 /* Phones: the toolbar, a card's buttons and an item's controls are 44px tall and share the row. */
 @media (max-width: 600px) {
-  .trend-admin .trend-bar > * {
+  /* Specificity above the base rules (.trend-admin .button, .admin-toolbar .button, .trend-admin .trend-bar select) so the height does not depend on stylesheet order. */
+  .trend-admin .admin-toolbar.trend-bar > *,
+  .trend-admin .admin-toolbar.trend-bar .button,
+  .trend-admin .admin-toolbar.trend-bar select {
     min-height: 44px;
   }
-  .trend-admin .trend-bar select {
+  .trend-admin .admin-toolbar.trend-bar select {
     flex: 1 1 100%;
   }
   .trend-admin .admin-row-actions > .button,

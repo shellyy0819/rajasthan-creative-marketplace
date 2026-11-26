@@ -5,7 +5,7 @@
 .trends-block .section h2 { font: 500 clamp(22px, 2.4vw, 26px) / 1.2 var(--font-display); letter-spacing: -0.5px; margin: 8px 0 0; }
 .trends-updated { margin: 16px 0 0; max-width: 560px; line-height: 1.6; }
 /* Three columns on a laptop at most (a wider window never makes a fourth), fewer when a card would be under 280px. */
-.trends-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(max(280px, calc((100% - 32px) / 3)), 1fr)); gap: 16px; }
+.trends-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(max(280px, calc((100% - 32px) / 3)), 1fr)); gap: 16px; }
 .trends-card { display: flex; flex-direction: column; min-width: 0; background: var(--card-2); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
 .trends-row { flex-direction: row; }
 .trends-tile { height: 150px; background-color: var(--cream); border-bottom: 1px solid var(--line); }
