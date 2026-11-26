@@ -27,6 +27,14 @@ export async function createDigest(i: { createdBy: string; model: string; status
   return toDigest(row);
 }
 
+/** The model text of a digest an admin started by hand, so nothing says it came from Gemini. */
+export const MANUAL_MODEL = 'manual';
+
+/** An empty digest an admin fills by hand: no key, no research. It is `ok` from the start, so items can be added, shown and published. */
+export function startManualDigest(createdBy: string): Promise<Digest> {
+  return createDigest({ createdBy, model: MANUAL_MODEL, status: 'ok', items: [] });
+}
+
 /** Every digest, newest first, without the items: how many there are and how many are shown. */
 export async function listDigests(): Promise<DigestSummary[]> {
   const rows = await getDb().select({
@@ -50,14 +58,17 @@ export async function getPublishedDigest(): Promise<Digest | null> {
   return row ? toDigest(row) : null;
 }
 
-/** Runs `change` on the items of an unpublished digest while holding its row, so two edits together cannot lose each other's change. */
-async function editItems(digestId: string, change: (items: TrendItem[]) => TrendItem[]): Promise<Digest> {
+/**
+ * Runs `change` on the items of an unpublished digest while holding its row, so two edits together cannot lose each other's change.
+ * With `revive`, an `empty` or `failed` digest becomes `ok` (and loses its error) in the same write: an admin's own item is what it was missing.
+ */
+async function editItems(digestId: string, change: (items: TrendItem[]) => TrendItem[], revive = false): Promise<Digest> {
   if (!UUID_RE.test(digestId)) throw notFound();
   return getDb().transaction(async tx => {
     const [row] = await tx.select().from(trendDigests).where(eq(trendDigests.id, digestId)).for('update');
     if (!row) throw notFound();
     if (row.publishedAt) throw locked();
-    const [saved] = await tx.update(trendDigests).set({ items: change(row.items) }).where(eq(trendDigests.id, digestId)).returning();
+    const [saved] = await tx.update(trendDigests).set({ items: change(row.items), ...(revive && row.status !== 'ok' ? { status: 'ok', error: null } : {}) }).where(eq(trendDigests.id, digestId)).returning();
     return toDigest(saved);
   });
 }
@@ -80,10 +91,10 @@ export async function patchItem(digestId: string, itemId: string, patch: ItemPat
   });
 }
 
-/** Adds an item typed by an admin. It starts hidden, so it only reaches the public after the admin ticks it. */
+/** Adds an item typed by an admin. It starts hidden, so it only reaches the public after the admin ticks it. Adding to an empty or failed digest makes it `ok`. */
 export async function addItem(digestId: string, input: unknown, origin: Extract<TrendOrigin, 'pinterest' | 'manual'>): Promise<Digest> {
   const checked = parseItemInput(input, origin);
-  return editItems(digestId, items => [...items, { ...checked, id: randomUUID(), show: false }]);
+  return editItems(digestId, items => [...items, { ...checked, id: randomUUID(), show: false }], true);
 }
 
 const isUniqueViolation = (e: unknown): boolean => {

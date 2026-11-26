@@ -4,7 +4,7 @@ import { getTestDb, resetTestDb } from './helpers/testdb';
 import { trendDigests } from '@/db/schema';
 import type { TrendItem } from '@/lib/trend-types';
 import {
-  addItem, createDigest, getDigest, getPublishedDigest, listDigests, patchItem, publishDigest, unpublishDigest,
+  addItem, createDigest, startManualDigest, getDigest, getPublishedDigest, listDigests, patchItem, publishDigest, unpublishDigest,
 } from '@/lib/trend-store';
 
 const item = (id: string, over: Partial<TrendItem> = {}): TrendItem => ({
@@ -94,6 +94,14 @@ describe('patchItem', () => {
   });
 });
 
+describe('startManualDigest', () => {
+  it('creates an ok digest with the model "manual", no items, no error and the admin as its creator', async () => {
+    const d = await startManualDigest('boss@example.com');
+    expect(d).toMatchObject({ status: 'ok', model: 'manual', error: null, items: [], createdBy: 'boss@example.com', publishedAt: null });
+    expect(await getDigest(d.id)).toMatchObject({ status: 'ok', model: 'manual', items: [] });
+  });
+});
+
 describe('addItem', () => {
   it('appends a hidden item with the given origin and a new id', async () => {
     const d = await make();
@@ -117,6 +125,34 @@ describe('addItem', () => {
     const d = await make();
     await publishDigest(d.id, 'boss@example.com');
     await expect(addItem(d.id, input(), 'manual')).rejects.toMatchObject({ status: 409, message: 'Unpublish it first.' });
+  });
+  it('adding to an empty digest makes it ok and clears the error', async () => {
+    const d = await make([], { status: 'empty', error: 'Nothing usable came back.' });
+    const after = await addItem(d.id, input(), 'manual');
+    expect(after).toMatchObject({ status: 'ok', error: null });
+    expect(after.items).toHaveLength(1);
+    expect(await getDigest(d.id)).toMatchObject({ status: 'ok', error: null });
+  });
+  it('adding to a failed digest makes it ok and clears the error', async () => {
+    const d = await make([], { status: 'failed', error: 'Gemini quota reached. Try again later.' });
+    expect(await addItem(d.id, input(), 'pinterest')).toMatchObject({ status: 'ok', error: null });
+    expect(await getDigest(d.id)).toMatchObject({ status: 'ok', error: null });
+  });
+  it('a refused add leaves an empty or failed digest as it was', async () => {
+    const d = await make([], { status: 'failed', error: 'Down.' });
+    expect(await status(addItem(d.id, { ...input(), title: '' }, 'manual'))).toBe(400);
+    expect(await getDigest(d.id)).toMatchObject({ status: 'failed', error: 'Down.', items: [] });
+  });
+  it('adding to an ok digest leaves it ok', async () => {
+    const d = await make();
+    expect(await addItem(d.id, input(), 'manual')).toMatchObject({ status: 'ok', error: null });
+  });
+  it('a digest started empty and then filled can be shown and published', async () => {
+    const d = await make([], { status: 'empty' });
+    await expect(publishDigest(d.id, 'boss@example.com')).rejects.toMatchObject({ status: 400 });
+    const added = (await addItem(d.id, input(), 'manual')).items[0];
+    await patchItem(d.id, added.id, { show: true });
+    expect((await publishDigest(d.id, 'boss@example.com')).publishedAt).not.toBeNull();
   });
   it('does not lose either item when two adds run together', async () => {
     const d = await make();

@@ -16,7 +16,7 @@ import { POST as publishRoute, DELETE as unpublishRoute } from '@/app/api/admin/
 import { POST as previewOn, DELETE as previewOff } from '@/app/api/admin/trends/preview/route';
 import { ApiError } from '@/lib/errors';
 import { runTrendFetch } from '@/lib/trend-fetch';
-import { createDigest, getDigest } from '@/lib/trend-store';
+import { createDigest, getDigest, listDigests } from '@/lib/trend-store';
 import type { TrendItem } from '@/lib/trend-types';
 import { resetTestDb } from './helpers/testdb';
 
@@ -93,6 +93,48 @@ describe('POST /api/admin/trends (fetch)', () => {
     const r = await fetchRoute();
     expect(r.status).toBe(500);
     expect(JSON.stringify(await r.json())).not.toContain('secret detail');
+  });
+});
+
+describe('POST /api/admin/trends with manual: true (start a digest by hand)', () => {
+  const manual = (body: unknown = { manual: true }) => fetchRoute(req('POST', body));
+  it('creates an ok, empty digest made by the admin, without calling the fetch module, and answers 201', async () => {
+    asAdmin();
+    const r = await manual();
+    expect(r.status).toBe(201);
+    expect(r.headers.get('cache-control')).toBe('no-store');
+    expect(await r.json()).toMatchObject({ status: 'ok', model: 'manual', items: [], error: null, createdBy: 'root@x.co', publishedAt: null });
+    expect(runFetch).not.toHaveBeenCalled();
+    expect(await listDigests()).toHaveLength(1);
+  });
+  it('is not held back by the 60 second gap or a running fetch: two in a row both work', async () => {
+    asAdmin();
+    expect((await manual()).status).toBe(201);
+    expect((await manual()).status).toBe(201);
+    expect(await listDigests()).toHaveLength(2);
+    expect(runFetch).not.toHaveBeenCalled();
+  });
+  it('stays admin only: 401 anonymous, 403 customer and seller, and nothing is created', async () => {
+    expect((await manual()).status).toBe(401);
+    for (const role of ['customer', 'seller']) { as('u@x.co', role); expect((await manual()).status).toBe(403); }
+    expect(await listDigests()).toHaveLength(0);
+    expect(runFetch).not.toHaveBeenCalled();
+  });
+  it('a manual that is not true or false is a 400 and creates nothing', async () => {
+    asAdmin();
+    for (const bad of ['true', 1, null, {}, []]) expect((await manual({ manual: bad })).status).toBe(400);
+    expect(await listDigests()).toHaveLength(0);
+    expect(runFetch).not.toHaveBeenCalled();
+  });
+  it('manual: false, or no body, or a body without manual, is the normal fetch', async () => {
+    asAdmin();
+    const d = await make();
+    runFetch.mockResolvedValue(d);
+    expect((await manual({ manual: false })).status).toBe(201);
+    expect((await manual({})).status).toBe(201);
+    expect((await fetchRoute(req('POST'))).status).toBe(201);
+    expect((await fetchRoute()).status).toBe(201);
+    expect(runFetch).toHaveBeenCalledTimes(4);
   });
 });
 

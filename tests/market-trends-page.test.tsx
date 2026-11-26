@@ -67,6 +67,40 @@ describe('MarketTrendsAdmin: top bar', () => {
     expect(screen.getByRole('link', { name: /Settings/ }).getAttribute('href')).toBe('/dashboard/settings');
     expect((screen.getByRole('button', { name: 'Fetch trends' }) as HTMLButtonElement).disabled).toBe(true);
   });
+  it('with no key saved the note still points to a way forward, and Start a digest by hand is enabled', () => {
+    show({ keySet: false, digests: [], selected: null });
+    expect(screen.getByText(/or start a digest by hand/i)).toBeTruthy();
+    expect(screen.getByText(/Add one in/)).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Start a digest by hand' }) as HTMLButtonElement).disabled).toBe(false);
+  });
+  it('Start a digest by hand POSTs manual: true, is busy meanwhile, then selects the new digest, shows its empty items section and toasts', async () => {
+    const fresh = digest('66666666-6666-4666-8666-666666666666', { createdAt: '2026-11-26T04:00:00.000Z', model: 'manual', items: [] });
+    let release!: (r: Response) => void;
+    routes.push((u, i) => (u === '/api/admin/trends' && i?.method === 'POST' ? new Promise<Response>(r => { release = r; }) : null));
+    routes.push(u => (u === `/api/admin/trends/${fresh.id}` ? res(200, { digest: fresh, matched: [] }) : null));
+    show({ keySet: false });
+    const btn = screen.getByRole('button', { name: 'Start a digest by hand' }) as HTMLButtonElement;
+    expect(btn.className).not.toMatch(/primary/);
+    fireEvent.click(btn);
+    await waitFor(() => expect(btn.getAttribute('aria-busy')).toBe('true'));
+    expect(btn.disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Fetch trends' }) as HTMLButtonElement).disabled).toBe(true);
+    await act(async () => { release({ ok: true, status: 201, json: () => Promise.resolve(fresh) } as Response); });
+    await waitFor(() => expect(btn.getAttribute('aria-busy')).not.toBe('true'));
+    expect(body(calls('POST', /^\/api\/admin\/trends$/)[0])).toEqual({ manual: true });
+    expect(screen.getByRole('status').textContent).toContain('Started a digest by hand. Add your items below.');
+    expect(card('26 November 2026')).toBeTruthy();
+    expect((screen.getByRole('combobox', { name: 'Digest' }) as HTMLSelectElement).value).toBe(fresh.id);
+    expect(window.location.search).toBe(`?d=${fresh.id}`);
+    expect(screen.getByRole('button', { name: '+ Add an item by hand' })).toBeTruthy();
+  });
+  it('Start a digest by hand shows the error in a toast and stays usable when it fails', async () => {
+    routes.push((u, i) => (u === '/api/admin/trends' && i?.method === 'POST' ? res(500, { error: 'Something broke.' }) : null));
+    show();
+    fireEvent.click(screen.getByRole('button', { name: 'Start a digest by hand' }));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Something broke\./));
+    expect((screen.getByRole('button', { name: 'Start a digest by hand' }) as HTMLButtonElement).disabled).toBe(false);
+  });
   it('with a key saved enables Fetch trends and shows no key note', () => {
     show();
     expect((screen.getByRole('button', { name: 'Fetch trends' }) as HTMLButtonElement).disabled).toBe(false);
@@ -344,11 +378,33 @@ describe('MarketTrendsAdmin: the items list', () => {
     show();
     expect(screen.queryByText('Unpublish to edit')).toBeNull();
   });
-  it('a failed or empty digest has no items list to check', () => {
-    const failed = digest('44444444-4444-4444-8444-444444444444', { status: 'failed', error: 'Down.' });
-    show({ digests: [failed], selected: failed });
-    expect(screen.queryByText('Check the items')).toBeNull();
-    expect(screen.queryByRole('button', { name: '+ Add an item by hand' })).toBeNull();
+  it('a failed or empty digest still shows the item section and the add button, with no items yet', () => {
+    for (const status of ['failed', 'empty'] as const) {
+      const d = digest('44444444-4444-4444-8444-444444444444', { status, error: status === 'failed' ? 'Down.' : null });
+      show({ digests: [d], selected: d });
+      expect(screen.getByText('Check the items')).toBeTruthy();
+      expect(screen.queryAllByTestId('trend-item')).toHaveLength(0);
+      expect((screen.getByRole('button', { name: '+ Add an item by hand' }) as HTMLButtonElement).disabled).toBe(false);
+      cleanup();
+    }
+  });
+  it('adding the first item to an empty digest turns it into a normal one: the note goes, the item is listed, Publish waits for a shown item', async () => {
+    const empty = digest('55555555-5555-4555-8555-555555555555', { status: 'empty' });
+    const added = { ...empty, status: 'ok' as const, error: null, items: [item('new', { title: 'Bamboo lamp shades', show: false, origin: 'manual' })] };
+    routes.push((u, i) => (u === `/api/admin/trends/${empty.id}/items` && i?.method === 'POST' ? res(201, added) : null));
+    routes.push(u => (u === `/api/admin/trends/${empty.id}` ? res(200, { digest: added, matched: match(added.items) }) : null));
+    show({ digests: [empty], selected: empty });
+    const c = card(D1);
+    expect(within(c).getByText('Nothing usable came back.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '+ Add an item by hand' }));
+    const d = screen.getByRole('dialog');
+    fireEvent.change(within(d).getByLabelText('Title'), { target: { value: 'Bamboo lamp shades' } });
+    fireEvent.change(within(d).getByLabelText('Why it is rising'), { target: { value: 'Light, airy lamps are selling.' } });
+    fireEvent.change(within(d).getByLabelText('Source 1 name'), { target: { value: 'Our research' } });
+    fireEvent.click(within(d).getByRole('button', { name: 'Add item' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Bamboo lamp shades' })).toBeTruthy());
+    expect(within(card(D1)).queryByText('Nothing usable came back.')).toBeNull();
+    expect(within(card(D1)).getByText(/^1 item, 0 shown\./)).toBeTruthy();
   });
 });
 

@@ -216,6 +216,16 @@ export function MarketTrendsAdmin({ digests: initialDigests, selected, matched: 
       else notify('error', 'Nothing usable came back.');
     });
   }
+  /** An empty digest for the admin to fill by hand: needs no Gemini key and no fetch. */
+  async function startByHand() {
+    await run('manual', async () => {
+      const r = await call<DigestDto>('/api/admin/trends', 'POST', { manual: true });
+      if (r.error || !r.data) return notify('error', r.error ?? GENERIC_ERROR);
+      adopt(r.data);
+      open(r.data, []);
+      notify('success', 'Started a digest by hand. Add your items below.');
+    });
+  }
   async function switchTo(id: string) {
     await run('open', async () => {
       const r = await call<{ digest: DigestDto; matched: MatchedItem[] }>(`/api/admin/trends/${id}`, 'GET');
@@ -285,9 +295,10 @@ export function MarketTrendsAdmin({ digests: initialDigests, selected, matched: 
 
       <div className="admin-grid admin-grid-solo">
         <div className="trend-admin">
-          {!keySet && <p className="trend-note">No Gemini key is saved, so trends cannot be fetched. Add one in <Link href="/dashboard/settings" className="text-link">Settings</Link>.</p>}
+          {!keySet && <p className="trend-note">No Gemini key is saved. Add one in <Link href="/dashboard/settings" className="text-link">Settings</Link> to fetch trends, or start a digest by hand.</p>}
           <div className="admin-toolbar trend-bar">
             <button type="button" className="button primary" disabled={!keySet || !!busy} aria-busy={busy === 'fetch'} onClick={() => void fetchTrends()}>Fetch trends</button>
+            <button type="button" className="button" disabled={!!busy} aria-busy={busy === 'manual'} onClick={() => void startByHand()}>Start a digest by hand</button>
             {digests.length > 0 && (
               <select aria-label="Digest" value={digest?.id ?? ''} disabled={!!busy} onChange={e => void switchTo(e.target.value)}>
                 {digests.map(s => <option key={s.id} value={s.id}>{`${dateTime(s.createdAt)} · ${s.publishedAt ? 'Published' : 'Draft'}`}</option>)}
@@ -327,11 +338,12 @@ export function MarketTrendsAdmin({ digests: initialDigests, selected, matched: 
             );
           })}
 
-          {digest && digest.status === 'ok' && (
+          {digest && (
             <section className="trend-items" aria-labelledby="trend-items-h">
               <h2 id="trend-items-h">Check the items</h2>
               <p className="muted">{`Digest of ${dateTime(digest.createdAt)}. Switch off what should not be public. Fix the kind if it is wrong, since the heading on /trending follows it. Add your own research or Pinterest findings by hand.`}</p>
               {locked && <p className="muted">Unpublish to edit</p>}
+              {digest.items.length === 0 && <p className="muted">No items yet. Add one by hand below.</p>}
               <div className="trend-list">
                 {digest.items.map(it => {
                   const off = locked || !!busy;
