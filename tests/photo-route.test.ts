@@ -37,12 +37,12 @@ describe('GET /api/photo', () => {
     expect((await call(qs)).status).toBe(200);
     expect(fetch).toHaveBeenCalledTimes(1);
   });
-  it('forgets a copy after five minutes, and reading it does not extend that', async () => {
+  it('forgets a copy after an hour, and reading it does not extend that', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     try {
       const qs = `w=480&u=${encodeURIComponent(PHOTO)}`;
       await call(qs);
-      vi.advanceTimersByTime(4 * 60_000); await call(qs);
+      vi.advanceTimersByTime(59 * 60_000); await call(qs);
       expect(fetch).toHaveBeenCalledTimes(1);
       vi.advanceTimersByTime(2 * 60_000); await call(qs);
       expect(fetch).toHaveBeenCalledTimes(2);

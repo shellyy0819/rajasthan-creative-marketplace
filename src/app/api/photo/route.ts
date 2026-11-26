@@ -8,9 +8,9 @@ const MAX_SOURCE_BYTES = 6 * 1024 * 1024;   // uploads are capped at 5 MB
 const CACHE = 'public, max-age=86400, stale-while-revalidate=3600';
 
 // Recent resized copies, kept in memory so every visitor does not make the server fetch and shrink the same photo again.
-// Bounded by bytes (16 MB in all, no copy over 512 KB) and by age: an entry expires 5 minutes after it was made and reading it does not extend that,
-// so a photo a seller removes is not served from here for long.
-const MAX_TOTAL_BYTES = 16 * 1024 * 1024, MAX_ENTRY_BYTES = 512 * 1024, TTL_MS = 5 * 60_000;
+// Bounded by bytes (16 MB in all, no copy over 1 MB) and by age: an entry expires an hour after it was made and reading it does not extend that,
+// so a photo a seller removes is not served from here for long. Every miss is a GET on S3, whose free tier counts requests, so this is not kept short.
+const MAX_TOTAL_BYTES = 16 * 1024 * 1024, MAX_ENTRY_BYTES = 1024 * 1024, TTL_MS = 60 * 60_000;
 const recent = new Map<string, { at: number; body: Buffer }>();
 let total = 0;
 const forget = (k: string) => { const e = recent.get(k); if (e) { total -= e.body.length; recent.delete(k); } };
