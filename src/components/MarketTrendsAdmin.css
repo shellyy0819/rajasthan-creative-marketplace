@@ -1,0 +1,124 @@
+/* Market trends admin: the shared admin classes do most of the work (.admin-row, .admin-toolbar, .admin-form, .badge, .admin-row-actions).
+   This sheet only fills the gaps, with tokens and the sizes of the admin type scale. */
+
+/* Buttons and selects in one row share height, radius, border and font, wherever they sit (the shared rules cover only .admin-row and .admin-actions). */
+.trend-admin .button {
+  min-height: var(--control-h);
+  border: 1px solid var(--control-border);
+  border-radius: 3px;
+  background: transparent;
+  padding: 9px 13px;
+  font-size: 11px;
+  color: var(--ink);
+}
+.trend-admin .button.primary {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+.trend-admin .button.danger-outline {
+  color: var(--danger);
+  border-color: var(--danger-line);
+}
+.trend-admin .button:disabled,
+.trend-admin select:disabled,
+.trend-admin input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.trend-admin button[aria-busy='true'] {
+  cursor: wait;
+}
+.trend-admin .trend-bar {
+  align-items: center;
+}
+.trend-admin .trend-bar select {
+  min-height: var(--control-h);
+  border: 1px solid var(--control-border);
+  border-radius: 3px;
+  background-color: transparent;
+  padding: 9px 13px;
+  font: 600 11px var(--font-sans), sans-serif;
+  color: var(--ink);
+}
+.trend-admin .trend-note {
+  margin: 0 0 18px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+/* A failed digest's error keeps the red chip colours (".admin-row-main p" would make it muted grey). */
+.trend-admin .admin-row-main p.admin-error {
+  margin: 6px 0 4px;
+  color: var(--chip-red-ink);
+}
+
+/* A digest card and an item row: the text on the left, the controls on the right (stacked on a phone). */
+.trend-admin .admin-row.trend-card {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.trend-admin .admin-row.trend-card[aria-current='true'] {
+  border-color: var(--green);
+}
+.trend-admin .admin-row.trend-item {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.trend-admin .trend-show {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--control-h);
+  font-size: 11px;
+  font-weight: 700;
+}
+.trend-admin .trend-show input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--green);
+}
+.trend-admin .trend-items {
+  margin-top: 36px;
+}
+.trend-admin .trend-items h2 {
+  font: 500 clamp(22px, 2.4vw, 26px) / 1.2 var(--font-display);
+  margin: 0 0 8px;
+}
+.trend-admin .trend-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.trend-admin .trend-list .admin-row {
+  margin: 0;
+}
+.trend-admin .trend-add {
+  margin-top: 14px;
+}
+@media (max-width: 800px) {
+  .trend-admin .admin-row.trend-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .trend-admin .admin-row.trend-item {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+
+/* The dialog is wider than the default 440px so a source name and its link sit side by side. */
+.trend-dialog {
+  width: min(560px, calc(100% - 28px));
+}
+.trend-dialog .admin-form textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+.trend-dialog .trend-source {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  margin: 10px 0;
+  padding: 4px 14px 12px;
+}
+.trend-dialog .trend-source .admin-row-actions {
+  justify-content: flex-end;
+}
