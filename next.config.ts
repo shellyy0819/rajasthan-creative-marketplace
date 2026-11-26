@@ -8,6 +8,8 @@ const devOrigins = (process.env.DEV_ORIGINS ?? '').split(',').map(h => h.trim())
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // The site's CSS (about 30 KiB compressed, eight files) goes into the page itself: with files, the first paint waits for eight more requests.
+  experimental: { inlineCss: true },
   ...(devOrigins.length ? { allowedDevOrigins: devOrigins } : {}),
   output: process.env.DOCKER_BUILD === '1' ? 'standalone' : undefined,
   async headers() {
