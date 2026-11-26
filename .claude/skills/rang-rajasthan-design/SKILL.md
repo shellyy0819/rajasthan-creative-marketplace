@@ -22,15 +22,16 @@ A mockup or design artifact is a **layout reference, not a size reference**. Moc
 | Token | Value | Use |
 |---|---|---|
 | `--ink` | #252a24 | text |
-| `--muted` | #77796f | secondary text, hints |
+| `--muted` | #666860 | secondary text, hints |
 | `--paper` | #f8f4ee | page background |
 | `--cream` | #eee5d8 | placeholders, thumbs |
 | `--green` | #405746 | primary buttons, links, success |
-| `--orange` | #c66b43 | accents, eyebrows, focus ring |
+| `--orange` | #c66b43 | fills, borders, focus ring, large headings |
+| `--orange-text` | #9a4a28 (dark: same as `--orange`) | small orange text: eyebrows, labels, link hovers. `--orange` on paper is only 3.4:1 |
 | `--line` | #e5ddd1 | hairline borders of inputs/cards |
 | `--white` | #fffdf9 | card/input surface |
 | `--card-2` | #f9f7f0 (dark #212922) | the surface of cards on a page (workshop cards, detail cards) |
-| `--muted-2` | #6e7068 (dark #b0b4a8) | secondary text on detail pages: intro, notes, small labels |
+| `--muted-2` | #5f6158 (dark #b0b4a8) | secondary text on detail pages: intro, notes, small labels |
 | `--ink-soft` | #575a4d (dark #cfd2c4) | softer body text where `--muted` is too faint |
 | `--green-d` | #374a3b (dark #b9cdbd) | dark green text and strokes |
 | `--chip-green`, `--chip-sand`, `--chip-sand-ink` | chip fills and their text | pills and status chips |
@@ -58,7 +59,7 @@ This site's text is **small**. Pages look consistent because nobody goes bigger 
 | Small notes and hints | 11px, `--muted` | `.muted`, `.maker-note` |
 | Price on a detail page | 22px | `.detail .price` |
 | Field labels and small caps labels | 10px, 700, letter-spacing 1px | legends, `.lbl` |
-| Eyebrow and meta line | 9px, 700, letter-spacing 2px, `--orange` | `.eyebrow`, `.product-meta` |
+| Eyebrow and meta line | 9px, 700, letter-spacing 2px, `--orange-text` | `.eyebrow`, `.product-meta` |
 | Buttons | 12px, 600 (`.button`); admin controls 11px | `.button` |
 | Pills and chips | 11 to 12px, 700 | `.ws-badges span`, `.detail-pills li`; `.badge` is 9px uppercase |
 

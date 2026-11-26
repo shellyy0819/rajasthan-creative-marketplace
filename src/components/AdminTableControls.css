@@ -40,7 +40,7 @@
 .admin-table .row-title { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
 .workshop-detail { width: min(640px, 100%); outline: none; }
 .workshop-detail section { margin: 0 0 18px; }
-.workshop-detail h3 { margin: 0 0 8px; font: 700 12px var(--font-sans); letter-spacing: .8px; text-transform: uppercase; color: var(--orange); }
+.workshop-detail h3 { margin: 0 0 8px; font: 700 12px var(--font-sans); letter-spacing: .8px; text-transform: uppercase; color: var(--orange-text); }
 .workshop-detail dl { display: grid; grid-template-columns: 150px 1fr; gap: 6px 14px; margin: 0; font-size: 13px; }
 .workshop-detail dt { color: var(--muted); }
 .workshop-detail dd { margin: 0; overflow-wrap: anywhere; }

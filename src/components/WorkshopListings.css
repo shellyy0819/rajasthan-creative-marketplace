@@ -1,6 +1,6 @@
 /* Host form: the two paths, class day chips and price plans. */
 .host-path, .host-days, .host-prices { border: 1px solid var(--line); border-radius: 4px; margin: 14px 0; padding: 4px 14px 12px; }
-.host-path legend, .host-days legend, .host-prices legend { font-size: 10px; letter-spacing: 1px; color: var(--orange); font-weight: 700; padding: 0 6px; }
+.host-path legend, .host-days legend, .host-prices legend { font-size: 10px; letter-spacing: 1px; color: var(--orange-text); font-weight: 700; padding: 0 6px; }
 .host-path-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
 .host-path-card { display: flex !important; align-items: flex-start; gap: 10px; margin: 0 !important; padding: 12px; border: 1px solid var(--control-border); border-radius: 4px; background: var(--white); cursor: pointer; }
 .host-path-card:has(input:checked) { border-color: var(--orange); box-shadow: 0 0 0 1px var(--orange); }

@@ -16,7 +16,7 @@
   .cd-hero-aligned .cd-media { grid-column: 2; grid-row: 2; position: relative; min-height: 240px; }
   .cd-hero-aligned .cd-mosaic { position: absolute; inset: 0; aspect-ratio: auto; }
 }
-.cd-eyebrow { margin: 0; font-size: 9px; letter-spacing: 2px; font-weight: 700; color: var(--orange); }
+.cd-eyebrow { margin: 0; font-size: 9px; letter-spacing: 2px; font-weight: 700; color: var(--orange-text); }
 .cd-lead { margin: 0; font-size: 14px; line-height: 1.8; color: var(--muted-2); max-width: 560px; }
 .cd-badges { margin: 0; }
 .cd-badge { display: inline-block; padding: 4px 12px; border-radius: 30px; font: 700 11px var(--font-sans); background: var(--orange); color: #fffdf9; }

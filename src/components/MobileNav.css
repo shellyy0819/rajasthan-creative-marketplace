@@ -8,7 +8,7 @@
 .mobile-drawer-head { height: 67px; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 nav.mobile-drawer-nav { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 8px 0; font-size: 12px; font-weight: 600; overflow-y: auto; }
 .mobile-drawer-nav a { display: flex; align-items: center; min-height: 48px; padding: 0 20px; border-bottom: 1px solid var(--line); color: var(--ink); }
-.mobile-drawer-nav a:hover, .mobile-drawer-nav a:focus-visible { color: var(--orange); }
+.mobile-drawer-nav a:hover, .mobile-drawer-nav a:focus-visible { color: var(--orange-text); }
 /* The page you are on: the green tint and dark green text the site uses for a selected chip. */
 .mobile-drawer-nav a[aria-current='page'] { background: var(--chip-green); color: var(--green-d); font-weight: 700; }
 @keyframes mobile-drawer-in { from { transform: translateX(-100%); } to { transform: none; } }
