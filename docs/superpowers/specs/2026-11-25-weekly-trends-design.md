@@ -2,6 +2,8 @@
 
 Status: draft for approval. Date: 2026-11-25.
 
+> Superseded in part: wherever this document says Gemini uses Google Search or "grounding" to find trends, the section "Amendment (2026-11-26)" below replaces it. The app now fetches real headlines itself and Gemini only summarises them.
+
 ## Intent and why
 
 Admins want to know what is rising in arts and crafts and in craft workshops, so each week they can pick sellers to nudge, plan new workshops, write blog posts, and ask workshop hosts whether they have run a trending workshop. Phase 1 builds only the digest those four jobs will read. The four jobs are later phases, each with its own design.
