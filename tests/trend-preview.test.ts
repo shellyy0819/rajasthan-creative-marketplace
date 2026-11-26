@@ -2,6 +2,14 @@ import { randomUUID } from 'node:crypto';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ cookie: undefined as string | undefined, session: null as unknown, auth: vi.fn(), matchItems: vi.fn() }));
+// No Next cache outside a request: call straight through, but hand back what the real cache would (JSON), so a Date that is cached would come back as text. Calls and options are recorded.
+const cache = vi.hoisted(() => ({ calls: [] as unknown[][], opts: undefined as undefined | { revalidate?: number; tags?: string[] }, keyParts: undefined as undefined | string[] }));
+vi.mock('next/cache', () => ({
+  unstable_cache: (fn: (...a: unknown[]) => Promise<unknown>, keyParts: string[], opts: { revalidate?: number; tags?: string[] }) => {
+    cache.opts = opts; cache.keyParts = keyParts;
+    return async (...a: unknown[]) => { cache.calls.push(a); const v = await fn(...a); return v === undefined ? v : JSON.parse(JSON.stringify(v)); };
+  },
+}));
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: (n: string) => (n === 'rr_trend_preview' && mocks.cookie !== undefined ? { name: n, value: mocks.cookie } : undefined) }) }));
 vi.mock('@/auth', () => ({ auth: mocks.auth }));
 vi.mock('@/lib/trend-match', async orig => {
@@ -26,7 +34,7 @@ beforeAll(async () => { await resetTestDb(); }, 30_000);
 beforeEach(async () => {
   mocks.cookie = undefined; mocks.session = null;
   mocks.auth.mockReset(); mocks.auth.mockImplementation(async () => mocks.session);
-  mocks.matchItems.mockClear();
+  mocks.matchItems.mockClear(); cache.calls.length = 0;
   await resetTestDb();
 }, 30_000);
 
@@ -91,11 +99,29 @@ describe('getTrendsForPage', () => {
     expect(r.updatedOn).toEqual(draft.createdAt);
   });
 
-  it('an admin previewing a draft with nothing shown gets null', async () => {
+  it('an admin previewing a draft with nothing shown gets null when nothing is published', async () => {
     const draft = await make([item('d', { show: false })]);
     asAdmin(); mocks.cookie = draft.id;
     expect(await getTrendsForPage()).toBeNull();
     expect(mocks.matchItems).not.toHaveBeenCalled();
+  });
+
+  it('an admin previewing a draft with nothing shown falls back to the published digest, with no preview claim', async () => {
+    const pub = await make([item('p')]); await publishDigest(pub.id, 'root@x.co');
+    const draft = await make([item('d', { show: false })]);
+    asAdmin(); mocks.cookie = draft.id;
+    const r = (await getTrendsForPage())!;
+    expect(r.previewing).toBe(false);
+    expect(r.items.map(i => i.id)).toEqual(['p']);
+  });
+
+  it('an admin previewing the published digest sees it normally, with no preview claim', async () => {
+    const pub = await make([item('p')]); const p = await publishDigest(pub.id, 'root@x.co');
+    asAdmin(); mocks.cookie = pub.id;
+    const r = (await getTrendsForPage())!;
+    expect(r.previewing).toBe(false);
+    expect(r.items.map(i => i.id)).toEqual(['p']);
+    expect(r.updatedOn).toEqual(p.publishedAt);
   });
 
   it('ignores garbage cookie text without asking who is signed in, and shows the published digest', async () => {
@@ -126,5 +152,32 @@ describe('getTrendsForPage', () => {
     await getDb().update(trendDigests).set({ items: [item('a', { show: false })] });
     expect(await getTrendsForPage()).toBeNull();
     expect(mocks.matchItems).not.toHaveBeenCalled();
+  });
+
+  describe('caching', () => {
+    it('the published path goes through the cache wrapper keyed by the digest id, with a short revalidate and the trends tag', async () => {
+      const d = await make([item('a')]); await publishDigest(d.id, 'root@x.co');
+      await getTrendsForPage();
+      expect(cache.calls).toEqual([[d.id]]);
+      expect(cache.opts).toMatchObject({ revalidate: 300, tags: ['trends'] });
+    });
+    it('gives updatedOn back as a Date after a cached read, taken from the live digest', async () => {
+      const d = await make([item('a')]); const p = await publishDigest(d.id, 'root@x.co');
+      const r = (await getTrendsForPage())!;
+      expect(r.updatedOn).toBeInstanceOf(Date);
+      expect(r.updatedOn).toEqual(p.publishedAt);
+      expect(typeof r.sourceLine).toBe('string');
+      expect(r.items[0]).toMatchObject({ id: 'a', count: expect.any(Number) });
+    });
+    it('does not use the cache when there is nothing published, or for a previewed draft', async () => {
+      await getTrendsForPage();
+      const pub = await make([item('p')]); await publishDigest(pub.id, 'root@x.co');
+      const draft = await make([item('d')]);
+      cache.calls.length = 0;
+      asAdmin(); mocks.cookie = draft.id;
+      const r = (await getTrendsForPage())!;
+      expect(r.previewing).toBe(true);
+      expect(cache.calls).toEqual([]);
+    });
   });
 });

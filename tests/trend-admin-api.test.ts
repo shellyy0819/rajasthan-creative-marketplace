@@ -4,7 +4,8 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 const authMock = vi.hoisted(() => vi.fn());
 vi.mock('@/auth', () => ({ auth: authMock }));
 const revalidate = vi.hoisted(() => vi.fn());
-vi.mock('next/cache', () => ({ revalidatePath: revalidate }));
+const revalidateTag = vi.hoisted(() => vi.fn());
+vi.mock('next/cache', () => ({ revalidatePath: revalidate, revalidateTag, unstable_cache: (fn: unknown) => fn }));
 vi.mock('@/lib/trend-fetch', () => ({ runTrendFetch: vi.fn() }));
 
 import { GET as listRoute, POST as fetchRoute } from '@/app/api/admin/trends/route';
@@ -39,7 +40,7 @@ const make = (items: TrendItem[] = [item('a')]) => createDigest({ createdBy: 'ro
 beforeAll(async () => { await resetTestDb(); }, 30_000);
 beforeEach(async () => {
   authMock.mockReset(); authMock.mockResolvedValue(null);
-  revalidate.mockReset(); runFetch.mockReset();
+  revalidate.mockReset(); revalidateTag.mockReset(); runFetch.mockReset();
   await resetTestDb();
 }, 30_000);
 
@@ -61,6 +62,7 @@ describe('/api/admin/trends access', () => {
     for (const role of ['customer', 'seller']) { as('u@x.co', role); for (const c of calls()) expect((await c()).status).toBe(403); }
     expect(runFetch).not.toHaveBeenCalled();
     expect(revalidate).not.toHaveBeenCalled();
+    expect(revalidateTag).not.toHaveBeenCalled();
   });
   it('403 for a deactivated admin', async () => {
     authMock.mockResolvedValue({ user: { email: 'root@x.co', role: 'admin', active: false } });
@@ -201,6 +203,7 @@ describe('publish and unpublish', () => {
     expect(r.headers.get('cache-control')).toBe('no-store');
     expect(await r.json()).toMatchObject({ id: a.id, publishedBy: 'root@x.co' });
     expect(revalidate).toHaveBeenCalledWith('/trending');
+    expect(revalidateTag).toHaveBeenCalledWith('trends', { expire: 0 });
     expect((await publishRoute(req('POST'), ctx(b.id))).status).toBe(200);
     expect((await getDigest(a.id))!.publishedAt).toBeNull();
     expect((await getDigest(b.id))!.publishedAt).not.toBeNull();
@@ -211,16 +214,18 @@ describe('publish and unpublish', () => {
     expect((await publishRoute(req('POST'), ctx(d.id))).status).toBe(400);
     expect((await publishRoute(req('POST'), ctx(randomUUID()))).status).toBe(404);
     expect(revalidate).not.toHaveBeenCalled();
+    expect(revalidateTag).not.toHaveBeenCalled();
   });
   it('unpublish responds with the digest and revalidates /trending', async () => {
     asAdmin();
     const d = await make();
     await publishRoute(req('POST'), ctx(d.id));
-    revalidate.mockClear();
+    revalidate.mockClear(); revalidateTag.mockClear();
     const r = await unpublishRoute(req('DELETE'), ctx(d.id));
     expect(r.status).toBe(200);
     expect(await r.json()).toMatchObject({ id: d.id, publishedAt: null, publishedBy: null });
     expect(revalidate).toHaveBeenCalledWith('/trending');
+    expect(revalidateTag).toHaveBeenCalledWith('trends', { expire: 0 });
     expect((await unpublishRoute(req('DELETE'), ctx(randomUUID()))).status).toBe(404);
   });
 });
