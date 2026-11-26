@@ -53,7 +53,7 @@ type Body = { title: string; why: string; category?: string; tags: string[]; kin
 
 /**
  * A dialog in the middle of the screen to add an item by hand or to edit one. `onSave` returns null when it worked or the reason when it did not
- * (shown inside the dialog, because a toast behind it would be hidden). Escape, Cancel and the cross close it without saving, and focus goes back to the button that opened it.
+ * (shown inside the dialog, because a toast behind it would be hidden). Escape, Cancel and the cross close it without saving (a click outside does not: the dialog has padding of its own and a drag that ends there would throw away a long form), and focus goes back to the button that opened it.
  * (The native dialog traps Tab by itself; where `showModal` does not exist the attribute is the fallback.)
  */
 function ItemDialog({ item, onSave, onClose }: { item: TrendItem | null; onSave: (body: Body) => Promise<string | null>; onClose: () => void }) {
@@ -102,8 +102,7 @@ function ItemDialog({ item, onSave, onClose }: { item: TrendItem | null; onSave:
   return (
     <dialog ref={ref} aria-labelledby={`${uid}-h`} className="trend-dialog"
       onCancel={e => { e.preventDefault(); close(); }}
-      onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); close(); } }}
-      onClick={e => { if (e.target === ref.current) close(); }}>
+      onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); close(); } }}>
       <div className="dialog-head">
         <h2 id={`${uid}-h`}>{adding ? 'Add an item by hand' : 'Edit item'}</h2>
         <button type="button" className="icon-btn" onClick={close} aria-label="Close">✕</button>
@@ -189,7 +188,7 @@ export function MarketTrendsAdmin({ digests: initialDigests, selected, matched: 
       const next = list.some(x => x.id === d.id) ? list.map(x => (x.id === d.id ? s : x)) : [s, ...list];
       return d.publishedAt ? next.map(x => (x.id === d.id ? x : { ...x, publishedAt: null, publishedBy: null })) : next;
     });
-    setDigest(cur => (cur && cur.id === d.id ? d : cur));
+    setDigest(cur => (!cur ? cur : cur.id === d.id ? d : d.publishedAt ? { ...cur, publishedAt: null, publishedBy: null } : cur)); // publishing another digest unpublishes the open one, so it unlocks
   }
   function open(d: DigestDto, m: MatchedItem[]) {
     openId.current = d.id;

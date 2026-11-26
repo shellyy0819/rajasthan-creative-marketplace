@@ -233,6 +233,24 @@ describe('MarketTrendsAdmin: publish and unpublish', () => {
     // the open digest is published now, so its items are locked
     expect(screen.getByText('Unpublish to edit')).toBeTruthy();
   });
+  it('publishing another digest unlocks the open one: its card is a draft again and its items can be edited', async () => {
+    const published = { ...D_DRAFT, publishedAt: '2026-11-26T05:00:00.000Z', publishedBy: 'boss@x.co' };
+    routes.push(u => (u === `/api/admin/trends/${D_DRAFT.id}/publish` ? res(200, published) : null));
+    show({ selected: D_PUB }); // the published digest is the open one
+    expect(screen.getByText('Unpublish to edit')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: `Publish for everyone: ${D1} digest` }));
+    await waitFor(() => expect(within(card(D1)).getByText('Published')).toBeTruthy());
+    expect(within(card(D2)).getByText('Draft')).toBeTruthy();
+    expect(within(card(D2)).getByRole('button', { name: `Publish for everyone: ${D2} digest` })).toBeTruthy();
+    // the open digest is still D2 and is no longer locked
+    expect((screen.getByRole('combobox', { name: 'Digest' }) as HTMLSelectElement).value).toBe(D_PUB.id);
+    expect(screen.queryByText('Unpublish to edit')).toBeNull();
+    const r = row('Published thing');
+    expect((within(r).getByRole('checkbox') as HTMLInputElement).disabled).toBe(false);
+    expect((within(r).getByRole('combobox') as HTMLSelectElement).disabled).toBe(false);
+    expect((within(r).getByRole('button', { name: /^Edit/ }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole('button', { name: '+ Add an item by hand' }) as HTMLButtonElement).disabled).toBe(false);
+  });
   it('a failed publish shows the server message and keeps the card a draft', async () => {
     routes.push(u => (u.endsWith('/publish') ? res(409, { error: 'Another digest was published at the same moment. Try again.' }) : null));
     show();
@@ -470,6 +488,20 @@ describe('MarketTrendsAdmin: add by hand and edit', () => {
       expect(document.activeElement).toBe(edit);
     }
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it('a click on the dialog itself (its padding, or the end of a drag that started in a field) does not close it, so typing is never lost', () => {
+    show();
+    fireEvent.click(screen.getByRole('button', { name: '+ Add an item by hand' }));
+    const d = screen.getByRole('dialog');
+    fireEvent.change(within(d).getByLabelText('Title'), { target: { value: 'Half typed' } });
+    fireEvent.click(d); // a click in the padding
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    const input = within(d).getByLabelText('Title');
+    fireEvent.mouseDown(input); // a drag-select that starts in a field and is released over the padding
+    fireEvent.mouseUp(d);
+    fireEvent.click(d);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect((within(screen.getByRole('dialog')).getByLabelText('Title') as HTMLInputElement).value).toBe('Half typed');
   });
   it('puts focus in the first field when the dialog opens, and names the dialog by its heading', () => {
     show();
