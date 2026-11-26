@@ -54,10 +54,18 @@ export function buildQueries(categories: string[]): string[] {
 
 const ENTITY = /&(?:#(\d+)|#[xX]([0-9a-fA-F]+)|(amp|lt|gt|quot|apos));/g;
 const NAMED: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
-const TAG = /<!--[\s\S]*?-->|<\/?[A-Za-z][^>]*>/g;
 /** Control characters (not tab or newline, which become spaces), plus invisible direction and zero-width marks. */
 const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F​-\u200F\u202A-\u202E\u2066-\u2069﻿]/g;
-const CDATA = /<!\[CDATA\[([\s\S]*?)\]\]>/g;
+
+/**
+ * The feed body is hostile input, so nothing here backtracks: every scan moves forward only and never searches again from a point it
+ * has already passed. An item longer than MAX_ITEM_RAW is skipped, and a field longer than MAX_FIELD_RAW is cut, before any decoding.
+ */
+const MAX_ITEM_RAW = 32 * 1024;
+const MAX_FIELD_RAW = 4 * 1024;
+
+const isSpace = (ch: string) => ch !== '' && /\s/.test(ch);
+const isLetter = (ch: string) => (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
 
 function decodeEntities(s: string): string {
   return s.replace(ENTITY, (_m, dec: string | undefined, hex: string | undefined, name: string | undefined) => {
@@ -68,20 +76,58 @@ function decodeEntities(s: string): string {
   });
 }
 
-/** Text inside an XML element: CDATA is taken literally, everything else has its entities decoded once. */
+/** Text inside an XML element: CDATA is taken literally, everything else has its entities decoded once. One forward pass. */
 function xmlText(inner: string): string {
   let out = '';
-  let last = 0;
-  for (const m of inner.matchAll(CDATA)) {
-    out += decodeEntities(inner.slice(last, m.index)) + m[1];
-    last = (m.index ?? 0) + m[0].length;
+  let pos = 0;
+  for (;;) {
+    const open = inner.indexOf('<![CDATA[', pos);
+    if (open < 0) break;
+    const close = inner.indexOf(']]>', open + 9);
+    if (close < 0) break;
+    out += decodeEntities(inner.slice(pos, open)) + inner.slice(open + 9, close);
+    pos = close + 3;
   }
-  return out + decodeEntities(inner.slice(last));
+  return out + decodeEntities(inner.slice(pos));
+}
+
+/** Remove tags and comments in one forward pass. A `<` that starts no tag, or a tag or comment that is never closed, stays as text. */
+function stripTags(s: string): string {
+  let out = '';
+  let pos = 0;
+  let noTagEnd = false;
+  let noCommentEnd = false;
+  for (;;) {
+    const lt = s.indexOf('<', pos);
+    if (lt < 0) break;
+    let end = -1;
+    if (s.startsWith('!--', lt + 1)) {
+      if (!noCommentEnd) {
+        const c = s.indexOf('-->', lt + 4);
+        if (c < 0) noCommentEnd = true;
+        else end = c + 3;
+      }
+    } else if (isLetter(s.charAt(lt + 1)) || (s.charAt(lt + 1) === '/' && isLetter(s.charAt(lt + 2)))) {
+      if (!noTagEnd) {
+        const g = s.indexOf('>', lt + 1);
+        if (g < 0) noTagEnd = true;
+        else end = g + 1;
+      }
+    }
+    if (end < 0) {
+      out += s.slice(pos, lt + 1);
+      pos = lt + 1;
+    } else {
+      out += s.slice(pos, lt);
+      pos = end;
+    }
+  }
+  return out + s.slice(pos);
 }
 
 /** Untrusted text made safe to show: no tags, no control characters, single spaces. */
 function clean(s: string): string {
-  return s.replace(TAG, '').replace(CONTROL, '').replace(/\s+/g, ' ').trim();
+  return stripTags(s).replace(CONTROL, '').replace(/\s+/g, ' ').trim();
 }
 
 function cap(s: string, max: number): string {
@@ -91,33 +137,83 @@ function cap(s: string, max: number): string {
   return last >= 0xd800 && last <= 0xdbff ? cut.slice(0, -1) : cut;
 }
 
-/** The raw inner text of the first `<name>` element in a block, or null. */
-function tagInner(block: string, name: string): string | null {
-  const m = new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)</${name}>`, 'i').exec(block);
-  return m ? m[1] : null;
+/** Lower case that keeps every index the same as in the original (toLowerCase can change the length of some characters). */
+function lowerKeepingIndexes(s: string): string {
+  const lower = s.toLowerCase();
+  return lower.length === s.length ? lower : s.replace(/[A-Z]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 32));
 }
 
-// An item may not contain another `<item`, so an item that is never closed is passed over instead of swallowing the next one.
-const ITEM = /<item(?:\s[^>]*)?>((?:(?!<item[\s>])[\s\S])*?)<\/item>/gi;
+/** The raw inner text of the first `<name>` element in a block (cut at MAX_FIELD_RAW), or null. `lower` is the lower-cased copy of `block`. */
+function tagInner(block: string, lower: string, name: string): string | null {
+  const open = `<${name}`;
+  let p = 0;
+  for (;;) {
+    p = lower.indexOf(open, p);
+    if (p < 0) return null;
+    const ch = lower.charAt(p + open.length);
+    if (ch === '>' || isSpace(ch)) break;
+    p += open.length;
+  }
+  const gt = lower.indexOf('>', p + open.length);
+  if (gt < 0) return null;
+  const end = lower.indexOf(`</${name}>`, gt + 1);
+  if (end < 0) return null;
+  return block.slice(gt + 1, Math.min(end, gt + 1 + MAX_FIELD_RAW));
+}
 
-/** Read the items of an RSS feed: title, link, date and publisher. Pure, and never throws. An item without a title or a link is skipped. */
+/** Where the content of each complete `<item>` starts and ends: forward pointers only, so the total work is linear in the body. */
+function itemRanges(lower: string): [number, number][] {
+  const opens: number[] = [];
+  for (let p = lower.indexOf('<item'); p >= 0; p = lower.indexOf('<item', p + 5)) {
+    const ch = lower.charAt(p + 5);
+    if (ch === '>' || isSpace(ch)) opens.push(p);
+  }
+  const closes: number[] = [];
+  for (let p = lower.indexOf('</item>'); p >= 0; p = lower.indexOf('</item>', p + 7)) closes.push(p);
+
+  const ranges: [number, number][] = [];
+  let gt = 0; // the first ">" after the current open tag; it only ever moves forward
+  let ci = 0;
+  let oi = 0;
+  let consumed = 0;
+  for (const open of opens) {
+    if (open < consumed) continue;
+    if (gt < open + 5) {
+      gt = lower.indexOf('>', open + 5);
+      if (gt < 0) break;
+    }
+    const start = gt + 1;
+    while (ci < closes.length && closes[ci] < start) ci++;
+    if (ci >= closes.length) break;
+    const close = closes[ci];
+    while (oi < opens.length && opens[oi] < start) oi++;
+    if (oi < opens.length && opens[oi] < close) continue; // another item starts first: this one is never closed
+    consumed = close + 7;
+    if (close - start <= MAX_ITEM_RAW) ranges.push([start, close]);
+  }
+  return ranges;
+}
+
+/** Read the items of an RSS feed: title, link, date and publisher. Pure, never throws, and linear in the size of the text. An item without a title or a link is skipped. */
 export function parseFeed(xml: string): RawHeadline[] {
   const out: RawHeadline[] = [];
   if (typeof xml !== 'string') return out;
   try {
-    for (const m of xml.matchAll(ITEM)) {
-      const block = m[1];
-      const rawTitle = tagInner(block, 'title');
-      const rawLink = tagInner(block, 'link');
+    const lowerXml = lowerKeepingIndexes(xml);
+    for (const [start, end] of itemRanges(lowerXml)) {
+      const block = xml.slice(start, end);
+      const lower = lowerXml.slice(start, end);
+      const rawTitle = tagInner(block, lower, 'title');
+      const rawLink = tagInner(block, lower, 'link');
       if (rawTitle === null || rawLink === null) continue;
       const url = xmlText(rawLink).trim();
-      const sourceInner = tagInner(block, 'source');
+      const sourceInner = tagInner(block, lower, 'source');
       const publisher = sourceInner === null ? '' : clean(xmlText(sourceInner));
       let title = clean(xmlText(rawTitle));
       const suffix = ` - ${publisher}`.toLowerCase();
       if (publisher && title.length > suffix.length && title.toLowerCase().endsWith(suffix)) title = title.slice(0, title.length - suffix.length).trim();
       if (!title || !url) continue;
-      const dateInner = tagInner(block, 'pubDate');
+      const dateInner = tagInner(block, lower, 'pubdate');
       const parsed = dateInner === null ? null : new Date(clean(xmlText(dateInner)));
       out.push({
         title: cap(title, MAX_TITLE),
@@ -177,6 +273,7 @@ async function fetchFeed(url: string): Promise<string | null> {
   const work = (async () => {
     const res = await fetch(url, {
       signal: controller.signal,
+      redirect: 'error',
       headers: { 'user-agent': USER_AGENT, accept: 'application/rss+xml, application/xml;q=0.9, text/xml;q=0.8' },
     });
     if (!res.ok) {

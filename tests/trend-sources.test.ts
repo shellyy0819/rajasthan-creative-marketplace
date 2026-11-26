@@ -157,6 +157,66 @@ describe('parseFeed', () => {
   });
 });
 
+describe('hostile input', () => {
+  // Each body is about 300 KB (or 1 MB of "<"). Work must stay linear: a slow parser would block the Node event loop.
+  const N = 50_000;
+  const link = '<link>https://news.example/a/1</link>';
+  const bodies: Record<string, string> = {
+    'unterminated <item start tags': '<rss>' + '<item '.repeat(N),
+    'many <item> never closed, one </item> at the end': '<rss>' + '<item>'.repeat(N) + '</item>',
+    'many <item start tags and a late ">"': '<rss>' + '<item '.repeat(N) + '>',
+    'unterminated <title start tags inside one item': `<rss><item>${link}` + '<title '.repeat(N) + '</item></rss>',
+    'unclosed <title> inside one item': `<rss><item>${link}` + '<title>'.repeat(N) + '</item></rss>',
+    'unterminated <a start tags inside a title': `<rss><item><title>` + '<a '.repeat(N) + `</title>${link}</item></rss>`,
+    'unterminated CDATA inside a title': `<rss><item><title>` + '<![CDATA['.repeat(N) + `</title>${link}</item></rss>`,
+    'unterminated comment inside a title': `<rss><item><title>` + '<!--'.repeat(N * 2) + `</title>${link}</item></rss>`,
+    'unclosed <link> and <source> tags': '<rss><item><title>T</title>' + '<link>'.repeat(N) + '<source>'.repeat(N) + '</item></rss>',
+    'a body of "<" only': '<'.repeat(1_000_000),
+  };
+  const timed = (fn: () => unknown) => { const t = performance.now(); fn(); return performance.now() - t; };
+
+  it.each(Object.entries(bodies))('parseFeed returns quickly on %s', (_name, body) => {
+    let ms = 0;
+    expect(() => { ms = timed(() => parseFeed(body)); }).not.toThrow();
+    expect(ms).toBeLessThan(500);
+  });
+  it.each(Object.entries(bodies))('fetchHeadlines returns quickly on %s', async (_name, body) => {
+    mockFetch(async () => ok(body));
+    const t = performance.now();
+    const out = await fetchHeadlines({ queries: ['a'], locale: 'en_US', now: NOW });
+    expect(performance.now() - t).toBeLessThan(500);
+    expect(out.length).toBeLessThanOrEqual(1);
+  });
+
+  it('still reads 60 ordinary items exactly as before', () => {
+    const items = Array.from({ length: 60 }, (_, i) => art(i + 1, { title: `Story &amp; number ${i + 1} - Daily Example`, date: 'Mon, 24 Nov 2026 08:00:00 GMT' }));
+    const out = parseFeed(rss(...items));
+    expect(out).toHaveLength(60);
+    expect(out[59]).toEqual({ title: 'Story & number 60', publisher: 'Daily Example', url: 'https://news.example/a/60', date: new Date('2026-11-24T08:00:00Z') });
+  });
+  it('matches tag names without regard to case', () => {
+    const out = parseFeed('<RSS><ITEM><Title>Upper</Title><LINK>https://news.example/1</LINK><pubDATE>Mon, 24 Nov 2026 08:00:00 GMT</pubDATE><SOURCE>Pub</SOURCE></ITEM></RSS>');
+    expect(out).toEqual([{ title: 'Upper', publisher: 'Pub', url: 'https://news.example/1', date: new Date('2026-11-24T08:00:00Z') }]);
+  });
+  it('reads items that carry attributes on the item tag', () => {
+    expect(parseFeed('<item id="1"><title>A</title><link>https://news.example/1</link></item>')).toHaveLength(1);
+  });
+  it('skips an oversized item and still reads its neighbours', () => {
+    const big = { title: 'Huge', link: 'https://news.example/huge', raw: `<description>${'z'.repeat(40_000)}</description>` };
+    const out = parseFeed(rss(art(1), big, art(2)));
+    expect(out.map((i) => i.title)).toEqual(['Story number 1', 'Story number 2']);
+  });
+  it('cuts a very long field before cleaning, and still returns the item', () => {
+    const out = parseFeed(rss({ title: 'y'.repeat(10_000), link: 'https://news.example/1', source: 's'.repeat(10_000) }));
+    expect(out).toHaveLength(1);
+    expect(out[0].title).toHaveLength(200);
+    expect(out[0].publisher).toHaveLength(80);
+  });
+  it('keeps a stray < that is not a tag', () => {
+    expect(parseFeed(rss({ title: 'Prices < 5 and > 3 <3 clay', link: 'https://news.example/1' }))[0].title).toBe('Prices < 5 and > 3 <3 clay');
+  });
+});
+
 describe('fetchHeadlines', () => {
   const base = 'https://news.google.com/rss/search';
 
@@ -184,6 +244,26 @@ describe('fetchHeadlines', () => {
     const init = f.mock.calls[0][1] as RequestInit;
     expect(init.signal).toBeInstanceOf(AbortSignal);
     expect(JSON.stringify(init.headers).toLowerCase()).toContain('user-agent');
+  });
+
+  it('never follows a redirect off the fixed host', async () => {
+    const f = mockFetch(async () => ok(rss(art(1))));
+    await fetchHeadlines({ queries: ['a', 'b'], locale: 'en_US', now: NOW });
+    expect(f).toHaveBeenCalledTimes(2);
+    for (const call of f.mock.calls) expect((call[1] as RequestInit).redirect).toBe('error');
+  });
+  it('skips a feed that tries to redirect, while another feed still counts', async () => {
+    mockFetch(async (url) => {
+      if (url.includes('q=a&')) throw new TypeError('fetch failed: unexpected redirect');
+      return ok(rss(art(1)));
+    });
+    const out = await fetchHeadlines({ queries: ['a', 'b'], locale: 'en_US', now: NOW });
+    expect(out.map((h) => h.title)).toEqual(['Story number 1']);
+  });
+  it('fails with the 502 when every feed redirects', async () => {
+    mockFetch(async () => { throw new TypeError('fetch failed: unexpected redirect'); });
+    const e = await failure(fetchHeadlines({ queries: ['a'], locale: 'en_US', now: NOW }));
+    expect((e as ApiError).status).toBe(502);
   });
 
   it('requests every query in parallel, before the first one resolves', async () => {
