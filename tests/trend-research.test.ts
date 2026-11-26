@@ -191,6 +191,28 @@ describe('researchTrends failures', () => {
     expect(e.status).toBe(502);
     expect(e.message).toContain(message);
   });
+  it("adds Google's own reason to the message, so the admin can see why (quota limit, billing, wrong model)", async () => {
+    const reason = 'You exceeded your current quota, please check your plan and billing details. Quota exceeded for metric: grounding, limit: 0';
+    const e = await status(429, JSON.stringify({ error: { code: 429, message: reason, status: 'RESOURCE_EXHAUSTED' } }));
+    expect(e.message).toBe(`Gemini quota reached. Try again later. Google says: ${reason}`);
+    const notFound = await status(404, JSON.stringify({ error: { message: 'models/nope is not found for API version v1beta' } }));
+    expect(notFound.message).toContain('Google says: models/nope is not found');
+  });
+  it("keeps Google's reason short and on one line, and leaves it out when there is none", async () => {
+    const long = await status(429, JSON.stringify({ error: { message: `line one\n\n   line two ${'x'.repeat(400)}` } }));
+    const detail = long.message.split('Google says: ')[1];
+    expect(detail.startsWith('line one line two')).toBe(true);
+    expect(detail.length).toBeLessThanOrEqual(200);
+    expect(detail.endsWith('…')).toBe(true);
+    for (const body of ['not json at all', '{}', JSON.stringify({ error: {} }), JSON.stringify({ error: { message: 5 } }), JSON.stringify({ error: { message: '   ' } })]) {
+      expect((await status(429, body)).message).toBe('Gemini quota reached. Try again later.');
+    }
+  });
+  it("scrubs the key out of Google's reason too", async () => {
+    const e = await status(403, JSON.stringify({ error: { message: `API key ${KEY} not valid. Please pass a valid API key.` } }));
+    expect(e.message).toContain('Google says: API key *** not valid.');
+    expect(e.message).not.toContain(KEY);
+  });
   it('never puts the key in the message, even when the body echoes it', async () => {
     for (const code of [400, 403, 429, 500]) {
       const e = await status(code, JSON.stringify({ error: { message: `API key ${KEY} not valid` } }));

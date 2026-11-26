@@ -125,6 +125,20 @@ function toItems(raw: unknown[], hosts: Set<string>): TrendItem[] {
 
 const fail = (message: string, apiKey: string) => new ApiError(502, message.split(apiKey).join('***'));
 
+const REASON_MAX = 200;
+/**
+ * Google's own explanation from an error reply (`{ error: { message } }`), as one short line, so the admin can tell a quota limit from a billing
+ * or model problem. Empty when the body has none. The key is scrubbed by `fail`, like every other message.
+ */
+async function googleReason(res: Response): Promise<string> {
+  try {
+    const message = ((await res.json()) as { error?: { message?: unknown } })?.error?.message;
+    const line = typeof message === 'string' ? message.replace(/\s+/g, ' ').trim() : '';
+    if (!line) return '';
+    return ` Google says: ${line.length > REASON_MAX ? `${line.slice(0, REASON_MAX - 1).trimEnd()}…` : line}`;
+  } catch { return ''; } // not JSON, or unreadable: say nothing extra
+}
+
 /**
  * Asks Gemini, with Google Search on, for current trends and returns them hidden (`show: false`) with origin `web`.
  * Plain fetch, no SDK; the key travels in the x-goog-api-key header only and never appears in an error message.
@@ -145,9 +159,12 @@ export async function researchTrends(cfg: GeminiConfig, now: Date = new Date()):
       }),
       signal: controller.signal,
     });
-    if (res.status === 400 || res.status === 401 || res.status === 403) throw fail('Gemini refused the key. Check the key and model in Settings.', apiKey);
-    if (res.status === 429) throw fail('Gemini quota reached. Try again later.', apiKey);
-    if (!res.ok) throw fail('Gemini is not answering. Try again in a few minutes.', apiKey);
+    if (!res.ok) {
+      const reason = await googleReason(res);
+      if (res.status === 400 || res.status === 401 || res.status === 403) throw fail(`Gemini refused the key. Check the key and model in Settings.${reason}`, apiKey);
+      if (res.status === 429) throw fail(`Gemini quota reached. Try again later.${reason}`, apiKey);
+      throw fail(`Gemini is not answering. Try again in a few minutes.${reason}`, apiKey);
+    }
     reply = (await res.json()) as Reply;
   } catch (e) {
     if (e instanceof ApiError) throw e;
