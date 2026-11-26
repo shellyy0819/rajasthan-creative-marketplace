@@ -162,6 +162,7 @@ export async function researchTrends(cfg: GeminiConfig, now: Date = new Date()):
     if (!res.ok) {
       const reason = await googleReason(res);
       if (res.status === 400 || res.status === 401 || res.status === 403) throw fail(`Gemini refused the key. Check the key and model in Settings.${reason}`, apiKey);
+      if (res.status === 404) throw fail(`Gemini does not offer that model (to this key). Check the model in Settings.${reason}`, apiKey);
       if (res.status === 429) throw fail(`Gemini quota reached. Try again later.${reason}`, apiKey);
       throw fail(`Gemini is not answering. Try again in a few minutes.${reason}`, apiKey);
     }

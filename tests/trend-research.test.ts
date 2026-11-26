@@ -183,6 +183,7 @@ describe('researchTrends failures', () => {
     [400, 'Gemini refused the key'],
     [401, 'Gemini refused the key'],
     [403, 'Gemini refused the key'],
+    [404, 'Gemini does not offer that model'],
     [429, 'Gemini quota reached'],
     [500, 'Gemini is not answering'],
   ])('HTTP %i gives ApiError(502) "%s"', async (code, message) => {
