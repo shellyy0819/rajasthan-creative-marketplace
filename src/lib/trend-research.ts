@@ -98,6 +98,7 @@ function groundedSources(raw: unknown, hosts: Set<string>): { title: string; url
     const url = s && typeof s === 'object' ? (s as { url?: unknown }).url : undefined;
     if (typeof url !== 'string') continue;
     let u: URL;
+    if (url.trim().length > 300) continue; // the same limit parseItemInput enforces: drop this source, not the whole item
     try { u = new URL(url.trim()); } catch { continue; }
     if (u.protocol !== 'https:' || u.username || u.password || !hosts.has(bare(u.hostname))) continue;
     const t = (s as { title?: unknown }).title;
@@ -144,7 +145,7 @@ export async function researchTrends(cfg: GeminiConfig, now: Date = new Date()):
       }),
       signal: controller.signal,
     });
-    if (res.status === 400 || res.status === 403) throw fail('Gemini refused the key. Check the key and model in Settings.', apiKey);
+    if (res.status === 400 || res.status === 401 || res.status === 403) throw fail('Gemini refused the key. Check the key and model in Settings.', apiKey);
     if (res.status === 429) throw fail('Gemini quota reached. Try again later.', apiKey);
     if (!res.ok) throw fail('Gemini is not answering. Try again in a few minutes.', apiKey);
     reply = (await res.json()) as Reply;

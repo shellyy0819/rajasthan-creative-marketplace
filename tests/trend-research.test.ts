@@ -125,6 +125,17 @@ describe('researchTrends grounding', () => {
     expect(items.map(i => i.title)).toEqual(['Block printed linen']);
     expect(items[0].sources.map(s => s.url)).toEqual(['https://designweekly.example/x']);
   });
+  it('drops only the source whose url is over 300 characters, and keeps the item', async () => {
+    const long = `https://designweekly.example/${'a'.repeat(280)}`;
+    const { items } = await run([item({ sources: [{ title: 'Too long', url: long }, { title: 'Design weekly', url: 'https://designweekly.example/linen' }] })]);
+    expect(items).toHaveLength(1);
+    expect(items[0].sources).toEqual([{ title: 'Design weekly', url: 'https://designweekly.example/linen' }]);
+  });
+  it('drops an item whose only source is over 300 characters', async () => {
+    const long = `https://designweekly.example/${'a'.repeat(280)}`;
+    const { items } = await run([item({ sources: [{ title: 'Too long', url: long }] })]);
+    expect(items).toEqual([]);
+  });
   it('matches the host of a chunk uri that is not a redirect', async () => {
     const { items } = await run([item({ sources: [{ title: 'Journal', url: 'https://crafts.example.org/other-page' }] })]);
     expect(items).toHaveLength(1);
@@ -170,6 +181,7 @@ describe('researchTrends failures', () => {
 
   it.each([
     [400, 'Gemini refused the key'],
+    [401, 'Gemini refused the key'],
     [403, 'Gemini refused the key'],
     [429, 'Gemini quota reached'],
     [500, 'Gemini is not answering'],
