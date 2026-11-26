@@ -57,7 +57,7 @@ export function TrendSettingsForm({ initial }: { initial: TrendSettingsView }) {
           </label>
           <label><span className="lbl">Model</span>
             <input name="model" type="text" required maxLength={60} pattern="[a-z0-9.\-]{3,60}" title="Lowercase letters, numbers, dots and hyphens" value={model} onChange={e => setModel(e.target.value)} autoComplete="off" />
-            <small>The Gemini model that does the research. It must support Google Search.</small>
+            <small>The Gemini model that summarises the headlines. It must support JSON output.</small>
           </label>
           <label><span className="lbl">Region</span>
             <input name="region" type="text" maxLength={200} value={region} onChange={e => setRegion(e.target.value)} autoComplete="off" />

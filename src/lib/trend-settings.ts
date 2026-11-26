@@ -8,7 +8,7 @@ import { bad, obj, optionalText } from './validate';
 /**
  * The Gemini model used when none is saved. It is one constant so it is easy to change when Google retires a model.
  * Checked on 2026-11-25 against Google's model list (aistudio.google.com/docs/models, which ai.google.dev redirects to):
- * a stable (not preview) Flash model, and listed on the Grounding with Google Search page as supporting search.
+ * a current, generally available (not preview) Flash model that supports JSON output, which is all the headline summary needs.
  */
 export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
 

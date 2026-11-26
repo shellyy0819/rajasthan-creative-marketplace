@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TrendSettingsForm } from '@/components/TrendSettingsForm';
@@ -100,5 +102,29 @@ describe('TrendSettingsForm (Settings page)', () => {
     fireEvent.click(screen.getByRole('button', { name: /remove saved settings/i }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/admin/settings/trends', expect.objectContaining({ method: 'DELETE' })));
     expect(await screen.findByText(/no key is saved/i)).toBeTruthy();
+  });
+  it('describes the model as summarising headlines with JSON output, not as searching', () => {
+    render(<TrendSettingsForm initial={EMPTY} />);
+    expect(screen.getByText('The Gemini model that summarises the headlines. It must support JSON output.')).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/google search/i);
+  });
+});
+
+describe('market trends admin copy', () => {
+  const ROOT = path.resolve(import.meta.dirname, '..', 'src', 'components');
+  const trendFiles = (dir: string, inside = false): string[] =>
+    readdirSync(dir).flatMap((name) => {
+      const full = path.join(dir, name);
+      const own = inside || /^(trend|markettrends)/i.test(name);
+      if (statSync(full).isDirectory()) return own ? trendFiles(full, true) : [];
+      return own ? [full] : [];
+    });
+
+  it('finds the trend components it is meant to guard', () => {
+    const names = trendFiles(ROOT).map((f) => path.basename(f));
+    expect(names).toEqual(expect.arrayContaining(['TrendSettingsForm.tsx', 'MarketTrendsAdmin.tsx', 'TrendsBlock.tsx']));
+  });
+  it('never says the trends use Google Search or grounding', () => {
+    for (const file of trendFiles(ROOT)) expect(readFileSync(file, 'utf8'), path.relative(ROOT, file)).not.toMatch(/google search|grounding/i);
   });
 });
