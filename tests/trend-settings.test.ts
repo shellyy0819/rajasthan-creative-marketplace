@@ -51,6 +51,16 @@ describe('trend (Gemini) settings', () => {
     expect(await getTrendSettings()).toMatchObject({ source: 'none' }); // nothing was saved
     await saveTrendSettings({ apiKey: KEY, region: 'r'.repeat(200), model: 'a'.repeat(60) }, 'a@x.co'); // the limits themselves are fine
   });
+  it('accepts any visible-ASCII key, including the newer Google format that contains dots', async () => {
+    for (const k of ['AQ.Ab8FakeKeyForTests_0123456789-abcdefghij', 'AIzaSyFakeKeyForTests0123456789abcdefghij', 'key~with+other/chars=12345']) {
+      const v = await saveTrendSettings({ apiKey: k }, 'a@x.co');
+      expect(v).toMatchObject({ keySet: true, keyHint: k.slice(-4) });
+      expect(await resolveGeminiConfig()).toMatchObject({ apiKey: k });
+    }
+    for (const k of ['tab\tin-the-key-12345', 'accent-é-in-the-key-12345', 'emoji-🙂-in-the-key-12345']) {
+      await expect(saveTrendSettings({ apiKey: k }, 'a@x.co')).rejects.toMatchObject({ status: 400, message: expect.stringMatching(/key/) });
+    }
+  });
   it('never puts the key in an error message', async () => {
     const bad = `${KEY} with spaces`;
     await expect(saveTrendSettings({ apiKey: bad }, 'a@x.co')).rejects.toMatchObject({ message: expect.not.stringContaining(KEY) });

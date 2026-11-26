@@ -55,7 +55,9 @@ export async function getTrendSettings(): Promise<TrendSettingsView> {
 }
 
 const MODEL_RE = /^[a-z0-9.-]{3,60}$/;
-const KEY_RE = /^[A-Za-z0-9_-]{8,300}$/;
+// Any visible ASCII, no spaces or control characters: Google's key format has changed before (the newer keys contain dots), and the key only
+// travels in a request header, where a visible-ASCII value cannot inject anything.
+const KEY_RE = /^[\x21-\x7E]{8,300}$/;
 
 /**
  * Saves the key, model and region. A blank key keeps the saved one (with no saved key and a GEMINI_API_KEY in the environment it stays unsaved, so only the model and region are stored), a blank model puts the default back and a blank region means
