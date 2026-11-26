@@ -71,6 +71,18 @@ Research engine: Gemini with Google Search grounding (chosen by the user over th
 - **Headings follow the items.** The block heading on `/trending` is chosen from the kinds of the items shown: all `craft` gives "Crafts to look at", all `art` gives "Art to look at", a mix gives "Arts and crafts to look at". A block with no items is hidden, never shown empty. The workshops block works the same way and appears only when it has items.
 - **Nothing hardcoded.** No heading, label, prompt or email may hardcode a place or brand name such as "Rajasthan". Page headings use the site's wording (`getCatalogWording`) and the site name (`SITE.name`). Where a fixed label is needed, it is "{site name} picks". The region for the Gemini prompt comes from settings or the data (cities in use), not from code. A test fails if a new page or lib string contains a hardcoded place name in a heading.
 
+## Amendment (2026-11-26): the app fetches the articles, Gemini only summarises
+
+Why: Gemini's Google Search tool is not available on the free tier for the current models, and the admin does not want to enable billing. The "Gemini with Google Search grounding" step in the Design section is replaced; everything after it (digest table, admin page, preview, publish, the /trending block) is unchanged.
+
+- **Fetch.** `researchTrends` first fetches real recent headlines from the Google News RSS search feed (`https://news.google.com/rss/search?q=...&hl=...&gl=...&ceid=...`, no key). Searches are built from fixed generic words ("handmade crafts trends", "craft workshops trends") plus one per category name in our own `categories` table, at most 8 in all, fetched in parallel with a 10 second timeout each. The feed language and country come from `SITE.locale`, never from typed place names. A feed that fails is skipped; if no feed is reachable the fetch fails with a clear message.
+- **Headlines.** Articles from the last 14 days, https links only, de-duplicated by link and by normalised title, newest first, at most 60, each numbered. Each keeps `{ n, title, publisher, url, date }`.
+- **Summarise.** One plain Gemini call with no search tool (so the free tier applies), JSON output. The numbered headlines are given as data. Gemini returns trend items that cite headline numbers (`headlines: [3, 17]`). It never writes a URL.
+- **Sources by construction.** The app attaches each cited headline's publisher name and link as the item's source. A number that does not exist is ignored; an item left with no real headline is dropped; no items left means `empty`. This replaces the grounding host-match.
+- **Attribution.** The public "Gathered from" line names Google News for items whose origin is `web`. Links are Google News redirect links (they open the article); the source name is the publisher.
+- **Limits, stated honestly.** The feed is unofficial (no published developer docs) and reportedly for non-commercial use; it can change or block without notice. It gives headlines only, not article text. If it fails, "Start a digest by hand" still works.
+- **Safety.** Only the fixed feed host is ever fetched, with the query URL-encoded. Response size is capped (1 MB per feed). Headline text is untrusted: it is shown to the model inside a clearly delimited data block with an instruction to treat it as data, and the model's output can only choose headline numbers, so an instruction hidden in a headline cannot add a link or a source.
+
 ## Phase 2: emails ready for each seller and artist (added after review)
 
 When a digest is saved, the app prepares a draft email for each matching recipient, so the admin only reviews and sends.
