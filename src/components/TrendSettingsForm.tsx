@@ -51,9 +51,9 @@ export function TrendSettingsForm({ initial }: { initial: TrendSettingsView }) {
           <p className="form-note">{status(view)}</p>
           {error && <p role="alert" className="admin-error">{error}</p>}
           <label><span className="lbl">Gemini API key</span>
-            <input name="apiKey" type="password" required={view.source !== 'saved'} maxLength={300} value={apiKey} onChange={e => setApiKey(e.target.value)}
-              placeholder={view.source === 'saved' ? 'Leave empty to keep the saved key' : 'Paste the key'} autoComplete="new-password" />
-            <small>Stored encrypted. It is never shown again after you save.</small>
+            <input name="apiKey" type="password" required={view.source === 'none'} maxLength={300} value={apiKey} onChange={e => setApiKey(e.target.value)}
+              placeholder={view.source === 'saved' ? 'Leave empty to keep the saved key' : view.source === 'environment' ? 'Leave empty to keep using the environment key' : 'Paste the key'} autoComplete="new-password" />
+            <small>{view.source === 'environment' ? 'The environment key is in use and can be left empty. A key pasted here is stored encrypted and replaces it.' : 'Stored encrypted. It is never shown again after you save.'}</small>
           </label>
           <label><span className="lbl">Model</span>
             <input name="model" type="text" required maxLength={60} pattern="[a-z0-9.\-]{3,60}" title="Lowercase letters, numbers, dots and hyphens" value={model} onChange={e => setModel(e.target.value)} autoComplete="off" />
@@ -64,7 +64,7 @@ export function TrendSettingsForm({ initial }: { initial: TrendSettingsView }) {
             <small>Optional. Leave empty to use the cities listed on the site.</small>
           </label>
           <div className="admin-actions">
-            {view.source === 'saved' && (
+            {view.hasStoredRow && (
               <button type="button" className="button danger-outline" disabled={!!busy} aria-busy={busy === 'clear'} onClick={async () => {
                 if (!window.confirm('Remove the saved Gemini settings? Research falls back to the server environment variable, if set.')) return;
                 const data = await call('clear', 'DELETE');

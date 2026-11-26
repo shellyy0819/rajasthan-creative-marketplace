@@ -36,7 +36,7 @@ describe('/api/admin/settings/trends', () => {
     const get = await GET();
     expect(get.headers.get('cache-control')).toBe('no-store');
     const text = await get.text();
-    expect(JSON.parse(text)).toEqual({ keySet: true, keyHint: '1234', model: 'gemini-test-1.5', region: 'Some region', source: 'saved' });
+    expect(JSON.parse(text)).toEqual({ keySet: true, keyHint: '1234', model: 'gemini-test-1.5', region: 'Some region', source: 'saved', hasStoredRow: true });
     expect(text).not.toContain(KEY);
     const bad = await PUT(req({ apiKey: KEY + ' with spaces', model: 'x' }));
     expect(bad.status).toBe(400);
@@ -52,5 +52,14 @@ describe('/api/admin/settings/trends', () => {
     const none = await PUT(req({ model: 'gemini-test-1.5' }));
     expect(none.status).toBe(400);
     expect((await none.json()).error).toMatch(/key is required/);
+  });
+  it('saves model and region with no key when the environment key is set', async () => {
+    as('admin');
+    process.env.GEMINI_API_KEY = 'env-key-for-gemini-7890';
+    try {
+      const put = await PUT(req({ model: 'gemini-test-2', region: 'Some region', apiKey: '' }));
+      expect(put.status).toBe(200);
+      expect(await put.json()).toMatchObject({ source: 'environment', model: 'gemini-test-2', region: 'Some region', hasStoredRow: true });
+    } finally { delete process.env.GEMINI_API_KEY; }
   });
 });

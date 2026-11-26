@@ -9,8 +9,8 @@ const fetchMock = vi.fn();
 beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal('fetch', fetchMock); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-const EMPTY: TrendSettingsView = { keySet: false, model: 'gemini-test-1.5', region: '', source: 'none' };
-const SAVED: TrendSettingsView = { keySet: true, keyHint: '1234', model: 'gemini-test-1.5', region: 'Some region', source: 'saved' };
+const EMPTY: TrendSettingsView = { keySet: false, model: 'gemini-test-1.5', region: '', source: 'none', hasStoredRow: false };
+const SAVED: TrendSettingsView = { keySet: true, keyHint: '1234', model: 'gemini-test-1.5', region: 'Some region', source: 'saved', hasStoredRow: true };
 const keyBox = () => screen.getByLabelText(/gemini api key/i) as HTMLInputElement;
 
 describe('TrendSettingsForm (Settings page)', () => {
@@ -37,7 +37,29 @@ describe('TrendSettingsForm (Settings page)', () => {
     render(<TrendSettingsForm initial={{ ...EMPTY, keySet: true, keyHint: '7890', source: 'environment' }} />);
     expect(screen.getByText(/gemini_api_key/i)).toBeTruthy();
     expect(screen.getByText(/ends in 7890/i)).toBeTruthy();
-    expect(keyBox().required).toBe(true); // saving here needs a key typed
+    expect(keyBox().required).toBe(false); // model and region can be saved with the environment key
+    expect(keyBox().placeholder).toMatch(/environment/i);
+    expect(screen.getByText(/can be left empty/i)).toBeTruthy();
+  });
+  it('shows Remove whenever a settings row exists, even when its key cannot be read, and not when there is none', () => {
+    const { unmount } = render(<TrendSettingsForm initial={{ ...EMPTY, hasStoredRow: true }} />);
+    expect(screen.getByRole('button', { name: /remove saved settings/i })).toBeTruthy();
+    unmount();
+    render(<TrendSettingsForm initial={{ ...EMPTY, keySet: true, keyHint: '7890', source: 'environment', hasStoredRow: true }} />);
+    expect(screen.getByRole('button', { name: /remove saved settings/i })).toBeTruthy();
+    cleanup();
+    render(<TrendSettingsForm initial={{ ...EMPTY, keySet: true, keyHint: '7890', source: 'environment', hasStoredRow: false }} />);
+    expect(screen.queryByRole('button', { name: /remove saved settings/i })).toBeNull();
+  });
+  it('saves model and region without a key when the environment key is in use', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ ...EMPTY, keySet: true, keyHint: '7890', source: 'environment', hasStoredRow: true, model: 'model-fixed' }) });
+    render(<TrendSettingsForm initial={{ ...EMPTY, keySet: true, keyHint: '7890', source: 'environment' }} />);
+    fireEvent.change(screen.getByLabelText(/^model/i), { target: { value: 'model-fixed' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/admin/settings/trends', expect.objectContaining({
+      method: 'PUT', body: JSON.stringify({ apiKey: '', model: 'model-fixed', region: '' }),
+    })));
+    expect(await screen.findByRole('button', { name: /remove saved settings/i })).toBeTruthy();
   });
   it('sends the typed key, shows the server view afterwards with the key box empty, and confirms with a toast', async () => {
     fetchMock.mockResolvedValue({ ok: true, json: async () => SAVED });

@@ -12,12 +12,12 @@ afterEach(() => { delete process.env.GEMINI_API_KEY; });
 describe('trend (Gemini) settings', () => {
   it('starts empty with the default model', async () => {
     expect(DEFAULT_GEMINI_MODEL).toMatch(/^[a-z0-9.-]{3,60}$/);
-    expect(await getTrendSettings()).toEqual({ keySet: false, model: DEFAULT_GEMINI_MODEL, region: '', source: 'none' });
+    expect(await getTrendSettings()).toEqual({ keySet: false, model: DEFAULT_GEMINI_MODEL, region: '', source: 'none', hasStoredRow: false });
     expect(await resolveGeminiConfig()).toBeNull();
   });
   it('saves the key sealed and only ever shows the last 4 characters', async () => {
     const v = await saveTrendSettings({ apiKey: ` ${KEY} `, model: 'gemini-test-1.5', region: ' Some region ' }, 'admin@x.co');
-    expect(v).toEqual({ keySet: true, keyHint: '1234', model: 'gemini-test-1.5', region: 'Some region', source: 'saved' });
+    expect(v).toEqual({ keySet: true, keyHint: '1234', model: 'gemini-test-1.5', region: 'Some region', source: 'saved', hasStoredRow: true });
     expect(JSON.stringify(v)).not.toContain(KEY);
     expect(await resolveGeminiConfig()).toEqual({ apiKey: KEY, model: 'gemini-test-1.5', region: 'Some region' });
     const [row] = await (await getTestDb()).select().from(appSettings);
@@ -57,7 +57,7 @@ describe('trend (Gemini) settings', () => {
   });
   it('uses the GEMINI_API_KEY variable when nothing is saved, prefers saved, and falls back after removal', async () => {
     process.env.GEMINI_API_KEY = 'env-key-for-gemini-7890';
-    expect(await getTrendSettings()).toEqual({ keySet: true, keyHint: '7890', model: DEFAULT_GEMINI_MODEL, region: '', source: 'environment' });
+    expect(await getTrendSettings()).toEqual({ keySet: true, keyHint: '7890', model: DEFAULT_GEMINI_MODEL, region: '', source: 'environment', hasStoredRow: false });
     expect(await resolveGeminiConfig()).toMatchObject({ apiKey: 'env-key-for-gemini-7890', model: DEFAULT_GEMINI_MODEL });
     await saveTrendSettings({ apiKey: KEY, model: 'model-a' }, 'a@x.co');
     expect(await resolveGeminiConfig()).toMatchObject({ apiKey: KEY, model: 'model-a' });
@@ -85,5 +85,41 @@ describe('trend (Gemini) settings', () => {
     expect(await resolveGeminiConfig()).toMatchObject({ apiKey: 'env-key-for-gemini-7890' });
     expect(await getTrendSettings()).toMatchObject({ source: 'environment' });
     process.env.NEXTAUTH_SECRET = 'test-secret';
+  });
+  it('saves model and region with no key when the key comes from the environment, and uses them with the environment key', async () => {
+    process.env.GEMINI_API_KEY = 'env-key-for-gemini-7890';
+    const v = await saveTrendSettings({ model: 'model-fixed', region: 'Typed region', apiKey: '' }, 'a@x.co');
+    expect(v).toEqual({ keySet: true, keyHint: '7890', model: 'model-fixed', region: 'Typed region', source: 'environment', hasStoredRow: true });
+    expect(await resolveGeminiConfig()).toEqual({ apiKey: 'env-key-for-gemini-7890', model: 'model-fixed', region: 'Typed region' });
+    const [row] = await (await getTestDb()).select().from(appSettings);
+    expect(row.value).toEqual({ model: 'model-fixed', region: 'Typed region' }); // no key stored
+    expect(row.updatedBy).toBe('a@x.co');
+    await saveTrendSettings({ model: 'model-fixed' }, 'a@x.co'); // key absent altogether is fine too
+    expect(await getTrendSettings()).toMatchObject({ source: 'environment', model: 'model-fixed', region: '' });
+  });
+  it('a key typed later is stored beside the saved model and region and wins over the environment', async () => {
+    process.env.GEMINI_API_KEY = 'env-key-for-gemini-7890';
+    await saveTrendSettings({ model: 'model-fixed', apiKey: '' }, 'a@x.co');
+    await saveTrendSettings({ apiKey: KEY, model: 'model-fixed' }, 'a@x.co');
+    expect(await resolveGeminiConfig()).toEqual({ apiKey: KEY, model: 'model-fixed', region: expect.any(String) });
+    expect(await getTrendSettings()).toMatchObject({ source: 'saved', keyHint: '1234' });
+  });
+  it('still needs a key the first time when there is no environment key either', async () => {
+    await expect(saveTrendSettings({ model: 'model-a', apiKey: '' }, 'a@x.co')).rejects.toMatchObject({ status: 400, message: expect.stringMatching(/key is required/) });
+    expect(await getTrendSettings()).toMatchObject({ hasStoredRow: false });
+  });
+  it('clearing removes the saved model and region too, so the defaults come back', async () => {
+    process.env.GEMINI_API_KEY = 'env-key-for-gemini-7890';
+    await saveTrendSettings({ model: 'model-fixed', region: 'Typed region' }, 'a@x.co');
+    expect(await clearTrendSettings()).toEqual({ keySet: true, keyHint: '7890', model: DEFAULT_GEMINI_MODEL, region: '', source: 'environment', hasStoredRow: false });
+    expect(await resolveGeminiConfig()).toMatchObject({ model: DEFAULT_GEMINI_MODEL });
+  });
+  it('reports a stored row whose key cannot be decrypted, so it can still be removed', async () => {
+    await saveTrendSettings({ apiKey: KEY }, 'a@x.co');
+    process.env.NEXTAUTH_SECRET = 'rotated';
+    try {
+      expect(await getTrendSettings()).toMatchObject({ keySet: false, source: 'none', hasStoredRow: true });
+      expect(await clearTrendSettings()).toMatchObject({ source: 'none', hasStoredRow: false });
+    } finally { process.env.NEXTAUTH_SECRET = 'test-secret'; }
   });
 });

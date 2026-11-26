@@ -570,7 +570,7 @@ describe('the page', () => {
     store.listDigests.mockReset().mockResolvedValue(all.map(d => asDate(summary(d))));
     store.getDigest.mockReset().mockImplementation(async (id: string) => { const d = all.find(x => x.id === id); return d ? asDate(d) : null; });
     store.matchItems.mockReset().mockImplementation(async (items: TrendItem[]) => match(items));
-    store.getTrendSettings.mockReset().mockResolvedValue({ keySet: true, model: 'm', region: '', source: 'saved' });
+    store.getTrendSettings.mockReset().mockResolvedValue({ keySet: true, model: 'm', region: '', source: 'saved', hasStoredRow: true });
   });
   const open = async (sp: Record<string, string | string[] | undefined> = {}) => render(await MarketTrendsPage({ searchParams: Promise.resolve(sp) }));
   const picked = () => (screen.getByRole('combobox', { name: 'Digest' }) as HTMLSelectElement).value;
@@ -604,7 +604,7 @@ describe('the page', () => {
   });
   it('shows the empty state with no digests, and tells the component whether a key is saved', async () => {
     store.listDigests.mockResolvedValue([]);
-    store.getTrendSettings.mockResolvedValue({ keySet: false, model: 'm', region: '', source: 'none' });
+    store.getTrendSettings.mockResolvedValue({ keySet: false, model: 'm', region: '', source: 'none', hasStoredRow: false });
     await open();
     expect(screen.getByText(/No digests yet/)).toBeTruthy();
     expect((screen.getByRole('button', { name: 'Fetch trends' }) as HTMLButtonElement).disabled).toBe(true);
