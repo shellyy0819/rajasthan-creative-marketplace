@@ -54,7 +54,7 @@ describe('getTrendsForPage', () => {
     expect(r.previewing).toBe(false);
     expect(r.items.map(i => i.id)).toEqual(['a', 'c', 'd']);
     expect(r.items[0]).toMatchObject({ count: expect.any(Number), href: expect.stringMatching(/^\/shop/) });
-    expect(r.sourceLine).toBe('Gathered from Pinterest, public web sources and our own research, then picked by our team.');
+    expect(r.sourceLine).toBe('Gathered from Google News, Pinterest and our own research, then picked by our team.');
     expect(r.updatedOn).toEqual(p.publishedAt);
     expect(mocks.auth).not.toHaveBeenCalled();
     expect(mocks.matchItems).toHaveBeenCalledTimes(1);

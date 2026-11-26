@@ -17,7 +17,7 @@ const item = (o: Partial<MatchedItem> = {}): MatchedItem => ({
   sources: [{ title: `Source ${n}` }], show: true, count: 3, href: '/shop?q=block', ...o,
 });
 const page = (items: MatchedItem[], o: Partial<TrendsForPage> = {}): TrendsForPage => ({
-  items, sourceLine: 'Gathered from public web sources, then picked by our team.', updatedOn: new Date('2026-11-24T10:00:00Z'), previewing: false, ...o,
+  items, sourceLine: 'Gathered from Google News, then picked by our team.', updatedOn: new Date('2026-11-24T10:00:00Z'), previewing: false, ...o,
 });
 const headings = () => screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent);
 
@@ -110,7 +110,7 @@ describe('TrendsBlock cards', () => {
 describe('TrendsBlock updated line', () => {
   it('shows updatedOn as an India date, then the source line', () => {
     render(<TrendsBlock data={page([item()], { updatedOn: new Date('2026-11-24T20:00:00Z') })} />);   // 01:30 on the 25th in India
-    expect(screen.getByText(/^Updated 25 November 2026/).textContent).toBe('Updated 25 November 2026. Gathered from public web sources, then picked by our team.');
+    expect(screen.getByText(/^Updated 25 November 2026/).textContent).toBe('Updated 25 November 2026. Gathered from Google News, then picked by our team.');
   });
 });
 

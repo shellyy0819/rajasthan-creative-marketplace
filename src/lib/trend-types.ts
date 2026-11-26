@@ -66,8 +66,8 @@ export function trendBlockHeading(kinds: TrendKind[]): string | null {
 /** The credit line under the block, from where the shown items came from. */
 export function trendSourceLine(origins: TrendOrigin[]): string {
   const parts: string[] = [];
+  if (origins.includes('web')) parts.push('Google News');
   if (origins.includes('pinterest')) parts.push('Pinterest');
-  if (origins.includes('web')) parts.push('public web sources');
   if (origins.includes('manual')) parts.push('our own research');
   const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0] ?? 'our own research';
   return `Gathered from ${list}, then picked by our team.`;

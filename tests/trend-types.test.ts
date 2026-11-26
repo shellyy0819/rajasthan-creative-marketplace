@@ -29,7 +29,8 @@ describe('trendBlockHeading', () => {
 
 describe('trendSourceLine', () => {
   it('credits each origin in plain words', () => {
-    expect(trendSourceLine(['pinterest', 'web', 'manual'])).toBe('Gathered from Pinterest, public web sources and our own research, then picked by our team.');
+    expect(trendSourceLine(['web'])).toBe('Gathered from Google News, then picked by our team.');
+    expect(trendSourceLine(['pinterest', 'web', 'manual'])).toBe('Gathered from Google News, Pinterest and our own research, then picked by our team.');
     expect(trendSourceLine(['manual'])).toBe('Gathered from our own research, then picked by our team.');
   });
 });

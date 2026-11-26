@@ -71,7 +71,7 @@ describe('/trending page, market trends block', () => {
       { id: 'a', kind: 'craft', title: 'Block prints', why: 'People want block prints.', tags: [], origin: 'web', sources: [{ title: 'Source A' }], show: true, count: 2, href: '/shop?q=block' },
       { id: 'b', kind: 'workshop', title: 'Block printing', why: 'Beginners want a class.', tags: [], origin: 'web', sources: [{ title: 'Source B' }], show: true, count: 0, href: '/workshops' },
     ],
-    sourceLine: 'Gathered from public web sources, then picked by our team.', updatedOn: new Date('2026-11-24T10:00:00Z'), previewing: false, ...o,
+    sourceLine: 'Gathered from Google News, then picked by our team.', updatedOn: new Date('2026-11-24T10:00:00Z'), previewing: false, ...o,
   });
   const text = (el: Element) => el.textContent ?? '';
 
