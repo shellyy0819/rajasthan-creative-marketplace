@@ -28,8 +28,8 @@ describe('the market trends block uses the same type scale as the rest of the si
     expect(rule(site, '.eyebrow')).toMatch(/font-size: 9px; letter-spacing: 2px; font-weight: 700/);
     expect(rule(css, '.trends-card .eyebrow')).toMatch(/font-size: 9px; letter-spacing: 2px/);
   });
-  it('the grid is auto-fill 280px and one column at 900px and below', () => {
-    expect(rule(css, '.trends-grid')).toContain('grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))');
+  it('the grid has cards of at least 280px, never more than three across, and one column at 900px and below', () => {
+    expect(rule(css, '.trends-grid')).toContain('grid-template-columns: repeat(auto-fit, minmax(max(280px, calc((100% - 32px) / 3)), 1fr))');
     expect(css).toMatch(/@media \(max-width: 900px\) \{[^@]*\.trends-grid \{ grid-template-columns: 1fr;/);
   });
   it('no text size above 26px or below 9px', () => {

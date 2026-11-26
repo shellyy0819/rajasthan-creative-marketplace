@@ -33,6 +33,8 @@
   align-items: center;
 }
 .trend-admin .trend-bar select {
+  min-width: 0;
+  max-width: 100%;
   min-height: var(--control-h);
   border: 1px solid var(--control-border);
   border-radius: 3px;
@@ -52,6 +54,11 @@
 .trend-admin .admin-row-main p.admin-error {
   margin: 6px 0 4px;
   color: var(--chip-red-ink);
+}
+/* Long titles, source names and Google's error text (with unbroken links) wrap inside the card instead of widening it. */
+.trend-admin .admin-row-main {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* A digest card and an item row: the text on the left, the controls on the right (stacked on a phone). */
@@ -102,6 +109,20 @@
   }
   .trend-admin .admin-row.trend-item {
     grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+/* Phones: the toolbar, a card's buttons and an item's controls are 44px tall and share the row. */
+@media (max-width: 600px) {
+  .trend-admin .trend-bar > * {
+    min-height: 44px;
+  }
+  .trend-admin .trend-bar select {
+    flex: 1 1 100%;
+  }
+  .trend-admin .admin-row-actions > .button,
+  .trend-admin .admin-row-actions > select {
+    flex: 1 1 0;
+    min-height: 44px;
   }
 }
 
