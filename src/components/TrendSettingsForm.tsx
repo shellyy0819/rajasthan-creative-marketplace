@@ -61,7 +61,7 @@ export function TrendSettingsForm({ initial }: { initial: TrendSettingsView }) {
           </label>
           <label><span className="lbl">Region</span>
             <input name="region" type="text" maxLength={200} value={region} onChange={e => setRegion(e.target.value)} autoComplete="off" />
-            <small>Optional. Leave empty to use the cities listed on the site.</small>
+            <small>Optional. It only steers the summary, not which news is searched. Leave empty to use the cities listed on the site.</small>
           </label>
           <div className="admin-actions">
             {view.hasStoredRow && (

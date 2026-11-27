@@ -103,6 +103,11 @@ describe('TrendSettingsForm (Settings page)', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/admin/settings/trends', expect.objectContaining({ method: 'DELETE' })));
     expect(await screen.findByText(/no key is saved/i)).toBeTruthy();
   });
+  it('says the region only steers the summary and does not choose which news is searched', () => {
+    render(<TrendSettingsForm initial={EMPTY} />);
+    expect(screen.getByText(/only steers the summary/i).textContent).toMatch(/not which news is searched/i);
+    expect(screen.getByText(/leave empty to use the cities listed on the site/i)).toBeTruthy();
+  });
   it('describes the model as summarising headlines with JSON output, not as searching', () => {
     render(<TrendSettingsForm initial={EMPTY} />);
     expect(screen.getByText('The Gemini model that summarises the headlines. It must support JSON output.')).toBeTruthy();
