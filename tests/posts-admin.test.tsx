@@ -119,6 +119,23 @@ describe('PostsAdmin read', () => {
     mount();
     expect(within(rowFor('Lily Bouquet')).getByRole('img').getAttribute('src')).toBe('https://cdn.example.com/l.jpg');
   });
+  it('flags makers who have posted nothing, can narrow the list to them, and says so when one is picked', () => {
+    const quiet = { key: 'no-posts:u9', name: 'Fresh Maker', total: 0, published: 0, drafts: 0, noPosts: true, email: 'fresh@x.co' };
+    render(<PostsAdmin initialProducts={[...db]} initialArtists={[...artistsOf(db), quiet]} role="admin" categories={CATEGORIES} workshops={WORKSHOPS} sellers={SELLERS} me={ME} profile={PROFILE} />);
+    const side = screen.getByRole('navigation', { name: 'Artists' });
+    expect(within(side).getByRole('button', { name: /Fresh Maker/ }).textContent).toMatch(/No posts yet/);
+    expect(within(side).getByRole('button', { name: /Neel Mitti/ }).textContent).not.toMatch(/No posts yet/);
+    expect(within(side).getByRole('button', { name: /All artists/ }).textContent).toMatch(/3/); // flagged makers add no posts
+    fireEvent.click(within(side).getByRole('button', { name: /Nothing posted yet/ }));
+    expect(within(side).queryByRole('button', { name: /Neel Mitti/ })).toBeNull();
+    fireEvent.click(within(side).getByRole('button', { name: /Fresh Maker/ }));
+    expect(screen.getByText(/Fresh Maker \(fresh@x.co\) has not posted any product or workshop yet/)).toBeTruthy();
+    expect(rows()).toHaveLength(0);
+  });
+  it('shows no "nothing posted" filter when every maker has posted', () => {
+    mount();
+    expect(screen.queryByRole('button', { name: /Nothing posted yet/ })).toBeNull();
+  });
   it('empty state', () => {
     render(<PostsAdmin initialProducts={[]} initialArtists={[]} role="admin" />);
     expect(screen.getByText(/No posts yet/)).toBeTruthy();

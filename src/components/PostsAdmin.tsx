@@ -73,6 +73,8 @@ export function PostsAdmin({
   const [products, setProducts] = useState(initialProducts);
   const [artists, setArtists] = useState(initialArtists);
   const [artist, setArtist] = useState("");
+  // Admin: narrow the artist list to makers who have posted no product and no workshop yet.
+  const [onlyQuiet, setOnlyQuiet] = useState(false);
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<Product | "new" | null>(() => (openNew ? "new" : null));
@@ -241,6 +243,8 @@ export function PostsAdmin({
   }, [products, artist, status, q]);
 
   const total = artists.reduce((n, a) => n + a.total, 0);
+  const quietCount = artists.filter((a) => a.noPosts).length;
+  const quietArtist = artists.find((a) => a.key === artist && a.noPosts);
   // the selected artist's public page (it lists only published posts, so it needs one)
   const artistPage = artist ? products.find((p) => artistKey(p.seller) === artist && p.status === "APPROVED")?.sellerSlug : undefined;
 
@@ -268,7 +272,20 @@ export function PostsAdmin({
           >
             All artists <small>{total}</small>
           </button>
-          {artists.map((a) => (
+          {quietCount > 0 && (
+            <button
+              type="button"
+              className={onlyQuiet ? "selected" : ""}
+              aria-pressed={onlyQuiet}
+              onClick={() => {
+                setOnlyQuiet(!onlyQuiet);
+                setArtist("");
+              }}
+            >
+              Nothing posted yet <small>{quietCount}</small>
+            </button>
+          )}
+          {artists.filter((a) => !onlyQuiet || a.noPosts).map((a) => (
             <button
               key={a.key}
               type="button"
@@ -277,7 +294,7 @@ export function PostsAdmin({
             >
               {a.name}{" "}
               <small>
-                {a.total}
+                {a.noPosts ? "No posts yet" : a.total}
                 {a.drafts
                   ? ` · ${a.drafts} ${a.drafts === 1 ? "draft" : "drafts"}`
                   : ""}
@@ -323,7 +340,11 @@ export function PostsAdmin({
             </button>
           </div>
 
-          {products.length === 0 ? (
+          {quietArtist ? (
+            <div className="empty">
+              {quietArtist.name} ({quietArtist.email}) has not posted any product or workshop yet.
+            </div>
+          ) : products.length === 0 ? (
             <div className="empty">No posts yet. Create the first one.</div>
           ) : shown.length === 0 ? (
             <div className="empty">No posts match those filters.</div>
