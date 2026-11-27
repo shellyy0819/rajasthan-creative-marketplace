@@ -10,7 +10,7 @@ export const MIN_GAP_SECONDS = 60;
 let running = false;
 
 /**
- * One manual fetch for an admin: asks Gemini for the current trends and stores the result as an
+ * One manual fetch for an admin: reads recent news headlines, has Gemini group them into trends, and stores the result as an
  * unpublished draft (`ok` with items, `empty` with none). When the research fails, a `failed` draft
  * keeps the message and the same error is thrown again.
  */

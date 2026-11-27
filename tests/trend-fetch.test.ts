@@ -76,6 +76,14 @@ describe('runTrendFetch', () => {
     expect(JSON.stringify(all[0])).not.toContain(KEY);
   });
 
+  it('stores the plain message when the categories could not be read', async () => {
+    const boom = new ApiError(503, 'Could not read the categories. Try again in a minute.');
+    research.mockRejectedValue(boom);
+    expect(await outcome(runTrendFetch('admin@x.co'))).toBe(boom);
+    const all = await rows();
+    expect(all).toHaveLength(1);
+    expect(all[0]).toMatchObject({ status: 'failed', error: 'Could not read the categories. Try again in a minute.', items: [] });
+  });
   it('rethrows the research error when the failed row cannot be stored either', async () => {
     const boom = new ApiError(502, 'The research reply could not be read.');
     research.mockRejectedValue(boom);

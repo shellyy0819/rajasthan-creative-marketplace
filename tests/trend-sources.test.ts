@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/errors';
-import { buildQueries, feedParams, fetchHeadlines, parseFeed } from '@/lib/trend-sources';
+import { MAX_SOURCE_URL } from '@/lib/trend-types';
+import { FEED_DOWN, MAX_AGE_DAYS, buildQueries, feedParams, fetchHeadlines, parseFeed } from '@/lib/trend-sources';
 
 const NOW = new Date('2026-11-25T10:00:00Z');
 const day = (n: number) => new Date(NOW.getTime() - n * 86_400_000).toUTCString();
@@ -224,19 +225,30 @@ describe('fetchHeadlines', () => {
     const f = mockFetch(async () => ok(rss(art(1))));
     await fetchHeadlines({ queries: ['handmade crafts trends'], locale: 'en_IN', now: NOW });
     expect(f).toHaveBeenCalledTimes(1);
-    expect(f.mock.calls[0][0]).toBe(`${base}?q=handmade%20crafts%20trends&hl=en-IN&gl=IN&ceid=IN:en`);
+    expect(f.mock.calls[0][0]).toBe(`${base}?q=handmade%20crafts%20trends%20when%3A14d&hl=en-IN&gl=IN&ceid=IN:en`);
+  });
+  it('asks every feed for the last 14 days only, from the same constant as the date filter', async () => {
+    expect(MAX_AGE_DAYS).toBe(14);
+    const f = mockFetch(async () => ok(rss(art(1))));
+    await fetchHeadlines({ queries: ['a', 'b c', 'x'.repeat(80)], locale: 'en_IN', now: NOW });
+    expect(f).toHaveBeenCalledTimes(3);
+    for (const call of f.mock.calls) {
+      const url = String(call[0]);
+      expect(url).toContain('when%3A14d');
+      expect(new URL(url).searchParams.get('q')).toMatch(/ when:14d$/);
+    }
   });
   it('encodes a query that contains & and #', async () => {
     const f = mockFetch(async () => ok(rss(art(1))));
     await fetchHeadlines({ queries: ['arts & crafts #1'], locale: 'en_US', now: NOW });
     const url = String(f.mock.calls[0][0]);
-    expect(url.startsWith(`${base}?q=arts%20%26%20crafts%20%231&hl=en-US&gl=US&ceid=US:en`)).toBe(true);
+    expect(url.startsWith(`${base}?q=arts%20%26%20crafts%20%231%20when%3A14d&hl=en-US&gl=US&ceid=US:en`)).toBe(true);
     expect(new URL(url).host).toBe('news.google.com');
   });
   it('sends only the language when the locale has no country', async () => {
     const f = mockFetch(async () => ok(rss(art(1))));
     await fetchHeadlines({ queries: ['a'], locale: 'en', now: NOW });
-    expect(f.mock.calls[0][0]).toBe(`${base}?q=a&hl=en`);
+    expect(f.mock.calls[0][0]).toBe(`${base}?q=a%20when%3A14d&hl=en`);
   });
   it('sends a generic user-agent and an abort signal', async () => {
     const f = mockFetch(async () => ok(rss(art(1))));
@@ -254,7 +266,7 @@ describe('fetchHeadlines', () => {
   });
   it('skips a feed that tries to redirect, while another feed still counts', async () => {
     mockFetch(async (url) => {
-      if (url.includes('q=a&')) throw new TypeError('fetch failed: unexpected redirect');
+      if (url.includes('q=a%20when')) throw new TypeError('fetch failed: unexpected redirect');
       return ok(rss(art(1)));
     });
     const out = await fetchHeadlines({ queries: ['a', 'b'], locale: 'en_US', now: NOW });
@@ -278,8 +290,8 @@ describe('fetchHeadlines', () => {
 
   it('skips a feed that rejects or answers with an error status, while the others count', async () => {
     mockFetch(async (url) => {
-      if (url.includes('q=a&')) throw new Error('network down');
-      if (url.includes('q=b&')) return new Response('nope', { status: 503 });
+      if (url.includes('q=a%20when')) throw new Error('network down');
+      if (url.includes('q=b%20when')) return new Response('nope', { status: 503 });
       return ok(rss(art(1)));
     });
     const out = await fetchHeadlines({ queries: ['a', 'b', 'c'], locale: 'en_US', now: NOW });
@@ -295,7 +307,7 @@ describe('fetchHeadlines', () => {
   });
   it('treats a feed that never answers as failed after 10 seconds', async () => {
     vi.useFakeTimers();
-    mockFetch((url) => (url.includes('q=slow&') ? new Promise<Response>(() => {}) : Promise.resolve(ok(rss(art(1))))));
+    mockFetch((url) => (url.includes('q=slow%20when') ? new Promise<Response>(() => {}) : Promise.resolve(ok(rss(art(1))))));
     const p = fetchHeadlines({ queries: ['slow', 'fast'], locale: 'en_US', now: NOW });
     await vi.advanceTimersByTimeAsync(9_999);
     let settled = false;
@@ -325,7 +337,7 @@ describe('fetchHeadlines', () => {
   });
   it('ignores a body larger than 1 MB', async () => {
     const huge = rss(art(1)) + ' '.repeat(1_048_576 + 10);
-    mockFetch(async (url) => (url.includes('q=big&') ? ok(huge) : ok(rss(art(2)))));
+    mockFetch(async (url) => (url.includes('q=big%20when') ? ok(huge) : ok(rss(art(2)))));
     const out = await fetchHeadlines({ queries: ['big', 'small'], locale: 'en_US', now: NOW });
     expect(out.map((h) => h.title)).toEqual(['Story number 2']);
   });
@@ -370,7 +382,7 @@ describe('fetchHeadlines', () => {
     expect(out.map((h) => h.title)).toEqual(['Newer copy']);
   });
   it('removes duplicates by normalised title across feeds, keeping the newest', async () => {
-    mockFetch(async (url) => (url.includes('q=a&')
+    mockFetch(async (url) => (url.includes('q=a%20when')
       ? ok(rss(art(1, { title: 'Hand-Made Pots: A Boom!', link: 'https://one.example/x', date: day(6) })))
       : ok(rss(art(2, { title: 'hand made   pots a boom', link: 'https://two.example/y', date: day(3) })))));
     const out = await fetchHeadlines({ queries: ['a', 'b'], locale: 'en_US', now: NOW });
@@ -417,5 +429,40 @@ describe('fetchHeadlines', () => {
     const f = mockFetch(async () => ok(rss(art(1))));
     expect(await fetchHeadlines({ queries: [], locale: 'en_US', now: NOW })).toEqual([]);
     expect(f).not.toHaveBeenCalled();
+  });
+  it('drops a headline whose link is over the source limit, and numbers the rest from 1 without gaps', async () => {
+    const pad = (n: number) => `https://news.example/a/${'x'.repeat(n - 'https://news.example/a/'.length)}`;
+    expect(pad(MAX_SOURCE_URL)).toHaveLength(MAX_SOURCE_URL);
+    mockFetch(async () => ok(rss(
+      art(1, { link: pad(MAX_SOURCE_URL + 1), date: day(1) }),
+      art(2, { link: pad(MAX_SOURCE_URL), date: day(2) }),
+      art(3, { date: day(3) }),
+    )));
+    const out = await fetchHeadlines({ queries: ['a'], locale: 'en_US', now: NOW });
+    expect(out.map((h) => [h.n, h.title])).toEqual([[1, 'Story number 2'], [2, 'Story number 3']]);
+    expect(out[0].url).toHaveLength(MAX_SOURCE_URL);
+  });
+  it('measures the link in its normal form, as the source check does', async () => {
+    const long = `https://news.example/a?q=${'é'.repeat(100)}`; // each é becomes 6 characters once encoded
+    mockFetch(async () => ok(rss(art(1, { link: long }), art(2))));
+    const out = await fetchHeadlines({ queries: ['a'], locale: 'en_US', now: NOW });
+    expect(out.map((h) => h.title)).toEqual(['Story number 2']);
+  });
+  it('drops an item dated more than a day ahead of now, keeps one up to a day ahead, and keeps an undated one', async () => {
+    const ahead = (hours: number) => new Date(NOW.getTime() + hours * 3_600_000).toUTCString();
+    mockFetch(async () => ok(rss(
+      art(1, { date: ahead(2) }),
+      art(2, { date: ahead(23) }),
+      art(3, { date: ahead(25) }),
+      art(4, { date: ahead(24 * 30) }),
+      art(5, { date: undefined }),
+    )));
+    const out = await fetchHeadlines({ queries: ['a'], locale: 'en_US', now: NOW });
+    expect(out.map((h) => h.title).sort()).toEqual(['Story number 1', 'Story number 2', 'Story number 5']);
+  });
+  it('shares one message for an unreachable feed', async () => {
+    mockFetch(async () => { throw new TypeError('down'); });
+    const e = (await failure(fetchHeadlines({ queries: ['a'], locale: 'en_US', now: NOW }))) as ApiError;
+    expect(e.message).toBe(FEED_DOWN);
   });
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ApiError } from '@/lib/errors';
-import { parseItemInput, trendBlockHeading, trendSourceLine } from '@/lib/trend-types';
+import { MAX_SOURCE_URL, parseItemInput, trendBlockHeading, trendSourceLine } from '@/lib/trend-types';
 
 const good = () => ({
   kind: 'craft',
@@ -36,6 +36,12 @@ describe('trendSourceLine', () => {
 });
 
 describe('parseItemInput', () => {
+  it('shares one source link limit of 300 characters', () => {
+    expect(MAX_SOURCE_URL).toBe(300);
+    const link = (n: number) => `https://news.example/${'a'.repeat(n - 'https://news.example/'.length)}`;
+    expect(() => parseItemInput({ ...good(), sources: [{ title: 'Ok', url: link(MAX_SOURCE_URL) }] }, 'manual')).not.toThrow();
+    expect(() => parseItemInput({ ...good(), sources: [{ title: 'Ok', url: link(MAX_SOURCE_URL + 1) }] }, 'manual')).toThrow(ApiError);
+  });
   it('accepts a good item and trims it', () => {
     const item = parseItemInput({ ...good(), title: '  Block printed linen  ' }, 'manual');
     expect(item).toEqual({ ...good(), title: 'Block printed linen', origin: 'manual' });

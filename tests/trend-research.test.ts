@@ -6,7 +6,7 @@ vi.mock('@/lib/categories', () => ({ listCategories: vi.fn() }));
 vi.mock('@/lib/trend-sources', async (orig) => ({ ...(await orig<typeof import('@/lib/trend-sources')>()), fetchHeadlines: vi.fn() }));
 
 import { listCategories } from '@/lib/categories';
-import { buildQueries, fetchHeadlines, type Headline } from '@/lib/trend-sources';
+import { FEED_DOWN, MAX_AGE_DAYS, buildQueries, fetchHeadlines, type Headline } from '@/lib/trend-sources';
 import { buildPrompt, researchTrends } from '@/lib/trend-research';
 
 const KEY = 'AIzaSyFAKEKEY1234567890abcdef';
@@ -115,6 +115,11 @@ describe('buildPrompt', () => {
     expect(p).toContain('Jaipur, Udaipur and Jodhpur');
     expect(p).not.toContain('Jaipur,\n');
   });
+  it('states the age of the headlines from the same constant as the fetch window', () => {
+    const p = buildPrompt({ region: '', now: NOW, headlines: HEADLINES });
+    expect(p).toContain(`from the last ${MAX_AGE_DAYS} days`);
+    expect(p).not.toMatch(/two weeks/i);
+  });
   it('mentions the month so results are current', () => {
     expect(buildPrompt({ region: '', now: NOW, headlines: HEADLINES })).toContain('November 2026');
   });
@@ -152,6 +157,26 @@ describe('researchTrends request', () => {
 });
 
 describe('researchTrends headline step', () => {
+  it('turns a failure to read the categories into a plain 503 and never calls Gemini', async () => {
+    vi.mocked(listCategories).mockRejectedValue(new Error('connection terminated: secret internals'));
+    const f = mockFetch(async () => reply(asJson([item()])));
+    const e = (await failure(researchTrends(cfg, NOW))) as ApiError;
+    expect(e).toBeInstanceOf(ApiError);
+    expect(e.status).toBe(503);
+    expect(e.message).toBe('Could not read the categories. Try again in a minute.');
+    expect(fetchHeadlines).not.toHaveBeenCalled();
+    expect(f).not.toHaveBeenCalled();
+  });
+  it('lets an ApiError from the category step through unchanged', async () => {
+    const original = new ApiError(500, 'Categories are broken.');
+    vi.mocked(listCategories).mockRejectedValue(original);
+    expect(await failure(researchTrends(cfg, NOW))).toBe(original);
+  });
+  it('uses the one shared message when the news feed cannot be reached', async () => {
+    vi.mocked(fetchHeadlines).mockRejectedValue(new TypeError('x'));
+    const e = (await failure(researchTrends(cfg, NOW))) as ApiError;
+    expect(e.message).toBe(FEED_DOWN);
+  });
   it('passes an ApiError from the headline step through unchanged and never calls Gemini', async () => {
     const original = new ApiError(502, 'Could not reach the news feed. Try again later, or start a digest by hand.');
     vi.mocked(fetchHeadlines).mockRejectedValue(original);

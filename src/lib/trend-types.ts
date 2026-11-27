@@ -5,6 +5,9 @@ export type TrendKind = (typeof TREND_KINDS)[number];
 export const TREND_ORIGINS = ['web', 'pinterest', 'manual'] as const;
 export type TrendOrigin = (typeof TREND_ORIGINS)[number];
 
+/** The longest link a source may have. The news step drops longer links, so a headline shown to the model can always be cited. */
+export const MAX_SOURCE_URL = 300;
+
 export type TrendSource = { title: string; url?: string };
 export type TrendItem = {
   id: string;
@@ -20,8 +23,8 @@ export type TrendItem = {
 
 function sourceUrl(v: unknown): string | undefined {
   if (v === undefined || v === null || v === '') return undefined;
-  const msg = 'source url must be an https link up to 300 characters.';
-  if (typeof v !== 'string' || v.trim().length > 300) throw bad(msg);
+  const msg = `source url must be an https link up to ${MAX_SOURCE_URL} characters.`;
+  if (typeof v !== 'string' || v.trim().length > MAX_SOURCE_URL) throw bad(msg);
   let u: URL;
   try { u = new URL(v.trim()); } catch { throw bad(msg); }
   if (u.protocol !== 'https:' || u.username || u.password) throw bad(msg);

@@ -1,16 +1,21 @@
 import { ApiError } from './errors';
+import { MAX_SOURCE_URL } from './trend-types';
 
 /** The only address this module ever fetches. The search words go in the query string; the host never changes. */
 const FEED_ENDPOINT = 'https://news.google.com/rss/search';
+/** What the admin reads when no feed could be had. Shared with the research step so the words are written once. */
+export const FEED_DOWN = 'Could not reach the news feed. Try again later, or start a digest by hand.';
 const FEED_TIMEOUT_MS = 10_000;
 const MAX_BODY_BYTES = 1024 * 1024;
-const MAX_AGE_DAYS = 14;
+/** How far back headlines count: the feed is asked for this many days, and older items are dropped again after reading as a backstop. */
+export const MAX_AGE_DAYS = 14;
+/** An item dated further ahead than this is clock skew or a hostile feed. */
+const MAX_FUTURE_MS = 86_400_000;
 const MAX_HEADLINES = 60;
 const MAX_QUERIES = 8;
 const MAX_QUERY_LENGTH = 80;
 const MAX_TITLE = 200;
 const MAX_PUBLISHER = 80;
-const MAX_URL = 2000;
 const DEFAULT_LANGUAGE = 'en';
 const USER_AGENT = 'Mozilla/5.0 (compatible; TrendHeadlineReader/1.0)';
 
@@ -55,7 +60,7 @@ export function buildQueries(categories: string[]): string[] {
 const ENTITY = /&(?:#(\d+)|#[xX]([0-9a-fA-F]+)|(amp|lt|gt|quot|apos));/g;
 const NAMED: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
 /** Control characters (not tab or newline, which become spaces), plus invisible direction and zero-width marks. */
-const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F​-\u200F\u202A-\u202E\u2066-\u2069﻿]/g;
+const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g;
 
 /**
  * The feed body is hostile input, so nothing here backtracks: every scan moves forward only and never searches again from a point it
@@ -228,13 +233,12 @@ export function parseFeed(xml: string): RawHeadline[] {
   return out;
 }
 
-/** An https link without credentials, in its normal form, or null. */
+/** An https link without credentials, in its normal form, or null. A link longer than a source may be (MAX_SOURCE_URL) is dropped here, so no headline is shown that could not be cited. */
 function safeUrl(raw: string): string | null {
-  if (raw.length > MAX_URL) return null;
   try {
     const u = new URL(raw);
     if (u.protocol !== 'https:' || u.username || u.password) return null;
-    return u.href;
+    return u.href.length > MAX_SOURCE_URL ? null : u.href;
   } catch {
     return null;
   }
@@ -295,9 +299,11 @@ const titleKey = (title: string) => title.toLowerCase().replace(/[^\p{L}\p{N}]+/
 const time = (d: Date | null) => (d ? d.getTime() : Number.NEGATIVE_INFINITY);
 
 /**
- * Recent headlines for the given searches, newest first, numbered from 1, at most 60. Every search is requested at once; a feed that
- * fails is skipped, and if none can be reached the call fails with a 502. Items older than 14 days are dropped, items without a date
- * are kept (last), and repeats by link or by title are removed keeping the newest.
+ * Recent headlines for the given searches, newest first, numbered from 1, at most 60. Every search is requested at once, with `when:14d`
+ * added because the feed otherwise ranks by relevance and returns mostly old items; a feed that fails is skipped, and if none can be
+ * reached the call fails with a 502. Items older than 14 days or dated more than a day ahead are dropped, items without a date are kept
+ * (last), links longer than a source may be are dropped, and repeats by link or by title are removed keeping the newest. Numbers are
+ * given after all dropping, so they run 1..N without gaps.
  */
 export async function fetchHeadlines(opts: { queries: string[]; locale: string; now?: Date }): Promise<Headline[]> {
   const queries = Array.isArray(opts.queries) ? opts.queries : [];
@@ -305,22 +311,23 @@ export async function fetchHeadlines(opts: { queries: string[]; locale: string; 
   const now = opts.now ?? new Date();
   const params = feedParams(opts.locale);
   const urls = queries.map((q) => {
-    let url = `${FEED_ENDPOINT}?q=${encodeURIComponent(q)}&hl=${encodeURIComponent(params.hl)}`;
+    let url = `${FEED_ENDPOINT}?q=${encodeURIComponent(`${q} when:${MAX_AGE_DAYS}d`)}&hl=${encodeURIComponent(params.hl)}`;
     if (params.gl) url += `&gl=${encodeURIComponent(params.gl)}`;
     if (params.ceid) url += `&ceid=${params.ceid.split(':').map(encodeURIComponent).join(':')}`;
     return url;
   });
   const bodies = await Promise.all(urls.map(fetchFeed));
   const reached = bodies.filter((b): b is string => b !== null);
-  if (reached.length === 0) throw new ApiError(502, 'Could not reach the news feed. Try again later, or start a digest by hand.');
+  if (reached.length === 0) throw new ApiError(502, FEED_DOWN);
 
   const oldest = now.getTime() - MAX_AGE_DAYS * 86_400_000;
+  const newest = now.getTime() + MAX_FUTURE_MS;
   const items: RawHeadline[] = [];
   for (const body of reached) {
     for (const it of parseFeed(body)) {
       const url = safeUrl(it.url);
       if (!url) continue;
-      if (it.date && it.date.getTime() < oldest) continue;
+      if (it.date && (it.date.getTime() < oldest || it.date.getTime() > newest)) continue;
       items.push({ ...it, url });
     }
   }
