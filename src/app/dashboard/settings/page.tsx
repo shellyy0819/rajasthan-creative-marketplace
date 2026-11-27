@@ -5,6 +5,7 @@ import { ExtraAreasForm } from '@/components/ExtraAreasForm';
 import { FairSettingsForm } from '@/components/FairSettingsForm';
 import { HomeSettingsForm } from '@/components/HomeSettingsForm';
 import { ShareSettingsForm } from '@/components/ShareSettingsForm';
+import { TrendSettingsForm } from '@/components/TrendSettingsForm';
 import { requireAdminPage } from '@/lib/admin-page';
 import { getExtraAreas } from '@/lib/extra-areas';
 import { getFairSettings } from '@/lib/fair-settings';
@@ -12,6 +13,7 @@ import { getHomeSettings } from '@/lib/home-settings';
 import { hostConfig } from '@/lib/hosts';
 import { getEmailSettings } from '@/lib/settings';
 import { getShareSettings } from '@/lib/share-settings';
+import { getTrendSettings } from '@/lib/trend-settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +30,7 @@ export default async function SettingsPage() {
           <p>Site-wide options for administrators.</p>
         </div>
         <EmailSettingsForm initial={await getEmailSettings()} adminEmail={session?.user?.email ?? ''} />
+        <TrendSettingsForm initial={await getTrendSettings()} />
         <FairSettingsForm initial={await getFairSettings()} />
         <HomeSettingsForm initial={await getHomeSettings()} />
         <ShareSettingsForm initial={await getShareSettings()} />

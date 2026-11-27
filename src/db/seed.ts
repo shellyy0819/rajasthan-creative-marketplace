@@ -14,7 +14,7 @@ const LEGACY_EMAIL = 'legacy@rangrajasthan.invalid';
 export async function truncateAll(db: Database): Promise<void> {
   // cities is wiped too (the migration's launch cities included); seedFromJson always recreates the launch cities.
   // roles is reference data (seeded by a migration) and is deliberately kept.
-  await db.execute(sql`truncate table app_settings, city_requests, fair_visitors, fair_codes, fair_notes, fair_quest_days, fair_events, fair_play_days, site_themes, listing_requests, workshop_requests, order_items, orders, bookings, products, workshops, seller_profiles, user_roles, users, categories, sourcing_types, cities, id_counters restart identity cascade`);
+  await db.execute(sql`truncate table app_settings, trend_digests, city_requests, fair_visitors, fair_codes, fair_notes, fair_quest_days, fair_events, fair_play_days, site_themes, listing_requests, workshop_requests, order_items, orders, bookings, products, workshops, seller_profiles, user_roles, users, categories, sourcing_types, cities, id_counters restart identity cascade`);
 }
 
 const maxNumericId = (prefix: string, ids: string[]) =>

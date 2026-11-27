@@ -274,6 +274,13 @@
       "when": 1795520074706,
       "tag": "0038_marvelous_stepford_cuckoos",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1795598098948,
+      "tag": "0039_trend_digests",
+      "breakpoints": true
     }
   ]
 }

@@ -14,6 +14,7 @@ const TABS = [
   { href: '/dashboard/fair-notes', label: 'Fair feedback' },
   { href: '/dashboard/fair-players', label: 'Fair players' },
   { href: '/dashboard/trending', label: 'Trending' },
+  { href: '/dashboard/market-trends', label: 'Market trends' },
   { href: '/dashboard/engagement', label: 'Seller engagement' },
   { href: '/dashboard/sourcing-types', label: 'Sourcing types' },
   { href: '/dashboard/theme', label: 'Festive themes' },
