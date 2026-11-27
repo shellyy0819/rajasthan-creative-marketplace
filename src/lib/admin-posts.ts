@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, inArray, notExists, sql, type SQL } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { productsQuery, sellerNameSql, toAdminProduct } from '../db/mappers';
 import { ROLE_ID } from '../db/people';
@@ -10,7 +10,9 @@ import { textSearch } from './search';
 import type { AdminProduct } from './types';
 
 export { artistKey };
-export type AdminArtist = { key: string; name: string; total: number; published: number; drafts: number; archived?: number };
+export type AdminArtist = { key: string; name: string; total: number; published: number; drafts: number; archived?: number;
+  /** An active maker who has posted no product and no workshop yet. Admin view only; `email` tells same-named makers apart. */
+  noPosts?: boolean; email?: string };
 export type AdminProductQuery = { artist?: string; status?: string; q?: string };
 
 /** A seller sees only their own products; admins are unscoped. Routes always pass scopeFor(user). */
@@ -54,9 +56,27 @@ export async function listArtists(scope: Scope = {}): Promise<AdminArtist[]> {
     .leftJoin(sellerProfiles, eq(sellerProfiles.userId, users.id))
     .where(and(...scopeWhere(scope)))
     .groupBy(keySql);
-  return rows
-    .map(r => ({ key: r.key, name: r.name, total: r.total, published: r.published, drafts: r.drafts, archived: r.archived }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const posted: AdminArtist[] = rows.map(r => ({ key: r.key, name: r.name, total: r.total, published: r.published, drafts: r.drafts, archived: r.archived }));
+  // A seller sees only their own posts; the flag is for the admin's view of every maker.
+  const quiet = scope.sellerEmail ? [] : await listMakersWithoutPosts();
+  return [...posted, ...quiet].sort((a, b) => a.name.localeCompare(b.name) || (a.email ?? '').localeCompare(b.email ?? ''));
+}
+
+/**
+ * Active sellers who have not posted anything: no product of theirs, and no workshop linked to their account or
+ * carrying their email as its private contact (the same test as the seller's own "My workshops" list).
+ */
+async function listMakersWithoutPosts(): Promise<AdminArtist[]> {
+  const db = getDb();
+  const rows = await db.selectDistinct({ id: users.id, name: sellerNameSql, email: users.email }).from(users)
+    .innerJoin(userRoles, and(eq(userRoles.userId, users.id), eq(userRoles.roleId, ROLE_ID.seller)))
+    .leftJoin(sellerProfiles, eq(sellerProfiles.userId, users.id))
+    .where(and(
+      eq(users.active, true),
+      notExists(db.select({ one: sql`1` }).from(products).where(eq(products.sellerId, users.id))),
+      notExists(db.select({ one: sql`1` }).from(workshops).where(sql`${workshops.hostId} = ${users.id} or lower(${workshops.contactEmail}) = lower(${users.email})`)),
+    ));
+  return rows.map(r => ({ key: `no-posts:${r.id}`, name: r.name.replace(/\s+/g, ' ').trim(), total: 0, published: 0, drafts: 0, noPosts: true, email: r.email }));
 }
 
 /** For the product form's workshop dropdown (every workshop, any status). */
