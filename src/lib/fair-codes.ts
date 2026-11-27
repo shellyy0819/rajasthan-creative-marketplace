@@ -2,7 +2,9 @@ import { createHash } from 'node:crypto';
 import { and, eq, gt, lt, or } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { fairCodes } from '../db/schema';
+import { ApiError } from './errors';
 import { CODE_RE } from './fair-constants';
+import { newCodeIpLimiter } from './fair-limits';
 import { bad, obj } from './validate';
 
 /** A code nobody has used for this long is free again. */
@@ -42,4 +44,12 @@ export async function codeInUse(code: string, now = new Date()): Promise<boolean
   const [row] = await getDb().select({ code: fairCodes.code }).from(fairCodes)
     .where(and(eq(fairCodes.code, code), gt(fairCodes.seenAt, new Date(now.getTime() - CODE_TTL_MS)))).limit(1);
   return !!row;
+}
+
+/**
+ * Every fair call that claims a code on first use calls this first. A code that is already in use passes for free; making a new one costs the
+ * network address one of its 20 new codes an hour (`address` is what our proxy saw, see proxyAddress). Throws ApiError(429) when none are left.
+ */
+export async function chargeNewCode(code: string, address: string, now = new Date()): Promise<void> {
+  if (!(await codeInUse(code, now)) && !newCodeIpLimiter.hit(address, now.getTime())) throw new ApiError(429, 'Too many requests. Please try again shortly.');
 }
