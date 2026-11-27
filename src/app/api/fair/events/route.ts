@@ -1,9 +1,9 @@
 import { isBot, proxyAddress } from '@/lib/actors';
 import { handle, json, readJson } from '@/lib/api';
 import { ApiError } from '@/lib/errors';
-import { codeInUse } from '@/lib/fair-codes';
+import { chargeNewCode } from '@/lib/fair-codes';
 import { parseEvents, recordEvents } from '@/lib/fair-events';
-import { eventCodeLimiter, eventIpLimiter, newCodeIpLimiter } from '@/lib/fair-limits';
+import { eventCodeLimiter, eventIpLimiter } from '@/lib/fair-limits';
 import { requireFairOpen } from '@/lib/fair-settings';
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +15,6 @@ export const POST = (req: Request) => handle(async () => {
   if (!eventIpLimiter.hit(address)) throw new ApiError(429, 'Too many requests. Please try again shortly.');
   const e = parseEvents(await readJson(req));
   if (!eventCodeLimiter.hit(e.code)) throw new ApiError(429, 'Too many requests. Please try again shortly.');
-  if (!(await codeInUse(e.code)) && !newCodeIpLimiter.hit(address)) throw new ApiError(429, 'Too many requests. Please try again shortly.'); // making a code costs more than using one
+  await chargeNewCode(e.code, address); // making a code costs more than using one
   return json(await recordEvents(e), 200, { 'cache-control': 'no-store' });
 });

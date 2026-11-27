@@ -14,9 +14,12 @@ import { GET, PUT } from '@/app/api/admin/settings/fair/route';
 import { getFairSettings } from '@/lib/fair-settings';
 import { DEFAULT_MELA } from '@/lib/fair-mela';
 import { listNotes } from '@/lib/fair-notes';
-import { fairEvents } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import { fairCodes, fairEvents } from '@/db/schema';
+import fs from 'node:fs';
 import { claimCode } from '@/lib/fair-codes';
 import { CODE_ALPHABET } from '@/lib/fair-constants';
+import { newCodeIpLimiter } from '@/lib/fair-limits';
 import { getTestDb, resetTestDb } from './helpers/testdb';
 
 const A = 'a'.repeat(32), B = 'b'.repeat(32);
@@ -148,6 +151,36 @@ describe('POST /api/fair/events: a caller cannot pick the address it is limited 
     for (let i = 0; i < 125; i++) statuses.push((await EVENTS(post('/api/fair/events', fresh(codeNo(1000 + i)), { 'x-forwarded-for': `10.9.${i}.1, 198.51.100.66` }))).status);
     expect(statuses.filter(s => s === 200)).toHaveLength(120);
     expect(statuses.slice(120).every(s => s === 429)).toBe(true);
+  });
+});
+
+describe('every fair call that can make a code: new codes are limited per proxy address', () => {
+  const codeNo = (i: number) => [...Array(6)].map((_, k) => CODE_ALPHABET[Math.floor(i / CODE_ALPHABET.length ** k) % CODE_ALPHABET.length]).join('');
+  const calls = [
+    { name: 'claim', url: '/api/fair/claim', run: CLAIM, ok: 200, body: (code: string) => ({ code, token: A }) },
+    { name: 'presence', url: '/api/fair/presence', run: PRESENCE, ok: 200, body: (code: string) => beat(code) },
+    { name: 'notes', url: '/api/fair/notes', run: NOTES, ok: 201, body: (code: string) => ({ code, token: A, stall: 'Bandhej Boutique', text: 'Lovely fair', rating: 5, source: 'sample' }) },
+    { name: 'quests', url: '/api/fair/quests', run: QUESTS, ok: 204, body: (code: string) => ({ code, token: A, day: '2026-11-12', quests: [{ id: 'meet3', title: 'Meet 3 makers', target: 3 }], progress: { meet3: ['dhaga'] } }) },
+    { name: 'quest history', url: '/api/fair/quests/history', run: HISTORY, ok: 200, body: (code: string) => ({ code, token: A }) },
+  ];
+  it.each(calls.map((c, n) => [c.name, c, n] as const))('%s: a new code is refused once the address has made 20, however the earlier entries read', async (_name, c, n) => {
+    const proxy = `198.51.100.${100 + n}`;
+    for (let i = 0; i < 20; i++) newCodeIpLimiter.hit(proxy);                       // this proxy address has just made 20 new codes
+    const rotating = (i: number) => ({ 'x-forwarded-for': `10.${n}.${i}.7, ${proxy}` }); // the caller changes the entries before the proxy's own
+    for (let i = 0; i < 3; i++) expect((await c.run(post(c.url, c.body(codeNo(2000 + n * 10 + i)), rotating(i)))).status).toBe(429);
+    expect(await (await getTestDb()).select().from(fairCodes).where(eq(fairCodes.code, codeNo(2000 + n * 10)))).toHaveLength(0);
+  });
+  it.each(calls.map((c, n) => [c.name, c, n] as const))('%s: a code that already exists is not charged', async (_name, c, n) => {
+    const proxy = `198.51.100.${120 + n}`, code = codeNo(3000 + n);
+    await claimCode({ code, token: A });
+    for (let i = 0; i < 20; i++) newCodeIpLimiter.hit(proxy);
+    expect((await c.run(post(c.url, c.body(code), { 'x-forwarded-for': `10.${n}.0.7, ${proxy}` }))).status).toBe(c.ok);
+  });
+  it('no fair call picks the limited address from the caller\'s own X-Forwarded-For entries', () => {
+    const dir = 'src/app/api/fair';
+    const routes = fs.readdirSync(dir, { recursive: true, encoding: 'utf8' }).filter(f => f.endsWith('route.ts'));
+    expect(routes.length).toBeGreaterThanOrEqual(6);
+    for (const f of routes) expect(fs.readFileSync(`${dir}/${f}`, 'utf8'), f).not.toMatch(/\bclientIp\b/);
   });
 });
 
