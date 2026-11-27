@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fairEvents, fairPlayDays, fairQuestDays } from '@/db/schema';
-import { listPlayers } from '@/lib/fair-players';
+import { PLAYER_READ_CAP, listPlayers } from '@/lib/fair-players';
 import { getTestDb, resetTestDb } from './helpers/testdb';
 
 const at = (iso: string) => new Date(iso);
@@ -48,6 +48,17 @@ describe('listPlayers', () => {
     await db.insert(fairPlayDays).values([play('OLD234', '2026-11-01', 60, '2026-11-01T06:00:00Z', '2026-11-01T06:01:00Z'), play('NEW234', '2026-11-12', 60, '2026-11-12T06:00:00Z', '2026-11-12T06:01:00Z')]);
     expect((await listPlayers()).map(p => p.code)).toEqual(['NEW234', 'OLD234']);
     expect((await listPlayers({ limit: 1 })).map(p => p.code)).toEqual(['NEW234']);
+  });
+
+  it('reads a bounded number of recent players, but still counts every row of the ones it shows', async () => {
+    const db = await getTestDb();
+    const code = (i: number) => `P${String(i).padStart(5, '0')}`;
+    await db.insert(fairPlayDays).values(Array.from({ length: PLAYER_READ_CAP + 5 }, (_, i) => play(code(i), '2026-11-12', 120, `2026-11-12T06:00:00Z`, new Date(Date.UTC(2026, 10, 12, 6, 0, 0) + i * 1000).toISOString())));
+    await db.insert(fairEvents).values([ev(code(PLAYER_READ_CAP + 4), 'stall', 'dhaga', '2026-11-12T08:00:00Z'), ev(code(PLAYER_READ_CAP + 4), 'shortlist', 'dhaga:0', '2026-11-12T08:00:01Z')]);
+    const all = await listPlayers({ limit: PLAYER_READ_CAP * 2 });
+    expect(all).toHaveLength(PLAYER_READ_CAP);                       // the 5 oldest codes are not read at all
+    expect(all[0]).toMatchObject({ code: code(PLAYER_READ_CAP + 4), minutes: 2, stalls: 1, shortlisted: 1 }); // and the newest still has plays and events together
+    expect(all.map(p => p.code)).not.toContain(code(0));
   });
 
   it('can keep only the players who finished all of the latest day\'s quests', async () => {

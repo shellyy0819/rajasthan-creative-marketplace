@@ -1,3 +1,4 @@
+import { proxyAddress } from '@/lib/actors';
 import { createLimiter } from '@/lib/rate-limit';
 import { keyFromUrl, storageConfig } from '@/lib/storage';
 import { PHOTO_WIDTHS } from '@/lib/photo-sizes';
@@ -48,12 +49,6 @@ async function turn(): Promise<boolean> {
 function done() { const next = waiting.shift(); if (next) next(); else running--; }
 const inFlight = new Map<string, Promise<Buffer | null | 'busy'>>();
 export let photoIpLimiter = createLimiter(600, 60_000);
-/** The address our own proxy saw: the last X-Forwarded-For entry. The first entries are whatever the client sent, so they must not decide who is limited. */
-export function proxyAddress(h: { get(name: string): string | null }): string {
-  const last = h.get('x-forwarded-for')?.split(',').pop()?.trim();
-  return last || h.get('x-real-ip')?.trim() || 'unknown';
-}
-
 async function make(src: string, w: number): Promise<Buffer | null> {
   try {
     const res = await fetch(src, { signal: AbortSignal.timeout(8000), cache: 'no-store' });

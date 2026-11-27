@@ -15,6 +15,8 @@ import { getFairSettings } from '@/lib/fair-settings';
 import { DEFAULT_MELA } from '@/lib/fair-mela';
 import { listNotes } from '@/lib/fair-notes';
 import { fairEvents } from '@/db/schema';
+import { claimCode } from '@/lib/fair-codes';
+import { CODE_ALPHABET } from '@/lib/fair-constants';
 import { getTestDb, resetTestDb } from './helpers/testdb';
 
 const A = 'a'.repeat(32), B = 'b'.repeat(32);
@@ -118,6 +120,34 @@ describe('POST /api/fair/events', () => {
     for (let i = 0; i < 32; i++) statuses.push((await EVENTS(post('/api/fair/events', ev({ code: 'SPAM23', events: [{ kind: 'stall', detail: `m${i}` }] })))).status);
     expect(statuses.slice(0, 30).every(s => s === 200)).toBe(true);
     expect(statuses[31]).toBe(429);
+  });
+});
+
+describe('POST /api/fair/events: a caller cannot pick the address it is limited by', () => {
+  const fresh = (code: string, o: Record<string, unknown> = {}) => ({ code, token: A, events: [{ kind: 'stall', detail: 'dhaga' }], ...o });
+  // The address our own proxy saw is the last X-Forwarded-For entry; the entries before it are whatever the caller typed.
+  const behindProxy = (i: number) => ({ 'x-forwarded-for': `10.${i % 250}.${Math.floor(i / 250)}.7, 198.51.100.77` });
+  const codeNo = (i: number) => [...Array(6)].map((_, k) => CODE_ALPHABET[Math.floor(i / CODE_ALPHABET.length ** k) % CODE_ALPHABET.length]).join('');
+
+  it('keeps counting one proxy address however the earlier entries change, so new codes stop at 20 an hour', async () => {
+    const statuses: number[] = [];
+    for (let i = 0; i < 22; i++) statuses.push((await EVENTS(post('/api/fair/events', fresh(codeNo(i)), behindProxy(i)))).status);
+    expect(statuses.slice(0, 20).every(s => s === 200)).toBe(true);
+    expect(statuses.slice(20)).toEqual([429, 429]);
+    expect(await (await getTestDb()).select().from(fairEvents)).toHaveLength(20);
+  });
+
+  it('does not charge a code that already exists against the new-code limit', async () => {
+    await claimCode({ code: codeNo(900), token: A });
+    for (let i = 0; i < 25; i++) expect((await EVENTS(post('/api/fair/events', fresh(codeNo(900), { events: [{ kind: 'stall', detail: `s${i}` }] }), { 'x-forwarded-for': '198.51.100.88' }))).status).toBe(200);
+  });
+
+  it('limits calls per proxy address (120 a minute) even when the earlier entries differ', async () => {
+    for (let i = 0; i < 125; i++) await claimCode({ code: codeNo(1000 + i), token: A });
+    const statuses: number[] = [];
+    for (let i = 0; i < 125; i++) statuses.push((await EVENTS(post('/api/fair/events', fresh(codeNo(1000 + i)), { 'x-forwarded-for': `10.9.${i}.1, 198.51.100.66` }))).status);
+    expect(statuses.filter(s => s === 200)).toHaveLength(120);
+    expect(statuses.slice(120).every(s => s === 429)).toBe(true);
   });
 });
 
