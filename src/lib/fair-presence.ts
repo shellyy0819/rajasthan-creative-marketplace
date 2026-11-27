@@ -1,9 +1,10 @@
-import { and, count, desc, gt, lt, ne, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gt, lt, ne, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { fairVisitors } from '../db/schema';
 import type { Emote, Facing, FairVisitor } from './fair-types';
 import { CODE_RE, EMOTES, FACINGS, FAIR_WORLD, LOOK_IDS, isLookId, type LookId } from './fair-constants';
 import { CODE_TAKEN, TOKEN_RE, claimCode } from './fair-codes';
+import { addPlay } from './fair-play';
 import { ApiError } from './errors';
 import { bad, obj } from './validate';
 
@@ -40,6 +41,8 @@ export function parseHeartbeat(input: unknown): Heartbeat {
 export async function heartbeat(hb: Heartbeat, now = new Date()): Promise<{ visitors: FairVisitor[]; count: number }> {
   if (await claimCode({ code: hb.code, token: hb.token }, now) === 'taken') throw new ApiError(409, CODE_TAKEN);
   const db = getDb();
+  const [before] = await db.select({ seenAt: fairVisitors.seenAt }).from(fairVisitors).where(eq(fairVisitors.code, hb.code));
+  await addPlay(hb.code, before?.seenAt ?? null, now);
   const set = { x: hb.x, y: hb.y, facing: hb.facing, look: hb.look ?? null, seenAt: now, ...(hb.emote ? { emote: hb.emote, emoteSeq: sql`${fairVisitors.emoteSeq} + 1` } : {}) };
   await db.insert(fairVisitors).values({ code: hb.code, x: hb.x, y: hb.y, facing: hb.facing, look: hb.look ?? null, seenAt: now, ...(hb.emote ? { emote: hb.emote, emoteSeq: 1 } : {}) })
     .onConflictDoUpdate({ target: fairVisitors.code, set });

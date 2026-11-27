@@ -35,6 +35,7 @@ export default function PrivacyPage() {
         <ul>
           <li><b>Likes.</b> When you like a product we store the like against a random visitor ID kept in a cookie (<code>rr_vid</code>, one year) or, if you are signed in, against your email.</li>
           <li><b>Engagement counts.</b> We count views and contact taps on products and artist pages. The visitor is recorded as a one-way hash that changes every day. Your IP address and browser details are not stored and cannot be linked across days.</li>
+          <li><b>Fair play.</b> In the Craftofy Fair we keep what your random player code did there: the stalls you open, the items you add to the shortlist, the activities you start, the quests you finish and how long you play. It is tied to the random player code and not to your name, and it is kept for 90 days. [Counsel to confirm whether the fair play record needs consent.]</li>
           <li><b>Analytics, only if you agree.</b> If you accept the cookie banner, Google Analytics 4 receives page views and events such as likes and contact taps, with your IP address and device details, as set out in Google’s own policy. If you decline, it is not loaded.</li>
           <li><b>Your choices on your device.</b> Light or dark theme, cookie choice and whether you have seen the intro screen are saved in your browser only.</li>
         </ul>
@@ -85,6 +86,7 @@ export default function PrivacyPage() {
           <li>Maker and listing data: while the account is active, then [PERIOD] after deactivation or deletion.</li>
           <li>Workshop reservations: [PERIOD].</li>
           <li>Likes and engagement counts: [PERIOD].</li>
+          <li>Fair play records: 90 days.</li>
           <li>Emails to us: [PERIOD].</li>
           <li>Anything we must keep by law: for as long as the law requires.</li>
         </ul>

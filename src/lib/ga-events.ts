@@ -116,3 +116,37 @@ export function gaReserve(step: 'open' | 'complete' | 'error', p: { workshopId: 
 export function gaHostForm(step: 'open' | 'step' | 'submit', p: { path: string; step?: number }): void {
   gaEvent(`host_form_${step}`, { form_path: p.path, ...(p.step !== undefined ? { step_number: p.step } : {}) });
 }
+
+// ---- The fair (/fair) -------------------------------------------------------------------------------------------------------------------
+// What visitors do inside the exhibition. Only public things are sent: the maker's artist handle, the product's page slug, the category and the price.
+// The visitor's player code and its secret are never sent: that code is the key to their saved progress.
+
+type FairMakerRef = { href?: string; category: string };
+type FairItemRef = { key: string; pricePaise: number; href?: string };
+const lastSegment = (href?: string) => (href ? href.split('/').filter(Boolean).pop() : undefined);
+const fairMakerParams = (m?: FairMakerRef) => (m ? { item_category: m.category, ...(lastSegment(m.href) ? { seller_id: lastSegment(m.href) as string } : {}) } : {});
+
+/** GA4: a visitor walked up to a stall and opened it. `seller_id` is the artist handle, left out for a sample maker. */
+export function gaFairStallOpen(maker: FairMakerRef): void {
+  gaEvent('fair_stall_open', fairMakerParams(maker));
+}
+
+/** GA4: an item was added to the fair shortlist. `item_id` is the product's page slug (the sample item's key for a sample), `value` is its price in rupees. */
+export function gaFairShortlistAdd(item: FairItemRef, maker?: FairMakerRef): void {
+  gaEvent('fair_shortlist_add', { item_id: lastSegment(item.href) ?? item.key, value: item.pricePaise / 100, currency: 'INR', ...fairMakerParams(maker) });
+}
+
+/** GA4: "View product" or a product name was followed from the fair, from the stall sheet or the shortlist. */
+export function gaFairProductClick(item: FairItemRef, maker: FairMakerRef | undefined, placement: 'stall' | 'shortlist'): void {
+  gaEvent('fair_product_click', { item_id: lastSegment(item.href) ?? item.key, placement, ...fairMakerParams(maker) });
+}
+
+/** GA4: a visitor started something to do at the fair: the balloon ride, the folk music, a tug of war game or the holy dip. */
+export function gaFairActivityStart(activity: 'balloon' | 'music' | 'tug_of_war' | 'holy_dip'): void {
+  gaEvent('fair_activity_start', { activity });
+}
+
+/** GA4: one of the day's three quests was finished. `quests_done` counts how many of the day's quests are now done, `all_done` is true for the last one. */
+export function gaFairQuestComplete(p: { questId: string; done: number; total: number }): void {
+  gaEvent('fair_quest_complete', { quest_id: p.questId, quests_done: p.done, all_done: p.done >= p.total });
+}
