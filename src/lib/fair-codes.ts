@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { and, eq, lt, or } from 'drizzle-orm';
+import { and, eq, gt, lt, or } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { fairCodes } from '../db/schema';
 import { CODE_RE } from './fair-constants';
@@ -35,4 +35,11 @@ export async function claimCode(c: Claim, now = new Date()): Promise<'ok' | 'tak
   if (!rows.length) return 'taken';
   await db.delete(fairCodes).where(and(lt(fairCodes.seenAt, new Date(now.getTime() - CODE_TTL_MS)), eq(fairCodes.tokenHash, hash)));
   return 'ok';
+}
+
+/** Is this code already in use (claimed and not expired)? Reads only; it never claims. */
+export async function codeInUse(code: string, now = new Date()): Promise<boolean> {
+  const [row] = await getDb().select({ code: fairCodes.code }).from(fairCodes)
+    .where(and(eq(fairCodes.code, code), gt(fairCodes.seenAt, new Date(now.getTime() - CODE_TTL_MS)))).limit(1);
+  return !!row;
 }

@@ -1,4 +1,4 @@
-import { count, desc, max, min, sql, sum } from 'drizzle-orm';
+import { count, desc, inArray, max, min, sql, sum } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { fairEvents, fairPlayDays, fairQuestDays } from '../db/schema';
 import type { QuestSnap } from './fair-quest-days';
@@ -9,21 +9,31 @@ export type FairPlayer = {
   stalls: number; shortlisted: number; questsDone: number; questsTotal: number;
 };
 
+/** The most recent codes read from each of the two sources (play days, events), so the page stays fast however many codes pile up. */
+export const PLAYER_READ_CAP = 2000;
+
 /**
- * Every code that has played (a play-day row) or done something (an event), most recently seen first.
+ * The most recent codes that have played (a play-day row) or done something (an event), most recently seen first.
  * Quests come from the code's latest saved quest day: how many of that day's quests are finished out of how many were offered.
  * `finishedAll` keeps only players who finished every quest of that day.
+ * Only the most recent PLAYER_READ_CAP codes of each source are read at all; the numbers of every code that is read use all of its rows.
  */
 export async function listPlayers(opts: { finishedAll?: boolean; limit?: number } = {}): Promise<FairPlayer[]> {
   const db = getDb(), limit = opts.limit ?? 200;
+  const [recentPlays, recentActs] = await Promise.all([
+    db.select({ code: fairPlayDays.code }).from(fairPlayDays).groupBy(fairPlayDays.code).orderBy(desc(max(fairPlayDays.lastAt))).limit(PLAYER_READ_CAP),
+    db.select({ code: fairEvents.code }).from(fairEvents).groupBy(fairEvents.code).orderBy(desc(max(fairEvents.at))).limit(PLAYER_READ_CAP),
+  ]);
+  const codes = [...new Set([...recentPlays, ...recentActs].map(r => r.code))];
+  if (!codes.length) return [];
   const [plays, acts, quests] = await Promise.all([
-    db.select({ code: fairPlayDays.code, days: count(), seconds: sum(fairPlayDays.seconds), first: min(fairPlayDays.firstAt), last: max(fairPlayDays.lastAt) }).from(fairPlayDays).groupBy(fairPlayDays.code),
+    db.select({ code: fairPlayDays.code, days: count(), seconds: sum(fairPlayDays.seconds), first: min(fairPlayDays.firstAt), last: max(fairPlayDays.lastAt) }).from(fairPlayDays).where(inArray(fairPlayDays.code, codes)).groupBy(fairPlayDays.code),
     db.select({
       code: fairEvents.code, first: min(fairEvents.at), last: max(fairEvents.at),
       stalls: sql<number>`count(distinct ${fairEvents.detail}) filter (where ${fairEvents.kind} = 'stall')`,
       shortlisted: sql<number>`count(*) filter (where ${fairEvents.kind} = 'shortlist')`,
-    }).from(fairEvents).groupBy(fairEvents.code),
-    db.selectDistinctOn([fairQuestDays.code]).from(fairQuestDays).orderBy(fairQuestDays.code, desc(fairQuestDays.day)),
+    }).from(fairEvents).where(inArray(fairEvents.code, codes)).groupBy(fairEvents.code),
+    db.selectDistinctOn([fairQuestDays.code]).from(fairQuestDays).where(inArray(fairQuestDays.code, codes)).orderBy(fairQuestDays.code, desc(fairQuestDays.day)),
   ]);
   const play = new Map(plays.map(p => [p.code, p])), act = new Map(acts.map(a => [a.code, a])), quest = new Map(quests.map(q => [q.code, q]));
   const earliest = (...d: Array<Date | null | undefined>) => new Date(Math.min(...d.filter((x): x is Date => !!x).map(x => x.getTime())));
