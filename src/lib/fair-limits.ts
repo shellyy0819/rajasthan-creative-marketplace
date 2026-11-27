@@ -13,3 +13,5 @@ export let questIpLimiter = createLimiter(120, 60_000);
 /** Player events sent by the browser in batches: per network address and per code. */
 export let eventIpLimiter = createLimiter(120, 60_000);
 export let eventCodeLimiter = createLimiter(30, 60_000);
+/** New codes made through the events call: 20 an hour per network address. A code that already exists costs nothing here. */
+export let newCodeIpLimiter = createLimiter(20, 3_600_000);

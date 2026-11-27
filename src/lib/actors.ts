@@ -24,6 +24,12 @@ export function clientIp(h: { get(name: string): string | null }): string {
   return xff || h.get('x-real-ip')?.trim() || 'unknown';
 }
 
+/** The address our own proxy saw: the last X-Forwarded-For entry. The first entries are whatever the client sent, so they must not decide who is limited. */
+export function proxyAddress(h: { get(name: string): string | null }): string {
+  const last = h.get('x-forwarded-for')?.split(',').pop()?.trim();
+  return last || h.get('x-real-ip')?.trim() || 'unknown';
+}
+
 const BOT = /bot|crawl|spider|slurp|facebookexternalhit|bingpreview|headless|lighthouse|pagespeed|python-requests|curl|wget|httpclient|monitor|uptime|preview/i;
 export const isBot = (ua: string | null | undefined) => !ua || !ua.trim() || BOT.test(ua);
 
