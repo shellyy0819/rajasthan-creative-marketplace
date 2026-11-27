@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { money } from '@/lib/money';
+import { gaFairProductClick } from '@/lib/ga-events';
 import type { FairData, FairItem, FairMaker } from '@/lib/fair-types';
 import { ProductImage } from '../ProductImage';
 import { artSvg } from './art';
@@ -52,7 +53,7 @@ export function StallSheet({ maker, real, shortlist, onAdd, onWatch, onOpenShort
             <p className="fair-price">{money(it.pricePaise)}</p>
             <div className="fair-item-actions">
               <button type="button" className="button primary" onClick={() => { onAdd(it); setSaid(maker.thanks); }}>{shortlist[it.key] ? 'Add another' : 'Add to shortlist'}</button>
-              {real && it.href ? <Link className="button" href={it.href}>View product</Link> : null}
+              {real && it.href ? <Link className="button" href={it.href} onClick={() => gaFairProductClick(it, maker, 'stall')}>View product</Link> : null}
             </div>
           </li>
         ))}
@@ -77,7 +78,7 @@ export function ShortlistSheet({ data, shortlist, onChange, onClose }: { data: F
             {lines.map(({ item, maker }) => (
               <li key={item.key}>
                 <span className="fair-line-pic"><ItemPicture item={item} real={real} /></span>
-                <div><b>{real && item.href ? <Link href={item.href}>{item.name}</Link> : item.name}</b><small>{maker.name} · {money(item.pricePaise)}</small></div>
+                <div><b>{real && item.href ? <Link href={item.href} onClick={() => gaFairProductClick(item, maker, 'shortlist')}>{item.name}</Link> : item.name}</b><small>{maker.name} · {money(item.pricePaise)}</small></div>
                 <div className="fair-stepper">
                   <button type="button" aria-label={`One less ${item.name}`} onClick={() => onChange(item.key, -1)}>−</button>
                   <output aria-label={`${shortlist[item.key]} of ${item.name}`}>{shortlist[item.key]}</output>

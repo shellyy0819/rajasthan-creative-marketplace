@@ -490,3 +490,31 @@ export const fairQuestDays = pgTable('fair_quest_days', {
   progress: jsonb('progress').notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }, t => [primaryKey({ columns: [t.code, t.day] })]);
+
+/**
+ * What a fair player did at the exhibition, one row per action, for the admin "Fair players" page. Holds no personal data: a random player code,
+ * the kind of action and a short public detail (a maker id, an item key, an activity or a quest id). Rows older than 90 days are deleted.
+ */
+export const fairEvents = pgTable('fair_events', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  code: text('code').notNull(),
+  kind: text('kind').notNull(),
+  detail: text('detail').notNull(),
+  at: timestamp('at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+}, t => [
+  check('fair_events_kind_valid', sql`${t.kind} in ('stall', 'shortlist', 'activity', 'quest')`),
+  index('fair_events_code_idx').on(t.code, t.at),
+  index('fair_events_at_idx').on(t.at),
+]);
+
+/** Seconds a player code spent in the exhibition on one IST day, counted from the heartbeat. Holds no personal data. Rows older than 90 days are deleted. */
+export const fairPlayDays = pgTable('fair_play_days', {
+  code: text('code').notNull(),
+  day: text('day').notNull(),
+  seconds: integer('seconds').notNull().default(0),
+  firstAt: timestamp('first_at', { withTimezone: true, mode: 'date' }).notNull(),
+  lastAt: timestamp('last_at', { withTimezone: true, mode: 'date' }).notNull(),
+}, t => [
+  primaryKey({ columns: [t.code, t.day] }),
+  index('fair_play_days_day_idx').on(t.day),
+]);

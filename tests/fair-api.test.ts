@@ -6,6 +6,7 @@ vi.mock('@/auth', () => ({ auth: authMock }));
 import { POST as PRESENCE } from '@/app/api/fair/presence/route';
 import { POST as CLAIM } from '@/app/api/fair/claim/route';
 import { POST as NOTES } from '@/app/api/fair/notes/route';
+import { POST as EVENTS } from '@/app/api/fair/events/route';
 import { POST as QUESTS } from '@/app/api/fair/quests/route';
 import { POST as HISTORY } from '@/app/api/fair/quests/history/route';
 import { DELETE as DELETE_NOTE } from '@/app/api/admin/fair/notes/[id]/route';
@@ -13,7 +14,8 @@ import { GET, PUT } from '@/app/api/admin/settings/fair/route';
 import { getFairSettings } from '@/lib/fair-settings';
 import { DEFAULT_MELA } from '@/lib/fair-mela';
 import { listNotes } from '@/lib/fair-notes';
-import { resetTestDb } from './helpers/testdb';
+import { fairEvents } from '@/db/schema';
+import { getTestDb, resetTestDb } from './helpers/testdb';
 
 const A = 'a'.repeat(32), B = 'b'.repeat(32);
 const UA = 'Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/130 Safari/537.36';
@@ -95,6 +97,30 @@ describe('POST /api/fair/notes', () => {
   });
 });
 
+describe('POST /api/fair/events', () => {
+  const ev = (o: Record<string, unknown> = {}) => ({ code: 'EVT234', token: A, events: [{ kind: 'stall', detail: 'dhaga' }, { kind: 'quest', detail: 'meet3' }], ...o });
+  it('needs no sign-in and saves what the player did', async () => {
+    const res = await EVENTS(post('/api/fair/events', ev()));
+    expect(res.status).toBe(200);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    expect(await res.json()).toEqual({ saved: 2 });
+    expect((await (await getTestDb()).select().from(fairEvents)).map(r => [r.code, r.kind])).toEqual([['EVT234', 'stall'], ['EVT234', 'quest']]);
+  });
+  it('refuses a code that belongs to someone else, a batch that is too big and a robot', async () => {
+    await EVENTS(post('/api/fair/events', ev()));
+    expect((await EVENTS(post('/api/fair/events', ev({ token: B })))).status).toBe(409);
+    expect((await EVENTS(post('/api/fair/events', ev({ events: Array.from({ length: 11 }, () => ({ kind: 'stall', detail: 'x' })) })))).status).toBe(400);
+    expect((await EVENTS(post('/api/fair/events', ev(), { 'user-agent': 'Googlebot/2.1' }))).status).toBe(403);
+    expect(await (await getTestDb()).select().from(fairEvents)).toHaveLength(2);
+  });
+  it('limits how many calls one code can send in a minute', async () => {
+    const statuses: number[] = [];
+    for (let i = 0; i < 32; i++) statuses.push((await EVENTS(post('/api/fair/events', ev({ code: 'SPAM23', events: [{ kind: 'stall', detail: `m${i}` }] })))).status);
+    expect(statuses.slice(0, 30).every(s => s === 200)).toBe(true);
+    expect(statuses[31]).toBe(429);
+  });
+});
+
 describe('quest progress', () => {
   const day = (o: Record<string, unknown> = {}) => ({ code: 'QST234', token: A, day: '2026-11-12', quests: [{ id: 'meet3', title: 'Meet 3 makers', target: 3 }], progress: { meet3: ['dhaga'] }, ...o });
   it('is saved under a code and read back, for its owner only', async () => {
@@ -173,6 +199,7 @@ describe('closing the whole fair', () => {
     expect((await CLAIM(post('/api/fair/claim', { code: 'AAAAAA', token: A }))).status).toBe(404);
     expect((await NOTES(post('/api/fair/notes', { code: 'AAAAAA', token: A, text: 'hello there' }))).status).toBe(404);
     expect((await QUESTS(post('/api/fair/quests', { code: 'AAAAAA', token: A }))).status).toBe(404);
+    expect((await EVENTS(post('/api/fair/events', { code: 'AAAAAA', token: A, events: [{ kind: 'stall', detail: 'x' }] }))).status).toBe(404);
     expect((await HISTORY(post('/api/fair/quests/history', { code: 'AAAAAA', token: A }))).status).toBe(404);
     expect(await listNotes()).toEqual([]);
     as('admin'); await PUT(put({ enabled: true })); authMock.mockResolvedValue(null);
