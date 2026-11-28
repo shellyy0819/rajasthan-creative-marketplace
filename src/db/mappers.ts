@@ -114,8 +114,10 @@ export const workshopSelect = {
   topicSlug: workshopTopics.slug,
   /** The host's public profile name (same rule as a product's seller name). A subquery, so callers can still join users and seller profiles themselves. */
   hostProfileName: sql<string | null>`(select coalesce(hsp.display_name, hu.name) from users hu left join seller_profiles hsp on hsp.user_id = hu.id where hu.id = ${workshops.hostId})`,
+  /** The host's profile photo address, checked by `publicLogo` before it reaches a public page. */
+  hostLogoUrl: sql<string | null>`(select hsp.logo_url from seller_profiles hsp where hsp.user_id = ${workshops.hostId})`,
 };
-export type WorkshopJoinRow = { w: WorkshopRow; cityName: string | null; citySlug: string | null; cityState: string | null; topicName: string | null; topicSlug: string | null; hostProfileName?: string | null };
+export type WorkshopJoinRow = { w: WorkshopRow; cityName: string | null; citySlug: string | null; cityState: string | null; topicName: string | null; topicSlug: string | null; hostProfileName?: string | null; hostLogoUrl?: string | null };
 /** SELECT workshops + their city and topic (both optional: an online class has no city). Add .where(...) / .orderBy(...) / .for('update', { of: workshops }) as needed. */
 export const workshopsQuery = (q: Q) =>
   q.select(workshopSelect).from(workshops)
@@ -130,6 +132,8 @@ export const toWorkshop = (r: WorkshopJoinRow): Workshop => ({
   venue: r.w.venue, ...istParts(r.w.startsAt), endsOn: r.w.endsOn, seats: r.w.seats, booked: r.w.booked, host: r.w.hostName,
   // The host's public profile (/artists/<slug>) exists for a published listing whose host has an account.
   ...(r.w.status === 'APPROVED' && r.w.hostId && r.hostProfileName ? { hostSlug: artistSlug(r.hostProfileName, r.w.hostId) } : {}),
+  // Their photo, for the card's host line; only a photo that passes the public-logo rule leaves here.
+  ...(r.w.status === 'APPROVED' && r.w.hostId && r.hostLogoUrl && publicLogo(r.w.hostId, r.hostLogoUrl) ? { hostLogo: r.hostLogoUrl } : {}),
   description: r.w.description, status: r.w.status,
   platform: r.w.platform, schedule: (r.w.schedule ?? null) as Schedule | null, languages: r.w.languages, level: r.w.level as Level | null,
   experience: r.w.experience, certifications: r.w.certifications, freeTrial: r.w.freeTrial, freeTrialDays: r.w.freeTrialDays,

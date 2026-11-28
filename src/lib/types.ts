@@ -22,6 +22,8 @@ export type Workshop = {
   host: string; description: string; status: string; hostId?: string;
   /** The host's public profile page, /artists/<hostSlug>. Only for a published listing whose host has an account. */
   hostSlug?: string;
+  /** The host's profile photo (https), only for a published listing whose host has uploaded one. */
+  hostLogo?: string;
   platform: string | null; schedule: Schedule | null; languages: string[]; level: Level | null;
   experience: string | null; certifications: string | null; freeTrial: boolean; freeTrialDays: number | null;
   makes: { title: string; text: string }[]; included: string[]; bring: string[]; minAge: number | null;
