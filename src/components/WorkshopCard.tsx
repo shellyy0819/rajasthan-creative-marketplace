@@ -10,6 +10,7 @@ import { ReserveButton } from './ReserveButton';
 import './WorkshopListings.css';
 import { WorkshopContact } from './WorkshopContact';
 import { WorkshopTitleLink } from './WorkshopTitleLink';
+import { WorkshopHost } from './WorkshopHost';
 import { gaWorkshopType } from '@/lib/ga-events';
 
 /** "Mon, Wed, Fri at 6:00 pm, 60 min": if the line has to wrap, the length ("60 min") moves down as a whole instead of splitting between "60" and "min". */
@@ -51,8 +52,8 @@ export function WorkshopCard({ w }: { w: Workshop }) {
           <span className="ws-eyebrow">{chip}</span>
           <h3><WorkshopTitleLink href={`/workshops/${workshopSlug(w)}`} workshopId={w.id} category={w.topic?.name} contentType={gaWorkshopType(w)}>{w.title}</WorkshopTitleLink></h3>
           {isClass
-            ? <p>{w.schedule ? <ScheduleLine text={describeSchedule(w.schedule)} /> : 'Online class'}<br />Instructor: {w.host}</p>
-            : <p>{w.venue} · <time dateTime={`${w.date}T${w.time}+05:30`}>{w.time}</time><br />Host: {w.host}{bookable && <span className="ws-seats-inline">{` · ${left} seats left`}</span>}</p>}
+            ? <p>{w.schedule ? <ScheduleLine text={describeSchedule(w.schedule)} /> : 'Online class'}<br /><WorkshopHost label="Instructor" host={w.host} slug={w.hostSlug} logo={w.hostLogo} /></p>
+            : <p>{w.venue} · <time dateTime={`${w.date}T${w.time}+05:30`}>{w.time}</time><br /><WorkshopHost label="Host" host={w.host} slug={w.hostSlug} logo={w.hostLogo} />{bookable && <span className="ws-seats-inline">{` · ${left} seats left`}</span>}</p>}
         </div>
         {(w.level || w.languages.length > 0) && (
           <p className="ws-badges">

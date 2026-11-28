@@ -83,6 +83,12 @@
 .workshop-card h3 a::after { content: ''; position: absolute; inset: 0; }
 .workshop-card .workshop-price a, .workshop-card .workshop-price button { position: relative; z-index: 1; }
 
+/* The host line: a 20px round photo (or the placeholder) before the name; the name opens the host's profile and sits above the card-wide title link. */
+.workshop-card .ws-host { display: inline-flex; align-items: center; gap: 6px; }
+.workshop-card .ws-host-avatar { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; flex: none; background: var(--cream); }
+.workshop-card .ws-host-link { position: relative; z-index: 1; color: var(--ink-soft); text-decoration: underline; text-underline-offset: 2px; }
+.workshop-card .ws-host-link:hover { color: var(--green-d); }
+
 /* Call, WhatsApp and Instagram: the mark alone, no ring around it; the button is still 40px (44px on tablets and phones) so it is easy to tap. */
 .ws-contact .ws-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--ink); line-height: 0; }
 .ws-contact .ws-icon:hover { opacity: .8; }
