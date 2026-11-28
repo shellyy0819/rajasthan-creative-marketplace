@@ -16,12 +16,22 @@ describe('serializeJsonLd', () => {
 });
 
 describe('productJsonLd', () => {
-  it('has absolute image + brand and no offers (contact-only, no checkout)', () => {
+  it('has absolute image + brand and an offer with the price, currency and stock', () => {
     const j = productJsonLd(product) as any;
     expect(j['@type']).toBe('Product');
-    expect(j).not.toHaveProperty('offers');
     expect(j.image[0]).toBe('https://rr.test/products/crochet-lily-bouquet-p1/opengraph-image');
     expect(j.brand).toMatchObject({ '@type': 'Brand', name: 'Shauk and Stuff' });
+    expect(j.offers).toMatchObject({ '@type': 'Offer', url: 'https://rr.test/products/crochet-lily-bouquet-p1', price: '850.00', priceCurrency: 'INR', availability: 'https://schema.org/InStock', seller: { '@type': 'Organization', name: 'Shauk and Stuff' } });
+  });
+  it('marks a product with no stock as out of stock', () => {
+    expect((productJsonLd({ ...product, stock: 0 }) as any).offers.availability).toBe('https://schema.org/OutOfStock');
+  });
+  it('describes a price-on-request product as a plain page, with no Product and no invented offer', () => {
+    const j = productJsonLd({ ...product, pricePaise: null }) as any;
+    expect(j['@type']).toBe('WebPage');
+    expect(j).not.toHaveProperty('offers');
+    expect(j.about).toMatchObject({ '@type': 'Thing', name: 'Crochet Lily Bouquet' });
+    expect(j.url).toBe('https://rr.test/products/crochet-lily-bouquet-p1');
   });
   it('lists every photo, then the generated share image', () => {
     const og = 'https://rr.test/products/crochet-lily-bouquet-p1/opengraph-image';
